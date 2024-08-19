@@ -1,0 +1,339 @@
+﻿<UserControl x:Class="Tracker.Controls.EditableContactCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Tracker.Controls"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:textBox="clr-namespace:DeepEndControls.Controls.TextBox;assembly=DeepEndControls"
+             xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             mc:Ignorable="d" 
+             Background="{DynamicResource BackgroundBrush}"
+             d:DesignHeight="650" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <system:Boolean x:Key="TrueValue">True</system:Boolean>
+            <system:Boolean x:Key="FalseValue">False</system:Boolean>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"></ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Ellipse Grid.Row="0"
+                     Width="100" 
+                     Height="100"
+                     Stroke="{DynamicResource ForegroundBrush}"
+                     StrokeThickness="2"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Top"
+                     Margin="0,10,0,10">
+                <Ellipse.Fill>
+                    <ImageBrush ImageSource="{Binding ProfileImage}"
+                            RenderOptions.BitmapScalingMode="HighQuality"
+                            Stretch="UniformToFill"/>
+                </Ellipse.Fill>
+            </Ellipse>
+            <Button Style="{StaticResource DialogButtonStyle}"
+                HorizontalAlignment="Center"
+                Command="{Binding ChooseProfilePictureCommand}"
+                VerticalAlignment="Center"
+                Content="Change Profile Picture"
+                Margin="0,-2,0,0"
+                Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                Grid.Row="1"/>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Label Style="{StaticResource LabelStyle}" 
+                   Margin="0,0,0, 0"
+                   Grid.Column="0"
+                   Content="Details" />
+            <Button x:Name="EditModeButton"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding ToggleEditModeCommand}"
+                    CommandParameter="{StaticResource TrueValue}"
+                    VerticalAlignment="Top"
+                    Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"
+                    Grid.Column="2">
+                <Path Data="M21.7,13.35L20.7,14.35L18.65,12.3L19.65,11.3C19.86,11.09 20.21,11.09 20.42,11.3L21.7,12.58C21.91,12.79 21.91,13.14 21.7,13.35M12,18.94L18.06,12.88L20.11,14.93L14.06,21H12V18.94M12,14C7.58,14 4,15.79 4,18V20H10V18.11L14,14.11C13.34,14.03 12.67,14 12,14M12,4A4,4 0 0,0 8,8A4,4 0 0,0 12,12A4,4 0 0,0 16,8A4,4 0 0,0 12,4Z"
+                          Stretch="Uniform"
+                          Fill="{DynamicResource ForegroundBrush}"/>
+                <Button.ToolTip>
+                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                        <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_Edit}"/>
+                    </ToolTip>
+                </Button.ToolTip>
+            </Button>
+            <Button x:Name="SaveInfoButton"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding ToggleEditModeCommand}" 
+                    CommandParameter="{StaticResource FalseValue}"
+                    VerticalAlignment="Top"
+                    Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                    Grid.Column="2">
+                <Path Data="M19,21V19H15V17H19V15L22,18L19,21M10,4A4,4 0 0,1 14,8A4,4 0 0,1 10,12A4,4 0 0,1 6,8A4,4 0 0,1 10,4M10,14C11.15,14 12.25,14.12 13.24,14.34C12.46,15.35 12,16.62 12,18C12,18.7 12.12,19.37 12.34,20H2V18C2,15.79 5.58,14 10,14Z"
+                      Stretch="Uniform"
+                      Fill="{DynamicResource ForegroundBrush}"/>
+                <Button.ToolTip>
+                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                        <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_Save}"/>
+                    </ToolTip>
+                </Button.ToolTip>
+            </Button>
+        </Grid>
+        <Grid Margin="10"
+              Visibility="{Binding ElementName=SaveInfoButton, Path=Visibility}"
+              Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <textBox:TextBoxWithHint TextBoxType="Text"
+                                     Text="{Binding FirstName }"
+                                     HintText="{x:Static languages:Resources.Label_FirstName}"
+                                     Grid.Row="1"
+                                     Grid.Column="0" />
+            <textBox:TextBoxWithHint HintText="{x:Static languages:Resources.Label_LastName}"
+                                     TextBoxType="Text"
+                                     Text="{Binding LastName}"
+                                     Margin="0,5,0, 0"
+                                     Grid.Row="2"
+                                     Grid.Column="0" />
+            <textBox:TextBoxWithHint HintText="{x:Static languages:Resources.Label_Email}"
+                                     TextBoxType="Email"
+                                     Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,5,0, 0"
+                                     Grid.Row="3"
+                                     Grid.Column="0" />
+            <textBox:TextBoxWithHint HintText="{x:Static languages:Resources.Label_Cell}"
+                                     TextBoxType="Phone"
+                                     Text="{Binding CellPhone, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,5,0, 0"
+                                     Grid.Row="4"
+                                     Grid.Column="0" />
+            <textBox:TextBoxWithHint HintText="{x:Static languages:Resources.Label_JobTitle}"
+                                     TextBoxType="Text"
+                                     Text="{Binding JobTitle, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,5,0, 0"
+                                     Grid.Row="5"
+                                     Grid.Column="0" />
+            <textBox:TextBoxWithHint HintText="{x:Static languages:Resources.Label_NickName}"
+                                     TextBoxType="Text"
+                                     Text="{Binding NickName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,5,0, 0"
+                                     Grid.Row="6"
+                                     Grid.Column="0" />
+            <Grid Grid.Row="7"
+                  Margin="0,5,0, 0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <DockPanel HorizontalAlignment="Stretch"
+                           LastChildFill="True">
+                    <Label Style="{StaticResource LabelStyle}"
+                           Margin="0,0,10,0" 
+                           Content="{x:Static languages:Resources.Label_Role}"/>
+                    <ComboBox HorizontalAlignment="Stretch" 
+                                  ItemsSource="{Binding Roles}"
+                                  SelectedItem="{Binding SelectedRole}"
+                                  DisplayMemberPath="Description"/>
+                </DockPanel>
+            </Grid>
+            <Grid Grid.Row="8"
+                  Margin="0,5,0, 0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <DockPanel HorizontalAlignment="Stretch"
+                           LastChildFill="True">
+                    <Label Style="{StaticResource LabelStyle}"
+                           Margin="0,0,10,0" 
+                           Content="{x:Static languages:Resources.Label_Level}"/>
+                    <ComboBox HorizontalAlignment="Stretch" 
+                              ItemsSource="{Binding Levels}"
+                              SelectedItem="{Binding SelectedLevel}"
+                              DisplayMemberPath="Description"/>
+                </DockPanel>
+            </Grid>
+            <Grid Grid.Row="9"
+                  Margin="0,5,0, 0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <DockPanel HorizontalAlignment="Stretch"
+                           LastChildFill="True">
+                    <Label Style="{StaticResource LabelStyle}"
+                           Margin="0,0,10,0" 
+                           Content="{x:Static languages:Resources.Label_Speciality}"/>
+                    <ComboBox HorizontalAlignment="Stretch" 
+                              ItemsSource="{Binding Specialties}"
+                              SelectedItem="{Binding SelectedSpeciality}"
+                              DisplayMemberPath="Description"/>
+                </DockPanel>
+            </Grid>
+            
+        </Grid>
+        <Grid Margin="10"
+              Grid.Row="1"
+              Visibility="{Binding ElementName=EditModeButton, Path=Visibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="10" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal"
+                        Margin="0,10,0,0"
+                        Grid.Row="0">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0" 
+                       Content="{Binding FirstName}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0" 
+                       Content="{Binding LastName}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="10,0,0, 0"  >
+                    <Label.Content>
+                        <TextBlock>
+                                <Run Text="(" />
+                                <Run Text="{Binding NickName}" />
+                                <Run Text=")" />
+                        </TextBlock>
+                    </Label.Content>
+                </Label>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"
+                        Grid.Row="1">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0" 
+                       Content="{x:Static languages:Resources.Label_Role}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0" 
+                       Content="{Binding SelectedRole.Description}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="10,0,0, 0" >
+                    <Label.Content>
+                        <TextBlock>
+                            <Run Text="(" />
+                            <Run Text="{Binding SelectedLevel.Description, Mode=OneWay}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </Label.Content>
+                </Label>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"
+                        Grid.Row="3">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0" 
+                       Content="{x:Static languages:Resources.Label_Speciality}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0" 
+                       Content="{Binding SelectedSpeciality.Description}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"
+                        Grid.Row="4">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0" 
+                       Content="{x:Static languages:Resources.Label_JobTitleColon}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0" 
+                       Content="{Binding JobTitle}" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        Grid.Row="6">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0" 
+                       Content="{x:Static languages:Resources.Label_BirthdayColon}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0" 
+                       Content="{Binding BirthDayDisplay}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"
+                        Grid.Row="7">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0" 
+                       Content="{x:Static languages:Resources.Label_HireDateColon}" />
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0"  
+                       Content="{Binding HireDateDisplay}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"
+                        Visibility="{Binding IsActive, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"
+                        Grid.Row="8">
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,03, 0"
+                       Content="{x:Static languages:Resources.Label_TerminationDateColon}"/>
+
+                <Label Style="{StaticResource LabelStyle}" 
+                       Margin="0,0,0, 0" 
+                       Content="{Binding TerminationDateDisplay}" />
+            </StackPanel>
+            <Label Style="{StaticResource LabelStyle}" 
+                   Margin="0,0,0, 0" 
+                   Grid.Row="9"
+                   Content="{Binding Email}" />
+            <Label Style="{StaticResource LabelStyle}" 
+                   Margin="0,0,0, 0" 
+                   Grid.Row="10"
+                   Content="{Binding CellPhone}" />
+
+            <StackPanel Orientation="Horizontal"
+                        Grid.Row="11">
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Margin="0,0,5,0"
+                        Command="{Binding LaunchLinkedInUrlCommand}" >
+                    <Path Stretch="Uniform"
+                          Data="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19M18.5 18.5V13.2A3.26 3.26 0 0 0 15.24 9.94C14.39 9.94 13.4 10.46 12.92 11.24V10.13H10.13V18.5H12.92V13.57C12.92 12.8 13.54 12.17 14.31 12.17A1.4 1.4 0 0 1 15.71 13.57V18.5H18.5M6.88 8.56A1.68 1.68 0 0 0 8.56 6.88C8.56 5.95 7.81 5.19 6.88 5.19A1.69 1.69 0 0 0 5.19 6.88C5.19 7.81 5.95 8.56 6.88 8.56M8.27 18.5V10.13H5.5V18.5H8.27Z"
+                          Fill="{StaticResource ForegroundBrush}">
+                        <Path.ToolTip>
+                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}"/>
+                            </ToolTip>
+                        </Path.ToolTip>
+                    </Path>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>
