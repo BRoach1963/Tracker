@@ -183,62 +183,28 @@
                                     </ToolTip>
                                 </textBox:SocialMediaLinkTextBox.ToolTip>
                             </textBox:SocialMediaLinkTextBox>
-                             
-                            <Grid Grid.Row="2" 
-                                  Margin="0,5,0, 0"
-                                  VerticalAlignment="Top">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Style="{StaticResource ToolbarButtonStyle}"
-                                    Command="{Binding LaunchLinkedInUrlCommand}"
-                                    Grid.Column="0">
-                                    <Path Stretch="Uniform"
-                                      Data="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z"
-                                      Fill="{StaticResource ForegroundBrush}">
-                                        <Path.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}"/>
-                                            </ToolTip>
-                                        </Path.ToolTip>
-                                    </Path>
-                                </Button>
-                                <textBox:TextBoxWithHint HintText="Enter Instagram profile link"
-                                                     TextBoxType="Text"
-                                                     VerticalAlignment="Center"
-                                                     Text="{Binding InstagramProfile, UpdateSourceTrigger=PropertyChanged}" 
-                                                     Grid.Column="1"  />
-                            </Grid>
-                            <Grid Grid.Row="3"
-                                  Margin="0,5,0, 0"
-                                  VerticalAlignment="Top">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Style="{StaticResource ToolbarButtonStyle}"
-                                    Command="{Binding LaunchLinkedInUrlCommand}"
-                                    Grid.Column="0">
-                                    <Path Stretch="Uniform"
-                                      Data="M9,7H11L12,9.5L13,7H15L13,12L15,17H13L12,14.5L11,17H9L11,12L9,7M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M5,5V19H19V5H5Z"
-                                      Fill="{StaticResource ForegroundBrush}">
-                                        <Path.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}"/>
-                                            </ToolTip>
-                                        </Path.ToolTip>
-                                    </Path>
-                                </Button>
-                                <textBox:TextBoxWithHint HintText="Enter X profile link"
-                                                     TextBoxType="Text"
-                                                     VerticalAlignment="Center"
-                                                     Text="{Binding XProfile, UpdateSourceTrigger=PropertyChanged}" 
-                                                     Grid.Column="1"  />
-                            </Grid>
-
+                            <textBox:SocialMediaLinkTextBox Grid.Row="2"
+                                                            HintText="{x:Static languages:Resources.HintText_Instagram}"
+                                                            SocialMediaType="Instagram"
+                                                            Text="{Binding InstagramProfile, UpdateSourceTrigger=PropertyChanged}"
+                                                            Margin="0,05,0, 0">
+                                <textBox:SocialMediaLinkTextBox.ToolTip>
+                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                        <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}"/>
+                                    </ToolTip>
+                                </textBox:SocialMediaLinkTextBox.ToolTip>
+                            </textBox:SocialMediaLinkTextBox>
+                            <textBox:SocialMediaLinkTextBox Grid.Row="3"
+                                                            HintText="{x:Static languages:Resources.HintText_XTwitter}"
+                                                            SocialMediaType="XTwitter"
+                                                            Text="{Binding XProfile, UpdateSourceTrigger=PropertyChanged}"
+                                                            Margin="0,05,0, 0">
+                                <textBox:SocialMediaLinkTextBox.ToolTip>
+                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                        <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}"/>
+                                    </ToolTip>
+                                </textBox:SocialMediaLinkTextBox.ToolTip>
+                            </textBox:SocialMediaLinkTextBox> 
                         </Grid>
 
                     </Grid>

@@ -13,6 +13,24 @@
     <Compile Update="Controls\EditableContactCard.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Controls\KpisControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Controls\OkrsControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Controls\OneOnOnesControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Controls\ProjectsControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Controls\TasksControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Controls\TeamMembersControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Controls\TrackerToolTip.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -33,6 +51,24 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Controls\EditableContactCard.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\KpisControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\OkrsControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\OneOnOnesControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\ProjectsControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\TasksControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\TeamMembersControl.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Controls\TrackerToolTip.xaml">

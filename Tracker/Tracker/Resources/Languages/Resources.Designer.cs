@@ -133,6 +133,24 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Enter Instagram profile.
+        /// </summary>
+        public static string HintText_Instagram {
+            get {
+                return ResourceManager.GetString("HintText_Instagram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter X Profile.
+        /// </summary>
+        public static string HintText_XTwitter {
+            get {
+                return ResourceManager.GetString("HintText_XTwitter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to iOS.
         /// </summary>
         public static string ios {
@@ -466,11 +484,56 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add KPI.
+        /// </summary>
+        public static string ToolTip_AddKpi {
+            get {
+                return ResourceManager.GetString("ToolTip_AddKpi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add new team member.
         /// </summary>
         public static string ToolTip_AddMember {
             get {
                 return ResourceManager.GetString("ToolTip_AddMember", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add OKR.
+        /// </summary>
+        public static string ToolTip_AddOKR {
+            get {
+                return ResourceManager.GetString("ToolTip_AddOKR", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add One on One.
+        /// </summary>
+        public static string ToolTip_AddOneOnOne {
+            get {
+                return ResourceManager.GetString("ToolTip_AddOneOnOne", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add project.
+        /// </summary>
+        public static string ToolTip_AddProject {
+            get {
+                return ResourceManager.GetString("ToolTip_AddProject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add task.
+        /// </summary>
+        public static string ToolTip_AddTask {
+            get {
+                return ResourceManager.GetString("ToolTip_AddTask", resourceCulture);
             }
         }
         

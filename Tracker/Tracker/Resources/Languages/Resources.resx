@@ -273,4 +273,25 @@
   <data name="windows" xml:space="preserve">
     <value>Windows</value>
   </data>
+  <data name="HintText_XTwitter" xml:space="preserve">
+    <value>Enter X Profile</value>
+  </data>
+  <data name="HintText_Instagram" xml:space="preserve">
+    <value>Enter Instagram profile</value>
+  </data>
+  <data name="ToolTip_AddOneOnOne" xml:space="preserve">
+    <value>Add One on One</value>
+  </data>
+  <data name="ToolTip_AddProject" xml:space="preserve">
+    <value>Add project</value>
+  </data>
+  <data name="ToolTip_AddTask" xml:space="preserve">
+    <value>Add task</value>
+  </data>
+  <data name="ToolTip_AddOKR" xml:space="preserve">
+    <value>Add OKR</value>
+  </data>
+  <data name="ToolTip_AddKpi" xml:space="preserve">
+    <value>Add KPI</value>
+  </data>
 </root>

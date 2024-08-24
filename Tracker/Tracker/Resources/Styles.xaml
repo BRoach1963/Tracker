@@ -2,7 +2,11 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:controls="clr-namespace:Tracker.Controls"
-                    xmlns:converters="clr-namespace:Tracker.Common.Converters">
+                    xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                    xmlns:local="clr-namespace:Tracker.AttachedProperties">
+
+
+    <converters:BooleanToAngleConverter x:Key="BooleanToAngleConverter" />
 
     <Style x:Key="CloseButton"
            TargetType="{x:Type Button}">
@@ -118,6 +122,8 @@
                 Value="3" />
         <Setter Property="Height"
                 Value="20" />
+        <Setter Property="Padding"
+                Value="2" />
         <Setter Property="Background"
                 Value="{DynamicResource BackgroundBrush}" />
         <Setter Property="Width"
@@ -129,7 +135,7 @@
                         <Border CornerRadius="3"
                                 BorderThickness="1"
                                 Background="{TemplateBinding Background}"
-                                Padding="2"
+                                Padding="{TemplateBinding Padding}"
                                 BorderBrush="{DynamicResource ForegroundBrush}">
                             <ContentPresenter />
                         </Border>
@@ -425,7 +431,7 @@
                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                           TextElement.Foreground="{DynamicResource ForegroundBrush}"
-                                          Margin="5,1,5,1"> 
+                                          Margin="5,1,5,1">
                         </ContentPresenter>
                         <Path x:Name="Blackout"
                               Opacity="0"
@@ -441,7 +447,7 @@
                                    IsHitTestVisible="false"
                                    RadiusX="1"
                                    Stroke="{DynamicResource ForegroundBrush}"
-                                   RadiusY="1"> 
+                                   RadiusY="1">
                         </Rectangle>
                     </Grid>
                 </ControlTemplate>
@@ -553,13 +559,13 @@
                                    RadiusX="1"
                                    RadiusY="1"
                                    Fill="{DynamicResource BackgroundBrush}"
-                                   Opacity="0"> 
+                                   Opacity="0">
                         </Rectangle>
                         <ContentPresenter x:Name="NormalText"
                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                           TextElement.Foreground="{DynamicResource ForegroundBrush}"
-                                          Margin="1,0,1,1"> 
+                                          Margin="1,0,1,1">
                         </ContentPresenter>
                         <Rectangle x:Name="CalendarButtonFocusVisual"
                                    Visibility="Collapsed"
@@ -575,7 +581,7 @@
             </Setter.Value>
         </Setter>
         <Setter Property="Background"
-                Value="{DynamicResource BackgroundBrush}"> 
+                Value="{DynamicResource BackgroundBrush}">
         </Setter>
     </Style>
 
@@ -614,7 +620,7 @@
                       VerticalAlignment="Center"
                       Width="6"
                       Fill="{DynamicResource BackgroundBrush}"
-                      Data="M288.75,232.25 L288.75,240.625 L283,236.625 z"> 
+                      Data="M288.75,232.25 L288.75,240.625 L283,236.625 z">
                 </Path>
             </Grid>
         </Grid>
@@ -655,7 +661,7 @@
                       Stretch="Fill"
                       VerticalAlignment="Center"
                       Fill="{DynamicResource BackgroundBrush}"
-                      Width="6"> 
+                      Width="6">
                 </Path>
             </Grid>
         </Grid>
@@ -1380,4 +1386,202 @@ style so that the DatePicker will use the application's calendar style.-->
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Data Grid Styles -->
+
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="2,5,5,5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Border Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}">
+                        <Grid>
+                            <!-- Background Rectangle -->
+                            <Rectangle Fill="{TemplateBinding Background}" />
+
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="10" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Content Presenter for Header Text -->
+                                <ContentPresenter Grid.Column="0"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+
+                                <!-- Sort Indicator -->
+                                <Path x:Name="SortIndicator"
+                                      Grid.Column="1"
+                                      Data="M 0 0 L 4 4 L 8 0 Z"
+                                      Fill="{StaticResource ForegroundBrush}"
+                                      VerticalAlignment="Center"
+                                      Stretch="Uniform"
+                                      Width="10"
+                                      RenderTransformOrigin="0.5,0.5"
+                                      Visibility="Collapsed">
+                                    <Path.RenderTransform>
+                                        <RotateTransform Angle="0"/>
+                                    </Path.RenderTransform>
+                                </Path>
+                            </Grid>
+
+                            <!-- Column Separator -->
+                            <Grid HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <!-- Spacer above -->
+                                    <RowDefinition Height="Auto" />
+                                    <!-- Separator row -->
+                                    <RowDefinition Height="*" />
+                                    <!-- Spacer below -->
+                                </Grid.RowDefinitions>
+                                <Border x:Name="Separator" 
+                                    Grid.Row="1"
+                                    Width="1" 
+                                    Background="{StaticResource ForegroundBrush}" 
+                                    HorizontalAlignment="Right"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Trigger to show sort indicator when sorting -->
+                        <Trigger Property="SortDirection" Value="Ascending">
+                            <Setter TargetName="SortIndicator" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="SortIndicator" Property="RenderTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="0"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="SortDirection" Value="Descending">
+                            <Setter TargetName="SortIndicator" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="SortIndicator" Property="RenderTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="180"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <!-- Hide Separator on the last column -->
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="DataGridCell">
+        <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="2,5,5,5"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- Trigger for selected row using RelativeSource to bind to the DataGridRow's IsSelected property -->
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="DataGridRow">
+        <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="BorderThickness" Value="1,0,1,1"/>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ExpansionButtonStyle"
+           TargetType="Button">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border BorderBrush="{DynamicResource ForegroundBrush}"
+                            Background="{DynamicResource BackgroundBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="5">
+                        <Grid>
+                            <Path x:Name="ArrowPath"
+                                  Data="M14,7L9,12L14,17V7Z"
+                                  Stretch="Uniform"
+                                  Height="20"
+                                  Grid.Column="0"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  RenderTransformOrigin="0.5,0.5"
+                                  Fill="{DynamicResource ForegroundBrush}">
+                                <Path.RenderTransform>
+                                    <!-- Set initial angle based on the initial collapsed state -->
+                                    <RotateTransform Angle="{Binding ElementName=TabControl, Path=(local:TabControlExtensions.IsCollapsed), Converter={StaticResource BooleanToAngleConverter}}" />
+                                </Path.RenderTransform>
+                            </Path>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Trigger for IsCollapsed = True (Collapsed State) -->
+                        <DataTrigger Binding="{Binding ElementName=TabControl, Path=(local:TabControlExtensions.IsCollapsed)}"
+                                     Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard x:Name="CollapseRotation">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ArrowPath"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                         To="180"
+                                                         Duration="0:0:0.3" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="CollapseRotation" />
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <!-- Trigger for IsCollapsed = False (Expanded State) -->
+                        <DataTrigger Binding="{Binding ElementName=TabControl, Path=(local:TabControlExtensions.IsCollapsed)}"
+                                     Value="False">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard x:Name="ExpandRotation">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ArrowPath"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                         To="0"
+                                                         Duration="0:0:0.3" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="ExpandRotation" />
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

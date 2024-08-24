@@ -33,6 +33,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private EnumWrapper<RoleEnum> _selectedRole;
         private EnumWrapper<EngineeringSpecialtyEnum> _selectedSpecialty;
         private EnumWrapper<SkillLevelEnum> _selectedLevel;
+
         #endregion
 
         #region Ctor
@@ -284,6 +285,36 @@ namespace Tracker.ViewModels.DialogViewModels
             set
             {
                 _data.LinkedInProfile = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string FacebookProfile
+        {
+            get => _data.FacebookProfile;
+            set
+            {
+                _data.FacebookProfile = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string InstagramProfile
+        {
+            get => _data.InstagramProfile;
+            set
+            {
+                _data.InstagramProfile = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string XProfile
+        {
+            get => _data.XProfile;
+            set
+            {
+                _data.XProfile = value;
                 RaisePropertyChanged();
             }
         }

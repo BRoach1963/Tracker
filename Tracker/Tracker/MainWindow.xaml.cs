@@ -1,6 +1,7 @@
 ﻿using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.Managers;
+using Tracker.ViewModels;
 
 namespace Tracker
 {
@@ -12,6 +13,7 @@ namespace Tracker
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new TrackerMainViewModel();
         }
  
     }

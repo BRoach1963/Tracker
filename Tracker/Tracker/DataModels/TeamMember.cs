@@ -1,4 +1,6 @@
-﻿namespace Tracker.DataModels
+﻿using Tracker.Common.Enums;
+
+namespace Tracker.DataModels
 {
     public class TeamMember
     {
@@ -40,6 +42,18 @@
         public byte[] ProfileImage { get; set; }
 
         public string LinkedInProfile { get; set; }
+
+        public string FacebookProfile { get; set; }
+
+        public string InstagramProfile { get; set; }
+
+        public string XProfile { get; set; }
+
+        public EngineeringSpecialtyEnum Specialty { get; set; }
+
+        public SkillLevelEnum SkillLevel { get; set; }
+
+        public RoleEnum Role { get; set; }
 
         #endregion
     }
