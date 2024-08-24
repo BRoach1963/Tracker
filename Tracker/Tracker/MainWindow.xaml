@@ -66,7 +66,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition x:Name="Spacer"
-                                                      Width="8"/>
+                                                      Width="8" />
                                     <ColumnDefinition x:Name="ContentColumn"
                                                       Width="*" />
                                 </Grid.ColumnDefinitions>
@@ -149,6 +149,7 @@
                             Background="{DynamicResource BackgroundBrush}"
                             Grid.ColumnSpan="2" />
                     <TabControl x:Name="TabControl"
+                                SelectionChanged="TabChangedEventHandler"
                                 Grid.Column="1"
                                 Margin="0,0,5,0">
                         <TabItem x:Name="Team"
@@ -179,25 +180,61 @@
                             HorizontalAlignment="Right"
                             Command="{x:Static attachedProperties:TabControlExtensions.ToggleCollapseCommand}"
                             CommandParameter="{Binding ElementName=TabControl}" />
-                    <!--<GridSplitter Grid.Column="2"
-                                  Width="2"
-                                  Background="{DynamicResource ForegroundBrush}"
-                                  HorizontalAlignment="Stretch"
-                                  VerticalAlignment="Stretch"
-                                  ResizeBehavior="PreviousAndNext"
-                                  ResizeDirection="Columns" />-->
-                    <controls:TeamMembersControl Grid.Column="3"
-                                                 Visibility="{Binding ElementName=Team, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                    <controls:OneOnOnesControl Grid.Column="3"
-                                               Visibility="{Binding ElementName=OneOnOne, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                    <controls:ProjectsControl Grid.Column="3"
-                                              Visibility="{Binding ElementName=Projects, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                    <controls:TasksControl Grid.Column="3"
-                                           Visibility="{Binding ElementName=Tasks, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                    <controls:OkrsControl Grid.Column="3"
-                                          Visibility="{Binding ElementName=Okrs, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                    <controls:KpisControl Grid.Column="3"
-                                          Visibility="{Binding ElementName=Kpis, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
+
+                    <controls:TeamMembersControl x:Name="TeamControl"
+                                                 Grid.Column="3"
+                                                 IsHitTestVisible="{Binding ElementName=Team, Path=IsSelected}"
+                                                 RenderTransformOrigin="1,0"
+                                                 Opacity="{Binding ElementName=Team, Path=IsSelected, Converter={x:Static converters:BooleanToOpacityConverter.Instance}}">
+                        <controls:TeamMembersControl.RenderTransform>
+                            <TranslateTransform X="0" />
+                        </controls:TeamMembersControl.RenderTransform>
+                    </controls:TeamMembersControl>
+                    <controls:OneOnOnesControl x:Name="OneOnOnesControl"
+                                               Grid.Column="3"
+                                               IsHitTestVisible="{Binding ElementName=OneOnOne, Path=IsSelected}"
+                                               RenderTransformOrigin="1,0"
+                                               Opacity="{Binding ElementName=OneOnOne, Path=IsSelected, Converter={x:Static converters:BooleanToOpacityConverter.Instance}}">
+                        <controls:OneOnOnesControl.RenderTransform>
+                            <TranslateTransform X="0" />
+                        </controls:OneOnOnesControl.RenderTransform>
+                    </controls:OneOnOnesControl>
+                    <controls:ProjectsControl x:Name="ProjectsControl"
+                                              Grid.Column="3"
+                                              IsHitTestVisible="{Binding ElementName=Projects, Path=IsSelected}"
+                                              RenderTransformOrigin="1,0"
+                                              Opacity="{Binding ElementName=Projects, Path=IsSelected, Converter={x:Static converters:BooleanToOpacityConverter.Instance}}">
+                        <controls:ProjectsControl.RenderTransform>
+                            <TranslateTransform X="0" />
+                        </controls:ProjectsControl.RenderTransform>
+                    </controls:ProjectsControl>
+                    <controls:TasksControl x:Name="TasksControl"
+                                           Grid.Column="3"
+                                           RenderTransformOrigin="1,0"
+                                           IsHitTestVisible="{Binding ElementName=Tasks, Path=IsSelected}"
+                                           Opacity="{Binding ElementName=Tasks, Path=IsSelected, Converter={x:Static converters:BooleanToOpacityConverter.Instance}}">
+                        <controls:TasksControl.RenderTransform>
+                            <TranslateTransform X="0" />
+                        </controls:TasksControl.RenderTransform>
+                    </controls:TasksControl>
+                    <controls:OkrsControl x:Name="OkrsControl"
+                                          Grid.Column="3"
+                                          RenderTransformOrigin="1,0"
+                                          IsHitTestVisible="{Binding ElementName=Okrs, Path=IsSelected}"
+                                          Opacity="{Binding ElementName=Okrs, Path=IsSelected, Converter={x:Static converters:BooleanToOpacityConverter.Instance}}">
+                        <controls:OkrsControl.RenderTransform>
+                            <TranslateTransform X="0" />
+                        </controls:OkrsControl.RenderTransform>
+                    </controls:OkrsControl>
+                    <controls:KpisControl x:Name="KpisControl"
+                                          Grid.Column="3"
+                                          RenderTransformOrigin="1,0"
+                                          IsHitTestVisible="{Binding ElementName=Kpis, Path=IsSelected}"
+                                          Opacity="{Binding ElementName=Kpis, Path=IsSelected, Converter={x:Static converters:BooleanToOpacityConverter.Instance}}">
+                        <controls:KpisControl.RenderTransform>
+                            <TranslateTransform X="0" />
+                        </controls:KpisControl.RenderTransform>
+                    </controls:KpisControl>
                 </Grid>
             </Grid>
         </Border>

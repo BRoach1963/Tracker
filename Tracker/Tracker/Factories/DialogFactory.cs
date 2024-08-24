@@ -29,6 +29,9 @@ namespace Tracker.Factories
                         Owner = (Window)new WeakReference(UIHelper.GetOwnerWindow(type)).Target
                     };
                     return true;
+                default:
+                    MessageBox.Show($"No dialog available for type {type}", "Invalid Dialog", MessageBoxButton.OK);
+                    return false;
             }
 
             return false;
