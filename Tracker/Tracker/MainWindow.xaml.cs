@@ -2,10 +2,7 @@
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Tracker.AttachedProperties;
-using Tracker.Common.Enums;
 using Tracker.Controls;
-using Tracker.Managers;
 using Tracker.ViewModels;
 
 namespace Tracker
@@ -23,17 +20,17 @@ namespace Tracker
             InitializeComponent();
             DataContext = new TrackerMainViewModel();
             SubscribeToSizingEvents();
-            Unloaded += (s, e) =>
+            this.Unloaded += (s, e) =>
             { 
                 UnsubscribeFromSizingEvents();
-                Unloaded -= (RoutedEventHandler)((s, e) => { /* Same logic here if needed */ });
+                this.Unloaded -= (RoutedEventHandler)((s, e) => { /* Same logic here if needed */ });
             };
         }
 
         private void SubscribeToSizingEvents()
         {
-            TeamControl.SizeChanged += Control_SizeChanged;
-            OneOnOnesControl.SizeChanged += Control_SizeChanged;
+            this.TeamControl.SizeChanged += Control_SizeChanged;
+            this.OneOnOnesControl.SizeChanged += Control_SizeChanged;
             this.KpisControl.SizeChanged += Control_SizeChanged;
             this.OkrsControl.SizeChanged += Control_SizeChanged;
             this.TasksControl.SizeChanged += Control_SizeChanged;
@@ -42,8 +39,8 @@ namespace Tracker
 
         private void UnsubscribeFromSizingEvents()
         {
-            TeamControl.SizeChanged -= Control_SizeChanged;
-            OneOnOnesControl.SizeChanged -= Control_SizeChanged;
+            this.TeamControl.SizeChanged -= Control_SizeChanged;
+            this.OneOnOnesControl.SizeChanged -= Control_SizeChanged;
             this.KpisControl.SizeChanged -= Control_SizeChanged;
             this.OkrsControl.SizeChanged -= Control_SizeChanged;
             this.TasksControl.SizeChanged -= Control_SizeChanged;

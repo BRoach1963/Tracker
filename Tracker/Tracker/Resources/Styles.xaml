@@ -158,8 +158,8 @@
                 <ControlTemplate TargetType="ToolTip">
                     <Border Name="Border"
                             BorderThickness="1"
-                            Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BackgroundBrush}"
+                            Background="{DynamicResource ToolTipBackground}"
+                            BorderBrush="{DynamicResource ToolTipBackground}"
                             Width="{TemplateBinding Width}"
                             Height="{TemplateBinding Height}">
                         <ContentPresenter Margin="6"
@@ -1502,6 +1502,45 @@ style so that the DatePicker will use the application's calendar style.-->
         </Style.Triggers>
     </Style>
 
+    <Style x:Key="LeftAlignedCellStyle" 
+           TargetType="DataGridCell">
+        <Setter Property="Background"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="BorderBrush"
+                Value="Transparent" />
+        <Setter Property="BorderThickness"
+                Value="0" />
+        <Setter Property="Padding"
+                Value="2,5,5,5" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- Trigger for selected row using RelativeSource to bind to the DataGridRow's IsSelected property -->
+            <Trigger Property="IsSelected"
+                     Value="True">
+                <Setter Property="Background"
+                        Value="{DynamicResource BackgroundBrush}" />
+                <Setter Property="Foreground"
+                        Value="{DynamicResource ForegroundBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style TargetType="DataGridRow">
         <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
@@ -1584,4 +1623,47 @@ style so that the DatePicker will use the application's calendar style.-->
         </Setter>
     </Style>
 
+    <Style x:Key="MoreButtonStyle"
+           TargetType="{x:Type Button}">
+        <Setter Property="Foreground"
+                Value="{DynamicResource ForegroundBrush}"/>
+        <Setter Property="Background"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Center"/>
+        <Setter Property="VerticalContentAlignment"
+                Value="Center" />
+        <Setter Property="ToolTip">
+            <Setter.Value>
+                <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                    <controls:TrackerToolTip ToolTipText="More"/>
+                </ToolTip>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderThickness="1"
+                            CornerRadius="5" 
+                            Width="25" 
+                            Height="25"
+                            BorderBrush="{TemplateBinding Foreground}">
+                        <TextBlock Text="..."
+                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                   HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                   Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type DataGrid}">
+        <Setter Property="Background"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="BorderThickness"
+                Value="0" />
+    </Style>
+ 
 </ResourceDictionary>

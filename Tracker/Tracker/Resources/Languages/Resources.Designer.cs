@@ -106,6 +106,96 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cell.
+        /// </summary>
+        public static string ColumnHeader_CellPhone {
+            get {
+                return ResourceManager.GetString("ColumnHeader_CellPhone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Date.
+        /// </summary>
+        public static string ColumnHeader_Date {
+            get {
+                return ResourceManager.GetString("ColumnHeader_Date", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duration.
+        /// </summary>
+        public static string ColumnHeader_Duration {
+            get {
+                return ResourceManager.GetString("ColumnHeader_Duration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Email.
+        /// </summary>
+        public static string ColumnHeader_Email {
+            get {
+                return ResourceManager.GetString("ColumnHeader_Email", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to First Name.
+        /// </summary>
+        public static string ColumnHeader_FirstName {
+            get {
+                return ResourceManager.GetString("ColumnHeader_FirstName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last Name.
+        /// </summary>
+        public static string ColumnHeader_LastName {
+            get {
+                return ResourceManager.GetString("ColumnHeader_LastName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Role.
+        /// </summary>
+        public static string ColumnHeader_Role {
+            get {
+                return ResourceManager.GetString("ColumnHeader_Role", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start.
+        /// </summary>
+        public static string ColumnHeader_StartTime {
+            get {
+                return ResourceManager.GetString("ColumnHeader_StartTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Team Member.
+        /// </summary>
+        public static string ColumnHeader_TeamMember {
+            get {
+                return ResourceManager.GetString("ColumnHeader_TeamMember", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        public static string ColumnHeaer_Status {
+            get {
+                return ResourceManager.GetString("ColumnHeaer_Status", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Data Science.
         /// </summary>
         public static string data_science {
@@ -484,6 +574,60 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to KPIs.
+        /// </summary>
+        public static string TabHeader_KPIs {
+            get {
+                return ResourceManager.GetString("TabHeader_KPIs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OKRs.
+        /// </summary>
+        public static string TabHeader_OKRs {
+            get {
+                return ResourceManager.GetString("TabHeader_OKRs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 1:1s.
+        /// </summary>
+        public static string TabHeader_OneOnOnes {
+            get {
+                return ResourceManager.GetString("TabHeader_OneOnOnes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Projects.
+        /// </summary>
+        public static string TabHeader_Projects {
+            get {
+                return ResourceManager.GetString("TabHeader_Projects", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tasks.
+        /// </summary>
+        public static string TabHeader_Tasks {
+            get {
+                return ResourceManager.GetString("TabHeader_Tasks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Team Members.
+        /// </summary>
+        public static string TabHeader_TeamMembers {
+            get {
+                return ResourceManager.GetString("TabHeader_TeamMembers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add KPI.
         /// </summary>
         public static string ToolTip_AddKpi {
@@ -547,11 +691,47 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Manage KPIs.
+        /// </summary>
+        public static string ToolTip_KPIs {
+            get {
+                return ResourceManager.GetString("ToolTip_KPIs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Go to LinkedIn Profile.
         /// </summary>
         public static string ToolTip_LinkedIn {
             get {
                 return ResourceManager.GetString("ToolTip_LinkedIn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage OKRs.
+        /// </summary>
+        public static string ToolTip_OKRs {
+            get {
+                return ResourceManager.GetString("ToolTip_OKRs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage 1:1 meetings.
+        /// </summary>
+        public static string ToolTip_OneOnOnes {
+            get {
+                return ResourceManager.GetString("ToolTip_OneOnOnes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage Projects.
+        /// </summary>
+        public static string ToolTip_Projects {
+            get {
+                return ResourceManager.GetString("ToolTip_Projects", resourceCulture);
             }
         }
         
@@ -570,6 +750,24 @@ namespace Tracker.Resources.Languages {
         public static string ToolTip_Settings {
             get {
                 return ResourceManager.GetString("ToolTip_Settings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage Tasks.
+        /// </summary>
+        public static string ToolTip_Tasks {
+            get {
+                return ResourceManager.GetString("ToolTip_Tasks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage Team Members.
+        /// </summary>
+        public static string ToolTip_TeamMembers {
+            get {
+                return ResourceManager.GetString("ToolTip_TeamMembers", resourceCulture);
             }
         }
         

@@ -63,7 +63,7 @@
         </Grid>
         <DataGrid Grid.Row="1"
                   ItemsSource="{Binding TeamMembers}"
-                  AutoGenerateColumns="False"
+                  AutoGenerateColumns="False" 
                   SelectionMode="Single"
                   IsReadOnly="True"
                   GridLinesVisibility="None"

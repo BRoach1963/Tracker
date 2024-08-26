@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Tracker.Extensions;
+﻿using Tracker.Extensions;
 using Tracker.Helpers;
 
 namespace Tracker.DataWrappers

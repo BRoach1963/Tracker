@@ -9,7 +9,6 @@ using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.DataWrappers;
 using Tracker.Helpers;
-using System.Security.Policy;
 
 namespace Tracker.ViewModels.DialogViewModels
 {

@@ -7,8 +7,12 @@
              xmlns:commands="clr-namespace:Tracker.Command"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
              xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <converters:EnumDescriptionConverter x:Key="EnumDescriptionConverter" />
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -62,29 +66,42 @@
             </Button>
         </Grid>
         <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding TeamMembers}"
+                  ItemsSource="{Binding Tasks}"
                   AutoGenerateColumns="False"
-                  SelectionMode="Single"
+                  SelectionMode="Single" 
                   IsReadOnly="True"
                   GridLinesVisibility="None"
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="First Name"
-                                    Binding="{Binding FirstName}"
+                <DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                    Width="Auto"> 
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Due Date"
+                                    Binding="{Binding DueDate, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Last Name"
-                                    Binding="{Binding LastName}"
+                <DataGridTextColumn Header="Status"
+                                    Binding="{Binding Status}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Role"
-                                    Binding="{Binding Role}"
+                <DataGridTextColumn Header="Owner"
+                                    Binding="{Binding OwnerName}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Email"
-                                    Binding="{Binding Email}"
+                <DataGridTextColumn Header="Type"
+                                    Binding="{Binding Type, Converter={StaticResource EnumDescriptionConverter}}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Cell"
-                                    Binding="{Binding CellPhone}"
-                                    Width="Auto" />
+                <DataGridTemplateColumn Header="Action">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource MoreButtonStyle}"
+                                    Command="{Binding YourCommand}"
+                                    CommandParameter="{Binding}">
+                             
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
                                     IsReadOnly="True" />

@@ -63,7 +63,7 @@
             </Button>
         </Grid>
         <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding TeamMembers}"
+                  ItemsSource="{Binding OneOnOnes}" 
                   AutoGenerateColumns="False"
                   SelectionMode="Single"
                   IsReadOnly="True"
@@ -71,20 +71,20 @@
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="First Name"
-                                    Binding="{Binding FirstName}"
+                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_TeamMember}"
+                                    Binding="{Binding TeamMemberName}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Last Name"
-                                    Binding="{Binding LastName}"
+                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_Date}"
+                                    Binding="{Binding Date, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Role"
-                                    Binding="{Binding Role}"
+                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_StartTime}"
+                                    Binding="{Binding StartTime}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Email"
-                                    Binding="{Binding Email}"
+                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_Duration}"
+                                    Binding="{Binding Duration}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Cell"
-                                    Binding="{Binding CellPhone}"
+                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeaer_Status}"
+                                    Binding="{Binding Status}"
                                     Width="Auto" />
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"

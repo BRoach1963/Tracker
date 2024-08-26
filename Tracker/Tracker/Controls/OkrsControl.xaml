@@ -62,7 +62,7 @@
             </Button>
         </Grid>
         <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding TeamMembers}"
+                  ItemsSource="{Binding TeamMembers}" 
                   AutoGenerateColumns="False"
                   SelectionMode="Single"
                   IsReadOnly="True"

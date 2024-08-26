@@ -9,7 +9,7 @@
              Height="Auto"
              MaxWidth="250"> 
         <TextBlock Text="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}},Path=ToolTipText}"
-               Foreground="{DynamicResource ForegroundBrush}"
+               Foreground="{DynamicResource ToolTipForeground}"
                FontSize="14"
                TextWrapping="Wrap" /> 
 

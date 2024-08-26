@@ -294,4 +294,70 @@
   <data name="ToolTip_AddKpi" xml:space="preserve">
     <value>Add KPI</value>
   </data>
+  <data name="TabHeader_TeamMembers" xml:space="preserve">
+    <value>Team Members</value>
+  </data>
+  <data name="TabHeader_Tasks" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="TabHeader_Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="TabHeader_OneOnOnes" xml:space="preserve">
+    <value>1:1s</value>
+  </data>
+  <data name="TabHeader_OKRs" xml:space="preserve">
+    <value>OKRs</value>
+  </data>
+  <data name="TabHeader_KPIs" xml:space="preserve">
+    <value>KPIs</value>
+  </data>
+  <data name="ToolTip_TeamMembers" xml:space="preserve">
+    <value>Manage Team Members</value>
+  </data>
+  <data name="ToolTip_OneOnOnes" xml:space="preserve">
+    <value>Manage 1:1 meetings</value>
+  </data>
+  <data name="ToolTip_Projects" xml:space="preserve">
+    <value>Manage Projects</value>
+  </data>
+  <data name="ToolTip_OKRs" xml:space="preserve">
+    <value>Manage OKRs</value>
+  </data>
+  <data name="ToolTip_KPIs" xml:space="preserve">
+    <value>Manage KPIs</value>
+  </data>
+  <data name="ToolTip_Tasks" xml:space="preserve">
+    <value>Manage Tasks</value>
+  </data>
+  <data name="ColumnHeader_TeamMember" xml:space="preserve">
+    <value>Team Member</value>
+  </data>
+  <data name="ColumnHeader_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="ColumnHeader_FirstName" xml:space="preserve">
+    <value>First Name</value>
+  </data>
+  <data name="ColumnHeader_LastName" xml:space="preserve">
+    <value>Last Name</value>
+  </data>
+  <data name="ColumnHeader_Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="ColumnHeader_Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="ColumnHeader_CellPhone" xml:space="preserve">
+    <value>Cell</value>
+  </data>
+  <data name="ColumnHeader_StartTime" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="ColumnHeaer_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="ColumnHeader_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
 </root>
