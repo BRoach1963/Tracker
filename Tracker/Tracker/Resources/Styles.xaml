@@ -1391,9 +1391,10 @@ style so that the DatePicker will use the application's calendar style.-->
 
     <!-- Data Grid Styles -->
 
-    <Style TargetType="DataGridColumnHeader">
-        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+    <Style x:Key="BaseDataGridColumnHeaderStyle"
+           TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="2,5,5,5"/>
@@ -1401,12 +1402,16 @@ style so that the DatePicker will use the application's calendar style.-->
             <Setter.Value>
                 <ControlTemplate TargetType="DataGridColumnHeader">
                     <Border Padding="{TemplateBinding Padding}"
+                            BorderThickness="1,0,1,0"
+                            BorderBrush="{TemplateBinding Foreground}"
                             Background="{TemplateBinding Background}">
-                        <Grid>
+                        <Grid HorizontalAlignment="Stretch">
                             <!-- Background Rectangle -->
                             <Rectangle Fill="{TemplateBinding Background}" />
 
-                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
+                            <Grid HorizontalAlignment="Stretch"  
+                                  VerticalAlignment="Stretch"
+                                  Margin="04,0,4,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition />
                                     <ColumnDefinition Width="10" />
@@ -1421,7 +1426,7 @@ style so that the DatePicker will use the application's calendar style.-->
                                 <Path x:Name="SortIndicator"
                                       Grid.Column="1"
                                       Data="M 0 0 L 4 4 L 8 0 Z"
-                                      Fill="{StaticResource ForegroundBrush}"
+                                      Fill="{DynamicResource ForegroundBrush}"
                                       VerticalAlignment="Center"
                                       Stretch="Uniform"
                                       Width="10"
@@ -1446,7 +1451,7 @@ style so that the DatePicker will use the application's calendar style.-->
                                 <Border x:Name="Separator" 
                                     Grid.Row="1"
                                     Width="1" 
-                                    Background="{StaticResource ForegroundBrush}" 
+                                    Background="{DynamicResource ForegroundBrush}" 
                                     HorizontalAlignment="Right"/>
                             </Grid>
                         </Grid>
@@ -1475,6 +1480,21 @@ style so that the DatePicker will use the application's calendar style.-->
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style x:Key="CenteredHeaderStyle"
+           TargetType="DataGridColumnHeader"
+           BasedOn="{StaticResource BaseDataGridColumnHeaderStyle}">
+        <Setter Property="HorizontalContentAlignment"
+                Value="Center" />
+    </Style>
+
+    <Style x:Key="LeftAlignedHeaderStyle"
+           TargetType="DataGridColumnHeader"
+           BasedOn="{StaticResource BaseDataGridColumnHeaderStyle}">
+        <Setter Property="HorizontalContentAlignment"
+                Value="Left" />
+    </Style>
+
     <Style TargetType="DataGridCell">
         <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
@@ -1547,14 +1567,14 @@ style so that the DatePicker will use the application's calendar style.-->
         <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BackgroundBrush}"/>
-        <Setter Property="BorderThickness" Value="1,0,1,1"/>
+        <Setter Property="BorderThickness" Value="0"/>
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
             </Trigger>
         </Style.Triggers>
-    </Style>
+    </Style> 
 
     <Style x:Key="ExpansionButtonStyle"
            TargetType="Button">

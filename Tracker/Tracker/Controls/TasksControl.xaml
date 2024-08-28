@@ -70,28 +70,34 @@
                   AutoGenerateColumns="False"
                   SelectionMode="Single" 
                   IsReadOnly="True"
-                  GridLinesVisibility="None"
+                  GridLinesVisibility="Vertical"
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Description"
                                     Binding="{Binding Description}"
+                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
                                     CellStyle="{StaticResource LeftAlignedCellStyle}"
                                     Width="Auto"> 
                 </DataGridTextColumn>
                 <DataGridTextColumn Header="Due Date"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding DueDate, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Status"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Status}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Owner"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding OwnerName}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Type"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Type, Converter={StaticResource EnumDescriptionConverter}}"
                                     Width="Auto" />
-                <DataGridTemplateColumn Header="Action">
+                <DataGridTemplateColumn Header="Action"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Style="{StaticResource MoreButtonStyle}"
@@ -104,6 +110,7 @@
                 </DataGridTemplateColumn>
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>

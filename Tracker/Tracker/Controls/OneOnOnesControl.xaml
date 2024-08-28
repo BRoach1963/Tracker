@@ -67,27 +67,34 @@
                   AutoGenerateColumns="False"
                   SelectionMode="Single"
                   IsReadOnly="True"
-                  GridLinesVisibility="None"
+                  GridLinesVisibility="Vertical"
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_TeamMember}"
+                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
                                     Binding="{Binding TeamMemberName}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_Date}"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Date, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_StartTime}"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding StartTime}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_Duration}"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Duration}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeaer_Status}"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Status}"
                                     Width="Auto" />
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>

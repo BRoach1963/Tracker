@@ -17,7 +17,7 @@ namespace Tracker.Common.Converters
                 case KpiStatusEnum.OffTarget:
                     return Brushes.Red;
                 case KpiStatusEnum.CloseToTarget:
-                    return Brushes.Orange;
+                    return Brushes.SlateGray;
                 default:
                     return Brushes.Gray;
             }
@@ -41,7 +41,7 @@ namespace Tracker.Common.Converters
                 case ObjectiveStatusEnum.OffTrack:
                     return Brushes.Red;
                 case ObjectiveStatusEnum.AtRisk:
-                    return Brushes.Orange;
+                    return Brushes.SlateGray;
                 default:
                     return Brushes.Gray;
             }

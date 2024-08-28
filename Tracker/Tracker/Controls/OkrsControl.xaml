@@ -1,18 +1,20 @@
 ﻿<UserControl x:Class="Tracker.Controls.OkrsControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Tracker.Controls"
              xmlns:commands="clr-namespace:Tracker.Command"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
              xmlns:languages="clr-namespace:Tracker.Resources.Languages"
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             mc:Ignorable="d"
+             Background="{DynamicResource BackgroundBrush}"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
     <UserControl.Resources>
         <converters:ObjectiveStatusToColorConverter x:Key="ObjectiveStatusToColorConverter" />
-        <converters:KpiStatusToColorConverter x:Key="KpiStatusToColorConverter" /> 
+        <converters:KpiStatusToColorConverter x:Key="KpiStatusToColorConverter" />
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -67,20 +69,21 @@
             </Button>
         </Grid>
         <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding ObjectiveKeyResults}" 
+                  ItemsSource="{Binding ObjectiveKeyResults}"
                   AutoGenerateColumns="False"
                   SelectionMode="Single"
                   IsReadOnly="True"
-                  GridLinesVisibility="None"
+                  GridLinesVisibility="Vertical"
                   HeadersVisibility="Column"
                   RowDetailsVisibilityMode="Collapsed"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
                 <DataGridTemplateColumn MinWidth="30"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                         MaxWidth="30">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <ToggleButton x:Name="ExpanderButton"  
+                            <ToggleButton x:Name="ExpanderButton"
                                           Click="Expand_Details_Click"
                                           Style="{StaticResource ExpanderToggleStyle}" />
                         </DataTemplate>
@@ -88,16 +91,17 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTemplateColumn Header="Title"
+                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
                                         CellStyle="{StaticResource LeftAlignedCellStyle}"
                                         Width="150">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Title}" 
+                            <TextBlock Text="{Binding Title}"
                                        TextTrimming="CharacterEllipsis"
                                        MaxWidth="150">
                                 <TextBlock.ToolTip>
                                     <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <local:TrackerToolTip ToolTipText="{Binding Title}"/>
+                                        <local:TrackerToolTip ToolTipText="{Binding Title}" />
                                     </ToolTip>
                                 </TextBlock.ToolTip>
                             </TextBlock>
@@ -105,6 +109,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTemplateColumn Header="Description"
+                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
                                         CellStyle="{StaticResource LeftAlignedCellStyle}"
                                         Width="150">
                     <DataGridTemplateColumn.CellTemplate>
@@ -113,15 +118,16 @@
                                        TextTrimming="CharacterEllipsis"
                                        MaxWidth="150">
                                 <TextBlock.ToolTip>
-                                <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                    <local:TrackerToolTip ToolTipText="{Binding Description}" />
-                                </ToolTip>
-                            </TextBlock.ToolTip>
+                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                        <local:TrackerToolTip ToolTipText="{Binding Description}" />
+                                    </ToolTip>
+                                </TextBlock.ToolTip>
                             </TextBlock>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Owner">
+                <DataGridTemplateColumn Header="Owner"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock>
@@ -136,79 +142,111 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Start Date"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding StartDate, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="End Date"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding EndDate, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="%"
                                     Width="Auto"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding CompletionPercentage, StringFormat={}{0:N0}%}" />
-                <DataGridTemplateColumn Header="Status">
+                <DataGridTemplateColumn Header="Status"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Grid>
-                                <!-- Status Indicator Ellipse -->
-                                <Ellipse Width="20"
-                                         Height="20"
-                                         Fill="{Binding Status, Converter={StaticResource ObjectiveStatusToColorConverter}}" />
+                                <Path Data="M6,6.9L3.87,4.78L5.28,3.37L7.4,5.5L6,6.9M13,1V4H11V1H13M20.13,4.78L18,6.9L16.6,5.5L18.72,3.37L20.13,4.78M4.5,10.5V12.5H1.5V10.5H4.5M19.5,10.5H22.5V12.5H19.5V10.5M6,20H18A2,2 0 0,1 20,22H4A2,2 0 0,1 6,20M12,5A6,6 0 0,1 18,11V19H6V11A6,6 0 0,1 12,5M12,7A4,4 0 0,0 8,11V17H16V11A4,4 0 0,0 12,7Z"
+                                      Width="20"
+                                      Height="20"
+                                      Fill="{Binding Status, Converter={StaticResource ObjectiveStatusToColorConverter}}"
+                                      Stretch="Uniform"></Path>
                             </Grid>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     IsReadOnly="True" />
 
             </DataGrid.Columns>
             <DataGrid.RowDetailsTemplate>
                 <DataTemplate>
+                    <Border Background="{DynamicResource BackgroundBrush}"
+                            HorizontalAlignment="Stretch"
+                            BorderBrush="Transparent"> 
                     <DataGrid AutoGenerateColumns="False"
+                              HorizontalAlignment="Stretch"
                               HeadersVisibility="Column"
+                              ColumnHeaderStyle="{StaticResource BaseDataGridColumnHeaderStyle}"
+                              Background="{DynamicResource BackgroundBrush}"
                               ItemsSource="{Binding KeyResults}"
                               CanUserAddRows="False"
+                              GridLinesVisibility="Vertical"
                               CanUserDeleteRows="False"
                               Margin="0,10,0,0">
-                        <!-- KPI Columns -->
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name"
-                                                CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                                Binding="{Binding Name}"
-                                                Width="Auto" />
-                            <DataGridTextColumn Header="Value"
-                                                Binding="{Binding Value}"
-                                                Width="Auto" />
-                            <DataGridTextColumn Header="TargetValue"
-                                                Binding="{Binding TargetValue}"
-                                                Width="Auto" />
-                            <DataGridTemplateColumn Header="Owner">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0} {1}">
-                                                    <Binding Path="Owner.FirstName" />
-                                                    <Binding Path="Owner.LastName" />
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Last Updated"
-                                                Binding="{Binding LastUpdated, StringFormat={}{0:MM/dd/yy}}"
-                                                Width="Auto" />
-                            <DataGridTemplateColumn Header="Status">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Ellipse Width="20"
-                                                 Height="20"
-                                                 Fill="{Binding Status, Converter={StaticResource KpiStatusToColorConverter}}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn> 
-                        </DataGrid.Columns>
-                    </DataGrid>
+                            <!-- KPI Columns -->
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn MinWidth="30"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        MaxWidth="30">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate> 
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Name"
+                                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                    Binding="{Binding Name}"
+                                                    Width="Auto" />
+                                <DataGridTextColumn Header="Value"
+                                                    Binding="{Binding Value}"
+                                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                    Width="Auto" />
+                                <DataGridTextColumn Header="TargetValue"
+                                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                    Binding="{Binding TargetValue}"
+                                                    Width="Auto" />
+                                <DataGridTemplateColumn Header="Owner"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock>
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} {1}">
+                                                        <Binding Path="Owner.FirstName" />
+                                                        <Binding Path="Owner.LastName" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Last Updated"
+                                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                    Binding="{Binding LastUpdated, StringFormat={}{0:MM/dd/yy}}"
+                                                    Width="Auto" />
+                                <DataGridTemplateColumn Header="Status"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Path Data="M6,6.9L3.87,4.78L5.28,3.37L7.4,5.5L6,6.9M13,1V4H11V1H13M20.13,4.78L18,6.9L16.6,5.5L18.72,3.37L20.13,4.78M4.5,10.5V12.5H1.5V10.5H4.5M19.5,10.5H22.5V12.5H19.5V10.5M6,20H18A2,2 0 0,1 20,22H4A2,2 0 0,1 6,20M12,5A6,6 0 0,1 18,11V19H6V11A6,6 0 0,1 12,5M12,7A4,4 0 0,0 8,11V17H16V11A4,4 0 0,0 12,7Z"
+                                                      Width="20"
+                                                      Height="20"
+                                                      Fill="{Binding Status, Converter={StaticResource KpiStatusToColorConverter}}"
+                                                      Stretch="Uniform"></Path>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn> 
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
                 </DataTemplate>
             </DataGrid.RowDetailsTemplate>
         </DataGrid>

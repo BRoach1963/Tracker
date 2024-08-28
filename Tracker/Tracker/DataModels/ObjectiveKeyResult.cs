@@ -10,6 +10,8 @@ namespace Tracker.DataModels
         public TeamMember Owner { get; set; } = new();
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public int ProjectId { get; set; } = 0;
+
         public List<KeyPerformanceIndicator> KeyResults { get; set; } = new List<KeyPerformanceIndicator>();
 
         public ObjectiveStatusEnum Status

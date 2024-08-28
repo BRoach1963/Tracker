@@ -53,6 +53,7 @@ namespace Tracker.ViewModels
             _tasks = MockTasks.GetMockTaskData();
             _kpis = MockKpIs.GetMockKpiData();
             _okrs = MockOkRs.GetMockOkrData();
+            _projects = MockProjects.GetMockProjects();
         }
 
         #endregion

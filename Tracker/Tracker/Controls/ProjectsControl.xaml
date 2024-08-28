@@ -66,27 +66,59 @@
                   AutoGenerateColumns="False"
                   SelectionMode="Single"
                   IsReadOnly="True"
-                  GridLinesVisibility="None"
+                  GridLinesVisibility="Vertical"
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="First Name"
-                                    Binding="{Binding FirstName}"
+                <DataGridTextColumn Header="Name"
+                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                    Binding="{Binding Name}"
+                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Last Name"
-                                    Binding="{Binding LastName}"
+                <DataGridTemplateColumn Header="Description"
+                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                        Width="150">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Description}"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="150">
+                                <TextBlock.ToolTip>
+                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                        <local:TrackerToolTip ToolTipText="{Binding Description}" />
+                                    </ToolTip>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Start Date"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                    Binding="{Binding StartDate, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Role"
-                                    Binding="{Binding Role}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="Email"
-                                    Binding="{Binding Email}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="Cell"
-                                    Binding="{Binding CellPhone}"
-                                    Width="Auto" />
+                <DataGridTextColumn Header="End Date"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                    Binding="{Binding EndDate, StringFormat={}{0:MM/dd/yy}}"
+                                    Width="Auto" /> 
+                <DataGridTemplateColumn Header="Owner"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock>
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} {1}">
+                                        <Binding Path="Owner.FirstName" />
+                                        <Binding Path="Owner.LastName" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>

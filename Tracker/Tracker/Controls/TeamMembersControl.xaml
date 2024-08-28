@@ -61,27 +61,35 @@
                   AutoGenerateColumns="False" 
                   SelectionMode="Single"
                   IsReadOnly="True"
-                  GridLinesVisibility="None"
+                  GridLinesVisibility="Vertical"
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="First Name"
+                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
                                     Binding="{Binding FirstName}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Last Name"
+                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
                                     Binding="{Binding LastName}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Role"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Role}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Email"
                                     Binding="{Binding Email}"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="Cell"
                                     Binding="{Binding CellPhone}"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Width="Auto" />
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
