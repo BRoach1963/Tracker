@@ -81,7 +81,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <ToggleButton x:Name="ExpanderButton"  
-                                          Click="Expland_Details_Click"
+                                          Click="Expand_Details_Click"
                                           Style="{StaticResource ExpanderToggleStyle}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
