@@ -5,6 +5,8 @@
                     xmlns:converters="clr-namespace:Tracker.Common.Converters"
                     xmlns:local="clr-namespace:Tracker.AttachedProperties">
 
+    <QuadraticEase x:Key="QuadraticEaseInOut"
+                   EasingMode="EaseInOut" />
 
     <converters:BooleanToAngleConverter x:Key="BooleanToAngleConverter" />
 
@@ -1665,5 +1667,83 @@ style so that the DatePicker will use the application's calendar style.-->
         <Setter Property="BorderThickness"
                 Value="0" />
     </Style>
- 
+
+    <Style x:Key="ExpanderToggleStyle"
+           TargetType="ToggleButton">
+        <Setter Property="Background"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="BorderBrush"
+                Value="Transparent" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="FontSize"
+                Value="14" />
+        <Setter Property="Padding"
+                Value="0" />
+        <Setter Property="Margin"
+                Value="5" />
+        <Setter Property="HorizontalAlignment"
+                Value="Center" />
+        <Setter Property="VerticalAlignment"
+                Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="BorderElement"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1">
+                        <Path x:Name="PathElement"
+                              Data="M8 9H16L12 16"
+                              RenderTransformOrigin="0.5,0.5"
+                              Stretch="Uniform" 
+                              Fill="{TemplateBinding Foreground}">
+                            <Path.RenderTransform>
+                                <RotateTransform x:Name="PathTransform" Angle="0" />
+                            </Path.RenderTransform>
+                        </Path>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked"
+                                 Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="PathTransform"
+                                                         Storyboard.TargetProperty="Angle"
+                                                         To="180"
+                                                         Duration="0:0:0.2" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="PathTransform"
+                                                         Storyboard.TargetProperty="Angle"
+                                                         To="0"
+                                                         Duration="0:0:0.2" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers> 
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}"
+                         Value="True">
+                <Setter Property="Background"
+                        Value="{DynamicResource BackgroundBrush}" />
+                <!-- Selected Background -->
+                <Setter Property="Foreground"
+                        Value="{DynamicResource ForegroundBrush}" />
+                <!-- Selected Foreground -->
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+
+
 </ResourceDictionary>

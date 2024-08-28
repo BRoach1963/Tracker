@@ -51,6 +51,8 @@ namespace Tracker.ViewModels
             _teamMembers = MockTeamMemberData.GetMockTeamMemberData();
             _oneOnOnes = MockOneOnOnes.GetMockOneOnOneData();
             _tasks = MockTasks.GetMockTaskData();
+            _kpis = MockKpIs.GetMockKpiData();
+            _okrs = MockOkRs.GetMockOkrData();
         }
 
         #endregion

@@ -10,8 +10,8 @@ namespace Tracker.MockData
         {
             var teamMembers = MockTeamMemberData.GetMockTeamMemberData();
 
-            return new ObservableCollection<OneOnOne>
-            {
+            return
+            [
                 new OneOnOne
                 {
                     Id = 1,
@@ -20,27 +20,43 @@ namespace Tracker.MockData
                     Duration = TimeSpan.FromHours(1),
                     Agenda = "Project updates and performance review",
                     Notes = "Discussed progress on current project and provided feedback.",
-                    ActionItems = new List<ActionItem>
-                    {
-                        new ActionItem { Description = "Complete project milestone 2", DueDate = DateTime.Now.AddDays(7), IsCompleted = false },
-                        new ActionItem { Description = "Prepare for upcoming sprint review", DueDate = DateTime.Now.AddDays(3), IsCompleted = false }
-                    },
+                    ActionItems =
+                    [
+                        new ActionItem
+                        {
+                            Description = "Complete project milestone 2", DueDate = DateTime.Now.AddDays(7),
+                            IsCompleted = false
+                        },
+                        new ActionItem
+                        {
+                            Description = "Prepare for upcoming sprint review", DueDate = DateTime.Now.AddDays(3),
+                            IsCompleted = false
+                        }
+                    ],
                     IsRecurring = true,
-                    DiscussionPoints = new List<string> { "Project progress", "Team collaboration", "Performance review" },
+                    DiscussionPoints = ["Project progress", "Team collaboration", "Performance review"],
                     Feedback = "Great progress, keep up the good work.",
-                    Concerns = new List<string> { "Need more resources for the project." },
-                    ObjectiveKeyResults = new List<ObjectiveKeyResult>
-                    {
-                        new ObjectiveKeyResult { Description = "Improve code quality", EndDate = DateTime.Now.AddMonths(1) },
-                        new ObjectiveKeyResult { Description = "Increase test coverage by 20%", EndDate = DateTime.Now.AddMonths(2) }
-                    },
-                    FollowUpItems = new List<FollowUpItem>
-                    {
-                        new FollowUpItem { Description = "Review code quality metrics", DueDate = DateTime.Now.AddDays(14), IsCompleted = false }
-                    },
+                    Concerns = ["Need more resources for the project."],
+                    ObjectiveKeyResults =
+                    [
+                        new ObjectiveKeyResult
+                            { Description = "Improve code quality", EndDate = DateTime.Now.AddMonths(1) },
+
+                        new ObjectiveKeyResult
+                            { Description = "Increase test coverage by 20%", EndDate = DateTime.Now.AddMonths(2) }
+                    ],
+                    FollowUpItems =
+                    [
+                        new FollowUpItem
+                        {
+                            Description = "Review code quality metrics", DueDate = DateTime.Now.AddDays(14),
+                            IsCompleted = false
+                        }
+                    ],
                     Status = MeetingStatusEnum.Completed,
                     TeamMember = teamMembers[0] // Assigning the first team member
                 },
+
                 new OneOnOne
                 {
                     Id = 2,
@@ -49,25 +65,37 @@ namespace Tracker.MockData
                     Duration = TimeSpan.FromMinutes(45),
                     Agenda = "Career development discussion",
                     Notes = "Talked about career goals and opportunities for growth.",
-                    ActionItems = new List<ActionItem>
-                    {
-                        new ActionItem { Description = "Research courses for skill development", DueDate = DateTime.Now.AddDays(10), IsCompleted = true }
-                    },
+                    ActionItems =
+                    [
+                        new ActionItem
+                        {
+                            Description = "Research courses for skill development", DueDate = DateTime.Now.AddDays(10),
+                            IsCompleted = true
+                        }
+                    ],
                     IsRecurring = false,
-                    DiscussionPoints = new List<string> { "Career growth", "Skill development" },
+                    DiscussionPoints = ["Career growth", "Skill development"],
                     Feedback = "Consider taking advanced courses in data science.",
-                    Concerns = new List<string> { "Uncertainty about career path." },
-                    ObjectiveKeyResults = new List<ObjectiveKeyResult>
-                    {
-                        new ObjectiveKeyResult { Description = "Complete advanced data science course", EndDate = DateTime.Now.AddMonths(3) }
-                    },
-                    FollowUpItems = new List<FollowUpItem>
-                    {
-                        new FollowUpItem { Description = "Check progress on data science course", DueDate = DateTime.Now.AddDays(30), IsCompleted = false }
-                    },
+                    Concerns = ["Uncertainty about career path."],
+                    ObjectiveKeyResults =
+                    [
+                        new ObjectiveKeyResult
+                        {
+                            Description = "Complete advanced data science course", EndDate = DateTime.Now.AddMonths(3)
+                        }
+                    ],
+                    FollowUpItems =
+                    [
+                        new FollowUpItem
+                        {
+                            Description = "Check progress on data science course", DueDate = DateTime.Now.AddDays(30),
+                            IsCompleted = false
+                        }
+                    ],
                     Status = MeetingStatusEnum.Scheduled,
                     TeamMember = teamMembers[1] // Assigning the second team member
                 },
+
                 new OneOnOne
                 {
                     Id = 3,
@@ -76,26 +104,35 @@ namespace Tracker.MockData
                     Duration = TimeSpan.FromMinutes(30),
                     Agenda = "Work-life balance and workload discussion",
                     Notes = "Discussed the current workload and strategies to maintain a healthy work-life balance.",
-                    ActionItems = new List<ActionItem>
-                    {
-                        new ActionItem { Description = "Delegate tasks to team members", DueDate = DateTime.Now.AddDays(5), IsCompleted = false }
-                    },
+                    ActionItems =
+                    [
+                        new ActionItem
+                        {
+                            Description = "Delegate tasks to team members", DueDate = DateTime.Now.AddDays(5),
+                            IsCompleted = false
+                        }
+                    ],
                     IsRecurring = true,
-                    DiscussionPoints = new List<string> { "Workload management", "Work-life balance" },
+                    DiscussionPoints = ["Workload management", "Work-life balance"],
                     Feedback = "Ensure to take regular breaks and avoid burnout.",
-                    Concerns = new List<string> { "Overwhelmed with current tasks." },
-                    ObjectiveKeyResults = new List<ObjectiveKeyResult>
-                    {
-                        new ObjectiveKeyResult { Description = "Improve time management skills", EndDate = DateTime.Now.AddMonths(2) }
-                    },
-                    FollowUpItems = new List<FollowUpItem>
-                    {
-                        new FollowUpItem { Description = "Review task delegation", DueDate = DateTime.Now.AddDays(10), IsCompleted = false }
-                    },
+                    Concerns = ["Overwhelmed with current tasks."],
+                    ObjectiveKeyResults =
+                    [
+                        new ObjectiveKeyResult
+                            { Description = "Improve time management skills", EndDate = DateTime.Now.AddMonths(2) }
+                    ],
+                    FollowUpItems =
+                    [
+                        new FollowUpItem
+                        {
+                            Description = "Review task delegation", DueDate = DateTime.Now.AddDays(10),
+                            IsCompleted = false
+                        }
+                    ],
                     Status = MeetingStatusEnum.Rescheduled,
                     TeamMember = teamMembers[2] // Assigning the third team member
                 }
-            };
+            ];
         }
     }
 }

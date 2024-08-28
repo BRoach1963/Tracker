@@ -7,8 +7,12 @@
              xmlns:commands="clr-namespace:Tracker.Command"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
              xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <converters:KpiStatusToColorConverter x:Key="KpiStatusToColorConverter" />
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -62,7 +66,7 @@
             </Button>
         </Grid>
         <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding TeamMembers}"
+                  ItemsSource="{Binding KeyPerformanceIndicators}"
                   AutoGenerateColumns="False" 
                   SelectionMode="Single"
                   IsReadOnly="True"
@@ -70,21 +74,42 @@
                   HeadersVisibility="Column"
                   SelectionUnit="FullRow">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="First Name"
-                                    Binding="{Binding FirstName}"
+                <DataGridTextColumn Header="Name"
+                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                    Binding="{Binding Name}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Last Name"
-                                    Binding="{Binding LastName}"
+                <DataGridTextColumn Header="Value"
+                                    Binding="{Binding Value}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Role"
-                                    Binding="{Binding Role}"
+                <DataGridTextColumn Header="TargetValue"
+                                    Binding="{Binding TargetValue}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Email"
-                                    Binding="{Binding Email}"
+                <DataGridTemplateColumn Header="Owner">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock>
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} {1}">
+                                        <Binding Path="Owner.FirstName" />
+                                        <Binding Path="Owner.LastName" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Last Updated"
+                                    Binding="{Binding LastUpdated, StringFormat={}{0:MM/dd/yy}}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Cell"
-                                    Binding="{Binding CellPhone}"
-                                    Width="Auto" />
+                <DataGridTemplateColumn Header="Status">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Ellipse Width="20"
+                                     Height="20"
+                                     Fill="{Binding Status, Converter={StaticResource KpiStatusToColorConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <!-- Empty column to fill remaining space -->
                 <DataGridTextColumn Width="*"
                                     IsReadOnly="True" />
