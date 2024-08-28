@@ -15,7 +15,7 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        private static DialogManager _instance;
+        private static DialogManager? _instance;
         private static readonly object SyncRoot = new object();
 
         public static DialogManager Instance
@@ -41,7 +41,7 @@ namespace Tracker.Managers
 
         #region Public Methods
 
-        public void LaunchDialogByType(DialogType type, bool modal, Action callback)
+        public void LaunchDialogByType(DialogType type, bool modal, Action? callback)
         {
             if (_activeDialogs.TryGetValue(type, out BaseWindow? dialog))
             {
@@ -49,16 +49,16 @@ namespace Tracker.Managers
                 return;
             }
 
-            if (!DialogFactory.TryGetWindowFromType(type, callback, out BaseWindow newDialog)) return;
+            if (!DialogFactory.TryGetWindowFromType(type, callback, out BaseWindow? newDialog)) return;
 
             _activeDialogs.TryAdd(type, newDialog);
             if (modal)
             {
-                newDialog.ShowDialog();
+                newDialog?.ShowDialog();
             }
             else
             {
-                newDialog.Show();
+                newDialog?.Show();
             }
         }
 

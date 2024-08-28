@@ -2,10 +2,10 @@
 {
     public class KeyResult
     {
-        public int KeyResultId { get; set; }
-        public string Title { get; set; }
-        public double TargetValue { get; set; }
-        public double CurrentValue { get; set; }
-        public Owner Owner { get; set; }
+        public int KeyResultId { get; set; } = 0;
+        public string Title { get; set; } = string.Empty;
+        public double TargetValue { get; set; } = double.NaN;
+        public double CurrentValue { get; set; } = double.NaN;
+        public Owner Owner { get; set; } = new();
     }
 }

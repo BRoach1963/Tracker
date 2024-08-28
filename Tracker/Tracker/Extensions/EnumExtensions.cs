@@ -12,13 +12,16 @@ namespace Tracker.Extensions
         /// <returns>The Description attribute value if present; otherwise, the enum member name as a string.</returns>
         public static string ToDescriptionString(this Enum value)
         { 
-            FieldInfo field = value.GetType().GetField(value.ToString()); 
+            FieldInfo? field = value.GetType().GetField(value.ToString());
 
-            DescriptionAttribute attribute = field.GetCustomAttribute<DescriptionAttribute>();
-
-            if (attribute != null)
+            if (field != null)
             {
-                return attribute.Description;
+                DescriptionAttribute? attribute = field.GetCustomAttribute<DescriptionAttribute>();
+
+                if (attribute != null)
+                {
+                    return attribute.Description;
+                }
             }
 
             return value.ToString();

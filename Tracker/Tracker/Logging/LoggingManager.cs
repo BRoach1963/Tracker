@@ -23,9 +23,8 @@ namespace Tracker.Logging
 
         #region Singleton Instance
 
-        private static volatile LoggingManager _instance;
-        private static readonly object _syncRoot = new object();
-        private DateTime _startTime = DateTime.Now;
+        private static volatile LoggingManager? _instance;
+        private static readonly object SyncRoot = new object(); 
 
         public static LoggingManager Instance
         {
@@ -33,7 +32,7 @@ namespace Tracker.Logging
             {
                 if (_instance == null)
                 {
-                    lock (_syncRoot)
+                    lock (SyncRoot)
                     {
                         if (_instance == null)
                         {
@@ -50,7 +49,7 @@ namespace Tracker.Logging
         #region Delegates
 
         public delegate void SystemStatsUpdatedDelegate(SystemStats stats);
-        public SystemStatsUpdatedDelegate OnSystemStatsUpdated { get; set; }
+        public SystemStatsUpdatedDelegate? OnSystemStatsUpdated { get; set; }
 
         #endregion
 
@@ -58,10 +57,7 @@ namespace Tracker.Logging
 
         /// <summary>
         /// Uses Performance Counter and number of processors to return relative app CPU
-        /// </summary>
-        public double CurrentCpu => _currentCpu;
-
-        public double CurrentSystemCpu => _currentTotalCpu;
+        /// </summary> 
 
         public double CurrentAppMemory => GetCurrentMemoryUsage();
 
@@ -73,11 +69,10 @@ namespace Tracker.Logging
             _logQueue = new ConcurrentQueue<StrongBox<LogEntry>>();
             _logMessagePending = new AutoResetEvent(false);
 
-            _logFileName = "Tracker.log"; 
+            var logFileName = "Tracker.log"; 
             _logDirectory = $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\Tracker\\Logs\\";  
-            _logFileFullName = $"{_logDirectory}{_logFileName}"; 
+            _logFileFullName = $"{_logDirectory}{logFileName}";  
 
-            _logArchiveDirectory = $"{_logDirectory}Archive";
             _logFileMutex = new Mutex(false, "TrackerLogMutex");
 
             // create logger for core components
@@ -107,20 +102,17 @@ namespace Tracker.Logging
             // no config, bail
             if (!File.Exists(configFile)) return;
 
-            using (var reader = new StreamReader(configFile))
+            using var reader = new StreamReader(configFile);
+
+            while (reader.ReadLine() is { } line)
             {
-                string line;
-
-                while ((line = reader.ReadLine()) != null)
+                try
                 {
-                    try
-                    {
-                        var configEntry = line.Split(',');
+                    var configEntry = line.Split(',');
 
-                        _logConfig[configEntry[0]] = (LogLevel)Convert.ToInt16(configEntry[1]);
-                    }
-                    catch { /* ignore invalid config */ }
+                    _logConfig[configEntry[0]] = (LogLevel)Convert.ToInt16(configEntry[1]);
                 }
+                catch { /* ignore invalid config */ }
             }
         }
 
@@ -147,7 +139,7 @@ namespace Tracker.Logging
 
         private ILogger GetLogger(string comp)
         {
-            Logger logger;
+            Logger? logger;
 
             lock (_loggers)
             {
@@ -347,7 +339,7 @@ namespace Tracker.Logging
             }
             catch (Exception e)
             {
-                
+                _logger.Exception(e, "Error in Performance Monitor Thread");
             }
         }
 
@@ -407,23 +399,20 @@ namespace Tracker.Logging
                 //    _startTime = now;
                 //}
 
-                bool setCreationTime = false;
-                if (!File.Exists(_logFileFullName))
-                {
-                    setCreationTime = true;
-                }
+                bool setCreationTime = !File.Exists(_logFileFullName);
 
                 using (var sw = File.AppendText(_logFileFullName))
                 {
-                    while (_logQueue.TryDequeue(out StrongBox<LogEntry> logEntryWrapper))
+                    while (_logQueue.TryDequeue(result: out StrongBox<LogEntry>? logEntryWrapper))
                     {
-                        sw.WriteLine(logEntryWrapper.Value.Value);
+                        sw.WriteLine(logEntryWrapper.Value?.Value);
                     }
                 }
 
                 if (setCreationTime)
                 {
                     File.SetCreationTime(_logFileFullName, DateTime.Now);
+                    // ReSharper disable once RedundantAssignment
                     setCreationTime = false;
                 }
             }
@@ -476,35 +465,30 @@ namespace Tracker.Logging
 
         private Logger _logger;
         private Dictionary<string, Logger> _loggers = new Dictionary<string, Logger>();
-        private string _logDirectory; 
-        private string _logArchiveDirectory;
-        private string _logFileFullName; 
-        private string _logFileName; 
-        private string[] _archivableLogFiles;
+        private string _logDirectory;  
+        private string _logFileFullName;
         private Mutex _logFileMutex;
 
         private CancellationTokenSource _cancellationTokenSource;
 
-        private Thread _writeThread;
-        private Thread _perfMonThread;
+        private Thread? _writeThread;
+        private Thread? _perfMonThread;
 
         private ConcurrentQueue<StrongBox<LogEntry>> _logQueue;
         private AutoResetEvent _logMessagePending;
-        private volatile bool _shuttingDown = false;
+        private volatile bool _shuttingDown;
 
-        private PerformanceCounter _totalCpu;
-        private PerformanceCounter _cpu;
-        private PerformanceCounter _ram;
-        private PerformanceCounter _virtualRam;
-        private PerformanceCounter _netClrMem;
-        private PerformanceCounter _largeObjHeap;
+        private PerformanceCounter? _totalCpu;
+        private PerformanceCounter? _cpu;
+        private PerformanceCounter? _ram;
+        private PerformanceCounter? _virtualRam;
+        private PerformanceCounter? _netClrMem;
+        private PerformanceCounter? _largeObjHeap;
 
         private double _currentCpu;
         private double _currentTotalCpu;
 
-        private Dictionary<string, LogLevel> _logConfig = new Dictionary<string, LogLevel>();
-
-        private readonly int _maxFilesToArchive = 7;
+        private Dictionary<string, LogLevel> _logConfig = new Dictionary<string, LogLevel>(); 
 
         private int _performanceHitCount;
 

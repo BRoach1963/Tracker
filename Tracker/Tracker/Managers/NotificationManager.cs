@@ -7,7 +7,7 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        private static NotificationManager _instance;
+        private static NotificationManager? _instance;
         private static readonly object SyncRoot = new object();
 
         public static NotificationManager Instance

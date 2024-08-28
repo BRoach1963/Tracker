@@ -3,12 +3,12 @@ using Tracker.Common.Enums;
 
 namespace Tracker.Helpers
 {
-    public static class UIHelper
+    public static class UiHelper
     {
 
-        public static Window GetOwnerWindow(DialogType type)
+        public static Window? GetOwnerWindow(DialogType type)
         {
-            Window ownerWindow = null;
+            Window? ownerWindow = null;
             switch (type)
             {
                 case DialogType.AddTeamMember:

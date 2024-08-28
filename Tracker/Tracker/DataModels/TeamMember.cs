@@ -5,29 +5,25 @@ namespace Tracker.DataModels
     public class TeamMember
     {
         #region Ctor
-
-        public TeamMember()
-        {
-
-        }
+ 
 
         #endregion
 
         #region Public Properties
 
-        public int Id { get; set; }
+        public int Id { get; set; } = 0;
 
-        public string FirstName { get; set; } 
+        public string FirstName { get; set; } = string.Empty;
 
-        public string LastName { get; set; }
+        public string LastName { get; set; } = string.Empty;
 
-        public string NickName { get; set; }    
+        public string NickName { get; set; } = string.Empty;
 
-        public string Email { get; set; }   
+        public string Email { get; set; } = string.Empty;
 
-        public string CellPhone { get; set; } 
+        public string CellPhone { get; set; } = string.Empty;
 
-        public string JobTitle { get; set; }
+        public string JobTitle { get; set; } = string.Empty;
 
         public DateTime BirthDay { get; set; } = DateTime.MinValue;
 
@@ -39,15 +35,15 @@ namespace Tracker.DataModels
 
         public int ManagerId { get; set; } = 0;
 
-        public byte[] ProfileImage { get; set; }
+        public byte[] ProfileImage { get; set; } = Array.Empty<byte>();
 
-        public string LinkedInProfile { get; set; }
+        public string LinkedInProfile { get; set; } = string.Empty;
 
-        public string FacebookProfile { get; set; }
+        public string FacebookProfile { get; set; } = string.Empty;
 
-        public string InstagramProfile { get; set; }
+        public string InstagramProfile { get; set; } = string.Empty;
 
-        public string XProfile { get; set; }
+        public string XProfile { get; set; } = string.Empty;
 
         public EngineeringSpecialtyEnum Specialty { get; set; }
 

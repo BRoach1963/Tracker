@@ -2,7 +2,6 @@
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Tracker.Controls;
 using Tracker.ViewModels;
 
 namespace Tracker
@@ -10,20 +9,18 @@ namespace Tracker
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : BaseWindow
+    public partial class MainWindow 
     {
-        private FrameworkElement PreviousControl;
-        private FrameworkElement CurrentControl;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new TrackerMainViewModel();
             SubscribeToSizingEvents();
-            this.Unloaded += (s, e) =>
+            this.Unloaded += (_, _) =>
             { 
                 UnsubscribeFromSizingEvents();
-                this.Unloaded -= (RoutedEventHandler)((s, e) => { /* Same logic here if needed */ });
+                this.Unloaded -= (RoutedEventHandler)((_, _) => { /* Same logic here if needed */ });
             };
         }
 
@@ -56,23 +53,22 @@ namespace Tracker
                     // If the control is not visible (i.e., not selected), keep it off-screen
                     // Otherwise, ensure it's in the correct position
                     var tabItem = FindParentTabItem(control);
-                    if (tabItem != null)
                     {
-                        bool isSelected = tabItem.IsSelected;
+                        bool isSelected = tabItem is { IsSelected: true };
                         transform.X = isSelected ? 0 : control.ActualWidth;
                     }
                 }
             }
         }
 
-        private TabItem FindParentTabItem(DependencyObject element)
+        private TabItem? FindParentTabItem(DependencyObject element)
         {
-            DependencyObject parent = VisualTreeHelper.GetParent(element);
+            DependencyObject? parent = VisualTreeHelper.GetParent(element);
             while (parent != null && !(parent is TabItem))
             {
                 parent = VisualTreeHelper.GetParent(parent);
             }
-            return parent as TabItem;
+            return parent as TabItem ?? null;
         }
  
         private void TabChangedEventHandler(object sender, SelectionChangedEventArgs e)
@@ -83,7 +79,7 @@ namespace Tracker
                 if (selectedTab != null)
                 {
                     // Identify the corresponding control based on the selected tab
-                    FrameworkElement correspondingControl = null;
+                    FrameworkElement? correspondingControl = null;
 
                     switch (selectedTab.Name)
                     {

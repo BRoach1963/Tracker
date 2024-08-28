@@ -7,9 +7,7 @@ namespace Tracker.Logging
         internal class Logger : ILogger
         {
             #region Fields
-
-            private bool _enableDebugLogging;
-
+            
             /// <summary>
             /// Use this array to add data points to the header of each log entry
             /// </summary>
@@ -38,8 +36,7 @@ namespace Tracker.Logging
 
             public void Debug(string format, params object[] args)
             {
-                if (_enableDebugLogging
-                    || (LogLevel != LogLevel.None && LogLevel <= LogLevel.Debug))
+                if (LogLevel != LogLevel.None && LogLevel <= LogLevel.Debug)
                 {
                     Write(LogLevel.Debug, null, format, args);
                 }
@@ -77,13 +74,13 @@ namespace Tracker.Logging
                 }
             }
 
-            private void Write(LogLevel level, Exception ex, string format, params object[] args)
+            private void Write(LogLevel level, Exception? ex, string format, params object[] args)
             {
                 string logEntry = Format(level, ex, ComponentName, format, args);
 
                 LoggingManager.Instance.Write(logEntry);
             }
-            public static string Format(LogLevel level, Exception ex, string componentName, string format, params object[] args)
+            public static string Format(LogLevel level, Exception? ex, string componentName, string format, params object[]? args)
             {
                 // if parameterized string is provided, inject args into string
                 string message = (args == null || args.Length == 0) ? format : string.Format(format, args);

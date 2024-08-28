@@ -16,7 +16,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Ctor
 
-        public SettingsViewModel(Action callback) : base(callback)
+        public SettingsViewModel(Action? callback) : base(callback)
         {
             GetThemeSettings();
         }

@@ -19,9 +19,9 @@ namespace Tracker.ViewModels.DialogViewModels
         private TeamMember _data;
         private bool _inEditMode; 
 
-        private ICommand _toggleEditModeCommand;
-        private ICommand _chooseProfilePicCommand;
-        private ICommand _launchLinkedInProfileCommand;
+        private ICommand? _toggleEditModeCommand;
+        private ICommand? _chooseProfilePicCommand;
+        private ICommand? _launchLinkedInProfileCommand;
 
         private ImageSource? _profileImage;
 
@@ -29,21 +29,21 @@ namespace Tracker.ViewModels.DialogViewModels
         private ObservableCollection<EnumWrapper<EngineeringSpecialtyEnum>> _specialties = new();
         private ObservableCollection<EnumWrapper<SkillLevelEnum>> _levels = new();
 
-        private EnumWrapper<RoleEnum> _selectedRole;
-        private EnumWrapper<EngineeringSpecialtyEnum> _selectedSpecialty;
-        private EnumWrapper<SkillLevelEnum> _selectedLevel;
+        private EnumWrapper<RoleEnum>? _selectedRole;
+        private EnumWrapper<EngineeringSpecialtyEnum>? _selectedSpecialty;
+        private EnumWrapper<SkillLevelEnum>? _selectedLevel;
 
         #endregion
 
         #region Ctor
 
-        public AddTeamMemberViewModel(Action callback, TeamMember data, bool edit = true) : base(callback)
+        public AddTeamMemberViewModel(Action? callback, TeamMember data, bool edit = true) : base(callback)
         {
             _inEditMode = edit;
             _data = data;
             _data.BirthDay = DateTime.Now;
             _data.HireDate = DateTime.Now;
-            if (_data.ProfileImage == null)
+            if (_data.ProfileImage.Length > 0)
             {
                 //No Data - use default Image
                 ProfileImage = ImageHelper.LoadDefaultProfileImage();
@@ -84,7 +84,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public ObservableCollection<EnumWrapper<SkillLevelEnum>> Levels => _levels;
 
-        public EnumWrapper<RoleEnum> SelectedRole
+        public EnumWrapper<RoleEnum>? SelectedRole
         {
             get => _selectedRole;
             set
@@ -93,7 +93,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged();
             }
         }
-        public EnumWrapper<SkillLevelEnum> SelectedLevel
+        public EnumWrapper<SkillLevelEnum>? SelectedLevel
         {
             get => _selectedLevel;
             set
@@ -103,7 +103,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public EnumWrapper<EngineeringSpecialtyEnum> SelectedSpeciality
+        public EnumWrapper<EngineeringSpecialtyEnum>? SelectedSpeciality
         {
             get => _selectedSpecialty;
             set

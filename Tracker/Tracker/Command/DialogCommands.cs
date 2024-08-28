@@ -9,8 +9,8 @@ namespace Tracker.Command
     {
         #region Fields
 
-        private static ICommand _closeDialogCommand;
-        private static ICommand _launchDialogCommand;
+        private static ICommand? _closeDialogCommand;
+        private static ICommand? _launchDialogCommand;
 
         #endregion
 
@@ -18,7 +18,7 @@ namespace Tracker.Command
 
         public static ICommand CloseDialogCommand => _closeDialogCommand ?? new TrackerCommand(CloseDialogExecuted);
 
-        public static ICommand LaunchDialogCommand => _launchDialogCommand ?? new TrackerCommand(LaunchDialogExecuted);
+        public static ICommand LaunchDialogCommand => _launchDialogCommand ??= new TrackerCommand(LaunchDialogExecuted);
 
         #endregion
 

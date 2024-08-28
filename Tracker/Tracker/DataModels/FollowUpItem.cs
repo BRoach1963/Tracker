@@ -5,15 +5,15 @@ namespace Tracker.DataModels
 {
     public class FollowUpItem : ITask
     {
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         public DateTime DueDate { get; set; }
         public bool IsCompleted { get; set; }
 
-        public string Notes { get; set; }
+        public string Notes { get; set; } = string.Empty;
 
         public string Status => IsCompleted ? "Completed" : "Incomplete";
 
-        public TeamMember Owner { get; set; }
+        public TeamMember Owner { get; set; } = new();
 
         public string OwnerName => $"{Owner.FirstName} {Owner.LastName}";
 

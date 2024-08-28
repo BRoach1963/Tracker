@@ -36,7 +36,7 @@ namespace Tracker.Extensions
             // if this call is not already being made on the UI thread, dispatch
             if (!dispatcher.CheckAccess())
             {
-                dispatcher.InvokeAsync(action, priority).Task.LogExceptions();
+                dispatcher.InvokeAsync(action, priority).Task.LogExceptions(aggException: null);
             }
             else
             {

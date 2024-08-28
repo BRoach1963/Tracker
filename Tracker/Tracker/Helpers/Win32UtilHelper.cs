@@ -12,7 +12,7 @@ namespace Tracker.Helpers
             #region Structures
 
             [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-            internal class MEMORYSTATUSEX
+            internal class MemoryStatusEx
             {
                 public uint dwLength;
                 public uint dwMemoryLoad;
@@ -24,7 +24,7 @@ namespace Tracker.Helpers
                 public ulong ullAvailVirtual;
                 public ulong ullAvailExtendedVirtual;
 
-                public MEMORYSTATUSEX()
+                public MemoryStatusEx()
                 {
                     dwLength = (uint)Marshal.SizeOf(this);
                 }
@@ -41,7 +41,7 @@ namespace Tracker.Helpers
 
             [return: MarshalAs(UnmanagedType.Bool)]
             [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-            internal static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
+            internal static extern bool GlobalMemoryStatusEx([In, Out] MemoryStatusEx lpBuffer);
 
             [DllImport("kernel32.dll")]
             public static extern uint SetThreadExecutionState(uint esFlags);
@@ -67,17 +67,17 @@ namespace Tracker.Helpers
             internal static extern IntPtr GetActiveWindow();
 
             [DllImport("User32.dll", SetLastError = true, EntryPoint = "SendMessage")]
-            internal static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam, ref COPYDATASTRUCT lParam);
+            internal static extern IntPtr SendMessage(IntPtr hWnd, uint msg, int wParam, ref CopyDataStruct lParam);
 
             [DllImport("User32.dll", SetLastError = true, EntryPoint = "SendMessage")]
-            internal static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
+            internal static extern IntPtr SendMessage(IntPtr hWnd, uint msg, int wParam, int lParam);
 
             [DllImport("user32.dll")]
             internal static extern bool SetWindowPos(
                 int hWnd, // handle to window
                 int hWndInsertAfter, // placement-order handle
-                short X, // horizontal position
-                short Y, // vertical position
+                short x, // horizontal position
+                short y, // vertical position
                 short cx, // width
                 short cy, // height
                 uint uFlags); // window-positioning options
@@ -95,28 +95,28 @@ namespace Tracker.Helpers
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
-            internal static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+            internal static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
-            internal static extern bool GetCursorPos(out POINT lpPoint);
+            internal static extern bool GetCursorPos(out Point lpPoint);
 
             [DllImport("user32.dll")]
             internal static extern bool IsWindowVisible(IntPtr hWnd);
 
             [DllImport("user32.dll")]
-            internal static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+            internal static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
 
             [DllImport("user32.dll")]
             internal static extern int SetForegroundWindow(IntPtr hWnd);
 
             [DllImport("User32.dll")]
-            internal static extern IntPtr MonitorFromPoint([In] Point pt, [In] uint dwFlags);
+            internal static extern IntPtr MonitorFromPoint([In] System.Windows.Point pt, [In] uint dwFlags);
 
             [DllImport("user32.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
             internal static extern bool GetWindowPlacement(
-                IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+                IntPtr hWnd, ref WindowPlacement lpwndpl);
 
             [DllImport("user32.dll")]
             internal static extern IntPtr GetDC(IntPtr hwnd);
@@ -128,10 +128,10 @@ namespace Tracker.Helpers
             internal static extern IntPtr GetWindowDC(IntPtr hWnd);
 
             [DllImport("user32.dll")]
-            internal static extern IntPtr ReleaseDC(IntPtr hWnd, IntPtr hDC);
+            internal static extern IntPtr ReleaseDC(IntPtr hWnd, IntPtr hDc);
 
-            internal const int WS_VISIBLE = 0x10000000;
-            internal const int WS_EX_TOOLWINDOW = 0x00000080;
+            internal const int WsVisible = 0x10000000;
+            internal const int WsExToolwindow = 0x00000080;
 
             [DllImport("user32.dll", SetLastError = true)]
             internal static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -149,7 +149,7 @@ namespace Tracker.Helpers
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
-            internal static extern bool GetClientRect(IntPtr hWnd, ref RECT lpRect);
+            internal static extern bool GetClientRect(IntPtr hWnd, ref Rect lpRect);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
@@ -179,20 +179,20 @@ namespace Tracker.Helpers
                 int nXSrc, int nYSrc, int dwRop);
 
             [DllImport("gdi32.dll")]
-            internal static extern IntPtr CreateCompatibleBitmap(IntPtr hDC, int nWidth,
+            internal static extern IntPtr CreateCompatibleBitmap(IntPtr hDc, int nWidth,
                 int nHeight);
 
             [DllImport("gdi32.dll")]
-            internal static extern IntPtr CreateCompatibleDC(IntPtr hDC);
+            internal static extern IntPtr CreateCompatibleDC(IntPtr hDc);
 
             [DllImport("gdi32.dll")]
-            internal static extern bool DeleteDC(IntPtr hDC);
+            internal static extern bool DeleteDC(IntPtr hDc);
 
             [DllImport("gdi32.dll")]
             internal static extern bool DeleteObject(IntPtr hObject);
 
             [DllImport("gdi32.dll")]
-            internal static extern IntPtr SelectObject(IntPtr hDC, IntPtr hObject);
+            internal static extern IntPtr SelectObject(IntPtr hDc, IntPtr hObject);
 
             [DllImport("gdi32.dll")]
             internal static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
@@ -218,10 +218,10 @@ namespace Tracker.Helpers
             internal static extern int DwmUnregisterThumbnail(IntPtr thumb);
 
             [DllImport("dwmapi.dll")]
-            internal static extern int DwmQueryThumbnailSourceSize(IntPtr thumb, out SIZE size);
+            internal static extern int DwmQueryThumbnailSourceSize(IntPtr thumb, out Size size);
 
             [DllImport("dwmapi.dll")]
-            internal static extern int DwmUpdateThumbnailProperties(IntPtr hThumb, ref DWM_THUMBNAIL_PROPERTIES props);
+            internal static extern int DwmUpdateThumbnailProperties(IntPtr hThumb, ref ThumbnailProperties props);
 
             [DllImport("dwmapi.dll")]
             internal static extern int DwmGetWindowAttribute(IntPtr hwnd, DwmWindowAttribute dwAttribute, out bool pvAttribute, int cbAttribute);
@@ -233,29 +233,24 @@ namespace Tracker.Helpers
 
         #region Constants
 
-        public const int SRCCOPY = 0x00CC0020; // BitBlt dwRop parameter
-        public const uint WM_COPYDATA = 0x4A;
-        public const uint WM_SYSCOMMAND = 0x0112;
-        public const uint WM_ACTIVATE = 0x0006;
-        public const uint WM_NCACTIVATE = 0x0086;
-        public const int SC_RESTORE = 0xF120;
-        public const int WM_HOTKEY = 0x0312;
-        public const int WM_ACTIVATEAPP = 0x1C;
-
-        private const int SWP_HIDEWINDOW = 0x80;
-        private const int SWP_SHOWWINDOW = 0x40;
+        public const int SrcCopy = 0x00CC0020; // BitBlt dwRop parameter
+        public const uint WmCopyData = 0x4A;
+        public const uint WmSysCommand = 0x0112;
+        public const uint WmActivate = 0x0006;
+        public const uint WmNcActivate = 0x0086;
+        public const int ScRestore = 0xF120;
+        public const int WmHotkey = 0x0312;
+        public const int WmActivateApp = 0x1C;
 
         public const int WmUser = 0x0400;
         public const int WmMeetingEventMsg = WmUser + 1;
         public const int WmSharingEventMsg = WmUser + 2;
 
         // flags for SetThreadExecutionState
-        public const uint ES_AWAYMODE_REQUIRED = 0x00000040;
-        public const uint ES_CONTINUOUS = 0x80000000;
-        public const uint ES_DISPLAY_REQUIRED = 0x00000002;
-        public const uint ES_SYSTEM_REQUIRED = 0x00000001;
-
-        private static Guid FolderDownloads = new Guid("374DE290-123F-4565-9164-39C4925E467B");
+        public const uint EsAwayModeRequired = 0x00000040;
+        public const uint EsContinuous = 0x80000000;
+        public const uint EsDisplayRequired = 0x00000002;
+        public const uint EsSystemRequired = 0x00000001;
 
         #endregion
 
@@ -263,16 +258,16 @@ namespace Tracker.Helpers
 
         public enum DwmWindowAttribute : uint
         {
-            DWMA_CLOAKED = 14
+            DwmACloaked = 14
         }
 
-        public enum TernaryRasterOperations : int
+        public enum TernaryRasterOperations
         {
-            SRCCOPY = 0x00CC0020,
-            CAPTUREBLT = 0x40000000
+            SrcCopy = 0x00CC0020,
+            CaptureBlt = 0x40000000
         }
 
-        public enum ShowWindowCommands : int
+        public enum ShowWindowCommands
         {
             Hide = 0,
             Normal = 1,
@@ -292,7 +287,7 @@ namespace Tracker.Helpers
         #region Structures
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct MARGINS
+        public struct Margins
         {
             public int cxLeftWidth;
             public int cxRightWidth;
@@ -301,25 +296,25 @@ namespace Tracker.Helpers
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct DWM_THUMBNAIL_PROPERTIES
+        public struct ThumbnailProperties
         {
             public uint dwFlags;
-            public RECT rcDestination;
-            public RECT rcSource;
+            public Rect rcDestination;
+            public Rect rcSource;
             public byte opacity;
             public bool fVisible;
             public bool fSourceClientAreaOnly;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct SIZE
+        public struct Size
         {
             public int cx;
             public int cy;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct COPYDATASTRUCT
+        public struct CopyDataStruct
         {
             public IntPtr dwData;
             public int cbData;
@@ -327,12 +322,12 @@ namespace Tracker.Helpers
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
+        public struct Point
         {
             public int X;
             public int Y;
 
-            public POINT(int x, int y)
+            public Point(int x, int y)
             {
                 this.X = x;
                 this.Y = y;
@@ -340,14 +335,14 @@ namespace Tracker.Helpers
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
+        public struct Rect
         {
             public int left;
             public int top;
             public int right;
             public int bottom;
 
-            public RECT(int left, int top, int right, int bottom)
+            public Rect(int left, int top, int right, int bottom)
             {
                 this.left = left;
                 this.top = top;
@@ -358,7 +353,7 @@ namespace Tracker.Helpers
 
         [Serializable]
         [StructLayout(LayoutKind.Sequential)]
-        internal struct WINDOWPLACEMENT
+        internal struct WindowPlacement
         {
             public int length;
             public int flags;
@@ -377,8 +372,8 @@ namespace Tracker.Helpers
         public struct DwmThumbnailProperties
         {
             public int dwFlags;
-            public RECT rcDestination;
-            public RECT rcSource;
+            public Rect rcDestination;
+            public Rect rcSource;
             public byte opacity;
             public bool fVisible;
             public bool fSourceClientAreaOnly;
@@ -386,26 +381,25 @@ namespace Tracker.Helpers
 
         #endregion
 
-        public static MainWindow GetMainWindow()
+        public static MainWindow? GetMainWindow()
         {
-            return App.Current.Windows.OfType<MainWindow>().Select(window => window).FirstOrDefault();
+            return Application.Current.Windows.OfType<MainWindow>().Select(window => window).FirstOrDefault();
         }
 
         /// <summary>
         /// Returns a List of <see cref="Window"/> of a specific type
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="windows"></param>
+        /// <typeparam name="T"></typeparam> 
         /// <returns></returns>
         public static List<Window> GetWindowsByType<T>()
         {
             var windows = new List<Window>();
 
-            App.Current.Dispatcher.Invoke(() =>
+            Application.Current.Dispatcher.Invoke(() =>
             {
                 if (CheckIfWindowExistsByType<T>())
                 {
-                    foreach (var window in App.Current.Windows.OfType<T>())
+                    foreach (var window in Application.Current.Windows.OfType<T>())
                     {
                         if (window is Window windowType)
                         {
@@ -420,9 +414,9 @@ namespace Tracker.Helpers
 
         public static bool CheckIfWindowExistsByType<T>()
         {
-            return App.Current.Dispatcher.BackgroundInvoke(() =>
+            return Application.Current.Dispatcher.BackgroundInvoke(() =>
             {
-                var window = App.Current.Windows.OfType<T>().Select(window => window).FirstOrDefault();
+                var window = Application.Current.Windows.OfType<T>().Select(window => window).FirstOrDefault();
                 return window != null;
             });
         }
@@ -433,7 +427,7 @@ namespace Tracker.Helpers
             totalMem = 0;
             availMem = 0;
 
-            var memStatus = new NativeMethods.MEMORYSTATUSEX();
+            var memStatus = new NativeMethods.MemoryStatusEx();
             if (NativeMethods.GlobalMemoryStatusEx(memStatus))
             {
                 totalMem = memStatus.ullTotalPhys;
