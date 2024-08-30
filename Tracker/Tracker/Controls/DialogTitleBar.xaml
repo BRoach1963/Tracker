@@ -27,6 +27,7 @@
         <TextBlock Text="{Binding DialogTitle, RelativeSource={RelativeSource AncestorType=UserControl}}"
                    Foreground="{DynamicResource ForegroundBrush}"
                    VerticalAlignment="Center"
+                   Margin="0,1,0,0"
                    FontFamily="Arial"
                    Grid.Column="2" />
         <StackPanel Grid.Column="4"

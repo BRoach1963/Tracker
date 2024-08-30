@@ -61,7 +61,52 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Add Team Member.
+        ///   Looks up a localized string similar to New KPI.
+        /// </summary>
+        public static string Add_Kpi {
+            get {
+                return ResourceManager.GetString("Add_Kpi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New OKR.
+        /// </summary>
+        public static string Add_Okr {
+            get {
+                return ResourceManager.GetString("Add_Okr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New 1:1 .
+        /// </summary>
+        public static string Add_OneOnOne {
+            get {
+                return ResourceManager.GetString("Add_OneOnOne", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Project.
+        /// </summary>
+        public static string Add_Project {
+            get {
+                return ResourceManager.GetString("Add_Project", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Task.
+        /// </summary>
+        public static string Add_Task {
+            get {
+                return ResourceManager.GetString("Add_Task", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Team Member.
         /// </summary>
         public static string Add_Team_Member_Title {
             get {

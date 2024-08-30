@@ -11,7 +11,12 @@ namespace Tracker.Helpers
             Window? ownerWindow = null;
             switch (type)
             {
+                case DialogType.AddOneOnOne:
                 case DialogType.AddTeamMember:
+                case DialogType.AddKPI:
+                case DialogType.AddOKR:
+                case DialogType.AddProject:
+                case DialogType.AddTask:
                     ownerWindow = Win32UtilHelper.GetMainWindow();
                     break;
             }

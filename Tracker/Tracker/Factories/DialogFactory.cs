@@ -27,12 +27,42 @@ namespace Tracker.Factories
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                         Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
                     };
-                    return true; 
-                case DialogType.AddTask:
-                case DialogType.AddProject:
-                case DialogType.AddKPI:
-                case DialogType.AddOKR:
+                    return true;
                 case DialogType.AddOneOnOne:
+                    window = new AddOneOnOneDialog(new OneOnOneViewModel(callback, new OneOnOne()))
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                    };
+                    return true;
+                case DialogType.AddTask:
+                    window = new AddTaskDialog(new NewTaskViewModel(callback, new IndividualTask()))
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                    };
+                    return true;
+                case DialogType.AddProject:
+                    window = new AddProjectDialog(new NewProjectViewModel(callback, new Project()))
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                    };
+                    return true;
+                case DialogType.AddKPI:
+                    window = new AddKPI(new NewKpiViewModel(callback, new KeyPerformanceIndicator()))
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                    };
+                    return true;
+                case DialogType.AddOKR:
+                    window = new AddOkrDialog(new NewOkrViewModel(callback, new ObjectiveKeyResult()))
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                    };
+                    return true;
                 default:
                     MessageBox.Show($"No dialog available for type {type}", "Invalid Dialog", MessageBoxButton.OK);
                     window = null;

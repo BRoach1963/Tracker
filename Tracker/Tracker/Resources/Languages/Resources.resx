@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Add_Team_Member_Title" xml:space="preserve">
-    <value>Add Team Member</value>
+    <value>New Team Member</value>
   </data>
   <data name="ai" xml:space="preserve">
     <value>AI</value>
@@ -359,5 +359,20 @@
   </data>
   <data name="ColumnHeader_Duration" xml:space="preserve">
     <value>Duration</value>
+  </data>
+  <data name="Add_OneOnOne" xml:space="preserve">
+    <value>New 1:1 </value>
+  </data>
+  <data name="Add_Task" xml:space="preserve">
+    <value>New Task</value>
+  </data>
+  <data name="Add_Project" xml:space="preserve">
+    <value>New Project</value>
+  </data>
+  <data name="Add_Okr" xml:space="preserve">
+    <value>New OKR</value>
+  </data>
+  <data name="Add_Kpi" xml:space="preserve">
+    <value>New KPI</value>
   </data>
 </root>
