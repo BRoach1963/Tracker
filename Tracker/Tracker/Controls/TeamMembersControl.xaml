@@ -7,8 +7,11 @@
              xmlns:commands="clr-namespace:Tracker.Command"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
              xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="450" d:DesignWidth="800"
+             d:DataContext="{d:DesignInstance Type=viewModels:TrackerMainViewModel}">
     <Grid >
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -56,42 +59,53 @@
                 </Button.ToolTip>
             </Button>
         </Grid>
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding TeamMembers}" 
-                  AutoGenerateColumns="False" 
-                  SelectionMode="Single"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Vertical"
-                  HeadersVisibility="Column"
-                  SelectionUnit="FullRow">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="First Name"
-                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
-                                    Binding="{Binding FirstName}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="Last Name"
-                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
-                                    Binding="{Binding LastName}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="Role"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding Role}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="Email"
-                                    Binding="{Binding Email}"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="Cell"
-                                    Binding="{Binding CellPhone}"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Width="Auto" />
-                <!-- Empty column to fill remaining space -->
-                <DataGridTextColumn Width="*"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    IsReadOnly="True" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <DataGrid Grid.Column="0"
+                      ItemsSource="{Binding TeamMembers}"
+                      AutoGenerateColumns="False"
+                      SelectionMode="Single"
+                      SelectedItem="{Binding SelectedTeamMember}"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Vertical"
+                      HeadersVisibility="Column"
+                      SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="First Name"
+                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                        Binding="{Binding FirstName}"
+                                        Width="Auto" />
+                    <DataGridTextColumn Header="Last Name"
+                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                        Binding="{Binding LastName}"
+                                        Width="Auto" />
+                    <DataGridTextColumn Header="Role"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                        Binding="{Binding Role}"
+                                        Width="Auto" />
+                    <DataGridTextColumn Header="Email"
+                                        Binding="{Binding Email}"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                        Width="Auto" />
+                    <DataGridTextColumn Header="Cell"
+                                        Binding="{Binding CellPhone}"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                        Width="Auto" />
+                    <!-- Empty column to fill remaining space -->
+                    <DataGridTextColumn Width="*"
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                        IsReadOnly="True" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <local:ContactDataDisplayCard Grid.Column="1" 
+                                          Width="225"
+                                          Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TeamMembersControl}}, Path = DataContext.SelectedTeamMemberWrapper, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"
+                                          DataContext="{Binding SelectedTeamMemberWrapper}"/>
+        </Grid>
     </Grid>
 </UserControl>

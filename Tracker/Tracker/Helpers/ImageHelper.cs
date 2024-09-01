@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
+using System.Collections;
 
 namespace Tracker.Helpers
 {
@@ -36,6 +37,31 @@ namespace Tracker.Helpers
             bitmap.EndInit();
 
             ImageSource imageSource = bitmap;  
+            return imageSource;
+        }
+
+        public static async Task<ImageSource?> GetImageSourceFromByteArrayAsync(byte[] array)
+        {
+            if (array == null || array.Length == 0)
+                return null;
+
+            BitmapImage bitmap = new BitmapImage();
+
+            using (MemoryStream stream = new MemoryStream(array))
+            {
+                stream.Position = 0;
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = stream;
+                bitmap.EndInit();
+            }
+
+            await bitmap.Dispatcher.InvokeAsync(() =>
+            {
+                bitmap.Freeze(); // Freezes the BitmapImage to make it cross-thread accessible.
+            });
+
+            ImageSource? imageSource = bitmap;
             return imageSource;
         }
 

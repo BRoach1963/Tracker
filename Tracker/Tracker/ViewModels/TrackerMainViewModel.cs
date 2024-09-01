@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using Tracker.DataModels;
+using Tracker.DataWrappers;
 using Tracker.Interfaces;
 using Tracker.MockData;
 
@@ -16,6 +17,8 @@ namespace Tracker.ViewModels
         private ObservableCollection<KeyPerformanceIndicator> _kpis = new();
         private ObservableCollection<Project> _projects = new();
 
+        private TeamMember? _teamMember;
+        private TeamMemberWrapper? _selectedTeamMemberWrapper;
         #endregion
 
         #region Ctor
@@ -28,6 +31,27 @@ namespace Tracker.ViewModels
         #endregion
 
         #region Public Properties
+
+        public TeamMember? SelectedTeamMember
+        {
+            get => _teamMember;
+            set
+            {
+                _teamMember = value;
+                SelectedTeamMemberWrapper = new TeamMemberWrapper(_teamMember);
+                RaisePropertyChanged();
+            }
+        }
+
+        public TeamMemberWrapper? SelectedTeamMemberWrapper
+        {
+            get => _selectedTeamMemberWrapper;
+            set
+            {
+                _selectedTeamMemberWrapper = value;
+                RaisePropertyChanged();
+            }
+        }
 
         public ObservableCollection<TeamMember> TeamMembers => _teamMembers;
 

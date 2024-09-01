@@ -9,8 +9,11 @@
              xmlns:languages="clr-namespace:Tracker.Resources.Languages"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" 
+             Width="250"
+             MaxWidth="250"
+             MinWidth="250"
              Background="{DynamicResource BackgroundBrush}"
-             d:DesignHeight="650" d:DesignWidth="800">
+             d:DesignHeight="650" d:DesignWidth="250">
     <UserControl.Resources>
         <ResourceDictionary>
             <system:Boolean x:Key="TrueValue">True</system:Boolean>

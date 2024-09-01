@@ -7,6 +7,9 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Controls\ContactDataDisplayCard.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Controls\DialogTitleBar.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -62,6 +65,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Page Update="Controls\ContactDataDisplayCard.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Controls\DialogTitleBar.xaml">
       <SubType>Designer</SubType>
     </Page>

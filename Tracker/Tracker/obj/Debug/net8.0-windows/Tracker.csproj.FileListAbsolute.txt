@@ -74,3 +74,5 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Vie
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Dialogs\AddProjectDialog.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Dialogs\AddKPI.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Dialogs\AddOkrDialog.baml
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Controls\ContactDataDisplayCard.g.cs
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Controls\ContactDataDisplayCard.baml

@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\App.xaml
-22995546200
+23540090089
 1-838812668
-110-590021115
+113-1371193663
 207-684935317
-Controls\DialogTitleBar.xaml;Controls\EditableContactCard.xaml;Controls\KpisControl.xaml;Controls\OkrsControl.xaml;Controls\OneOnOnesControl.xaml;Controls\ProjectsControl.xaml;Controls\TasksControl.xaml;Controls\TeamMembersControl.xaml;Controls\TrackerToolTip.xaml;MainWindow.xaml;Resources\Styles.xaml;Resources\Styles\DialogStyles.xaml;Resources\Themes\BlackTheme.xaml;Resources\Themes\GoldTheme.xaml;Resources\Themes\LightTheme.xaml;Views\Dialogs\AddKPI.xaml;Views\Dialogs\AddOkrDialog.xaml;Views\Dialogs\AddOneOnOneDialog.xaml;Views\Dialogs\AddProjectDialog.xaml;Views\Dialogs\AddTaskDialog.xaml;Views\Dialogs\AddTeamMemberDialog.xaml;Views\Dialogs\SettingsDialog.xaml;
+Controls\ContactDataDisplayCard.xaml;Controls\DialogTitleBar.xaml;Controls\EditableContactCard.xaml;Controls\KpisControl.xaml;Controls\OkrsControl.xaml;Controls\OneOnOnesControl.xaml;Controls\ProjectsControl.xaml;Controls\TasksControl.xaml;Controls\TeamMembersControl.xaml;Controls\TrackerToolTip.xaml;MainWindow.xaml;Resources\Styles.xaml;Resources\Styles\DialogStyles.xaml;Resources\Themes\BlackTheme.xaml;Resources\Themes\GoldTheme.xaml;Resources\Themes\LightTheme.xaml;Views\Dialogs\AddKPI.xaml;Views\Dialogs\AddOkrDialog.xaml;Views\Dialogs\AddOneOnOneDialog.xaml;Views\Dialogs\AddProjectDialog.xaml;Views\Dialogs\AddTaskDialog.xaml;Views\Dialogs\AddTeamMemberDialog.xaml;Views\Dialogs\SettingsDialog.xaml;
 views\trackersplash.png
-False
+True
 
