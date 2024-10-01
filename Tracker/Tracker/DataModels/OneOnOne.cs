@@ -9,10 +9,14 @@ namespace Tracker.DataModels
 
         public int Id { get; set; } = 0;
 
+        public string Description { get; set; } = string.Empty;
+
         public DateTime Date { get; set; }
 
 
         public TimeSpan StartTime { get; set; }
+
+        public TimeSpan EndTime { get; set; }
 
         public TimeSpan Duration { get; set; }
 

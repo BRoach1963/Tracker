@@ -10,6 +10,7 @@
                      xmlns:textBox="clr-namespace:DeepEndControls.Controls.TextBox;assembly=DeepEndControls"
                      xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
                      xmlns:dateTimeControls="clr-namespace:DeepEndControls.Controls.DateTimeControls;assembly=DeepEndControls"
+                     xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
                      mc:Ignorable="d"
                      MouseDown="OnDragHandleMouseDown"
                      WindowStyle="None"
@@ -18,6 +19,7 @@
                      AllowsTransparency="True"
                      SizeToContent="WidthAndHeight"
                      Background="Transparent"
+                     d:DataContext="{d:DesignInstance Type=dialogViewModels:OneOnOneViewModel}"
                      MinWidth="400">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
@@ -80,12 +82,12 @@
                             <Label Style="{StaticResource LabelStyle}"
                                    Margin="05,0,0, 0"
                                    Grid.Row="0"
-                                   Content="Title" />
+                                   Content="Description" />
                             <textBox:TextBoxWithHint TextBoxType="Text"
                                                      HorizontalAlignment="Stretch"
                                                      HintText="Enter Title"
                                                      Grid.Row="1"
-                                                     Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                     Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                                                      Margin="05,0,0, 5" />
                         </Grid>
                         <Grid Grid.Row="1">
@@ -114,9 +116,9 @@
                                 <textBox:TextBoxWithHint TextBoxType="LongDate"
                                                          HorizontalAlignment="Stretch"
                                                          Grid.Column="0"
-                                                         Text="{Binding HireDateDisplay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Text="{Binding DateDisplay, UpdateSourceTrigger=PropertyChanged}"
                                                          Margin="05,0,0, 0" />
-                                <DatePicker SelectedDate="{Binding HireDate, UpdateSourceTrigger=PropertyChanged}"
+                                <DatePicker SelectedDate="{Binding Date, UpdateSourceTrigger=PropertyChanged}"
                                             Grid.Column="1"
                                             Style="{StaticResource DatePickerStyle}" />
 
@@ -138,6 +140,7 @@
                                                          Background="{DynamicResource BackgroundBrush}"
                                                          Margin="05,0,0, 0"
                                                          Grid.Row="1"  
+                                                         SelectedTime="{Binding StartTime}"
                                                          ComboBoxBorderBrush="{DynamicResource ForegroundBrush}"
                                                          BorderBrush="{DynamicResource ForegroundBrush}"
                                                          PopupBackground="{DynamicResource BackgroundBrush}"
@@ -150,7 +153,8 @@
                                                          ComboBoxBackground="{DynamicResource BackgroundBrush}"/>
 
                             <dateTimeControls:TimePicker Grid.Column="2"
-                                                         Height="25" 
+                                                         Height="25"
+                                                         SelectedTime="{Binding EndTime}"
                                                          Background="{DynamicResource BackgroundBrush}"
                                                          ComboBoxBorderBrush="{DynamicResource ForegroundBrush}"
                                                          BorderBrush="{DynamicResource ForegroundBrush}"
@@ -198,8 +202,8 @@
                                    Content="Repeats"
                                    Grid.Row="4"
                                    Margin="05,05,0, 0" />
-                            <ComboBox ItemsSource="{Binding Statuses}"
-                                      SelectedItem="{Binding Status}"
+                            <ComboBox ItemsSource="{Binding RepeatPatterns}"
+                                      SelectedItem="{Binding SelectedRepeatPattern}"
                                       Grid.Row="5"
                                       Margin="05,0,0, 0" />
                             <Label Style="{StaticResource LabelStyle}"

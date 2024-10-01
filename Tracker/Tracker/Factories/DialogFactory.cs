@@ -51,7 +51,11 @@ namespace Tracker.Factories
                     };
                     return true;
                 case DialogType.AddOneOnOne:
-                    window = new AddOneOnOneDialog(new OneOnOneViewModel(callback, new OneOnOne()))
+                    var vm = dataObject is TeamMember tm
+                        ? new OneOnOneViewModel(callback, new OneOnOne(), false, tm)
+                        : new OneOnOneViewModel(callback, new OneOnOne(), false);
+
+                    window = new AddOneOnOneDialog(vm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                         Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window

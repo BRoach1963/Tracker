@@ -29,6 +29,7 @@ namespace Tracker.ViewModels
 
         private ICommand? _editTeamMemberCommand;
         private ICommand? _deleteTeamMemberCommand;
+        private ICommand? _addTeamMemberOneOnOneCommand;
 
         #endregion
 
@@ -55,6 +56,9 @@ namespace Tracker.ViewModels
 
         public ICommand TeamMemberDeleteCommand => _deleteTeamMemberCommand ??=
             new TrackerCommand(DeleteTeamMemberExecuted, CanDeleteTeamMember);
+
+        public ICommand AddTeamMemberOneOnOneCommand => _addTeamMemberOneOnOneCommand ??=
+            new TrackerCommand(AddTeamMemberOneOnOneExecuted, CanExecuteAddTeamMemberOneOnOne);
 
         #endregion
 
@@ -196,6 +200,22 @@ namespace Tracker.ViewModels
             if (message.RefreshData)
             {
                 RefreshData(message.ChangedProperty);
+            }
+        }
+
+        private bool CanExecuteAddTeamMemberOneOnOne(object? obj)
+        {
+            return _selectedTeamMemberWrapper != null;
+        }
+
+        private void AddTeamMemberOneOnOneExecuted(object? parameter)
+        {
+            if (parameter is TeamMemberWrapper wrapper)
+            {
+                DialogManager.Instance.LaunchDialogByType(DialogType.AddOneOnOne, true, () =>
+                {
+                    RaisePropertyChanged(nameof(SelectedTeamMemberWrapper));
+                }, wrapper.Data);
             }
         }
 

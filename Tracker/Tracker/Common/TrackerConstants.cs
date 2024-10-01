@@ -10,7 +10,7 @@ namespace Tracker.Common
     {
         #region SQL Parameters
 
-        public const string TeamMemberId = "@Id";
+        public const string GenericId = "@Id";
         public const string TeamMemberFirstName = "@FirstName";
         public const string TeamMemberLastName = "@LastName";
         public const string TeamMemberNickname = "@NickName";
@@ -30,6 +30,17 @@ namespace Tracker.Common
         public const string TeamMemberSkill = "@Skill";
         public const string TeamMemberRole = "@Role";
         public const string TeamMemberBirthday = "@Birthday";
+
+        public const string OneOnOneDescription = "@Description";
+        public const string OneOnOneDate = "@Date";
+        public const string OneOnOneStartTime = "@StartTime";
+        public const string OneOnOneDuration = "@Duration";
+        public const string OneOnOneAgenda = "@Agenda";
+        public const string OneOnOneNotes = "@Notes";
+        public const string OneOnOneIsRecurring = "@IsRecurring";
+        public const string OneOnOneFeedback = "@Feedback"; 
+        public const string OneOnOneStatus = "@Status";
+        public const string OneOnOneTeamMemberId = "@TeamMemberId"; 
 
         #endregion
 

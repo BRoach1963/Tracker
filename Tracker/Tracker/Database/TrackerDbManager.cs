@@ -224,7 +224,7 @@ namespace Tracker.Database
             command.CommandType = CommandType.StoredProcedure;
 
             // Required field
-            command.Parameters.AddWithValue(TrackerConstants.TeamMemberId, id);
+            command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
 
 
             // Optional fields
@@ -244,7 +244,7 @@ namespace Tracker.Database
                 await using var command = new SqlCommand(TrackerConstants.DeleteTeamMember, connection);
                 command.CommandType = CommandType.StoredProcedure;
 
-                command.Parameters.AddWithValue(TrackerConstants.TeamMemberId, id);
+                command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
 
                 await command.ExecuteNonQueryAsync();
 
