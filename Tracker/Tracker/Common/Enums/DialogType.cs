@@ -10,5 +10,7 @@
         AddOKR = 5,
         Settings = 6,
         AddOneOnOne = 7,
+        EditTeamMember = 8,
+        Login = 9,
     }
 }

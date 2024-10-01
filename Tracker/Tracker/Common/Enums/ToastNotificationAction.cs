@@ -2,6 +2,8 @@
 {
     public enum ToastNotificationAction
     {
-        StatsWarningSystemBusy
+        StatsWarningSystemBusy,
+        SqlLoginSuccess,
+        SqlLoginFailure,
     }
 }

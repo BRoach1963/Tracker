@@ -100,8 +100,7 @@
                                         HeaderStyle="{StaticResource CenteredHeaderStyle}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Style="{StaticResource MoreButtonStyle}"
-                                    Command="{Binding YourCommand}"
+                            <Button Style="{StaticResource MoreButtonStyle}" 
                                     CommandParameter="{Binding}">
                              
                             </Button>

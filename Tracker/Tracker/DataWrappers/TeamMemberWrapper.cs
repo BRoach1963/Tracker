@@ -33,6 +33,8 @@ namespace Tracker.DataWrappers
 
         #region Public Properties
 
+        public TeamMember Data => _data;
+
         public EnumWrapper<RoleEnum>? Role => _role;
 
         public EnumWrapper<SkillLevelEnum>? Level => _level;
@@ -240,6 +242,7 @@ namespace Tracker.DataWrappers
         private async void LoadProfileImageIfAvailable(byte[] dataProfileImage)
         {
             _profileImage = await ImageHelper.GetImageSourceFromByteArrayAsync(_data.ProfileImage);
+            RaisePropertyChanged(nameof(ProfileImage));
         }
 
 

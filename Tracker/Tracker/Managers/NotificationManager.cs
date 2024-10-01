@@ -1,9 +1,18 @@
-﻿using Tracker.Common.Enums;
+﻿
+using System.Windows;
+using Microsoft.Toolkit.Uwp.Notifications;
+using Tracker.Common.Enums;
+using Tracker.Factories;
+using Tracker.Views.Toasts;
 
 namespace Tracker.Managers
 {
     public class NotificationManager
     {
+        private const int ToastSpacing = 5; // Spacing between stacked toasts
+        private const int ToastWidth = 300;
+        private const int ToastHeight = 100;
+        private static int activeToastCount = 0;
 
         #region Singleton Instance
 
@@ -31,9 +40,29 @@ namespace Tracker.Managers
 
         #endregion
 
-        public void SendToast(ToastNotificationAction action)
+        public void SendNativeToast(ToastNotificationAction action)
         {
+            ToastContentFactory.TryGetToastContent(action, out ToastContentBuilder? toast);
+            toast?.Show();
+        }
 
+        public void SendTrackerToast(string title, string message)
+        {
+            var toast = new TrackerToast(title, message);
+
+            // Calculate position for stacking
+            var workingArea = SystemParameters.WorkArea;
+            double topOffset = workingArea.Bottom - (ToastHeight + 10) * (activeToastCount + 1) - ToastSpacing * activeToastCount;
+
+            toast.Top = topOffset;
+            toast.Left = workingArea.Right - ToastWidth - 10;
+
+            // Increment the active toast count to manage stacking
+            activeToastCount++;
+
+            toast.Closed += (s, e) => activeToastCount--; // Decrement count when toast is closed
+
+            toast.Show();
         }
     }
 }

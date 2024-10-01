@@ -375,4 +375,40 @@
   <data name="Add_Kpi" xml:space="preserve">
     <value>New KPI</value>
   </data>
+  <data name="ToolTip_Facebook" xml:space="preserve">
+    <value>Go to Facebook Profile</value>
+  </data>
+  <data name="ToolTip_Instagram" xml:space="preserve">
+    <value>Go to Instagram Profile</value>
+  </data>
+  <data name="ToolTip_TwitterX" xml:space="preserve">
+    <value>Go to X Profile</value>
+  </data>
+  <data name="principle" xml:space="preserve">
+    <value>Principle</value>
+  </data>
+  <data name="LoginTitle" xml:space="preserve">
+    <value>Login to Team Tracker</value>
+  </data>
+  <data name="HintText_UserName" xml:space="preserve">
+    <value>Enter username</value>
+  </data>
+  <data name="HintText_Password" xml:space="preserve">
+    <value>Enter password</value>
+  </data>
+  <data name="TabHeader_GeneralSettings" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="TabHeader_DatabaseSettings" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Button_Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="ToolTip_DeleteContact" xml:space="preserve">
+    <value>Delete Team member</value>
+  </data>
 </root>

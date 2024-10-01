@@ -10,6 +10,9 @@
     <Compile Update="Controls\ContactDataDisplayCard.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Controls\CustomControls\SocialMediaLinkTextBoxControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Controls\DialogTitleBar.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -52,10 +55,16 @@
     <Compile Update="Views\Dialogs\AddTaskDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\Dialogs\AddTeamMemberDialog.xaml.cs">
+    <Compile Update="Views\Dialogs\LoginDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\Dialogs\TeamMemberDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\Dialogs\SettingsDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\Toasts\TrackerToast.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -66,6 +75,9 @@
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\ContactDataDisplayCard.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\CustomControls\SocialMediaLinkTextBoxControl.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Controls\DialogTitleBar.xaml">
@@ -128,10 +140,16 @@
     <Page Update="Views\Dialogs\AddTaskDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="Views\Dialogs\AddTeamMemberDialog.xaml">
+    <Page Update="Views\Dialogs\LoginDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\Dialogs\TeamMemberDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Views\Dialogs\SettingsDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\Toasts\TrackerToast.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

@@ -42,6 +42,7 @@ namespace Tracker.Controls
                 {
                     vm.Dispose();
                 }
+                Messenger.Unsubscribe<DialogCloseMessage>(HandleDialogCloseMessage);
                 DialogManager.Instance.CloseDialog(this);
             }
         }

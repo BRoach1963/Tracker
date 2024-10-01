@@ -2,9 +2,14 @@
 
 namespace Tracker.ViewModels.DialogViewModels
 {
-    public class BaseDialogViewModel(Action? callback) : BaseViewModel
+    public class BaseDialogViewModel : BaseViewModel
     {
-        private DialogResult _result = new(); 
+        private DialogResult _result = new();
+
+        public BaseDialogViewModel(Action? callback)
+        {
+            Callback = callback;
+        }
 
         public DialogResult DialogResult
         {
@@ -20,7 +25,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public virtual void UnSubscribeFromMessages() { }
 
-        public Action? Callback { get; set; } = callback;
+        public Action? Callback { get; set; }
  
     }
 }

@@ -2,6 +2,8 @@
 using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.Factories;
+using Tracker.ViewModels;
+using Tracker.ViewModels.DialogViewModels;
 
 namespace Tracker.Managers
 {
@@ -41,7 +43,7 @@ namespace Tracker.Managers
 
         #region Public Methods
 
-        public void LaunchDialogByType(DialogType type, bool modal, Action? callback)
+        public void LaunchDialogByType(DialogType type, bool modal, Action? callback, object? dataObject = null)
         {
             if (_activeDialogs.TryGetValue(type, out BaseWindow? dialog))
             {
@@ -49,7 +51,7 @@ namespace Tracker.Managers
                 return;
             }
 
-            if (!DialogFactory.TryGetWindowFromType(type, callback, out BaseWindow? newDialog)) return;
+            if (!DialogFactory.TryGetWindowFromType(type, callback, out BaseWindow? newDialog, dataObject)) return;
 
             _activeDialogs.TryAdd(type, newDialog);
             if (modal)
@@ -64,6 +66,13 @@ namespace Tracker.Managers
 
         public void CloseDialog(BaseWindow dialog)
         {
+            if (dialog.DataContext is BaseDialogViewModel vm)
+            {
+                App.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    vm.Callback?.Invoke();
+                });
+            }
             _activeDialogs.TryRemove(dialog.Type, out _);
             dialog.Close();
         }

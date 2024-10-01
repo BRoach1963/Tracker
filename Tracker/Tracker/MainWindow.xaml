@@ -18,105 +18,18 @@
                      WindowStartupLocation="CenterScreen"
                      ResizeMode="CanResize"
                      AllowsTransparency="True"
+                     Closed="Window_Closed"
                      Background="Transparent"
                      Title="MainWindow"
                      Height="450"
                      Width="800"
                      d:DataContext="{d:DesignInstance Type=viewModels:TrackerMainViewModel}">
     <controls:BaseWindow.Resources>
-        <Style TargetType="{x:Type TabControl}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type TabControl}">
-                        <Grid>
-                            <!-- Tab Panel -->
-                            <StackPanel Grid.Column="0"
-                                        IsItemsHost="True"
-                                        Orientation="Vertical"
-                                        VerticalAlignment="Stretch"
-                                        HorizontalAlignment="Stretch"
-                                        Background="{DynamicResource BackgroundBrush}">
-                            </StackPanel>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="{x:Type TabItem}">
-            <Setter Property="Padding"
-                    Value="12,7" />
-            <Setter Property="Margin"
-                    Value="0,0,0,2" />
-            <Setter Property="Background"
-                    Value="{DynamicResource BackgroundBrush}" />
-            <Setter Property="Foreground"
-                    Value="{DynamicResource ForegroundBrush}" />
-            <Setter Property="HorizontalAlignment"
-                    Value="Stretch" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type TabItem}">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{DynamicResource ForegroundBrush}"
-                                BorderThickness="0"
-                                Padding="{TemplateBinding Padding}"
-                                CornerRadius="4">
-                            <Grid HorizontalAlignment="Center">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition x:Name="Spacer"
-                                                      Width="8" />
-                                    <ColumnDefinition x:Name="ContentColumn"
-                                                      Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Path Grid.Column="0"
-                                      Stretch="Uniform"
-                                      Fill="{TemplateBinding Foreground}"
-                                      Data="{Binding RelativeSource={RelativeSource TemplatedParent},
-                                             Path=(attachedProperties:TabItemExtensions.IconData)}" />
-                                <ContentPresenter ContentSource="Header"
-                                                  Grid.Column="2"
-                                                  MinWidth="125"
-                                                  Margin="0,0,0,0"
-                                                  HorizontalAlignment="Left"
-                                                  VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TabControl}, Path=(attachedProperties:TabControlExtensions.IsCollapsed)}"
-                                         Value="True">
-                                <Setter TargetName="ContentColumn"
-                                        Property="Width"
-                                        Value="0" />
-                                <Setter TargetName="Spacer"
-                                        Property="Width"
-                                        Value="0" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TabControl}, Path=(attachedProperties:TabControlExtensions.IsCollapsed)}"
-                                         Value="False">
-                                <Setter TargetName="ContentColumn"
-                                        Property="Width"
-                                        Value="*" />
-                                <Setter TargetName="Spacer"
-                                        Property="Width"
-                                        Value="8" />
-                            </DataTrigger>
-                            <Trigger Property="IsSelected"
-                                     Value="True">
-                                <Setter Property="Background"
-                                        Value="{DynamicResource ForegroundBrush}" />
-                                <Setter Property="Foreground"
-                                        Value="{DynamicResource BackgroundBrush}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </controls:BaseWindow.Resources>
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{StaticResource ForegroundBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>

@@ -12,14 +12,15 @@ namespace Tracker
     public partial class MainWindow 
     {
 
-        public MainWindow()
+        public MainWindow(TrackerMainViewModel dataContext)
         {
-            InitializeComponent();
-            DataContext = new TrackerMainViewModel();
+            DataContext = dataContext;
+            InitializeComponent(); 
             SubscribeToSizingEvents();
             this.Unloaded += (_, _) =>
             { 
                 UnsubscribeFromSizingEvents();
+                if(DataContext is IDisposable vm) vm.Dispose();
                 this.Unloaded -= (RoutedEventHandler)((_, _) => { /* Same logic here if needed */ });
             };
         }
@@ -70,7 +71,11 @@ namespace Tracker
             }
             return parent as TabItem ?? null;
         }
- 
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
         private void TabChangedEventHandler(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems.Count > 0)

@@ -7,9 +7,9 @@ namespace Tracker.MockData
 {
     public static  class MockTasks
     {
-        public static ObservableCollection<ITask> GetMockTaskData()
+        public static ObservableCollection<ITask> GetMockTaskData(List<TeamMember> teamMembers)
         {
-            var oneOnOnes = MockOneOnOnes.GetMockOneOnOneData();
+            var oneOnOnes = MockOneOnOnes.GetMockOneOnOneData(teamMembers);
 
             var tasks = new ObservableCollection<ITask>();
 

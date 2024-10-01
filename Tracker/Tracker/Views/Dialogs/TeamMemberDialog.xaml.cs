@@ -7,9 +7,9 @@ namespace Tracker.Views.Dialogs
     /// <summary>
     /// Interaction logic for AddTeamMemberDialog.xaml
     /// </summary>
-    public partial class AddTeamMemberDialog : BaseWindow
+    public partial class TeamMemberDialog : BaseWindow
     {
-        public AddTeamMemberDialog(AddTeamMemberViewModel vm) : base(DialogType.AddTeamMember)
+        public TeamMemberDialog(TeamMemberViewModel vm, DialogType type) : base(type)
         {
             DataContext = vm;
             InitializeComponent();

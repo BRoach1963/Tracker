@@ -1,10 +1,18 @@
 ﻿namespace Tracker.Classes
 {
-    public class SystemStats(double appCpu, double sysCpu, double appMem, double sysMem)
+    public class SystemStats
     {
-        public double AppCpu = appCpu;
-        public double AppMem = appMem;
-        public double SysMem = sysMem;
-        public double SysCpu = sysCpu;
+        public double AppCpu;
+        public double AppMem;
+        public double SysMem;
+        public double SysCpu;
+
+        public SystemStats(double appCpu, double sysCpu, double appMem, double sysMem)
+        {
+            AppCpu = appCpu;
+            AppMem = appMem;
+            SysMem = sysMem;
+            SysCpu = sysCpu;
+        }
     }
 }

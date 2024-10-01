@@ -20,19 +20,19 @@ namespace Tracker.DataModels
 
         public string Notes { get; set; } = string.Empty;
 
-        public List<ActionItem> ActionItems { get; set; } = [];
+        public List<ActionItem> ActionItems { get; set; } = new() { };
 
         public bool IsRecurring { get; set; }
 
-        public List<string> DiscussionPoints { get; set; } = [];
+        public List<string> DiscussionPoints { get; set; } = new() { };
 
         public string Feedback { get; set; } = string.Empty;
 
-        public List<string> Concerns { get; set; } = [];
+        public List<string> Concerns { get; set; } = new() { };
 
-        public List<ObjectiveKeyResult> ObjectiveKeyResults { get; set; } = [];
+        public List<ObjectiveKeyResult> ObjectiveKeyResults { get; set; } = new() { };
 
-        public List<FollowUpItem> FollowUpItems { get; set; } = [];
+        public List<FollowUpItem> FollowUpItems { get; set; } = new() { };
 
         public MeetingStatusEnum Status { get; set; }
 

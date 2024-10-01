@@ -3,6 +3,7 @@ using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.DataModels;
 using Tracker.Helpers;
+using Tracker.ViewModels;
 using Tracker.ViewModels.DialogViewModels;
 using Tracker.Views.Dialogs;
 
@@ -10,17 +11,38 @@ namespace Tracker.Factories
 {
     public static class DialogFactory
     {
-        public static bool TryGetWindowFromType(DialogType type, Action? callback, out BaseWindow? window)
+        public static bool TryGetWindowFromType(DialogType type, Action? callback, out BaseWindow? window, object? dataObject)
         {
             switch (type)
             {
                 case DialogType.AddTeamMember:
-                    window = new AddTeamMemberDialog(new AddTeamMemberViewModel(callback, new TeamMember()))
+                    window = new TeamMemberDialog(new TeamMemberViewModel(callback, new TeamMember()), type)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                         Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
                     };
                     return true;
+
+                case DialogType.EditTeamMember:
+                    if (dataObject is TeamMember teamMember)
+                    {
+                        try
+                        {
+                            window = new TeamMemberDialog(new TeamMemberViewModel(callback, teamMember, true), type)
+                            {
+                                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                                Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                            };
+                            return true;
+                        }
+                        catch (Exception e)
+                        {
+                            window = null;
+                            return false; 
+                        }
+                    }
+                    window = null;
+                    return false;
                 case DialogType.Settings:
                     window = new SettingsDialog(new SettingsViewModel(callback))
                     {
@@ -61,6 +83,12 @@ namespace Tracker.Factories
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                         Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window
+                    };
+                    return true; 
+                case DialogType.MainWindow:
+                    window = new MainWindow(new TrackerMainViewModel())
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterScreen
                     };
                     return true;
                 default:

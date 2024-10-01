@@ -151,6 +151,24 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string Button_Cancel {
+            get {
+                return ResourceManager.GetString("Button_Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login.
+        /// </summary>
+        public static string Button_Login {
+            get {
+                return ResourceManager.GetString("Button_Login", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cell.
         /// </summary>
         public static string ColumnHeader_CellPhone {
@@ -273,6 +291,24 @@ namespace Tracker.Resources.Languages {
         public static string HintText_Instagram {
             get {
                 return ResourceManager.GetString("HintText_Instagram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter password.
+        /// </summary>
+        public static string HintText_Password {
+            get {
+                return ResourceManager.GetString("HintText_Password", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter username.
+        /// </summary>
+        public static string HintText_UserName {
+            get {
+                return ResourceManager.GetString("HintText_UserName", resourceCulture);
             }
         }
         
@@ -493,6 +529,15 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Login to Team Tracker.
+        /// </summary>
+        public static string LoginTitle {
+            get {
+                return ResourceManager.GetString("LoginTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to MacOS.
         /// </summary>
         public static string mac_os {
@@ -534,6 +579,15 @@ namespace Tracker.Resources.Languages {
         public static string principal {
             get {
                 return ResourceManager.GetString("principal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Principle.
+        /// </summary>
+        public static string principle {
+            get {
+                return ResourceManager.GetString("principle", resourceCulture);
             }
         }
         
@@ -615,6 +669,24 @@ namespace Tracker.Resources.Languages {
         public static string Settings_Title {
             get {
                 return ResourceManager.GetString("Settings_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database.
+        /// </summary>
+        public static string TabHeader_DatabaseSettings {
+            get {
+                return ResourceManager.GetString("TabHeader_DatabaseSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General.
+        /// </summary>
+        public static string TabHeader_GeneralSettings {
+            get {
+                return ResourceManager.GetString("TabHeader_GeneralSettings", resourceCulture);
             }
         }
         
@@ -727,11 +799,38 @@ namespace Tracker.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Delete Team member.
+        /// </summary>
+        public static string ToolTip_DeleteContact {
+            get {
+                return ResourceManager.GetString("ToolTip_DeleteContact", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Edit.
         /// </summary>
         public static string ToolTip_Edit {
             get {
                 return ResourceManager.GetString("ToolTip_Edit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Facebook Profile.
+        /// </summary>
+        public static string ToolTip_Facebook {
+            get {
+                return ResourceManager.GetString("ToolTip_Facebook", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Instagram Profile.
+        /// </summary>
+        public static string ToolTip_Instagram {
+            get {
+                return ResourceManager.GetString("ToolTip_Instagram", resourceCulture);
             }
         }
         
@@ -813,6 +912,15 @@ namespace Tracker.Resources.Languages {
         public static string ToolTip_TeamMembers {
             get {
                 return ResourceManager.GetString("ToolTip_TeamMembers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to X Profile.
+        /// </summary>
+        public static string ToolTip_TwitterX {
+            get {
+                return ResourceManager.GetString("ToolTip_TwitterX", resourceCulture);
             }
         }
         

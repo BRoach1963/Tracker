@@ -318,7 +318,7 @@ namespace Tracker.Logging
                                 if (++_performanceHitCount > 5)
                                 {
                                     _performanceHitCount = 0;
-                                    NotificationManager.Instance.SendToast(ToastNotificationAction.StatsWarningSystemBusy);
+                                    NotificationManager.Instance.SendNativeToast(ToastNotificationAction.StatsWarningSystemBusy);
                                 }
                             }
                             else

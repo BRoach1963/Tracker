@@ -26,6 +26,8 @@
     </controls:BaseWindow.Resources>
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{StaticResource ForegroundBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>

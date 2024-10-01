@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Tracker.Common.Enums;
 
 namespace Tracker.Controls
 {
@@ -26,16 +27,33 @@ namespace Tracker.Controls
                 typeof(DialogTitleBar),
                 new PropertyMetadata(Tracker.Resources.Languages.Resources.Main_Title));
 
+        public static readonly DependencyProperty ToolbarStyleProperty =
+            DependencyProperty.Register(
+                nameof(ToolBarStyle),
+                typeof(ToolBarStyleEnum),
+                typeof(DialogTitleBar),
+                new PropertyMetadata(ToolBarStyleEnum.Standard));
+
+        public ToolBarStyleEnum ToolBarStyle
+        {
+            get => (ToolBarStyleEnum)GetValue(ToolbarStyleProperty);
+            set
+            {
+                SetValue(ToolbarStyleProperty, value);
+                SetButtonVisibility();
+            }
+        }
+
         public string DialogTitle
         {
-            get { return (string)GetValue(TitleProperty); }
-            set { SetValue(TitleProperty, value); }
+            get => (string)GetValue(TitleProperty);
+            set => SetValue(TitleProperty, value);
         }
 
         public Geometry IconData
         {
-            get { return (Geometry)GetValue(IconProperty); }
-            set { SetValue(IconProperty, value); }
+            get => (Geometry)GetValue(IconProperty);
+            set => SetValue(IconProperty, value);
         }
 
         #endregion
@@ -99,5 +117,15 @@ namespace Tracker.Controls
         {
             RaiseEvent(new RoutedEventArgs(RestoreClickedEvent));
         }
+        private void SetButtonVisibility()
+        {
+            if (ToolBarStyle == ToolBarStyleEnum.CloseOnly)
+            {
+                MinButton.Visibility = Visibility.Collapsed;
+                Maximize.Visibility = Visibility.Collapsed;
+                Restore.Visibility = Visibility.Collapsed;
+            }
+        }
+
     }
 }

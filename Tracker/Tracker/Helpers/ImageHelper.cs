@@ -2,7 +2,6 @@
 using System.Reflection;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
-using System.Collections;
 
 namespace Tracker.Helpers
 {
@@ -33,36 +32,43 @@ namespace Tracker.Helpers
             BitmapImage bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.UriSource = new Uri(filePath);
+            bitmap.DecodePixelWidth = 100;
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.EndInit();
+            bitmap.Freeze();
 
-            ImageSource imageSource = bitmap;  
+            ImageSource imageSource = bitmap;
             return imageSource;
         }
 
         public static async Task<ImageSource?> GetImageSourceFromByteArrayAsync(byte[] array)
         {
-            if (array == null || array.Length == 0)
-                return null;
-
-            BitmapImage bitmap = new BitmapImage();
-
-            using (MemoryStream stream = new MemoryStream(array))
+            try
             {
-                stream.Position = 0;
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.StreamSource = stream;
-                bitmap.EndInit();
+                if (array == null || array.Length == 0)
+                    return null;
+
+                BitmapImage bitmap = new BitmapImage();
+
+                using (MemoryStream stream = new MemoryStream(array))
+                {
+                    stream.Position = 0;
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                }
+
+                bitmap.Freeze(); // Freezes the BitmapImage to make it cross-thread accessible. 
+
+                ImageSource? imageSource = bitmap;
+                return imageSource;
+            }
+            catch (Exception e)
+            {
+                return null;
             }
 
-            await bitmap.Dispatcher.InvokeAsync(() =>
-            {
-                bitmap.Freeze(); // Freezes the BitmapImage to make it cross-thread accessible.
-            });
-
-            ImageSource? imageSource = bitmap;
-            return imageSource;
         }
 
         public static byte[] GetByteArrayFromFile(string filePath)

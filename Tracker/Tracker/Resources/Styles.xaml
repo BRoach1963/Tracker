@@ -3,12 +3,144 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:controls="clr-namespace:Tracker.Controls"
                     xmlns:converters="clr-namespace:Tracker.Common.Converters"
-                    xmlns:local="clr-namespace:Tracker.AttachedProperties">
+                    xmlns:local="clr-namespace:Tracker.AttachedProperties"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls">
 
     <QuadraticEase x:Key="QuadraticEaseInOut"
                    EasingMode="EaseInOut" />
 
     <converters:BooleanToAngleConverter x:Key="BooleanToAngleConverter" />
+
+    <Style x:Key="ToolbarButtonStyle"
+           TargetType="{x:Type Button}">
+        <Setter Property="Margin"
+                Value="3" />
+        <Setter Property="Height"
+                Value="20" />
+        <Setter Property="Padding"
+                Value="2" />
+        <Setter Property="Background"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="Width"
+                Value="20" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Border CornerRadius="3"
+                                BorderThickness="1"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{DynamicResource ForegroundBrush}">
+                            <ContentPresenter />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled"
+                     Value="False">
+                <Setter Property="Opacity"
+                        Value=".7" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="{x:Type customControls:TextBoxWithHint}">
+        <Setter Property="Background"
+                Value="White" />
+        <Setter Property="BorderBrush"
+                Value="#FFB612" />
+        <Setter Property="VerticalContentAlignment"
+                Value="Center" />
+        <Setter Property="BorderThickness"
+                Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type customControls:TextBoxWithHint}">
+                    <Border Name="Border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="2"
+                            Padding="2"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid>
+                            <ScrollViewer Margin="0"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          Background="Transparent"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          x:Name="PART_ContentHost" />
+                            <TextBlock x:Name="HintText"
+                                       Margin="5,0,0,0"
+                                       FontStyle="Italic"
+                                       Foreground="Gray"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       Text="{TemplateBinding HintText}"
+                                       Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Validation.HasError"
+                                 Value="True">
+                            <Setter TargetName="Border"
+                                    Property="BorderBrush"
+                                    Value="Red" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled"
+                                 Value="False">
+                            <Setter Property="Foreground"
+                                    Value="Gray"/>
+                            <Setter Property="Opacity"
+                                    Value=".7" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type customControls:SocialMediaLinkTextBox}">
+        <Setter Property="Background"
+                Value="Black" />
+        <Setter Property="BorderBrush"
+                Value="#FFB612" />
+        <Setter Property="VerticalContentAlignment"
+                Value="Center" />
+        <Setter Property="BorderThickness"
+                Value="1" />
+        <Setter Property="Margin"
+                Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type customControls:SocialMediaLinkTextBox}">
+                    <Grid Margin="{TemplateBinding Margin}"
+                          VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource ToolbarButtonStyle}"
+                                Command="{Binding LaunchUrlCommand}"
+                                Grid.Column="0">
+                            <Path Stretch="Uniform"
+                                  Data="{TemplateBinding Icon}"
+                                  Fill="#FFB612">
+                            </Path>
+                        </Button>
+                        <customControls:TextBoxWithHint x:Name="HintTextBox"
+                                                        HintText="{TemplateBinding HintText }"
+                                                        TextBoxType="Text"
+                                                        VerticalAlignment="Center"
+                                                        Text="{TemplateBinding Text}"
+                                                        Grid.Column="1" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <Style x:Key="CloseButton"
            TargetType="{x:Type Button}">
@@ -118,35 +250,6 @@
         </Setter>
     </Style>
 
-    <Style x:Key="ToolbarButtonStyle"
-           TargetType="{x:Type Button}">
-        <Setter Property="Margin"
-                Value="3" />
-        <Setter Property="Height"
-                Value="20" />
-        <Setter Property="Padding"
-                Value="2" />
-        <Setter Property="Background"
-                Value="{DynamicResource BackgroundBrush}" />
-        <Setter Property="Width"
-                Value="20" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Border CornerRadius="3"
-                                BorderThickness="1"
-                                Background="{TemplateBinding Background}"
-                                Padding="{TemplateBinding Padding}"
-                                BorderBrush="{DynamicResource ForegroundBrush}">
-                            <ContentPresenter />
-                        </Border>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <Style x:Key="CustomInformationToolTip"
            TargetType="{x:Type ToolTip}">
         <Setter Property="OverridesDefaultStyle"
@@ -243,7 +346,7 @@
     <Style x:Key="LabelStyle"
            TargetType="{x:Type Label}">
         <Setter Property="Foreground"
-                Value="{DynamicResource ForegroundBrush}"/>
+                Value="{DynamicResource ForegroundBrush}" />
         <Setter Property="FontStyle"
                 Value="Italic" />
         <Setter Property="FontSize"
@@ -1182,7 +1285,7 @@ style so that the DatePicker will use the application's calendar style.-->
             <Trigger Property="IsEnabled"
                      Value="False">
                 <Setter Property="Foreground"
-                        Value="LightGray"/>
+                        Value="LightGray" />
                 <Setter Property="Opacity"
                         Value=".15" />
             </Trigger>
@@ -1393,11 +1496,16 @@ style so that the DatePicker will use the application's calendar style.-->
 
     <Style x:Key="BaseDataGridColumnHeaderStyle"
            TargetType="DataGridColumnHeader">
-        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
-        <Setter Property="HorizontalContentAlignment" Value="Center"/>
-        <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Padding" Value="2,5,5,5"/>
+        <Setter Property="Background"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Center" />
+        <Setter Property="VerticalContentAlignment"
+                Value="Center" />
+        <Setter Property="Padding"
+                Value="2,5,5,5" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="DataGridColumnHeader">
@@ -1409,7 +1517,7 @@ style so that the DatePicker will use the application's calendar style.-->
                             <!-- Background Rectangle -->
                             <Rectangle Fill="{TemplateBinding Background}" />
 
-                            <Grid HorizontalAlignment="Stretch"  
+                            <Grid HorizontalAlignment="Stretch"
                                   VerticalAlignment="Stretch"
                                   Margin="04,0,4,0">
                                 <Grid.ColumnDefinitions>
@@ -1433,13 +1541,14 @@ style so that the DatePicker will use the application's calendar style.-->
                                       RenderTransformOrigin="0.5,0.5"
                                       Visibility="Collapsed">
                                     <Path.RenderTransform>
-                                        <RotateTransform Angle="0"/>
+                                        <RotateTransform Angle="0" />
                                     </Path.RenderTransform>
                                 </Path>
                             </Grid>
 
                             <!-- Column Separator -->
-                            <Grid HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Grid HorizontalAlignment="Right"
+                                  VerticalAlignment="Center">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
                                     <!-- Spacer above -->
@@ -1448,29 +1557,37 @@ style so that the DatePicker will use the application's calendar style.-->
                                     <RowDefinition Height="*" />
                                     <!-- Spacer below -->
                                 </Grid.RowDefinitions>
-                                <Border x:Name="Separator" 
-                                    Grid.Row="1"
-                                    Width="1" 
-                                    Background="{DynamicResource ForegroundBrush}" 
-                                    HorizontalAlignment="Right"/>
+                                <Border x:Name="Separator"
+                                        Grid.Row="1"
+                                        Width="1"
+                                        Background="{DynamicResource ForegroundBrush}"
+                                        HorizontalAlignment="Right" />
                             </Grid>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <!-- Trigger to show sort indicator when sorting -->
-                        <Trigger Property="SortDirection" Value="Ascending">
-                            <Setter TargetName="SortIndicator" Property="Visibility" Value="Visible"/>
-                            <Setter TargetName="SortIndicator" Property="RenderTransform">
+                        <Trigger Property="SortDirection"
+                                 Value="Ascending">
+                            <Setter TargetName="SortIndicator"
+                                    Property="Visibility"
+                                    Value="Visible" />
+                            <Setter TargetName="SortIndicator"
+                                    Property="RenderTransform">
                                 <Setter.Value>
-                                    <RotateTransform Angle="0"/>
+                                    <RotateTransform Angle="0" />
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <Trigger Property="SortDirection" Value="Descending">
-                            <Setter TargetName="SortIndicator" Property="Visibility" Value="Visible"/>
-                            <Setter TargetName="SortIndicator" Property="RenderTransform">
+                        <Trigger Property="SortDirection"
+                                 Value="Descending">
+                            <Setter TargetName="SortIndicator"
+                                    Property="Visibility"
+                                    Value="Visible" />
+                            <Setter TargetName="SortIndicator"
+                                    Property="RenderTransform">
                                 <Setter.Value>
-                                    <RotateTransform Angle="180"/>
+                                    <RotateTransform Angle="180" />
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
@@ -1496,16 +1613,22 @@ style so that the DatePicker will use the application's calendar style.-->
     </Style>
 
     <Style TargetType="DataGridCell">
-        <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="2,5,5,5"/>
-        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Background"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="BorderBrush"
+                Value="Transparent" />
+        <Setter Property="BorderThickness"
+                Value="0" />
+        <Setter Property="Padding"
+                Value="2,5,5,5" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="DataGridCell">
-                    <Border Background="{TemplateBinding Background}" 
+                    <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             Padding="{TemplateBinding Padding}">
@@ -1517,14 +1640,17 @@ style so that the DatePicker will use the application's calendar style.-->
         </Setter>
         <Style.Triggers>
             <!-- Trigger for selected row using RelativeSource to bind to the DataGridRow's IsSelected property -->
-            <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            <Trigger Property="IsSelected"
+                     Value="True">
+                <Setter Property="Background"
+                        Value="{DynamicResource BackgroundBrush}" />
+                <Setter Property="Foreground"
+                        Value="{DynamicResource ForegroundBrush}" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="LeftAlignedCellStyle" 
+    <Style x:Key="LeftAlignedCellStyle"
            TargetType="DataGridCell">
         <Setter Property="Background"
                 Value="{DynamicResource ForegroundBrush}" />
@@ -1564,17 +1690,24 @@ style so that the DatePicker will use the application's calendar style.-->
     </Style>
 
     <Style TargetType="DataGridRow">
-        <Setter Property="Background" Value="{DynamicResource ForegroundBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BackgroundBrush}"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="BorderBrush"
+                Value="{StaticResource BackgroundBrush}" />
+        <Setter Property="BorderThickness"
+                Value="0" />
         <Style.Triggers>
-            <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            <Trigger Property="IsSelected"
+                     Value="True">
+                <Setter Property="Background"
+                        Value="{DynamicResource BackgroundBrush}" />
+                <Setter Property="Foreground"
+                        Value="{DynamicResource ForegroundBrush}" />
             </Trigger>
         </Style.Triggers>
-    </Style> 
+    </Style>
 
     <Style x:Key="ExpansionButtonStyle"
            TargetType="Button">
@@ -1648,17 +1781,17 @@ style so that the DatePicker will use the application's calendar style.-->
     <Style x:Key="MoreButtonStyle"
            TargetType="{x:Type Button}">
         <Setter Property="Foreground"
-                Value="{DynamicResource ForegroundBrush}"/>
+                Value="{DynamicResource ForegroundBrush}" />
         <Setter Property="Background"
                 Value="{DynamicResource BackgroundBrush}" />
         <Setter Property="HorizontalContentAlignment"
-                Value="Center"/>
+                Value="Center" />
         <Setter Property="VerticalContentAlignment"
                 Value="Center" />
         <Setter Property="ToolTip">
             <Setter.Value>
                 <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                    <controls:TrackerToolTip ToolTipText="More"/>
+                    <controls:TrackerToolTip ToolTipText="More" />
                 </ToolTip>
             </Setter.Value>
         </Setter>
@@ -1667,14 +1800,14 @@ style so that the DatePicker will use the application's calendar style.-->
                 <ControlTemplate TargetType="{x:Type Button}">
                     <Border Background="{TemplateBinding Background}"
                             BorderThickness="1"
-                            CornerRadius="5" 
-                            Width="25" 
+                            CornerRadius="5"
+                            Width="25"
                             Height="25"
                             BorderBrush="{TemplateBinding Foreground}">
                         <TextBlock Text="..."
                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                   Foreground="{TemplateBinding Foreground}"/>
+                                   Foreground="{TemplateBinding Foreground}" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -1716,10 +1849,11 @@ style so that the DatePicker will use the application's calendar style.-->
                         <Path x:Name="PathElement"
                               Data="M8 9H16L12 16"
                               RenderTransformOrigin="0.5,0.5"
-                              Stretch="Uniform" 
+                              Stretch="Uniform"
                               Fill="{TemplateBinding Foreground}">
                             <Path.RenderTransform>
-                                <RotateTransform x:Name="PathTransform" Angle="0" />
+                                <RotateTransform x:Name="PathTransform"
+                                                 Angle="0" />
                             </Path.RenderTransform>
                         </Path>
                     </Border>
@@ -1751,7 +1885,7 @@ style so that the DatePicker will use the application's calendar style.-->
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-        <Style.Triggers> 
+        <Style.Triggers>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}"
                          Value="True">
                 <Setter Property="Background"
@@ -1778,7 +1912,7 @@ style so that the DatePicker will use the application's calendar style.-->
                         <Path x:Name="Icon"
                               Data="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1V11.1Z"
                               Stretch="Uniform"
-                              Fill="{StaticResource ForegroundBrush}"/>
+                              Fill="{StaticResource ForegroundBrush}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked"
@@ -1857,6 +1991,394 @@ style so that the DatePicker will use the application's calendar style.-->
                                                       Color="{DynamicResource ForegroundColor}" />
                                 </Setter.Value>
                             </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CalendarViewCheckboxStyle"
+           TargetType="{x:Type RadioButton}">
+        <Setter Property="Height"
+                Value="20" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <Border x:Name="BorderElement"
+                            CornerRadius="6"
+                            BorderThickness="1"
+                            Background="{DynamicResource BackgroundBrush}"
+                            BorderBrush="{DynamicResource ForegroundBrush}"
+                            Padding="3">
+                        <Path x:Name="Icon"
+                              Data="M19,19V8H5V19H19M16,1H18V3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3H6V1H8V3H16V1M7,10H9V12H7V10M15,10H17V12H15V10M11,14H13V16H11V14M15,14H17V16H15V14Z"
+                              Stretch="Uniform"
+                              Fill="{StaticResource ForegroundBrush}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked"
+                                 Value="True">
+                            <Setter TargetName="Icon"
+                                    Property="Fill"
+                                    Value="{DynamicResource BackgroundBrush}" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Background"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                            <Setter TargetName="BorderElement"
+                                    Property="BorderThickness"
+                                    Value="2" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Padding"
+                                    Value="2" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Margin"
+                                    Value="1" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect ShadowDepth="1"
+                                                      Opacity="0.5"
+                                                      BlurRadius="3"
+                                                      Color="{DynamicResource ForegroundColor}" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GridViewCheckboxStyle"
+           TargetType="{x:Type RadioButton}">
+        <Setter Property="Height"
+                Value="20" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <Border x:Name="BorderElement"
+                            CornerRadius="6"
+                            BorderThickness="1"
+                            Background="{DynamicResource BackgroundBrush}"
+                            BorderBrush="{DynamicResource ForegroundBrush}"
+                            Padding="3">
+                        <Path x:Name="Icon"
+                              Data="M10,4V8H14V4H10M16,4V8H20V4H16M16,10V14H20V10H16M16,16V20H20V16H16M14,20V16H10V20H14M8,20V16H4V20H8M8,14V10H4V14H8M8,8V4H4V8H8M10,14H14V10H10V14M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.92,22 2,21.1 2,20V4A2,2 0 0,1 4,2Z"
+                              Stretch="Uniform"
+                              Fill="{StaticResource ForegroundBrush}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked"
+                                 Value="True">
+                            <Setter TargetName="Icon"
+                                    Property="Fill"
+                                    Value="{DynamicResource BackgroundBrush}" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Background"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                            <Setter TargetName="BorderElement"
+                                    Property="BorderThickness"
+                                    Value="2" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Padding"
+                                    Value="2" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Margin"
+                                    Value="1" />
+                            <Setter TargetName="BorderElement"
+                                    Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect ShadowDepth="1"
+                                                      Opacity="0.5"
+                                                      BlurRadius="3"
+                                                      Color="{DynamicResource ForegroundColor}" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CardTabControlStyle"
+           TargetType="{x:Type TabControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabControl}">
+                    <Grid>
+                        <!-- Tab Panel -->
+                        <StackPanel Grid.Column="0"
+                                    IsItemsHost="True"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Stretch"
+                                    HorizontalAlignment="Stretch"
+                                    Background="{DynamicResource BackgroundBrush}">
+                        </StackPanel>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CardTabStyle"
+           TargetType="{x:Type TabItem}">
+        <Setter Property="Padding"
+                Value="12,2" />
+        <Setter Property="Margin"
+                Value="0,0,0,2" />
+        <Setter Property="Background"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="HorizontalAlignment"
+                Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Border x:Name="BorderElement"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource ForegroundBrush}"
+                            BorderThickness="0"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="ContentColumn"
+                                                  Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0"
+                                  Stretch="Uniform"
+                                  Fill="{TemplateBinding Foreground}"
+                                  Data="{Binding RelativeSource={RelativeSource TemplatedParent},
+                                             Path=(local:TabItemExtensions.IconData)}" />
+                            <ContentPresenter ContentSource="Header"
+                                              Margin="0,0,0,0"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected"
+                                 Value="True">
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                            <Setter Property="Opacity"
+                                    Value="1"></Setter>
+                            <Setter TargetName="BorderElement"
+                                    Property="BorderThickness"
+                                    Value="0,0,0,1" />
+                        </Trigger>
+                        <Trigger Property="IsSelected"
+                                 Value="False">
+                            <Setter Property="Opacity"
+                                    Value=".7" />
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource DisabledBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type customControls:CheckBoxWithHelperText}">
+        <Setter Property="Foreground"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="VerticalAlignment"
+                Value="Center" /> 
+        <Setter Property="Margin"
+                Value="0,3" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type customControls:CheckBoxWithHelperText}">
+                    <Grid Margin="10,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="25" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid  Grid.Column="0">
+                            <Border x:Name="Slider"
+                                    Height="13"
+                                    Opacity=".5"
+                                    BorderBrush="{DynamicResource ForegroundBrush}"
+                                    BorderThickness=".5"
+                                    Margin="0,1,0,0"
+                                    VerticalAlignment="Center"
+                                    CornerRadius="5"
+                                    HorizontalAlignment="Stretch"
+                                    Background="{TemplateBinding BorderBrush}" />
+
+                            <Ellipse x:Name="Toggle"
+                                     Height="15"
+                                     Grid.Column="0"
+                                     Width="15"
+                                     HorizontalAlignment="Left"
+                                     Fill="{DynamicResource ToolTipBackground}">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#666666"
+                                                      BlurRadius="2"
+                                                      ShadowDepth="2" />
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Grid>
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       Text="{TemplateBinding Content}"
+                                       FontSize="{TemplateBinding FontSize}" />
+                            <TextBlock Grid.Row="1" 
+                                       Foreground="{DynamicResource ToolTipBackground}"
+                                       TextWrapping="Wrap"
+                                       Text="{TemplateBinding HelperText}"
+                                       FontSize="10" />
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked"
+                                 Value="True">
+                            <Setter TargetName="Toggle"
+                                    Property="Fill"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                            <Setter TargetName="Toggle"
+                                    Property="HorizontalAlignment"
+                                    Value="Right" />
+                            <Setter TargetName="Toggle"
+                                    Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect Color="{DynamicResource ForegroundColor}"
+                                                      BlurRadius="2"
+                                                      Direction="225"
+                                                      ShadowDepth="2" />
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Slider"
+                                    Property="Background"
+                                    Value="{DynamicResource ToolTipBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled"
+                                 Value="False">
+                            <Setter TargetName="Toggle"
+                                    Property="Opacity"
+                                    Value=".7" />
+                            <Setter TargetName="Toggle"
+                                    Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect Color="#666666"
+                                                      BlurRadius="2"
+                                                      Opacity=".7"
+                                                      Direction="225"
+                                                      ShadowDepth="2" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled"
+                     Value="False">
+                <Setter Property="Foreground"
+                        Value="{DynamicResource ToolTipBackground}" />
+                <Setter Property="Opacity"
+                        Value="15" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="{x:Type TabControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabControl}">
+                    <Grid>
+                        <!-- Tab Panel -->
+                        <StackPanel Grid.Column="0"
+                                    IsItemsHost="True"
+                                    Orientation="Vertical"
+                                    VerticalAlignment="Stretch"
+                                    HorizontalAlignment="Stretch"
+                                    Background="{DynamicResource BackgroundBrush}">
+                        </StackPanel>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type TabItem}">
+        <Setter Property="Padding"
+                Value="12,7" />
+        <Setter Property="Margin"
+                Value="0,0,0,2" />
+        <Setter Property="Background"
+                Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="HorizontalAlignment"
+                Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource ForegroundBrush}"
+                            BorderThickness="0"
+                            Padding="{TemplateBinding Padding}"
+                            CornerRadius="4">
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition x:Name="Spacer"
+                                                  Width="8" />
+                                <ColumnDefinition x:Name="ContentColumn"
+                                                  Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0"
+                                  Stretch="Uniform"
+                                  Fill="{TemplateBinding Foreground}"
+                                  Data="{Binding RelativeSource={RelativeSource TemplatedParent},
+                                      Path=(local:TabItemExtensions.IconData)}" />
+                            <ContentPresenter ContentSource="Header"
+                                              Grid.Column="2"
+                                              MinWidth="125"
+                                              Margin="0,0,0,0"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TabControl}, Path=(local:TabControlExtensions.IsCollapsed)}"
+                                     Value="True">
+                            <Setter TargetName="ContentColumn"
+                                    Property="Width"
+                                    Value="0" />
+                            <Setter TargetName="Spacer"
+                                    Property="Width"
+                                    Value="0" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TabControl}, Path=(local:TabControlExtensions.IsCollapsed)}"
+                                     Value="False">
+                            <Setter TargetName="ContentColumn"
+                                    Property="Width"
+                                    Value="*" />
+                            <Setter TargetName="Spacer"
+                                    Property="Width"
+                                    Value="8" />
+                        </DataTrigger>
+                        <Trigger Property="IsSelected"
+                                 Value="True">
+                            <Setter Property="Background"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource BackgroundBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

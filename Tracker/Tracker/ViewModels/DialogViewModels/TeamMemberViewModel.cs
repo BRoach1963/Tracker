@@ -5,14 +5,17 @@ using System.Globalization;
 using System.Windows.Input;
 using System.Windows.Media;
 using Tracker.Command;
+using Tracker.Common;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.DataWrappers;
 using Tracker.Helpers;
+using Tracker.Managers;
+using Tracker.Controls;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
-    public class AddTeamMemberViewModel : BaseDialogViewModel
+    public class TeamMemberViewModel : BaseDialogViewModel
     {
         #region Fields 
 
@@ -22,6 +25,8 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _toggleEditModeCommand;
         private ICommand? _chooseProfilePicCommand;
         private ICommand? _launchLinkedInProfileCommand;
+        private ICommand? _updateTeamMemberCommand;
+        private ICommand? _addTeamMemberCommand;
 
         private ImageSource? _profileImage;
 
@@ -33,27 +38,36 @@ namespace Tracker.ViewModels.DialogViewModels
         private EnumWrapper<EngineeringSpecialtyEnum>? _selectedSpecialty;
         private EnumWrapper<SkillLevelEnum>? _selectedLevel;
 
+        private Dictionary<string, object> _changedProperties = new();
+
         #endregion
 
         #region Ctor
 
-        public AddTeamMemberViewModel(Action? callback, TeamMember data, bool edit = true) : base(callback)
+        public TeamMemberViewModel(Action? callback, TeamMember data, bool edit = false) : base(callback)
         {
             _inEditMode = edit;
             _data = data;
-            _data.BirthDay = DateTime.Now;
-            _data.HireDate = DateTime.Now;
+            if (!_inEditMode)
+            {
+                _data.BirthDay = DateTime.Now;
+                _data.HireDate = DateTime.Now;
+            } 
+         
             if (_data.ProfileImage.Length > 0)
+            {
+                ProfileImage = ImageHelper.GetImageSourceFromByteArrayAsync(_data.ProfileImage).Result;
+            }
+            else
             {
                 //No Data - use default Image
                 ProfileImage = ImageHelper.LoadDefaultProfileImage();
             }
-            else
-            {
-                 
-            }
 
             SetLists();
+            SelectedLevel = _levels.FirstOrDefault(x => x.EnumValue == _data.SkillLevel);
+            SelectedRole = _roles.FirstOrDefault(x => x.EnumValue == _data.Role);
+            SelectedSpeciality = _specialties.FirstOrDefault(x => x.EnumValue == _data.Specialty);
         }
 
         protected override void Dispose(bool disposing)
@@ -74,6 +88,12 @@ namespace Tracker.ViewModels.DialogViewModels
         public ICommand LaunchLinkedInUrlCommand => _launchLinkedInProfileCommand ??=
             new TrackerCommand(LaunchLinkedInProfileExecuted, CanLaunchLinkedInProfile);
 
+        public ICommand UpdateTeamMemberCommand => _updateTeamMemberCommand ??=
+            new TrackerCommand(UpdateTeamMemberExecuted, CanExecuteUpdateTeamMember);
+
+        public ICommand AddTeamMemberCommand => _addTeamMemberCommand ??=
+            new TrackerCommand(AddTeamMemberExecuted, CanExecuteAddTeamMember);
+
         #endregion
 
         #region Public Properties
@@ -91,8 +111,10 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _selectedRole = value;
                 RaisePropertyChanged();
+                if(value != null) UpdateChangedValues(TrackerConstants.TeamMemberRole, value.EnumValue);
             }
         }
+
         public EnumWrapper<SkillLevelEnum>? SelectedLevel
         {
             get => _selectedLevel;
@@ -100,6 +122,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _selectedLevel = value;
                 RaisePropertyChanged();
+                if (value != null) UpdateChangedValues(TrackerConstants.TeamMemberSkill, value.EnumValue);
             }
         }
 
@@ -110,6 +133,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _selectedSpecialty = value;
                 RaisePropertyChanged();
+                if (value != null) UpdateChangedValues(TrackerConstants.TeamMemberSpeciality, value.EnumValue);
             }
         }
  
@@ -131,6 +155,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.JobTitle = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberJobTitle, value);
             }
         }
         public string NickName
@@ -140,6 +165,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.NickName = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberNickname, value);
             }
         }
 
@@ -150,6 +176,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.FirstName = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberFirstName, value);
             }
         }
 
@@ -160,6 +187,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.LastName = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberLastName, value);
             }
         }
 
@@ -170,6 +198,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.Email = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberEmail, value);
             }
         }
 
@@ -180,6 +209,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.CellPhone = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberCell, value);
             }
         }
 
@@ -193,6 +223,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     _data.HireDate = date;
                 }
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberHireDate, _data.HireDate);
             }
         }
 
@@ -206,6 +237,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     _data.BirthDay = date;
                 }
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberBirthday, _data.BirthDay);
             }
         }
 
@@ -219,6 +251,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     _data.TerminationDate = date;
                 }
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberTerminationDate, _data.TerminationDate);
             }
         }
 
@@ -254,13 +287,14 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged(nameof(TerminationDateDisplay));
             }
         }
+
         public ImageSource? ProfileImage
         {
             get { return _profileImage; }
             set
             {
                 _profileImage = value;
-               RaisePropertyChanged();
+               RaisePropertyChanged(); 
             }
         }
 
@@ -275,6 +309,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     TerminationDate = DateTime.Now;
                 }
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberIsActive, _data.IsActive);
             }
         }
 
@@ -285,6 +320,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.LinkedInProfile = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberLinkedInProfile, _data.LinkedInProfile);
             }
         }
 
@@ -295,6 +331,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.FacebookProfile = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberFacebookProfile, _data.FacebookProfile);
             }
         }
 
@@ -305,6 +342,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.InstagramProfile = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberInstaProfile, _data.InstagramProfile);
             }
         }
 
@@ -315,6 +353,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.XProfile = value;
                 RaisePropertyChanged();
+                UpdateChangedValues(TrackerConstants.TeamMemberXProfile, _data.XProfile);
             }
         }
 
@@ -338,10 +377,24 @@ namespace Tracker.ViewModels.DialogViewModels
                 // Load and display the image
                 ProfileImage = ImageHelper.GetImageSourceFromFile(selectedFileName);
                 // Store the image in the database
-                _data.ProfileImage = ImageHelper.GetByteArrayFromFile(selectedFileName); 
-
+                _data.ProfileImage = ImageHelper.GetByteArrayFromFile(selectedFileName);
+                UpdateChangedValues(TrackerConstants.TeamMemberProfileImage, _data.ProfileImage);
             }
 
+        }
+
+        private bool CanExecuteUpdateTeamMember(object? obj)
+        {
+            return _changedProperties.Count > 0;
+        }
+
+        private async void UpdateTeamMemberExecuted(object? parameter)
+        {
+            TrackerDataManager.Instance.UpdateTeamMember(_data.Id, _changedProperties);
+            if (parameter is BaseWindow window)
+            {
+                DialogManager.Instance.CloseDialog(window);
+            }
         }
 
         private bool CanLaunchLinkedInProfile(object? obj)
@@ -386,6 +439,37 @@ namespace Tracker.ViewModels.DialogViewModels
             foreach (SkillLevelEnum level in Enum.GetValues(typeof(SkillLevelEnum)))
             {
                 _levels.Add(new EnumWrapper<SkillLevelEnum>(level));
+            }
+        }
+
+
+        private void UpdateChangedValues(string key, object? value)
+        {
+            if (value == null)
+            {
+                _changedProperties.Remove(key);
+            }
+            else
+            {
+                _changedProperties[key] = value;
+            }
+        }
+
+        private bool CanExecuteAddTeamMember(object? obj)
+        {
+            if (string.IsNullOrEmpty(FirstName)) return false;
+            if (string.IsNullOrEmpty(LastName)) return false;
+            if (string.IsNullOrEmpty(Email)) return false;
+
+            return true;
+        }
+
+        private void AddTeamMemberExecuted(object? parameter)
+        {
+            TrackerDataManager.Instance.AddTeamMember(FirstName,LastName, NickName, Email, CellPhone, JobTitle, BirthDay, HireDate, TerminationDate, IsActive, null, _data.ProfileImage, LinkedInProfile, FacebookProfile, InstagramProfile, XProfile, (int)_data.Specialty, (int)_data.SkillLevel, (int)_data.Role);
+            if (parameter is BaseWindow window)
+            {
+                DialogManager.Instance.CloseDialog(window);
             }
         }
 

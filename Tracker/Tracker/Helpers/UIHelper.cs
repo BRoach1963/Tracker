@@ -17,6 +17,7 @@ namespace Tracker.Helpers
                 case DialogType.AddOKR:
                 case DialogType.AddProject:
                 case DialogType.AddTask:
+                case DialogType.Settings:
                     ownerWindow = Win32UtilHelper.GetMainWindow();
                     break;
             }

@@ -15,6 +15,10 @@ namespace Tracker.Common.Enums
 
         [Description("senior")]
         [EnumMember(Value = "senior")]
-        Senior = 2, 
+        Senior = 2,
+
+        [Description("principle")]
+        [EnumMember(Value = "principle")]
+        Principle = 3,
     }
 }
