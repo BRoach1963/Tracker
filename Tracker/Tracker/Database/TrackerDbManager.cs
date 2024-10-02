@@ -257,6 +257,102 @@ namespace Tracker.Database
             }
         }
 
+        public async Task<int> AddOneOnOne(string? description = null,
+         string? agenda = null,
+         string? notes = null,
+         string? feedback = null, 
+         DateTime? date = null,
+         TimeSpan? startTime = null,
+         TimeSpan? duration = null,
+         bool? isRecurring = null,
+         int? teamMemberId = null, 
+         int? status = null)
+        {
+            try
+            {
+                await using var connection = await OpenConnectionAsync();
+                await using var command = new SqlCommand(TrackerConstants.AddTeamMember, connection);
+                command.CommandType = CommandType.StoredProcedure;
+
+                AddSqlParameter(command, TrackerConstants.OneOnOneDescription, description);
+                AddSqlParameter(command, TrackerConstants.OneOnOneDate, date);
+                AddSqlParameter(command, TrackerConstants.OneOnOneDuration, duration);
+                AddSqlParameter(command, TrackerConstants.OneOnOneFeedback, feedback);
+                AddSqlParameter(command, TrackerConstants.OneOnOneStartTime, startTime);
+                AddSqlParameter(command, TrackerConstants.OneOnOneAgenda, agenda);
+                AddSqlParameter(command, TrackerConstants.OneOnOneNotes, notes);
+                AddSqlParameter(command, TrackerConstants.OneOnOneTeamMemberId, teamMemberId);
+                AddSqlParameter(command, TrackerConstants.OneOnOneIsRecurring, isRecurring);
+                AddSqlParameter(command, TrackerConstants.OneOnOneStatus, status);
+
+                await using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    if (reader.FieldCount == 1 && reader.GetName(0) == "NewOneOnOneId")
+                    {
+                        return reader.GetInt32(reader.GetOrdinal("NewOneOnOneId"));
+                    }
+
+                    if (reader.FieldCount == 2 && reader.GetName(0) == "ErrorNumber" && reader.GetName(1) == "ErrorMessage")
+                    {
+                        // Handle SQL errors returned from the CATCH block
+                        int errorNumber = Convert.ToInt32(reader["ErrorNumber"]);
+                        string errorMessage = reader["ErrorMessage"].ToString();
+                        _logger.Error("SQL Error : {0}: {1}", errorNumber, errorMessage);
+                    }
+                }
+
+                return 0;
+            }
+            catch (Exception e)
+            {
+                return 0;
+            }
+        }
+
+        public async Task UpdateOneOnOneValues(int id, Dictionary<string, object> values)
+        {
+            await using var connection = await OpenConnectionAsync();
+            await using var command = new SqlCommand(TrackerConstants.UpdateOneOnOne, connection);
+            command.CommandType = CommandType.StoredProcedure;
+
+            // Required field
+            command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
+
+
+            // Optional fields
+            foreach (var value in values)
+            {
+                AddSqlParameter(command, value.Key, value.Value);
+            }
+
+            await command.ExecuteNonQueryAsync();
+        }
+
+        public async Task<bool> DeleteOneOnOne(int id)
+        {
+            try
+            {
+                await using var connection = await OpenConnectionAsync();
+                await using var command = new SqlCommand(TrackerConstants.DeleteTeamMember, connection);
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
+
+                await command.ExecuteNonQueryAsync();
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.Exception(e, "{0}: Error deleting contact with id {1}", nameof(DeleteTeamMember), id);
+                return false;
+            }
+        }
+
+
+
         public async Task CheckUserAsync()
         {
             try

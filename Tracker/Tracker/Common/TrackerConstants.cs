@@ -52,6 +52,41 @@ namespace Tracker.Common
         public const string GetTeamMembers = "GetTeamMembers";
         public const string GetTeamMember = "GetTeamMember";
 
+        public const string UpdateOneOnOne = "UpdateOneOnOne";
+        public const string AddNewOneOnOne = "AddNewOneOnOne";
+        public const string GetOneOnOnes = "GetOneOnOnes";
+        public const string DeleteOneOnOne = "DeleteOneOnOne";
+
+        public const string AddNewTask = "AddNewTask";
+        public const string UpdateTask = "UpdateTask";
+        public const string GetTasks = "GetTasks";
+        public const string DeleteTask = "DeleteTask";
+
+        public const string AddNewProject = "AddNewProject";
+        public const string UpdateProject = "UpdateProject";
+        public const string GetProjects = "GetProjects";
+        public const string DeleteProject = "DeleteProject";
+
+        public const string AddNewKpi = "AddNewKpi";
+        public const string UpdateKpi = "UpdateKpi";
+        public const string GetKpis = "GetKpis";
+        public const string DeleteKpi = "DeleteKpi";
+
+        public const string AddNewOkr = "AddNewOkr";
+        public const string UpdateOkr = "UpdateOkr";
+        public const string GetOkrs = "GetOkrs";
+        public const string DeleteOkr = "DeleteOkr";
+
+        public const string AddNewDiscussionPoint = "AddNewDiscussionPoint";
+        public const string UpdateDiscussionPoint = "UpdateDiscussionPoint";
+        public const string GetDiscussionPoints = "GetDiscussionPoints";
+        public const string DeleteDiscussionPoint = "DeleteDiscussionPoint";
+
+        public const string AddNewConcern = "AddNewConcern";
+        public const string UpdateConcern = "UpdateConcern";
+        public const string GetConcerns = "GetConcerns";
+        public const string DeleteConcern = "DeleteConcern";
+
         #endregion
 
         #region Sql Field Names

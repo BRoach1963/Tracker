@@ -117,6 +117,35 @@ namespace Tracker.Managers
             });
         }
 
+        public async Task<int> AddNewOneOnOne(string? description = null,
+            string? agenda = null,
+            string? notes = null,
+            string? feedback = null,
+            DateTime? date = null,
+            TimeSpan? startTime = null,
+            TimeSpan? duration = null,
+            bool? isRecurring = null,
+            int? teamMemberId = null,
+            int? status = null)
+        {
+            return await TrackerDbManager.Instance.AddOneOnOne(description, agenda, notes, feedback, date, startTime, duration, isRecurring, teamMemberId, status);
+        }
+
+        public async void UpdateOneOnOne(int id, Dictionary<string, object> values)
+        {
+            await TrackerDbManager.Instance.UpdateOneOnOneValues(id, values);
+        }
+
+        public async void DeleteOneOnOne(int id)
+        {
+            var success = await TrackerDbManager.Instance.DeleteOneOnOne(id);
+            Messenger.Publish(new PropertyChangedMessage()
+            {
+                ChangedProperty = PropertyChangedEnum.OneOnOnes,
+                RefreshData = true
+            });
+        }
+
         #endregion
 
         #region Private Methods

@@ -1,8 +1,14 @@
 ﻿using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows.Input;
+using Tracker.Command;
 using Tracker.Common;
 using Tracker.Common.Enums;
+using Tracker.Controls;
 using Tracker.DataModels;
+using Tracker.Eventing.Messages;
+using Tracker.Eventing;
+using Tracker.Managers;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
@@ -14,14 +20,19 @@ namespace Tracker.ViewModels.DialogViewModels
         private ObservableCollection<ActionItem> _actionItems = new();
         private ObservableCollection<ObjectiveKeyResult> _keyResults = new();
         private ObservableCollection<FollowUpItem> _followUpItems = new();
-        private ObservableCollection<string> _discussionPoints = new();
-        private ObservableCollection<string> _concerns = new();
+        private ObservableCollection<DiscussionPoint> _discussionPoints = new();
+        private ObservableCollection<Concern> _concerns = new();
 
         private bool _inEditMode;
 
         private Dictionary<string, object> _changedProperties = new();
 
+        private ICommand? _updateOneOnOneCommand;
+        private ICommand? _addOneOnOneCommand;
+
         #endregion
+
+        #region Ctor
 
         public OneOnOneViewModel(Action? callback, OneOnOne data, bool edit = true, TeamMember? teamMember = null) : base(callback)
         {
@@ -30,6 +41,23 @@ namespace Tracker.ViewModels.DialogViewModels
             if (teamMember != null && !_inEditMode) _data.TeamMember = teamMember;
             SetLists();
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+        }
+
+        #endregion
+
+        #region Commands
+
+        public ICommand UpdateOneOnOneCommand =>
+            _updateOneOnOneCommand ??= new TrackerCommand(UpdateOneOnOneExecuted, CanUpdateOneOnOne);
+
+        public ICommand AddOneOnOneCommand =>
+            _addOneOnOneCommand ??= new TrackerCommand(AddOneOnOneExecuted, CanExecuteAddOneOnOne);
+
+        #endregion
 
         #region Public Properties
 
@@ -43,9 +71,9 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public ObservableCollection<FollowUpItem> FollowUpItems => _followUpItems;
 
-        public ObservableCollection<string> DiscussionPoints => _discussionPoints;
+        public ObservableCollection<DiscussionPoint> DiscussionPoints => _discussionPoints;
 
-        public ObservableCollection<string> Concerns => _concerns;
+        public ObservableCollection<Concern> Concerns => _concerns;
 
         public string Description
         {
@@ -162,7 +190,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public string DateDisplay
         {
-            get => _data.Date == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.Date.ToString("MM/dd/yyyy");
+            get => _data.Date == DateTime.Now.Date ? "MM/DD/YYYY" : _data.Date.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd/yyyy", null, DateTimeStyles.None, out DateTime date))
@@ -191,6 +219,56 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region PrivateMethods
 
+        private bool CanExecuteAddOneOnOne(object? obj)
+        {
+            if (_data.TeamMember.Id == 0) return false;
+            return !string.IsNullOrEmpty(Description);
+        }
+
+        private void AddOneOnOneExecuted(object? parameter)
+        {
+            // First add and get the id for the base one on one.
+            var id = TrackerDataManager.Instance.AddNewOneOnOne(Description, Agenda, Notes, Feedback, Date, StartTime, Duration, IsRecurring, TeamMember.Id, (int)Status);
+
+            // Add any Tasks (includes both Followup items and ActionItems)
+
+            // Add any Kpi links
+
+            // Add any Okr Links
+
+            // Add any concerns
+
+            // Add any discussion points
+
+            // Publish the data updates
+
+            Messenger.Publish(new PropertyChangedMessage()
+            {
+                ChangedProperty = PropertyChangedEnum.OneOnOnes,
+                RefreshData = true
+            });
+
+
+            // Close dialog
+            if (parameter is BaseWindow window)
+            {
+                DialogManager.Instance.CloseDialog(window);
+            }
+        }
+
+        private bool CanUpdateOneOnOne(object? obj)
+        {
+            return _changedProperties.Count > 0;
+        }
+
+        private void UpdateOneOnOneExecuted(object? parameter)
+        {
+            TrackerDataManager.Instance.UpdateOneOnOne(_data.Id, _changedProperties);
+            if (parameter is BaseWindow window)
+            {
+                DialogManager.Instance.CloseDialog(window);
+            }
+        }
 
         private void SetLists()
         {
@@ -198,7 +276,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 Date = DateTime.Now.Date;
                 StartTime = DateTime.Now.TimeOfDay;
-                EndTime = DateTime.Now.TimeOfDay + new TimeSpan(0,1,0,0);
+                EndTime = DateTime.Now.TimeOfDay + new TimeSpan(0, 1, 0, 0);
             }
         }
 

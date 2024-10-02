@@ -28,11 +28,11 @@ namespace Tracker.DataModels
 
         public bool IsRecurring { get; set; }
 
-        public List<string> DiscussionPoints { get; set; } = new() { };
+        public List<DiscussionPoint> DiscussionPoints { get; set; } = new() { };
 
         public string Feedback { get; set; } = string.Empty;
 
-        public List<string> Concerns { get; set; } = new() { };
+        public List<Concern> Concerns { get; set; } = new() { };
 
         public List<ObjectiveKeyResult> ObjectiveKeyResults { get; set; } = new() { };
 

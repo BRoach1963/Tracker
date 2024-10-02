@@ -11,6 +11,7 @@
                      xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
                      xmlns:dateTimeControls="clr-namespace:DeepEndControls.Controls.DateTimeControls;assembly=DeepEndControls"
                      xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                     xmlns:converters="clr-namespace:Tracker.Common.Converters"
                      mc:Ignorable="d"
                      MouseDown="OnDragHandleMouseDown"
                      WindowStyle="None"
@@ -42,8 +43,14 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="5" />
                 </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition MaxWidth="400"/>
+                </Grid.ColumnDefinitions>
                 <Border Grid.Row="0"
                         Height="Auto"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
                         Background="{DynamicResource BackgroundBrush}"
                         CornerRadius="12,12,0,0">
                     <controls:DialogTitleBar x:Name="TitleBar"
@@ -54,11 +61,9 @@
                                              MaximizeClicked="Maximize_Click"
                                              RestoreClicked="Restore_Click" />
                 </Border>
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <Grid Grid.Row="1"
+                      Grid.Column="0"
+                      Width="250">
                     <Grid.RowDefinitions>
                         <RowDefinition />
                         <RowDefinition Height="Auto" />
@@ -91,12 +96,19 @@
                                                      Margin="05,0,0, 5" />
                         </Grid>
                         <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
+
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
@@ -124,96 +136,155 @@
 
 
                             </Grid>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Start Time"
-                                   Grid.Column="1"
-                                   Grid.Row="0"
-                                   Margin="05,0,0, 0" />
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Start Time"
+                                       Grid.Column="0"
+                                       Grid.Row="0"
+                                       Margin="05,05,0, 0" />
 
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="End Time"
-                                   Grid.Column="2"
-                                   Grid.Row="0"
-                                   Margin="05,0,0, 0" />
-                            <dateTimeControls:TimePicker Grid.Column="1"
-                                                         Height="25"
-                                                         Background="{DynamicResource BackgroundBrush}"
-                                                         Margin="05,0,0, 0"
-                                                         Grid.Row="1"  
-                                                         SelectedTime="{Binding StartTime}"
-                                                         ComboBoxBorderBrush="{DynamicResource ForegroundBrush}"
-                                                         BorderBrush="{DynamicResource ForegroundBrush}"
-                                                         PopupBackground="{DynamicResource BackgroundBrush}"
-                                                         PopupBorderBrush="{DynamicResource ForegroundBrush}"
-                                                         RepeatButtonBackground="{DynamicResource BackgroundBrush}"
-                                                         RepeatButtonForeground="{DynamicResource ForegroundBrush}"
-                                                         DropDownButtonForeground="{DynamicResource ForegroundBrush}"
-                                                         DropDownButtonBackground="{DynamicResource BackgroundBrush}"
-                                                         Foreground="{DynamicResource ForegroundBrush}"
-                                                         ComboBoxBackground="{DynamicResource BackgroundBrush}"/>
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="End Time"
+                                       Grid.Column="1"
+                                       Grid.Row="0"
+                                       Margin="05,05,0, 0" />
+                                <dateTimeControls:TimePicker Grid.Column="0"
+                                                             Height="25"
+                                                             Background="{DynamicResource BackgroundBrush}"
+                                                             Margin="05,0,0, 0"
+                                                             Grid.Row="1"
+                                                             SelectedTime="{Binding StartTime}"
+                                                             ComboBoxBorderBrush="{DynamicResource ForegroundBrush}"
+                                                             BorderBrush="{DynamicResource ForegroundBrush}"
+                                                             PopupBackground="{DynamicResource BackgroundBrush}"
+                                                             PopupBorderBrush="{DynamicResource ForegroundBrush}"
+                                                             RepeatButtonBackground="{DynamicResource BackgroundBrush}"
+                                                             RepeatButtonForeground="{DynamicResource ForegroundBrush}"
+                                                             DropDownButtonForeground="{DynamicResource ForegroundBrush}"
+                                                             DropDownButtonBackground="{DynamicResource BackgroundBrush}"
+                                                             Foreground="{DynamicResource ForegroundBrush}"
+                                                             ComboBoxBackground="{DynamicResource BackgroundBrush}" />
 
-                            <dateTimeControls:TimePicker Grid.Column="2"
-                                                         Height="25"
-                                                         SelectedTime="{Binding EndTime}"
-                                                         Background="{DynamicResource BackgroundBrush}"
-                                                         ComboBoxBorderBrush="{DynamicResource ForegroundBrush}"
-                                                         BorderBrush="{DynamicResource ForegroundBrush}"
-                                                         PopupBackground="{DynamicResource BackgroundBrush}"
-                                                         PopupBorderBrush="{DynamicResource ForegroundBrush}"
-                                                         RepeatButtonBackground="{DynamicResource BackgroundBrush}"
-                                                         RepeatButtonForeground="{DynamicResource ForegroundBrush}"
-                                                         DropDownButtonForeground="{DynamicResource ForegroundBrush}"
-                                                         DropDownButtonBackground="{DynamicResource BackgroundBrush}"
-                                                         Foreground="{DynamicResource ForegroundBrush}"
-                                                         ComboBoxBackground="{DynamicResource BackgroundBrush}"
-                                                         Margin="05,0,0, 0"
-                                                         Grid.Row="1" />
-                        </Grid>
-                        <Grid Grid.Row="2">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Agenda"
-                                   Grid.Row="0"
-                                   Margin="05,05,0, 0" />
-                            <TextBox Text="{Binding Agenda}"
-                                     Grid.Row="1"
-                                     Margin="05,0,0, 0"
-                                     Height="60" />
+                                <dateTimeControls:TimePicker Grid.Column="1"
+                                                             Height="25"
+                                                             SelectedTime="{Binding EndTime}"
+                                                             Background="{DynamicResource BackgroundBrush}"
+                                                             ComboBoxBorderBrush="{DynamicResource ForegroundBrush}"
+                                                             BorderBrush="{DynamicResource ForegroundBrush}"
+                                                             PopupBackground="{DynamicResource BackgroundBrush}"
+                                                             PopupBorderBrush="{DynamicResource ForegroundBrush}"
+                                                             RepeatButtonBackground="{DynamicResource BackgroundBrush}"
+                                                             RepeatButtonForeground="{DynamicResource ForegroundBrush}"
+                                                             DropDownButtonForeground="{DynamicResource ForegroundBrush}"
+                                                             DropDownButtonBackground="{DynamicResource BackgroundBrush}"
+                                                             Foreground="{DynamicResource ForegroundBrush}"
+                                                             ComboBoxBackground="{DynamicResource BackgroundBrush}"
+                                                             Margin="05,0,0, 0"
+                                                             Grid.Row="1" />
 
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Notes"
-                                   Grid.Row="2"
-                                   Margin="05,05,0, 0" />
-                            <TextBox Text="{Binding Notes}"
-                                     Margin="05,0,0, 0"
-                                     Grid.Row="3"
-                                     Height="60" />
-
+                            </Grid>
                             <Label Style="{StaticResource LabelStyle}"
                                    Content="Repeats"
-                                   Grid.Row="4"
+                                   Grid.Row="6"
                                    Margin="05,05,0, 0" />
                             <ComboBox ItemsSource="{Binding RepeatPatterns}"
                                       SelectedItem="{Binding SelectedRepeatPattern}"
-                                      Grid.Row="5"
+                                      Grid.Row="7"
                                       Margin="05,0,0, 0" />
                             <Label Style="{StaticResource LabelStyle}"
                                    Content="Status"
-                                   Grid.Row="6"
+                                   Grid.Row="8"
                                    Margin="05,05,0, 0" />
                             <ComboBox ItemsSource="{Binding Statuses}"
                                       SelectedItem="{Binding Status}"
-                                      Grid.Row="7"
+                                      Grid.Row="9"
                                       Margin="05,0,0, 0" />
+                            <Grid Grid.Row="10"
+                                  Grid.Column="0"
+                                  Margin="0,0, 0, 0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="5" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Team Member:"
+                                       VerticalAlignment="Center"
+                                       Grid.Column="0"
+                                       Margin="5,5,0,0" />
+                                <Border Grid.Column="0"
+                                        BorderThickness="1"
+                                        Margin="5, 5, 0,0"
+                                        HorizontalAlignment="Stretch"
+                                        Grid.Row="1"
+                                        CornerRadius="6"
+                                        BorderBrush="{DynamicResource ForegroundBrush}">
+                                    <TextBlock Text="{Binding TeamMemberName}"
+                                               Margin="5" />
+                                </Border>
+                                <Button Style="{StaticResource DialogButtonStyle}"
+                                        Grid.Column="2"
+                                        Grid.Row="1"
+                                        Padding="2"
+                                        Width="25"
+                                        Height="25"
+                                        Margin="5,5,0,0">
+                                    <Path Data="M15.5,12C18,12 20,14 20,16.5C20,17.38 19.75,18.21 19.31,18.9L22.39,22L21,23.39L17.88,20.32C17.19,20.75 16.37,21 15.5,21C13,21 11,19 11,16.5C11,14 13,12 15.5,12M15.5,14A2.5,2.5 0 0,0 13,16.5A2.5,2.5 0 0,0 15.5,19A2.5,2.5 0 0,0 18,16.5A2.5,2.5 0 0,0 15.5,14M10,4A4,4 0 0,1 14,8C14,8.91 13.69,9.75 13.18,10.43C12.32,10.75 11.55,11.26 10.91,11.9L10,12A4,4 0 0,1 6,8A4,4 0 0,1 10,4M2,20V18C2,15.88 5.31,14.14 9.5,14C9.18,14.78 9,15.62 9,16.5C9,17.79 9.38,19 10,20H2Z"
+                                          Stretch="Uniform"
+                                          Fill="{DynamicResource ForegroundBrush}"></Path>
+                                </Button>
+                            </Grid>
+
+                            <Grid Grid.Row="11"
+                                  Grid.Column="0"
+                                  Margin="05,05,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Add Video Conferencing?"
+                                       Grid.Row="0"
+                                       Grid.Column="0" />
+                                <ComboBox ItemsSource="{Binding Statuses}"
+                                          SelectedItem="{Binding Status}"
+                                          Grid.Row="1"
+                                          Margin="00,05,0, 0" />
+
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Add To Calendar?"
+                                       Grid.Row="3"
+                                       Margin="0,5,0,0"
+                                       Grid.Column="0" />
+                                <StackPanel Grid.Row="4"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Margin="0,5,0,0"
+                                            Orientation="Horizontal">
+                                    <CheckBox Style="{StaticResource GoogleCalendarCheckboxStyle}"
+                                              Height="20"
+                                              Margin="0,0,5,0" />
+                                    <CheckBox Style="{StaticResource OutlookCalendarCheckboxStyle}"
+                                              Height="20" />
+                                </StackPanel>
+                            </Grid>
+
                         </Grid>
 
                     </Grid>
@@ -260,72 +331,418 @@
 
                 </Grid>
 
-                <Grid Grid.Row="2"
-                      Margin="10,5, 0, 5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Label Style="{StaticResource LabelStyle}"
-                           Content="Team Member:"
-                           VerticalAlignment="Center"
-                           Grid.Column="0"
-                           Margin="5" />
-                    <Border Grid.Column="1"
-                            BorderThickness="1"
-                            Margin="5"
-                            CornerRadius="6"
-                            BorderBrush="{DynamicResource ForegroundBrush}">
-                        <TextBlock Text="{Binding TeamMemberName}"
-                                   Margin="5" />
-                    </Border>
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Grid.Column="2"
-                            Margin="5">
-                        <Path Data="M15.5,12C18,12 20,14 20,16.5C20,17.38 19.75,18.21 19.31,18.9L22.39,22L21,23.39L17.88,20.32C17.19,20.75 16.37,21 15.5,21C13,21 11,19 11,16.5C11,14 13,12 15.5,12M15.5,14A2.5,2.5 0 0,0 13,16.5A2.5,2.5 0 0,0 15.5,19A2.5,2.5 0 0,0 18,16.5A2.5,2.5 0 0,0 15.5,14M10,4A4,4 0 0,1 14,8C14,8.91 13.69,9.75 13.18,10.43C12.32,10.75 11.55,11.26 10.91,11.9L10,12A4,4 0 0,1 6,8A4,4 0 0,1 10,4M2,20V18C2,15.88 5.31,14.14 9.5,14C9.18,14.78 9,15.62 9,16.5C9,17.79 9.38,19 10,20H2Z"
-                              Stretch="Uniform"
-                              Fill="{DynamicResource ForegroundBrush}"></Path>
-                    </Button>
-                </Grid>
-                <Grid Grid.Row="3"
-                      Margin="10,05,5,0">
+
+
+                <Grid Grid.Column="1"
+                      Grid.Row="1"
+                      Margin="10,0,10,0"
+                      Grid.RowSpan="3">
                     <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition Height="5"/>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition />
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
-                    <Label Style="{StaticResource LabelStyle}"
-                           Content="Add Video Conferencing?"
-                           Grid.Row="0"
-                           Grid.Column="0"/>
-                    <ComboBox ItemsSource="{Binding Statuses}"
-                              SelectedItem="{Binding Status}"
-                              Grid.Row="0"
-                              Grid.Column="1"
-                              Margin="05,0,0, 0" />
+                    <TabControl x:Name="TabControl"
+                                Style="{StaticResource CardTabControlStyle}"
+                                Grid.Row="0">
+                        <TabItem x:Name="DiscussionPointsTab"
+                                 Style="{StaticResource CardTabStyle}"
+                                 Header="Discussion Points" />
+                        <TabItem x:Name="AgendaTab"
+                                 Style="{StaticResource CardTabStyle}"
+                                 Header="Agenda" />
+                        <TabItem x:Name="ConcernsTab"
+                                 Style="{StaticResource CardTabStyle}"
+                                 Header="Concerns" />
+                        <TabItem x:Name="TasksTab"
+                                 Style="{StaticResource CardTabStyle}"
+                                 Header="Tasks" />
+                        <TabItem x:Name="NotesTab"
+                                 Style="{StaticResource CardTabStyle}"
+                                 Header="Notes" />
+                    </TabControl>
+                    <Grid  x:Name="AgendaGrid"
+                           Visibility="{Binding ElementName=AgendaTab, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                           Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition /> 
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                Margin="5,0,0,0"
+                                BorderThickness="1"
+                                Padding="3,1"
+                                BorderBrush="{DynamicResource ForegroundBrush}">
+                            <StackPanel Orientation="Horizontal">
 
-                    <Label Style="{StaticResource LabelStyle}"
-                           Content="Add To Calendar?"
-                           Grid.Row="2"
-                           Grid.Column="0" />
-                    <StackPanel Grid.Row="2" 
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                Orientation="Horizontal"
-                                Grid.Column="1">
-                        <CheckBox Style="{StaticResource GoogleCalendarCheckboxStyle}" 
-                                  Height="20"
-                                  Margin="0,0,5,0"/>
-                        <CheckBox Style="{StaticResource OutlookCalendarCheckboxStyle}"
-                                  Height="20"/>
-                    </StackPanel>
+                                <Button x:Name="CreateFromDiscussionPoints"
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        Command="{Binding TeamMemberDeleteCommand}"
+                                        CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                        Margin="0,3,3,3"
+                                        VerticalAlignment="Top">
+                                    <Path Data="M19,1L17.74,3.75L15,5L17.74,6.26L19,9L20.25,6.26L23,5L20.25,3.75M9,4L6.5,9.5L1,12L6.5,14.5L9,20L11.5,14.5L17,12L11.5,9.5M19,15L17.74,17.74L15,19L17.74,20.25L19,23L20.25,20.25L23,19L20.25,17.74"
+                                          Stretch="Uniform"
+                                          Fill="{DynamicResource ForegroundBrush}" />
+                                    <Button.ToolTip>
+                                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                            <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button> 
+                            </StackPanel>
+                        </Border>
+                        <TextBox Text="{Binding Agenda}"
+                                 Margin="05,0,0, 0"
+                                 VerticalContentAlignment="Top"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Grid.Row="1" />
+                    </Grid>
+                    <Grid x:Name="DiscussionPointsGrid"
+                          Grid.Row="1"
+                          Visibility="{Binding ElementName=DiscussionPointsTab, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+
+                        <Grid Margin="5,3">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions> 
+                            <Border Grid.Row="1"
+                                    Margin="5,0,0,0"
+                                    BorderThickness="1"
+                                    Padding="3,1"
+                                    BorderBrush="{DynamicResource ForegroundBrush}">
+                                <StackPanel Orientation="Horizontal">
+                                  
+                                    <Button x:Name="AddDpButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H16L12,22L8,18H4A2,2 0 0,1 2,16V4A2,2 0 0,1 4,2M11,6V9H8V11H11V14H13V11H16V9H13V6H11Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <Button x:Name="EditDpButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M20 2H4C2.9 2 2 2.9 2 4V16C2 17.11 2.9 18 4 18H8L12 22L16 18H20C21.11 18 22 17.11 22 16V4C22 2.9 21.11 2 20 2M9.08 15H7V12.91L13.17 6.72L15.24 8.8L9.08 15M16.84 7.2L15.83 8.21L13.76 6.18L14.77 5.16C14.97 4.95 15.31 4.94 15.55 5.16L16.84 6.41C17.05 6.62 17.06 6.96 16.84 7.2Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <Button x:Name="DeleteDpButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M20 2H4C2.9 2 2 2.9 2 4V16C2 17.11 2.9 18 4 18H8L12 22L16 18H20C21.11 18 22 17.11 22 16V4C22 2.9 21.11 2 20 2M15.54 12.12L14.12 13.54L12 11.41L9.88 13.54L8.47 12.12L10.59 10L8.46 7.88L9.88 6.47L12 8.59L14.12 6.47L15.54 7.88L13.41 10L15.54 12.12Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <DataGrid Grid.Row="2"
+                                      Margin="5,3,0,3"
+                                      ItemsSource="{Binding DiscussionPoints}"
+                                      AutoGenerateColumns="False"
+                                      SelectionMode="Single"
+                                      Background="{DynamicResource BackgroundBrush}"
+                                      HorizontalAlignment="Stretch"
+                                      SelectedItem="{Binding SelectedDiscussionPoint}"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="Vertical"
+                                      HeadersVisibility="Column"
+                                      SelectionUnit="FullRow">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Description"
+                                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                        Binding="{Binding FirstName}"
+                                                        Width="150" />
+                                    <DataGridTextColumn Header="Type"
+                                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                        Binding="{Binding LastName}"
+                                                        Width="Auto" />
+                                    <DataGridTextColumn Header="Priority"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        Binding="{Binding Role}"
+                                                        Width="Auto" />
+                                    <DataGridTemplateColumn Header="Action"
+                                                            HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource MoreButtonStyle}"
+                                                        CommandParameter="{Binding}">
+
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Width="*"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        IsReadOnly="True" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Grid>
+                    <Grid x:Name="ConcernsGrid"
+                          Grid.Row="1"
+                          Visibility="{Binding ElementName=ConcernsTab, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+
+                        <Grid Margin="5,3">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="1"
+                                    Margin="5,0,0,0"
+                                    BorderThickness="1"
+                                    Padding="3,1"
+                                    BorderBrush="{DynamicResource ForegroundBrush}">
+                                <StackPanel Orientation="Horizontal">
+
+                                    <Button x:Name="AddConcernButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M6 3C6.6 3 7 3.4 7 4V4.9C8.1 4.4 9.5 4 11 4C14 4 14 6 16 6C19 6 20 4 20 4V12C20 12 19 14 16 14S13 12 11 12C8 12 7 14 7 14V21H5V4C5 3.4 5.4 3 6 3M18 15V18H15V20H18V23H20V20H23V18H20V15H18Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <Button x:Name="EditConcernButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M19,19V5H5V19H19M19,3A2,2 0 0,1 21,5V19C21,20.11 20.1,21 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M16.7,9.35L15.7,10.35L13.65,8.3L14.65,7.3C14.86,7.08 15.21,7.08 15.42,7.3L16.7,8.58C16.92,8.79 16.92,9.14 16.7,9.35M7,14.94L13.06,8.88L15.12,10.94L9.06,17H7V14.94Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <Button x:Name="DeleteConcernButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M6 3C6.6 3 7 3.4 7 4V4.9C8.1 4.4 9.5 4 11 4C14 4 14 6 16 6C19 6 20 4 20 4V12C20 12 19 14 16 14S13 12 11 12C8 12 7 14 7 14V21H5V4C5 3.4 5.4 3 6 3M21.1 15.5L19 17.6L16.9 15.5L15.5 16.9L17.6 19L15.5 21.1L16.9 22.5L19 20.4L21.1 22.5L22.5 21.1L20.4 19L22.5 16.9L21.1 15.5Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <DataGrid Grid.Row="2"
+                                      Margin="5,3,0,3"
+                                      ItemsSource="{Binding DiscussionPoints}"
+                                      AutoGenerateColumns="False"
+                                      SelectionMode="Single"
+                                      Background="{DynamicResource BackgroundBrush}"
+                                      HorizontalAlignment="Stretch"
+                                      SelectedItem="{Binding SelectedDiscussionPoint}"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="Vertical"
+                                      HeadersVisibility="Column"
+                                      SelectionUnit="FullRow">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Description"
+                                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                        Binding="{Binding FirstName}"
+                                                        Width="150" />
+                                    <DataGridTextColumn Header="Type"
+                                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                        Binding="{Binding LastName}"
+                                                        Width="Auto" />
+                                    <DataGridTextColumn Header="Severity"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        Binding="{Binding Role}"
+                                                        Width="Auto" />
+                                    <DataGridTemplateColumn Header="Action"
+                                                            HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource MoreButtonStyle}"
+                                                        CommandParameter="{Binding}">
+
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Width="*"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        IsReadOnly="True" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Grid>
+                    <Grid x:Name="TasksGrid"
+                          Grid.Row="1"
+                          Visibility="{Binding ElementName=TasksTab, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+
+                        <Grid Margin="5,3">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="1"
+                                    Margin="5,0,0,0"
+                                    BorderThickness="1"
+                                    Padding="3,1"
+                                    BorderBrush="{DynamicResource ForegroundBrush}">
+                                <StackPanel Orientation="Horizontal">
+
+                                    <Button x:Name="AddTaskButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2,4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <Button x:Name="EditTaskButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12H20A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4V2M18.78,3C18.61,3 18.43,3.07 18.3,3.2L17.08,4.41L19.58,6.91L20.8,5.7C21.06,5.44 21.06,5 20.8,4.75L19.25,3.2C19.12,3.07 18.95,3 18.78,3M16.37,5.12L9,12.5V15H11.5L18.87,7.62L16.37,5.12Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <Button x:Name="DeleteTaskButton"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Command="{Binding TeamMemberDeleteCommand}"
+                                            CommandParameter="{Binding SelectedTeamMemberWrapper}"
+                                            Margin="0,3,3,3"
+                                            VerticalAlignment="Top">
+                                        <Path Data="M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M14.59,8L12,10.59L9.41,8L8,9.41L10.59,12L8,14.59L9.41,16L12,13.41L14.59,16L16,14.59L13.41,12L16,9.41L14.59,8Z"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ForegroundBrush}" />
+                                        <Button.ToolTip>
+                                            <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                                <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_DeleteContact}" />
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <DataGrid Grid.Row="2"
+                                      Margin="5,3,0,3"
+                                      ItemsSource="{Binding DiscussionPoints}"
+                                      AutoGenerateColumns="False"
+                                      SelectionMode="Single"
+                                      Background="{DynamicResource BackgroundBrush}"
+                                      HorizontalAlignment="Stretch"
+                                      SelectedItem="{Binding SelectedDiscussionPoint}"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="Vertical"
+                                      HeadersVisibility="Column"
+                                      SelectionUnit="FullRow">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Description"
+                                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                        Binding="{Binding FirstName}"
+                                                        Width="150" />
+                                    <DataGridTextColumn Header="Type"
+                                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
+                                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
+                                                        Binding="{Binding LastName}"
+                                                        Width="Auto" />
+                                    <DataGridTextColumn Header="Severity"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        Binding="{Binding Role}"
+                                                        Width="Auto" />
+                                    <DataGridTemplateColumn Header="Action"
+                                                            HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource MoreButtonStyle}"
+                                                        CommandParameter="{Binding}">
+
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Width="*"
+                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                                        IsReadOnly="True" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Grid>
+                    <Grid x:Name="NotesGrid"
+                          Visibility="{Binding ElementName=NotesTab, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                          Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions> 
+                        <TextBox Text="{Binding Notes}"
+                                 Margin="05,0,0, 0"
+                                 VerticalContentAlignment="Top"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Grid.Row="1" />
+                    </Grid>
                 </Grid>
                 <StackPanel Grid.Row="4"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
                             Margin="0,10,10,0"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">

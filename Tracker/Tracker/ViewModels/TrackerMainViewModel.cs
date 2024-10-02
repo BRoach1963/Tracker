@@ -142,6 +142,15 @@ namespace Tracker.ViewModels
                         RaisePropertyChanged(nameof(TeamMembers));
                     });
                     break;
+                case PropertyChangedEnum.OneOnOnes:
+
+                    break;
+                case PropertyChangedEnum.Tasks:
+
+                    break;
+                case PropertyChangedEnum.Projects:
+
+                    break;
             }
         }
 

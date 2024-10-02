@@ -37,10 +37,21 @@ namespace Tracker.MockData
                                 }
                             },
                         IsRecurring = true,
-                        DiscussionPoints = new List<string>
-                            { "Project progress", "Team collaboration", "Performance review" },
+                        DiscussionPoints = new List<DiscussionPoint> {
+                            new DiscussionPoint()
+                            {
+                                Description = "Project progress"
+                            },
+                            new DiscussionPoint()
+                                { Description = "Team collaboration" },
+                            new DiscussionPoint()
+                                { Description = "Performance review" }
+                        }, 
                         Feedback = "Great progress, keep up the good work.",
-                        Concerns = new List<string> { "Need more resources for the project." },
+                        Concerns = new List<Concern> { new Concern()
+                        {
+                            Description = "Need more resources for the project."
+                        } }, 
                         ObjectiveKeyResults =
                             new List<ObjectiveKeyResult>
                             {
@@ -84,9 +95,21 @@ namespace Tracker.MockData
                                 }
                             },
                         IsRecurring = false,
-                        DiscussionPoints = new List<string> { "Career growth", "Skill development" },
+                        DiscussionPoints = new List<DiscussionPoint> {
+                            new DiscussionPoint()
+                            {
+                                Description = "Career growth"
+                            },
+                            new DiscussionPoint()
+                                { Description = "Skill development" },
+                            new DiscussionPoint()
+                                { Description = "Performance review" }
+                        }, 
                         Feedback = "Consider taking advanced courses in data science.",
-                        Concerns = new List<string> { "Uncertainty about career path." },
+                        Concerns = new List<Concern> { new Concern()
+                        {
+                            Description = "Uncertainty about career path"
+                        } }, 
                         ObjectiveKeyResults =
                             new List<ObjectiveKeyResult>
                             {
@@ -129,9 +152,19 @@ namespace Tracker.MockData
                                 }
                             },
                         IsRecurring = true,
-                        DiscussionPoints = new List<string> { "Workload management", "Work-life balance" },
+                        DiscussionPoints = new List<DiscussionPoint> {
+                            new DiscussionPoint()
+                        {
+                            Description = "Workload management"
+                        },
+                            new DiscussionPoint()
+                                { Description = "Work-life balance" }
+                            },
                         Feedback = "Ensure to take regular breaks and avoid burnout.",
-                        Concerns = new List<string> { "Overwhelmed with current tasks." },
+                        Concerns = new List<Concern> { new Concern()
+                        {
+                            Description = "Overwhelmed with current tasks."
+                        } },
                         ObjectiveKeyResults =
                             new List<ObjectiveKeyResult>
                             {

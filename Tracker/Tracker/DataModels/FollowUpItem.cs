@@ -6,7 +6,9 @@ namespace Tracker.DataModels
     public class FollowUpItem : ITask
     {
         public string Description { get; set; } = string.Empty;
+
         public DateTime DueDate { get; set; }
+
         public bool IsCompleted { get; set; }
 
         public string Notes { get; set; } = string.Empty;

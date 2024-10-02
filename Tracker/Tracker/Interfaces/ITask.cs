@@ -6,6 +6,7 @@ namespace Tracker.Interfaces
     public interface ITask
     {
         string Description { get; set; }
+
         bool IsCompleted { get; set; }
 
         DateTime DueDate { get; set; }

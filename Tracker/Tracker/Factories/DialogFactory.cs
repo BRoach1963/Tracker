@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using Syncfusion.Windows.Shared;
 using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.DataModels;
@@ -55,6 +56,7 @@ namespace Tracker.Factories
                         ? new OneOnOneViewModel(callback, new OneOnOne(), false, tm)
                         : new OneOnOneViewModel(callback, new OneOnOne(), false);
 
+                    vm.Data.Date = DateTime.Now;
                     window = new AddOneOnOneDialog(vm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
