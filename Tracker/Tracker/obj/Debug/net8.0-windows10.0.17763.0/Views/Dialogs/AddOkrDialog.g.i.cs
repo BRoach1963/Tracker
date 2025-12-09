@@ -64,7 +64,7 @@ namespace Tracker.Views.Dialogs {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Tracker;V1.0.0.0;component/views/dialogs/addokrdialog.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Tracker;component/views/dialogs/addokrdialog.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\Views\Dialogs\AddOkrDialog.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

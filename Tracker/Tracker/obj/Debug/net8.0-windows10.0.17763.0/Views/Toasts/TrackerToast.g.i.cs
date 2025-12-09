@@ -109,7 +109,7 @@ namespace Tracker.Views.Toasts {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Tracker;V1.0.0.0;component/views/toasts/trackertoast.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Tracker;component/views/toasts/trackertoast.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\Views\Toasts\TrackerToast.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

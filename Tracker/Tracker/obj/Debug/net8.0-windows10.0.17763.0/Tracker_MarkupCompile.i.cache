@@ -16,5 +16,5 @@ C:\Users\vbpro\Source\Repos\Tracker\Tracker\Tracker\App.xaml
 258207704510
 Controls\ContactDataDisplayCard.xaml;Controls\CustomControls\SocialMediaLinkTextBoxControl.xaml;Controls\DialogTitleBar.xaml;Controls\EditableContactCard.xaml;Controls\KpisControl.xaml;Controls\OkrsControl.xaml;Controls\OneOnOnesControl.xaml;Controls\ProjectsControl.xaml;Controls\TasksControl.xaml;Controls\TeamMembersControl.xaml;Controls\TrackerToolTip.xaml;MainWindow.xaml;Resources\Styles.xaml;Resources\Styles\DialogStyles.xaml;Resources\Themes\DefaultTheme.xaml;Resources\Themes\LightTheme.xaml;Resources\Themes\ModernTheme.xaml;Resources\Themes\SpicyTheme.xaml;Views\Dialogs\AddKPI.xaml;Views\Dialogs\AddOkrDialog.xaml;Views\Dialogs\AddOneOnOneDialog.xaml;Views\Dialogs\AddProjectDialog.xaml;Views\Dialogs\AddTaskDialog.xaml;Views\Dialogs\LoginDialog.xaml;Views\Dialogs\SettingsDialog.xaml;Views\Dialogs\SetupWizard.xaml;Views\Dialogs\TeamMemberDialog.xaml;Views\SplashScreen.xaml;Views\Toasts\TrackerToast.xaml;
 
-True
+False
 
