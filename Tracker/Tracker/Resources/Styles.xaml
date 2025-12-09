@@ -10,6 +10,9 @@
                    EasingMode="EaseInOut" />
 
     <converters:BooleanToAngleConverter x:Key="BooleanToAngleConverter" />
+    <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    <converters:ReverseBooleanConverter x:Key="ReverseBooleanConverter" />
+    <converters:ReverseBoolToVisConverter x:Key="ReverseBoolToVisConverter" />
     <converters:BoolToAccentBorderConverter x:Key="BoolToAccentBorderConverter" />
     <converters:BoolToAccentFillConverter x:Key="BoolToAccentFillConverter" />
     <converters:BoolToAuthTypeConverter x:Key="BoolToAuthTypeConverter" />
