@@ -3,8 +3,9 @@ using Tracker.Interfaces;
 
 namespace Tracker.DataModels
 {
-    public class FollowUpItem : ITask
+    public class FollowUpItem : AuditableEntity, ITask
     {
+        public int Id { get; set; }
         public string Description { get; set; } = string.Empty;
 
         public DateTime DueDate { get; set; }

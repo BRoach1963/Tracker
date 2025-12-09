@@ -76,3 +76,8 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Vie
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Dialogs\AddOkrDialog.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Controls\ContactDataDisplayCard.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Controls\ContactDataDisplayCard.baml
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Toasts\TrackerToast.baml
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Controls\CustomControls\SocialMediaLinkTextBoxControl.g.cs
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Dialogs\LoginDialog.g.cs
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Dialogs\TeamMemberDialog.g.cs
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows\Views\Toasts\TrackerToast.g.cs

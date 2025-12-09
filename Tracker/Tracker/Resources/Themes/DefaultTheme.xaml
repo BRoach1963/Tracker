@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Default CLEZ Theme - Gold on Black -->
+    <!-- Note: These are fallback values. ThemeManager injects the actual theme at runtime. -->
+    
+    <Color x:Key="BackgroundColor">#1A1A1A</Color>
+    <Color x:Key="ForegroundColor">#FFB612</Color>
+    
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="#FFB612"/>
+    <SolidColorBrush x:Key="WhiteBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="HintTextBrush" Color="#808080"/>
+    <SolidColorBrush x:Key="DisabledBrush" Color="Gray"/>
+    
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#FFB612"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#FFD700"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#FFB612"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#FF4444"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
+    
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="PopupBorderBrush" Color="#FFB612"/>
+    
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#000000"/>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FFB612"/>
+    
+    <SolidColorBrush x:Key="ToolTipBackground" Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="ToolTipForeground" Color="#FFFFFF"/>
+    
+    <SolidColorBrush x:Key="SelectionBrush" Color="#4D3800"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#2A2A2A"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#1F1F1F"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#252525"/>
+</ResourceDictionary>
+

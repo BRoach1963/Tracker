@@ -225,10 +225,10 @@ namespace Tracker.ViewModels.DialogViewModels
             return !string.IsNullOrEmpty(Description);
         }
 
-        private void AddOneOnOneExecuted(object? parameter)
+        private async void AddOneOnOneExecuted(object? parameter)
         {
             // First add and get the id for the base one on one.
-            var id = TrackerDataManager.Instance.AddNewOneOnOne(Description, Agenda, Notes, Feedback, Date, StartTime, Duration, IsRecurring, TeamMember.Id, (int)Status);
+            var id = await TrackerDataManager.Instance.AddOneOnOne(_data!);
 
             // Add any Tasks (includes both Followup items and ActionItems)
 
@@ -240,14 +240,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
             // Add any discussion points
 
-            // Publish the data updates
-
-            Messenger.Publish(new PropertyChangedMessage()
-            {
-                ChangedProperty = PropertyChangedEnum.OneOnOnes,
-                RefreshData = true
-            });
-
+            // Publish the data updates (done by AddOneOnOne if successful)
 
             // Close dialog
             if (parameter is BaseWindow window)
@@ -261,9 +254,9 @@ namespace Tracker.ViewModels.DialogViewModels
             return _changedProperties.Count > 0;
         }
 
-        private void UpdateOneOnOneExecuted(object? parameter)
+        private async void UpdateOneOnOneExecuted(object? parameter)
         {
-            TrackerDataManager.Instance.UpdateOneOnOne(_data.Id, _changedProperties);
+            await TrackerDataManager.Instance.UpdateOneOnOne(_data!);
             if (parameter is BaseWindow window)
             {
                 DialogManager.Instance.CloseDialog(window);

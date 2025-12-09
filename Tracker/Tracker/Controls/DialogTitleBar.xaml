@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Tracker.Controls"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
              HorizontalAlignment="Stretch"
              mc:Ignorable="d" >
     <Grid>
@@ -14,6 +15,8 @@
             <ColumnDefinition x:Name="Title"
                               Width="Auto" />
             <ColumnDefinition />
+            <ColumnDefinition x:Name="ThemeSelector"
+                              Width="Auto" />
             <ColumnDefinition x:Name="Buttons"
                               Width="Auto" />
         </Grid.ColumnDefinitions>
@@ -30,7 +33,32 @@
                    Margin="0,1,0,0"
                    FontFamily="Arial"
                    Grid.Column="2" />
-        <StackPanel Grid.Column="4"
+        
+        <!-- Theme Selector -->
+        <ComboBox x:Name="ThemeComboBox"
+                  Grid.Column="4"
+                  VerticalAlignment="Center"
+                  Margin="0,0,15,0"
+                  MinWidth="130"
+                  Height="22"
+                  FontSize="11"
+                  SelectionChanged="ThemeComboBox_SelectionChanged"
+                  Visibility="{Binding ShowThemeSelector, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="10" Height="10" 
+                                 Fill="{Binding PreviewColor}" 
+                                 Margin="0,0,6,0"
+                                 VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding DisplayName}" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+        
+        <StackPanel Grid.Column="5"
                     HorizontalAlignment="Right"
                     Margin="0,0,12,0"
                     Orientation="Horizontal">

@@ -2,7 +2,7 @@
 
 namespace Tracker.DataModels
 {
-    public class Risk
+    public class Risk : AuditableEntity
     {
         public int ID { get; set; } = 0;
 

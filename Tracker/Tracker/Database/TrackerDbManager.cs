@@ -1,30 +1,42 @@
-﻿using System.Data;
-using System.Security.Principal;
-using System.Windows;
-using ABI.Windows.System.RemoteSystems;
+﻿using System.IO;
 using Microsoft.Data.SqlClient;
-using Tracker.Common;
-using Tracker.Common.Enums;
+using Microsoft.EntityFrameworkCore;
+using Tracker.Classes;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
-using Tracker.Views.Dialogs;
 
 namespace Tracker.Database
 {
+    /// <summary>
+    /// Result of a connection test.
+    /// </summary>
+    public class ConnectionTestResult
+    {
+        public bool Success { get; set; }
+        public bool DatabaseExists { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Manages database operations using Entity Framework Core.
+    /// Supports both SQLite (local) and SQL Server (remote) providers.
+    /// </summary>
     public class TrackerDbManager
     {
         #region Fields
 
         private static TrackerDbManager? _instance;
         private static readonly object SyncRoot = new();
-        protected volatile bool _isInitialized;
+        private bool _isInitialized;
+        private TrackerDbContext? _context;
+        private DatabaseSettings? _settings;
 
-        private LoggingManager.Logger _logger = new(nameof(TrackerDbManager), "DatabaseLog");
+        private readonly LoggingManager.Logger _logger = new(nameof(TrackerDbManager), "DatabaseLog");
 
         #endregion
 
-        #region Public Instances
+        #region Singleton Instance
 
         public static TrackerDbManager? Instance
         {
@@ -37,452 +49,655 @@ namespace Tracker.Database
                         _instance ??= new TrackerDbManager();
                     }
                 }
-
                 return _instance;
             }
-        }
-
-        public void Reset()
-        {
-            _isInitialized = false;
-
-        }
-
-        public void Initialize()
-        {
-            if (_isInitialized) return;
-
-            _isInitialized = true;
-        }
-
-        public void Shutdown()
-        {
-            _isInitialized = false;
         }
 
         #endregion
 
         #region Public Properties
 
-        public bool IsCloud { get; set; }
+        /// <summary>
+        /// Gets the path to the SQLite database file (null if using SQL Server).
+        /// </summary>
+        public string? DatabasePath => _context?.DatabasePath;
 
-        public bool IsLocal { get; set; }
+        /// <summary>
+        /// Gets whether the database is initialized and ready.
+        /// </summary>
+        public bool IsInitialized => _isInitialized;
 
-        public bool IsServer { get; set; }
+        /// <summary>
+        /// Gets the current database settings.
+        /// </summary>
+        public DatabaseSettings? CurrentSettings => _settings;
 
-        public string LocalServerName { get; set; } = "Primary_Alien";
+        /// <summary>
+        /// Gets whether we're connected to a local SQLite database.
+        /// </summary>
+        public bool IsLocalDatabase => _settings?.Type == DatabaseType.SQLite;
 
-        public string LocalDatabaseName { get; set; } = "TrackerDb";
-
-        public string LocalUserName { get; set; }
-
-        public string LocalPassword { get; set; }
-
-        public string CloudServerName { get; set; }
-
-        public string CloudDatabaseName { get; set; }
-
-        public string CloudUserName { get; set; }
-
-        public string CloudPassword { get; set; }
+        /// <summary>
+        /// Gets whether we're in offline mode (SQL Server configured but unavailable).
+        /// </summary>
+        public bool IsOfflineMode => _settings?.IsOfflineMode ?? false;
 
         #endregion
 
-        #region Public Methods
+        #region Initialization
 
-        public async Task<List<TeamMember>> GetTeamMembers()
+        /// <summary>
+        /// Legacy initialization using default SQLite.
+        /// </summary>
+        public void Initialize()
         {
-            var teamMembers = new List<TeamMember>();
+            if (_isInitialized) return;
+            InitializeAsync(new DatabaseSettings { Type = DatabaseType.SQLite }, true).Wait();
+        }
+
+        /// <summary>
+        /// Initialize the database with the specified settings.
+        /// </summary>
+        public async Task InitializeAsync(DatabaseSettings settings, bool createIfNotExists = true)
+        {
+            if (_isInitialized && _settings?.GetConnectionString() == settings.GetConnectionString())
+            {
+                return; // Already initialized with same settings
+            }
 
             try
             {
-                await using var connection = await OpenConnectionAsync();
-                await using var command = new SqlCommand("GetTeamMembers", connection);
-                command.CommandType = CommandType.StoredProcedure;
+                _settings = settings;
+                _context?.Dispose();
+                _context = new TrackerDbContext(settings);
 
-                await using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                if (createIfNotExists)
                 {
-                    var teamMember = new TeamMember
-                    {
-                        Id = reader.GetInt32(reader.GetOrdinal(TrackerConstants.IdField)),
-                        FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
-                        LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                        NickName = reader.IsDBNull(reader.GetOrdinal("NickName")) ? string.Empty : reader.GetString(reader.GetOrdinal("NickName")),
-                        Email = reader.GetString(reader.GetOrdinal("Email")),
-                        CellPhone = reader.GetString(reader.GetOrdinal("Cell")),
-                        JobTitle = reader.GetString(reader.GetOrdinal("JobTitle")),
-                        BirthDay = reader.IsDBNull(reader.GetOrdinal("Birthday")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Birthday")),
-                        HireDate = reader.IsDBNull(reader.GetOrdinal("HireDate")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("HireDate")),
-                        TerminationDate = reader.IsDBNull(reader.GetOrdinal("TerminationDate")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("TerminationDate")),
-                        IsActive = reader.IsDBNull(reader.GetOrdinal("IsActive")) ? false : reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                        ManagerId = reader.IsDBNull(reader.GetOrdinal("ManagerId")) ? 0 : reader.GetInt32(reader.GetOrdinal("ManagerId")),
-                        ProfileImage = reader.IsDBNull(reader.GetOrdinal("ProfileImage")) ? Array.Empty<byte>() : (byte[])reader["ProfileImage"],
-                        LinkedInProfile = reader.IsDBNull(reader.GetOrdinal("LinkedInProfile")) ? string.Empty : reader.GetString(reader.GetOrdinal("LinkedInProfile")),
-                        FacebookProfile = reader.IsDBNull(reader.GetOrdinal("FacebookProfile")) ? string.Empty : reader.GetString(reader.GetOrdinal("FacebookProfile")),
-                        InstagramProfile = reader.IsDBNull(reader.GetOrdinal("InstaProfile")) ? string.Empty : reader.GetString(reader.GetOrdinal("InstaProfile")),
-                        XProfile = reader.IsDBNull(reader.GetOrdinal("XProfile")) ? string.Empty : reader.GetString(reader.GetOrdinal("XProfile")),
-                        Specialty = reader.IsDBNull(reader.GetOrdinal("Speciality")) ? (EngineeringSpecialtyEnum)0 : (EngineeringSpecialtyEnum)reader.GetInt32(reader.GetOrdinal("Speciality")),
-                        SkillLevel = reader.IsDBNull(reader.GetOrdinal("Skill")) ? (SkillLevelEnum)0 : (SkillLevelEnum)reader.GetInt32(reader.GetOrdinal("Skill")),
-                        Role = reader.IsDBNull(reader.GetOrdinal("Role")) ? (RoleEnum)0 : (RoleEnum)reader.GetInt32(reader.GetOrdinal("Role"))
-                    };
-
-                    teamMembers.Add(teamMember);
+                    await Task.Run(() => _context.EnsureCreated());
                 }
+
+                // Verify connection
+                await _context.Database.CanConnectAsync();
+
+                _isInitialized = true;
+                _logger.Info("Database initialized: Type={0}, Path={1}", 
+                    settings.Type, 
+                    settings.Type == DatabaseType.SQLite ? DatabaseSettings.GetSqlitePath() : settings.Server);
             }
             catch (Exception ex)
             {
-                // Handle exception (log, rethrow, etc.)
-                _logger.Exception(ex, "Error retrieving Team Members collection from database.");
+                _logger.Exception(ex, "Failed to initialize database");
+                throw;
             }
-            _logger.Debug("{0}: Team members successfully returned from database.", nameof(GetTeamMembers));
-            var sortedTeamMembers = teamMembers
-                .OrderBy(tm => tm.Role)
-                .ThenBy(tm => tm.LastName)
-                .ThenBy(tm => tm.FirstName)
-                .ToList();
-
-            return sortedTeamMembers;
         }
 
-        public async Task<bool> AddTeamMember(string? firstName = null,
-            string? lastName = null,
-            string? nickName = null,
-            string? email = null,
-            string? cell = null,
-            string? jobTitle = null,
-            DateTime? birthday = null,
-            DateTime? hireDate = null,
-            DateTime? terminationDate = null,
-            bool? isActive = null,
-            int? managerId = null,
-            byte[]? profileImage = null,
-            string? linkedInProfile = null,
-            string? facebookProfile = null,
-            string? instagramProfile = null,
-            string? xProfile = null,
-            int? specialty = null,
-            int? skill = null,
-            int? role = null)
+        /// <summary>
+        /// Test a database connection without initializing.
+        /// </summary>
+        public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseSettings settings)
         {
+            var result = new ConnectionTestResult();
+
             try
             {
-                await using var connection = await OpenConnectionAsync();
-                await using var command = new SqlCommand(TrackerConstants.AddTeamMember, connection);
-                command.CommandType = CommandType.StoredProcedure;
-
-                AddSqlParameter(command, TrackerConstants.TeamMemberFirstName, firstName);
-                AddSqlParameter(command, TrackerConstants.TeamMemberLastName, lastName);
-                AddSqlParameter(command, TrackerConstants.TeamMemberNickname, nickName);
-                AddSqlParameter(command, TrackerConstants.TeamMemberEmail, email);
-                AddSqlParameter(command, TrackerConstants.TeamMemberCell, cell);
-                AddSqlParameter(command, TrackerConstants.TeamMemberJobTitle, jobTitle);
-                AddSqlParameter(command, TrackerConstants.TeamMemberBirthday, birthday);
-                AddSqlParameter(command, TrackerConstants.TeamMemberHireDate, hireDate);
-                AddSqlParameter(command, TrackerConstants.TeamMemberTerminationDate, terminationDate);
-                AddSqlParameter(command, TrackerConstants.TeamMemberIsActive, isActive);
-                AddSqlParameter(command, TrackerConstants.TeamMemberManagerId, managerId);
-                AddSqlParameter(command, TrackerConstants.TeamMemberProfileImage, profileImage);
-                AddSqlParameter(command, TrackerConstants.TeamMemberLinkedInProfile, linkedInProfile);
-                AddSqlParameter(command, TrackerConstants.TeamMemberFacebookProfile, facebookProfile);
-                AddSqlParameter(command, TrackerConstants.TeamMemberInstaProfile, instagramProfile);
-                AddSqlParameter(command, TrackerConstants.TeamMemberXProfile, xProfile);
-                AddSqlParameter(command, TrackerConstants.TeamMemberSpeciality, specialty);
-                AddSqlParameter(command, TrackerConstants.TeamMemberSkill, skill);
-                AddSqlParameter(command, TrackerConstants.TeamMemberRole, role);
-
-                await using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                if (settings.Type == DatabaseType.SQLite)
                 {
-                    if (reader.FieldCount == 1 && reader.GetName(0) == "NewTeamMemberId")
-                    {
-                        return true;
-                    }
-
-                    if (reader.FieldCount == 2 && reader.GetName(0) == "ErrorNumber" && reader.GetName(1) == "ErrorMessage")
-                    {
-                        // Handle SQL errors returned from the CATCH block
-                        int errorNumber = Convert.ToInt32(reader["ErrorNumber"]);
-                        string errorMessage = reader["ErrorMessage"].ToString();
-                        _logger.Error("SQL Error : {0}: {1}", errorNumber, errorMessage);
-                    }
+                    // SQLite always succeeds - file will be created
+                    result.Success = true;
+                    result.DatabaseExists = File.Exists(DatabaseSettings.GetSqlitePath());
+                    return result;
                 }
 
-                return false;
+                // SQL Server - test connection
+                var connectionString = settings.GetConnectionString();
+                
+                // First try to connect to master to check if server is reachable
+                var masterConnectionString = connectionString.Replace($"Database={settings.Database}", "Database=master");
+                
+                using var masterConnection = new SqlConnection(masterConnectionString);
+                await masterConnection.OpenAsync();
+
+                // Check if the specific database exists
+                using var cmd = masterConnection.CreateCommand();
+                cmd.CommandText = $"SELECT DB_ID('{settings.Database}')";
+                var dbId = await cmd.ExecuteScalarAsync();
+                
+                result.Success = true;
+                result.DatabaseExists = dbId != DBNull.Value && dbId != null;
+                
+                return result;
             }
-            catch (Exception e)
+            catch (SqlException ex)
             {
-                return false;
-            }
-        }
-
-        public async Task UpdateTeamMemberValues(int id, Dictionary<string, object> values)
-        {
-            await using var connection = await OpenConnectionAsync();
-            await using var command = new SqlCommand(TrackerConstants.UpdateTeamMember, connection);
-            command.CommandType = CommandType.StoredProcedure;
-
-            // Required field
-            command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
-
-
-            // Optional fields
-            foreach (var value in values)
-            {
-                AddSqlParameter(command, value.Key, value.Value);
-            }
-
-            await command.ExecuteNonQueryAsync();
-        }
-
-        public async Task<bool> DeleteTeamMember(int id)
-        {
-            try
-            {
-                await using var connection = await OpenConnectionAsync();
-                await using var command = new SqlCommand(TrackerConstants.DeleteTeamMember, connection);
-                command.CommandType = CommandType.StoredProcedure;
-
-                command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
-
-                await command.ExecuteNonQueryAsync();
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                _logger.Exception(e, "{0}: Error deleting contact with id {1}", nameof(DeleteTeamMember), id);
-                return false;
-            }
-        }
-
-        public async Task<int> AddOneOnOne(string? description = null,
-         string? agenda = null,
-         string? notes = null,
-         string? feedback = null, 
-         DateTime? date = null,
-         TimeSpan? startTime = null,
-         TimeSpan? duration = null,
-         bool? isRecurring = null,
-         int? teamMemberId = null, 
-         int? status = null)
-        {
-            try
-            {
-                await using var connection = await OpenConnectionAsync();
-                await using var command = new SqlCommand(TrackerConstants.AddTeamMember, connection);
-                command.CommandType = CommandType.StoredProcedure;
-
-                AddSqlParameter(command, TrackerConstants.OneOnOneDescription, description);
-                AddSqlParameter(command, TrackerConstants.OneOnOneDate, date);
-                AddSqlParameter(command, TrackerConstants.OneOnOneDuration, duration);
-                AddSqlParameter(command, TrackerConstants.OneOnOneFeedback, feedback);
-                AddSqlParameter(command, TrackerConstants.OneOnOneStartTime, startTime);
-                AddSqlParameter(command, TrackerConstants.OneOnOneAgenda, agenda);
-                AddSqlParameter(command, TrackerConstants.OneOnOneNotes, notes);
-                AddSqlParameter(command, TrackerConstants.OneOnOneTeamMemberId, teamMemberId);
-                AddSqlParameter(command, TrackerConstants.OneOnOneIsRecurring, isRecurring);
-                AddSqlParameter(command, TrackerConstants.OneOnOneStatus, status);
-
-                await using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                result.Success = false;
+                result.ErrorMessage = ex.Number switch
                 {
-                    if (reader.FieldCount == 1 && reader.GetName(0) == "NewOneOnOneId")
-                    {
-                        return reader.GetInt32(reader.GetOrdinal("NewOneOnOneId"));
-                    }
-
-                    if (reader.FieldCount == 2 && reader.GetName(0) == "ErrorNumber" && reader.GetName(1) == "ErrorMessage")
-                    {
-                        // Handle SQL errors returned from the CATCH block
-                        int errorNumber = Convert.ToInt32(reader["ErrorNumber"]);
-                        string errorMessage = reader["ErrorMessage"].ToString();
-                        _logger.Error("SQL Error : {0}: {1}", errorNumber, errorMessage);
-                    }
-                }
-
-                return 0;
+                    -1 => "Could not connect to server. Check the server name and network connection.",
+                    18456 => "Login failed. Check your username and password.",
+                    4060 => "Cannot open database. Check the database name.",
+                    _ => ex.Message
+                };
+                return result;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Switch to a different database connection.
+        /// </summary>
+        public async Task SwitchDatabaseAsync(DatabaseSettings newSettings, bool createIfNotExists = true)
+        {
+            _isInitialized = false;
+            await InitializeAsync(newSettings, createIfNotExists);
+        }
+
+        public void Reset()
+        {
+            _isInitialized = false;
+            _context?.Dispose();
+            _context = null;
+            _settings = null;
+        }
+
+        public void Shutdown()
+        {
+            _context?.Dispose();
+            _context = null;
+            _isInitialized = false;
+        }
+
+        #endregion
+
+        #region TeamMember Operations
+
+        public async Task<List<TeamMember>> GetTeamMembersAsync()
+        {
+            if (_context == null) return new List<TeamMember>();
+
+            try
+            {
+                return await _context.TeamMembers
+                    .Where(t => !t.IsDeleted)
+                    .OrderBy(tm => tm.Role)
+                    .ThenBy(tm => tm.LastName)
+                    .ThenBy(tm => tm.FirstName)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving team members from database");
+                return new List<TeamMember>();
+            }
+        }
+
+        public async Task<TeamMember?> GetTeamMemberByIdAsync(int id)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                return await _context.TeamMembers
+                    .Where(t => !t.IsDeleted)
+                    .FirstOrDefaultAsync(t => t.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving team member with id {0}", id);
+                return null;
+            }
+        }
+
+        public async Task<int> AddTeamMemberAsync(TeamMember teamMember)
+        {
+            if (_context == null) return 0;
+
+            try
+            {
+                _context.TeamMembers.Add(teamMember);
+                await _context.SaveChangesAsync();
+                _logger.Info("Added team member: {0} {1} (ID: {2})", teamMember.FirstName, teamMember.LastName, teamMember.Id);
+                return teamMember.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding team member");
                 return 0;
             }
         }
 
-        public async Task UpdateOneOnOneValues(int id, Dictionary<string, object> values)
+        public async Task<bool> UpdateTeamMemberAsync(TeamMember teamMember)
         {
-            await using var connection = await OpenConnectionAsync();
-            await using var command = new SqlCommand(TrackerConstants.UpdateOneOnOne, connection);
-            command.CommandType = CommandType.StoredProcedure;
+            if (_context == null) return false;
 
-            // Required field
-            command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
-
-
-            // Optional fields
-            foreach (var value in values)
-            {
-                AddSqlParameter(command, value.Key, value.Value);
-            }
-
-            await command.ExecuteNonQueryAsync();
-        }
-
-        public async Task<bool> DeleteOneOnOne(int id)
-        {
             try
             {
-                await using var connection = await OpenConnectionAsync();
-                await using var command = new SqlCommand(TrackerConstants.DeleteTeamMember, connection);
-                command.CommandType = CommandType.StoredProcedure;
-
-                command.Parameters.AddWithValue(TrackerConstants.GenericId, id);
-
-                await command.ExecuteNonQueryAsync();
-
+                _context.TeamMembers.Update(teamMember);
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated team member ID: {0}", teamMember.Id);
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                _logger.Exception(e, "{0}: Error deleting contact with id {1}", nameof(DeleteTeamMember), id);
+                _logger.Exception(ex, "Error updating team member ID: {0}", teamMember.Id);
                 return false;
             }
         }
 
-
-
-        public async Task CheckUserAsync()
+        public async Task<bool> DeleteTeamMemberAsync(int id)
         {
+            if (_context == null) return false;
+
             try
             {
-                // Try opening a connection with the current user's credentials
-                await using var connection = new SqlConnection(BuildConnectionString());
-                await connection.OpenAsync();
-                LocalUserName = WindowsIdentity.GetCurrent().Name;
-                Application.Current.Dispatcher.BeginInvoke(() =>
+                var teamMember = await _context.TeamMembers.FindAsync(id);
+                if (teamMember != null)
                 {
-                    NotificationManager.Instance.SendNativeToast(ToastNotificationAction.SqlLoginSuccess);
-                });
+                    _context.TeamMembers.Remove(teamMember); // Soft delete handled by SaveChanges
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted team member ID: {0}", id);
+                    return true;
+                }
+                return false;
             }
-            catch (SqlException ex) when (ex.Number == 18456) // Login failed
+            catch (Exception ex)
             {
-                _logger.Exception(ex, "Error attempting to access SQL Database: Login Failed.  Attempting to add User");
-                await AddUserToDatabaseAsync();
-            }
-            catch (Exception e)
-            {
-                _logger.Exception(e, "Error attempting to access SQL Database");
+                _logger.Exception(ex, "Error deleting team member ID: {0}", id);
+                return false;
             }
         }
 
         #endregion
 
-        #region Private Properties
+        #region OneOnOne Operations
 
+        public async Task<List<OneOnOne>> GetOneOnOnesAsync()
+        {
+            if (_context == null) return new List<OneOnOne>();
+
+            try
+            {
+                return await _context.OneOnOnes
+                    .Where(o => !o.IsDeleted)
+                    .Include(o => o.TeamMember)
+                    .Include(o => o.ActionItems.Where(a => !a.IsDeleted))
+                    .Include(o => o.DiscussionPoints.Where(d => !d.IsDeleted))
+                    .Include(o => o.Concerns.Where(c => !c.IsDeleted))
+                    .Include(o => o.FollowUpItems.Where(f => !f.IsDeleted))
+                    .OrderByDescending(o => o.Date)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving one-on-ones from database");
+                return new List<OneOnOne>();
+            }
+        }
+
+        public async Task<OneOnOne?> GetOneOnOneByIdAsync(int id)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                return await _context.OneOnOnes
+                    .Where(o => !o.IsDeleted)
+                    .Include(o => o.TeamMember)
+                    .Include(o => o.ActionItems.Where(a => !a.IsDeleted))
+                    .Include(o => o.DiscussionPoints.Where(d => !d.IsDeleted))
+                    .Include(o => o.Concerns.Where(c => !c.IsDeleted))
+                    .Include(o => o.FollowUpItems.Where(f => !f.IsDeleted))
+                    .FirstOrDefaultAsync(o => o.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving one-on-one with id {0}", id);
+                return null;
+            }
+        }
+
+        public async Task<int> AddOneOnOneAsync(OneOnOne oneOnOne)
+        {
+            if (_context == null) return 0;
+
+            try
+            {
+                _context.OneOnOnes.Add(oneOnOne);
+                await _context.SaveChangesAsync();
+                _logger.Info("Added one-on-one ID: {0}", oneOnOne.Id);
+                return oneOnOne.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding one-on-one");
+                return 0;
+            }
+        }
+
+        public async Task<bool> UpdateOneOnOneAsync(OneOnOne oneOnOne)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                _context.OneOnOnes.Update(oneOnOne);
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated one-on-one ID: {0}", oneOnOne.Id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating one-on-one ID: {0}", oneOnOne.Id);
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteOneOnOneAsync(int id)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var oneOnOne = await _context.OneOnOnes.FindAsync(id);
+                if (oneOnOne != null)
+                {
+                    _context.OneOnOnes.Remove(oneOnOne);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted one-on-one ID: {0}", id);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting one-on-one ID: {0}", id);
+                return false;
+            }
+        }
 
         #endregion
 
-        #region Private Methods
+        #region Project Operations
 
-        private string BuildConnectionString()
+        public async Task<List<Project>> GetProjectsAsync()
         {
-            if (IsCloud)
+            if (_context == null) return new List<Project>();
+
+            try
             {
-                // Azure SQL Server connection string
-                return $"Server=tcp:{CloudServerName}.database.windows.net,1433;" +
-                                   $"Initial Catalog={CloudDatabaseName};" +
-                                   $"Persist Security Info=False;" +
-                                   $"User ID={CloudUserName};" +
-                                   $"Password={CloudPassword};" +
-                                   "MultipleActiveResultSets=False;" +
-                                   "Encrypt=True;" +
-                                   "TrustServerCertificate=False;" +
-                                   "Connection Timeout=30;";
+                return await _context.Projects
+                    .Where(p => !p.IsDeleted)
+                    .Include(p => p.Owner)
+                    .Include(p => p.TeamMembers.Where(tm => !tm.IsDeleted))
+                    .Include(p => p.Milestones.Where(m => !m.IsDeleted))
+                    .Include(p => p.Risks.Where(r => !r.IsDeleted))
+                    .Include(p => p.Dependencies.Where(d => !d.IsDeleted))
+                    .Include(p => p.OKRs.Where(o => !o.IsDeleted))
+                        .ThenInclude(o => o.KeyResults.Where(k => !k.IsDeleted))
+                    .OrderBy(p => p.Name)
+                    .ToListAsync();
             }
-            else if (IsLocal)
+            catch (Exception ex)
             {
-                return string.Empty;
-            }
-            else
-            {
-                // SQL Server connection string
-                return $"Server={LocalServerName};" +
-                                   $"Database={LocalDatabaseName};" +
-                                   "Integrated Security=True;" +
-                                   "MultipleActiveResultSets=True;" +
-                                   "TrustServerCertificate=True;" +
-                                   "Connection Timeout=30;";
+                _logger.Exception(ex, "Error retrieving projects from database");
+                return new List<Project>();
             }
         }
 
-        private async Task<SqlConnection> OpenConnectionAsync()
+        public async Task<int> AddProjectAsync(Project project)
         {
-            if (string.IsNullOrEmpty(BuildConnectionString()))
-            {
-                BuildConnectionString();
-            }
+            if (_context == null) return 0;
 
-            var connection = new SqlConnection(BuildConnectionString());
-            await connection.OpenAsync();
-            return connection;
+            try
+            {
+                _context.Projects.Add(project);
+                await _context.SaveChangesAsync();
+                _logger.Info("Added project: {0} (ID: {1})", project.Name, project.ID);
+                return project.ID;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding project");
+                return 0;
+            }
         }
 
-        private void CloseConnection(SqlConnection? connection)
+        public async Task<bool> UpdateProjectAsync(Project project)
         {
-            if (connection != null && connection.State == ConnectionState.Open)
+            if (_context == null) return false;
+
+            try
             {
-                connection.Close();
+                _context.Projects.Update(project);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating project ID: {0}", project.ID);
+                return false;
             }
         }
 
-        private async Task AddUserToDatabaseAsync()
+        public async Task<bool> DeleteProjectAsync(int id)
         {
-            // Get the current Windows user name
-            WindowsIdentity currentUser = WindowsIdentity.GetCurrent();
-            string userName = currentUser.Name; // e.g., "MACHINE_NAME\UserName"
+            if (_context == null) return false;
 
-            // Create a connection to the SQL Server using an admin account
-            var adminConnectionString = @"Data Source=YourSqlServerInstance;Initial Catalog=master;User Id=adminUsername;Password=adminPassword;";
-
-            await using var connection = new SqlConnection(adminConnectionString);
-            await connection.OpenAsync();
-
-            // SQL command to add the user as a login and then add them to the database
-            string addUserCommandText = $@"
-                IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = '{userName}')
-                BEGIN
-                    CREATE LOGIN [{userName}] FROM WINDOWS;
-                END
-                IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '{userName}')
-                BEGIN
-                    USE TrackerDatabase;
-                    CREATE USER [{userName}] FOR LOGIN [{userName}];
-                    ALTER ROLE db_datareader ADD MEMBER [{userName}];
-                    ALTER ROLE db_datawriter ADD MEMBER [{userName}];
-                END";
-
-            await using (var command = new SqlCommand(addUserCommandText, connection))
+            try
             {
-                await command.ExecuteNonQueryAsync();
+                var project = await _context.Projects.FindAsync(id);
+                if (project != null)
+                {
+                    _context.Projects.Remove(project);
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
             }
-
-            _logger.Debug("{0}: added {1} to database", nameof(AddUserToDatabaseAsync), userName);
-            // After adding the user, show a toast notification to inform them
-            NotificationManager.Instance.SendTrackerToast("Did this work?", "I am me.");
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting project ID: {0}", id);
+                return false;
+            }
         }
 
-        private void AddSqlParameter<T>(SqlCommand command, string paramName, T value)
+        #endregion
+
+        #region Task Operations
+
+        public async Task<List<IndividualTask>> GetTasksAsync()
         {
-            if (value == null || value.Equals(default(T)))
+            if (_context == null) return new List<IndividualTask>();
+
+            try
             {
-                command.Parameters.AddWithValue(paramName, DBNull.Value);
+                return await _context.Tasks
+                    .Where(t => !t.IsDeleted)
+                    .Include(t => t.Owner)
+                    .OrderBy(t => t.DueDate)
+                    .ToListAsync();
             }
-            else
+            catch (Exception ex)
             {
-                command.Parameters.AddWithValue(paramName, value);
+                _logger.Exception(ex, "Error retrieving tasks from database");
+                return new List<IndividualTask>();
             }
+        }
+
+        public async Task<int> AddTaskAsync(IndividualTask task)
+        {
+            if (_context == null) return 0;
+
+            try
+            {
+                _context.Tasks.Add(task);
+                await _context.SaveChangesAsync();
+                return task.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding task");
+                return 0;
+            }
+        }
+
+        public async Task<bool> UpdateTaskAsync(IndividualTask task)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                _context.Tasks.Update(task);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating task");
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region OKR Operations
+
+        public async Task<List<ObjectiveKeyResult>> GetOKRsAsync()
+        {
+            if (_context == null) return new List<ObjectiveKeyResult>();
+
+            try
+            {
+                return await _context.ObjectiveKeyResults
+                    .Where(o => !o.IsDeleted)
+                    .Include(o => o.Owner)
+                    .Include(o => o.KeyResults.Where(k => !k.IsDeleted))
+                        .ThenInclude(k => k.Owner)
+                    .OrderBy(o => o.EndDate)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving OKRs from database");
+                return new List<ObjectiveKeyResult>();
+            }
+        }
+
+        public async Task<int> AddOKRAsync(ObjectiveKeyResult okr)
+        {
+            if (_context == null) return 0;
+
+            try
+            {
+                _context.ObjectiveKeyResults.Add(okr);
+                await _context.SaveChangesAsync();
+                return okr.ObjectiveId;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding OKR");
+                return 0;
+            }
+        }
+
+        public async Task<bool> UpdateOKRAsync(ObjectiveKeyResult okr)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                _context.ObjectiveKeyResults.Update(okr);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating OKR ID: {0}", okr.ObjectiveId);
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region KPI Operations
+
+        public async Task<List<KeyPerformanceIndicator>> GetKPIsAsync()
+        {
+            if (_context == null) return new List<KeyPerformanceIndicator>();
+
+            try
+            {
+                return await _context.KeyPerformanceIndicators
+                    .Where(k => !k.IsDeleted)
+                    .Include(k => k.Owner)
+                    .OrderBy(k => k.Name)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving KPIs from database");
+                return new List<KeyPerformanceIndicator>();
+            }
+        }
+
+        public async Task<int> AddKPIAsync(KeyPerformanceIndicator kpi)
+        {
+            if (_context == null) return 0;
+
+            try
+            {
+                _context.KeyPerformanceIndicators.Add(kpi);
+                await _context.SaveChangesAsync();
+                return kpi.KpiId;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding KPI");
+                return 0;
+            }
+        }
+
+        public async Task<bool> UpdateKPIAsync(KeyPerformanceIndicator kpi)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                _context.KeyPerformanceIndicators.Update(kpi);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating KPI ID: {0}", kpi.KpiId);
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Legacy Compatibility Methods
+
+        /// <summary>
+        /// Legacy method for backwards compatibility.
+        /// </summary>
+        public async Task<List<TeamMember>> GetTeamMembers() => await GetTeamMembersAsync();
+
+        /// <summary>
+        /// Legacy method - shows connection success notification.
+        /// </summary>
+        public Task CheckUserAsync()
+        {
+            if (_isInitialized)
+            {
+                var dbType = _settings?.Type == DatabaseType.SQLite ? "Local Database" : "SQL Server";
+                NotificationManager.Instance.ShowSuccess("Database Ready", $"Connected to {dbType}");
+            }
+            return Task.CompletedTask;
         }
 
         #endregion

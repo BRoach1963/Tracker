@@ -27,7 +27,7 @@
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
                 BorderThickness="1"
-                BorderBrush="{StaticResource ForegroundBrush}"
+                BorderBrush="{DynamicResource ForegroundBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
@@ -85,23 +85,30 @@
                                  Margin="20,0,0,0">
                         <Label Style="{StaticResource LabelStyle}"
                                Content="Theme" />
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton Style="{StaticResource RadioButtonStyle}"
-                                         IsChecked="{Binding BlackMode}"
-                                         GroupName="Themes"
-                                         Content="{x:Static languages:Resources.RadioButton_Black}"
-                                         Margin="0,0,10,0" />
-                            <RadioButton Style="{StaticResource RadioButtonStyle}"
-                                         IsChecked="{Binding GoldMode}"
-                                         GroupName="Themes"
-                                         Content="{x:Static languages:Resources.RadioButton_Gold}"
-                                         Margin="0,0,10,0" />
-                            <RadioButton Style="{StaticResource RadioButtonStyle}"
-                                         IsChecked="{Binding LightMode}"
-                                         GroupName="Themes"
-                                         Content="{x:Static languages:Resources.RadioButton_Light}"
-                                         Margin="0,0,10,0" />
-                        </StackPanel>
+                        <ComboBox ItemsSource="{Binding AvailableThemes}"
+                                  SelectedItem="{Binding SelectedTheme}"
+                                  Width="200"
+                                  HorizontalAlignment="Left"
+                                  Margin="0,5,0,0">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="14" Height="14" 
+                                                 Fill="{Binding PreviewColor}" 
+                                                 Margin="0,0,10,0"
+                                                 VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding DisplayName}" 
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        
+                        <TextBlock Text="Theme changes are applied immediately and saved automatically."
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   FontSize="11"
+                                   Margin="0,8,0,0"
+                                   FontStyle="Italic"/>
                     </StackPanel>
                     <StackPanel Orientation="Vertical"
                                 Grid.Column="1"

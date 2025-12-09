@@ -2,7 +2,7 @@
 
 namespace Tracker.DataModels
 {
-    public class ObjectiveKeyResult
+    public class ObjectiveKeyResult : AuditableEntity
     {
         public int ObjectiveId { get; set; } = 0;
         public string Title { get; set; } = string.Empty;

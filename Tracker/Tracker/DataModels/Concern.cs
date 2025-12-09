@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Tracker.Common.Enums;
+﻿using Tracker.Common.Enums;
 
 namespace Tracker.DataModels
 {
-    public class Concern
+    public class Concern : AuditableEntity
     {
         public int Id { get; set; }
 

@@ -1,16 +1,15 @@
-﻿using System.Windows;
-using Tracker.Common.Enums;
+﻿using System.Collections.ObjectModel;
+using System.Windows.Media;
+using DeepEndControls.Theming;
+using Tracker.Managers;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
     public class SettingsViewModel : BaseDialogViewModel
     {
-
         #region Fields
 
-        private bool _blackMode;
-        private bool _goldMode;
-        private bool _lightMode;
+        private ThemeItem? _selectedTheme;
 
         #endregion
 
@@ -18,42 +17,49 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public SettingsViewModel(Action? callback) : base(callback)
         {
-            GetThemeSettings();
+            // Populate available themes
+            AvailableThemes = new ObservableCollection<ThemeItem>();
+            foreach (var theme in ThemeManager.GetAvailableThemes())
+            {
+                AvailableThemes.Add(new ThemeItem
+                {
+                    Theme = theme,
+                    DisplayName = ThemeManager.GetThemeDisplayName(theme),
+                    PreviewColor = GetThemePreviewColor(theme)
+                });
+            }
+
+            // Set current selection
+            _selectedTheme = AvailableThemes.FirstOrDefault(t => t.Theme == ThemeManager.Instance.CurrentTheme);
         }
 
         #endregion
 
         #region Public Properties
 
-        public bool BlackMode
-        {
-            get => _blackMode;
-            set
-            {
-                _blackMode = value;
-                RaisePropertyChanged();
-                if (_blackMode) SetTheme(ThemeEnum.Black);
-            }
-        }
-        public bool GoldMode
-        {
-            get => _goldMode;
-            set
-            {
-                _goldMode = value;
-                RaisePropertyChanged();
-                if (_goldMode) SetTheme(ThemeEnum.Gold);
-            }
-        }
+        /// <summary>
+        /// Collection of available themes for the ComboBox.
+        /// </summary>
+        public ObservableCollection<ThemeItem> AvailableThemes { get; }
 
-        public bool LightMode
+        /// <summary>
+        /// The currently selected theme.
+        /// </summary>
+        public ThemeItem? SelectedTheme
         {
-            get => _goldMode;
+            get => _selectedTheme;
             set
             {
-                _lightMode = value;
-                RaisePropertyChanged();
-                if (_lightMode) SetTheme(ThemeEnum.Light);
+                if (_selectedTheme != value)
+                {
+                    _selectedTheme = value;
+                    RaisePropertyChanged();
+                    
+                    if (_selectedTheme != null)
+                    {
+                        UserSettingsManager.Instance.Theme = _selectedTheme.Theme;
+                    }
+                }
             }
         }
 
@@ -61,51 +67,24 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Private Methods
 
-        private void SetTheme(ThemeEnum theme)
+        private static Brush GetThemePreviewColor(DeepEndTheme theme)
         {
-            ResourceDictionary newTheme = new ResourceDictionary();
-            switch (theme)
-            {
-                case ThemeEnum.Black:
-                    newTheme.Source = new Uri("Resources/Themes/BlackTheme.xaml", UriKind.Relative);
-                    break;
-                case ThemeEnum.Gold:
-                    newTheme.Source = new Uri("Resources/Themes/GoldTheme.xaml", UriKind.Relative);
-                    break;
-                case ThemeEnum.Light:
-                    newTheme.Source = new Uri("Resources/Themes/LightTheme.xaml", UriKind.Relative);
-                    break;
-
-            }
-
-            var themeDictionary = Application.Current.Resources.MergedDictionaries
-                .FirstOrDefault(d => d.Source != null &&
-                                     (d.Source.ToString().Contains("BlackTheme.xaml") ||
-                                      d.Source.ToString().Contains("GoldTheme.xaml") ||
-                                      d.Source.ToString().Contains("LightTheme.xaml")));
-
-            if (themeDictionary != null)
-            {
-                Application.Current.Resources.MergedDictionaries.Remove(themeDictionary);
-            }
-
-            Application.Current.Resources.MergedDictionaries.Add(newTheme);
+            var palette = ThemePalette.GetPalette(theme);
+            return palette.PrimaryBrush;
         }
 
-        private void GetThemeSettings()
-        {
-            var themeDictionary = Application.Current.Resources.MergedDictionaries
-                .FirstOrDefault(d => d.Source != null &&
-                                     d.Source.ToString().Contains("BlackTheme.xaml"));
+        #endregion
 
-            if (themeDictionary is not null)
-            {
-                _blackMode = true;
-            }
-            else
-            {
-                _goldMode = true;
-            }
+        #region Helper Classes
+
+        /// <summary>
+        /// Represents a theme option for display in the UI.
+        /// </summary>
+        public class ThemeItem
+        {
+            public DeepEndTheme Theme { get; init; }
+            public string DisplayName { get; init; } = string.Empty;
+            public Brush PreviewColor { get; init; } = Brushes.Transparent;
         }
 
         #endregion

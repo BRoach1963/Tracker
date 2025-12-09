@@ -12,6 +12,7 @@
                      xmlns:viewModels="clr-namespace:Tracker.ViewModels"
                      xmlns:attachedProperties="clr-namespace:Tracker.AttachedProperties"
                      xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                     xmlns:theming="clr-namespace:DeepEndControls.Theming;assembly=DeepEndControls"
                      mc:Ignorable="d"
                      MouseDown="OnDragHandleMouseDown"
                      WindowStyle="None"
@@ -29,7 +30,7 @@
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
                 BorderThickness="1"
-                BorderBrush="{StaticResource ForegroundBrush}"
+                BorderBrush="{DynamicResource ForegroundBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>

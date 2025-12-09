@@ -1,7 +1,9 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using DeepEndControls.Theming;
 using Tracker.Common.Enums;
+using Tracker.Managers;
 
 namespace Tracker.Controls
 {
@@ -10,9 +12,67 @@ namespace Tracker.Controls
     /// </summary>
     public partial class DialogTitleBar : UserControl
     {
+        private bool _isInitializingThemes;
+
         public DialogTitleBar()
         {
             InitializeComponent();
+            Loaded += DialogTitleBar_Loaded;
+        }
+
+        private void DialogTitleBar_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (ShowThemeSelector)
+            {
+                InitializeThemeSelector();
+            }
+        }
+
+        private void InitializeThemeSelector()
+        {
+            _isInitializingThemes = true;
+            
+            var themeItems = new List<ThemeItem>();
+            foreach (var theme in ThemeManager.GetAvailableThemes())
+            {
+                themeItems.Add(new ThemeItem
+                {
+                    Theme = theme,
+                    DisplayName = ThemeManager.GetThemeDisplayName(theme),
+                    PreviewColor = GetThemePreviewColor(theme)
+                });
+            }
+            
+            ThemeComboBox.ItemsSource = themeItems;
+            ThemeComboBox.SelectedItem = themeItems.FirstOrDefault(t => t.Theme == ThemeManager.Instance.CurrentTheme);
+            
+            _isInitializingThemes = false;
+        }
+
+        private static Brush GetThemePreviewColor(DeepEndTheme theme)
+        {
+            var palette = ThemePalette.GetPalette(theme);
+            return palette.PrimaryBrush;
+        }
+
+        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializingThemes) return;
+            
+            if (ThemeComboBox.SelectedItem is ThemeItem selectedTheme)
+            {
+                UserSettingsManager.Instance.Theme = selectedTheme.Theme;
+            }
+        }
+
+        /// <summary>
+        /// Helper class for theme combo box items.
+        /// </summary>
+        private class ThemeItem
+        {
+            public DeepEndTheme Theme { get; init; }
+            public string DisplayName { get; init; } = string.Empty;
+            public Brush PreviewColor { get; init; } = Brushes.Transparent;
         }
 
         #region Dependency Properties
@@ -34,6 +94,13 @@ namespace Tracker.Controls
                 typeof(DialogTitleBar),
                 new PropertyMetadata(ToolBarStyleEnum.Standard));
 
+        public static readonly DependencyProperty ShowThemeSelectorProperty =
+            DependencyProperty.Register(
+                nameof(ShowThemeSelector),
+                typeof(bool),
+                typeof(DialogTitleBar),
+                new PropertyMetadata(false));
+
         public ToolBarStyleEnum ToolBarStyle
         {
             get => (ToolBarStyleEnum)GetValue(ToolbarStyleProperty);
@@ -54,6 +121,12 @@ namespace Tracker.Controls
         {
             get => (Geometry)GetValue(IconProperty);
             set => SetValue(IconProperty, value);
+        }
+
+        public bool ShowThemeSelector
+        {
+            get => (bool)GetValue(ShowThemeSelectorProperty);
+            set => SetValue(ShowThemeSelectorProperty, value);
         }
 
         #endregion

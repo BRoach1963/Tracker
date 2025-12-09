@@ -30,9 +30,9 @@
         </ResourceDictionary>
     </Window.Resources>
     <Grid>
-        <Border Background="{StaticResource BackgroundBrush}"
+        <Border Background="{DynamicResource BackgroundBrush}"
                 BorderThickness="1"
-                BorderBrush="{StaticResource ForegroundBrush}"
+                BorderBrush="{DynamicResource ForegroundBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>

@@ -390,7 +390,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private async void UpdateTeamMemberExecuted(object? parameter)
         {
-            TrackerDataManager.Instance.UpdateTeamMember(_data.Id, _changedProperties);
+            await TrackerDataManager.Instance.UpdateTeamMember(_data);
             if (parameter is BaseWindow window)
             {
                 DialogManager.Instance.CloseDialog(window);
@@ -464,9 +464,9 @@ namespace Tracker.ViewModels.DialogViewModels
             return true;
         }
 
-        private void AddTeamMemberExecuted(object? parameter)
+        private async void AddTeamMemberExecuted(object? parameter)
         {
-            TrackerDataManager.Instance.AddTeamMember(FirstName,LastName, NickName, Email, CellPhone, JobTitle, BirthDay, HireDate, TerminationDate, IsActive, null, _data.ProfileImage, LinkedInProfile, FacebookProfile, InstagramProfile, XProfile, (int)_data.Specialty, (int)_data.SkillLevel, (int)_data.Role);
+            await TrackerDataManager.Instance.AddTeamMember(_data);
             if (parameter is BaseWindow window)
             {
                 DialogManager.Instance.CloseDialog(window);

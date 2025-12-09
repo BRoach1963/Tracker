@@ -116,12 +116,6 @@
     <Page Update="Resources\Styles\DialogStyles.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="Resources\Themes\BlackTheme.xaml">
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Resources\Themes\GoldTheme.xaml">
-      <SubType>Designer</SubType>
-    </Page>
     <Page Update="Resources\Themes\LightTheme.xaml">
       <SubType>Designer</SubType>
     </Page>

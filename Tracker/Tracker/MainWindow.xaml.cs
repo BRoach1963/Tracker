@@ -2,6 +2,8 @@
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using DeepEndControls.Theming;
+using Tracker.Managers;
 using Tracker.ViewModels;
 
 namespace Tracker
@@ -17,6 +19,10 @@ namespace Tracker
             DataContext = dataContext;
             InitializeComponent(); 
             SubscribeToSizingEvents();
+            
+            // Apply the current theme to this window for DeepEndControls
+            DeepEndThemeManager.SetTheme(this, ThemeManager.Instance.CurrentTheme);
+            
             this.Unloaded += (_, _) =>
             { 
                 UnsubscribeFromSizingEvents();

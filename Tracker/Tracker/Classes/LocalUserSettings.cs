@@ -1,20 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using DeepEndControls.Theming;
 
 namespace Tracker.Classes
 {
+    /// <summary>
+    /// Stores user preferences that persist across sessions.
+    /// </summary>
     public class LocalUserSettings
     {
+        /// <summary>
+        /// The selected application theme.
+        /// </summary>
+        public DeepEndTheme Theme { get; set; } = DeepEndTheme.Default;
 
-        public bool DarkTheme {get; set; }
+        /// <summary>
+        /// Database connection settings.
+        /// </summary>
+        public DatabaseSettings Database { get; set; } = new();
 
-        public bool LightTheme {get; set; }
+        /// <summary>
+        /// The current user's display name.
+        /// </summary>
+        public string CurrentUser { get; set; } = Environment.UserName;
 
-        public bool GoldTheme {get; set; }
-
-        public bool UseWindowsAuth {get; set; }
+        /// <summary>
+        /// Whether to remember the last used database connection.
+        /// </summary>
+        public bool RememberConnection { get; set; } = true;
     }
 }

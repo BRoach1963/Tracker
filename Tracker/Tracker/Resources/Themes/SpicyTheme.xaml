@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Spicy Theme - Bold red/coral on dark -->
+    
+    <Color x:Key="BackgroundColor">#1A1A2E</Color>
+    <Color x:Key="ForegroundColor">#EF4444</Color>
+    
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1A2E"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="WhiteBrush" Color="#EAEAEA"/>
+    <SolidColorBrush x:Key="HintTextBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="DisabledBrush" Color="Gray"/>
+    
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#FF6B6B"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#E94560"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#FF1744"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#EAEAEA"/>
+    
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#16213E"/>
+    <SolidColorBrush x:Key="PopupBorderBrush" Color="#E94560"/>
+    
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#0F3D3E"/>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FF6B6B"/>
+    
+    <SolidColorBrush x:Key="ToolTipBackground" Color="#16213E"/>
+    <SolidColorBrush x:Key="ToolTipForeground" Color="#EAEAEA"/>
+    
+    <SolidColorBrush x:Key="SelectionBrush" Color="#3D1A2E"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#252542"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E36"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#232340"/>
+</ResourceDictionary>
+

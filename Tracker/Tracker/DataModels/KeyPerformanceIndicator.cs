@@ -2,7 +2,7 @@
 
 namespace Tracker.DataModels
 {
-    public class KeyPerformanceIndicator
+    public class KeyPerformanceIndicator : AuditableEntity
     {
         public int KpiId { get; set; } = 0;
         public string Name { get; set; } = string.Empty;

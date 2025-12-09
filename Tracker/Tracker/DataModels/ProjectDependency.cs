@@ -1,6 +1,6 @@
 ﻿namespace Tracker.DataModels
 {
-    public class ProjectDependency
+    public class ProjectDependency : AuditableEntity
     {
         public int ID { get; set; } = 0;
 

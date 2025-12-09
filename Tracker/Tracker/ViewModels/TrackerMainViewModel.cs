@@ -175,13 +175,12 @@ namespace Tracker.ViewModels
             return _selectedTeamMemberWrapper != null;
         }
 
-        private void DeleteTeamMemberExecuted(object? parameter)
+        private async void DeleteTeamMemberExecuted(object? parameter)
         {
             if (parameter is TeamMemberWrapper wrapper)
             {
                 // Get Confirmation from User
-
-                TrackerDataManager.Instance.DeleteTeamMember(wrapper.Data.Id); 
+                await TrackerDataManager.Instance.DeleteTeamMember(wrapper.Data.Id); 
             }
         }
 

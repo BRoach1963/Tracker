@@ -2,9 +2,8 @@
 
 namespace Tracker.DataModels
 {
-    public class OneOnOne
+    public class OneOnOne : AuditableEntity
     {
-
         #region Public Properties
 
         public int Id { get; set; } = 0;

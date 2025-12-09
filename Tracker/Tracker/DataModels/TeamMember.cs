@@ -2,13 +2,8 @@
 
 namespace Tracker.DataModels
 {
-    public class TeamMember
+    public class TeamMember : AuditableEntity
     {
-        #region Ctor
- 
-
-        #endregion
-
         #region Public Properties
 
         public int Id { get; set; } = 0;

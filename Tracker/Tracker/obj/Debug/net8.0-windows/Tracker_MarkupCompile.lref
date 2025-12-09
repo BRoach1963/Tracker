@@ -1,6 +1,7 @@
 ﻿
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\App.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\ContactDataDisplayCard.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\CustomControls\SocialMediaLinkTextBoxControl.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\DialogTitleBar.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\EditableContactCard.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\KpisControl.xaml;;
@@ -18,6 +19,7 @@ FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddOkrDialog.
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddOneOnOneDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddProjectDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddTaskDialog.xaml;;
-FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddTeamMemberDialog.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\LoginDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\SettingsDialog.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\TeamMemberDialog.xaml;;
 
