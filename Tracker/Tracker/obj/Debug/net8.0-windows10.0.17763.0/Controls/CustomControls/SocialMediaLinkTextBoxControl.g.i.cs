@@ -61,8 +61,7 @@ namespace Tracker.Controls.CustomControls {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Tracker;V1.0.0.0;component/controls/customcontrols/socialmedialinktextboxcontrol" +
-                    ".xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Tracker;component/controls/customcontrols/socialmedialinktextboxcontrol.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\Controls\CustomControls\SocialMediaLinkTextBoxControl.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

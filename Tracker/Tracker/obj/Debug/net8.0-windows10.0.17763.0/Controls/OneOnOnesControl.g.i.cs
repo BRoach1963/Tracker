@@ -79,7 +79,7 @@ namespace Tracker.Controls {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Tracker;V1.0.0.0;component/controls/oneononescontrol.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Tracker;component/controls/oneononescontrol.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\Controls\OneOnOnesControl.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);
