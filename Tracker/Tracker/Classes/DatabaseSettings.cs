@@ -3,7 +3,36 @@ using System.IO;
 namespace Tracker.Classes
 {
     /// <summary>
-    /// Database connection settings supporting both local SQLite and remote SQL Server.
+    /// Configuration settings for database connections.
+    /// 
+    /// Tracker supports two database providers:
+    /// 1. SQLite - Local database stored in %LocalAppData%\Tracker\tracker.db
+    ///    - Best for single-user, standalone deployments
+    ///    - Zero configuration required
+    ///    - Data stays on user's machine
+    /// 
+    /// 2. SQL Server - Networked database for enterprise deployments
+    ///    - Supports Windows Authentication and SQL Authentication
+    ///    - Can also connect via ODBC DSN
+    ///    - Enables team-wide data sharing
+    /// 
+    /// Usage:
+    /// <code>
+    /// // Local SQLite (default)
+    /// var settings = new DatabaseSettings { Type = DatabaseType.SQLite };
+    /// 
+    /// // SQL Server with Windows Auth
+    /// var settings = new DatabaseSettings 
+    /// {
+    ///     Type = DatabaseType.SqlServer,
+    ///     Server = "server\\instance",
+    ///     Database = "TrackerDB",
+    ///     UseWindowsAuth = true
+    /// };
+    /// 
+    /// // Get connection string
+    /// string connectionString = settings.GetConnectionString();
+    /// </code>
     /// </summary>
     public class DatabaseSettings
     {
@@ -74,10 +103,17 @@ namespace Tracker.Classes
         public bool IsOfflineMode { get; set; } = false;
 
         /// <summary>
-        /// Builds the connection string based on current settings.
+        /// Builds the appropriate connection string based on current settings.
         /// </summary>
+        /// <returns>
+        /// A connection string suitable for the configured database provider:
+        /// - SQLite: "Data Source=path\to\tracker.db"
+        /// - SQL Server: Full ADO.NET connection string with server, database, and auth
+        /// - ODBC: "DSN=datasourcename"
+        /// </returns>
         public string GetConnectionString()
         {
+            // SQLite uses a simple file-based connection string
             if (Type == DatabaseType.SQLite)
             {
                 var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -85,27 +121,36 @@ namespace Tracker.Classes
                 return $"Data Source={Path.Combine(trackerFolder, "tracker.db")}";
             }
 
+            // ODBC connection - uses a pre-configured Data Source Name
             if (UseOdbc)
             {
                 return $"DSN={OdbcDsn}";
             }
 
+            // Build SQL Server connection string
             var builder = new System.Text.StringBuilder();
+            
+            // Server can include instance name (e.g., "server\instance")
             builder.Append($"Server={Server};");
             builder.Append($"Database={Database};");
 
+            // Authentication: Windows (integrated) or SQL Server credentials
             if (UseWindowsAuth)
             {
+                // Uses the current Windows user's credentials
                 builder.Append("Trusted_Connection=True;");
             }
             else
             {
+                // SQL Server authentication with username/password
                 builder.Append($"User Id={Username};");
                 builder.Append($"Password={Password};");
             }
 
             builder.Append($"Connect Timeout={ConnectionTimeout};");
 
+            // TrustServerCertificate is useful for development/self-signed certs
+            // In production, you may want to set this to false for security
             if (TrustServerCertificate)
             {
                 builder.Append("TrustServerCertificate=True;");

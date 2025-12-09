@@ -14,5 +14,10 @@ namespace Tracker.DataModels
         public TeamMember Owner { get; set; } = new();
         public string OwnerName => $"{Owner.FirstName} {Owner.LastName}";
         public TaskTypeEnum Type => TaskTypeEnum.Individual;
+        
+        /// <summary>
+        /// Number of 1:1 meetings where this task was discussed (non-persisted, computed property).
+        /// </summary>
+        public int MeetingCount { get; set; }
     }
 }

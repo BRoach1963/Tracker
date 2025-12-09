@@ -12,5 +12,6 @@
         AddOneOnOne = 7,
         EditTeamMember = 8,
         Login = 9,
+        Reports = 10,
     }
 }

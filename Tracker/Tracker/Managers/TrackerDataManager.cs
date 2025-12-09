@@ -247,6 +247,16 @@ namespace Tracker.Managers
         {
             _tasks?.Clear();
             _tasks = await TrackerDbManager.Instance!.GetTasksAsync();
+            
+            // Populate meeting counts for each task
+            if (_tasks != null)
+            {
+                foreach (var task in _tasks)
+                {
+                    task.MeetingCount = await TrackerDbManager.Instance.GetTaskMeetingCountAsync(task.Id);
+                }
+            }
+            
             return _tasks;
         }
 
@@ -268,6 +278,16 @@ namespace Tracker.Managers
         {
             _okrs?.Clear();
             _okrs = await TrackerDbManager.Instance!.GetOKRsAsync();
+            
+            // Populate meeting counts for each OKR
+            if (_okrs != null)
+            {
+                foreach (var okr in _okrs)
+                {
+                    okr.MeetingCount = await TrackerDbManager.Instance.GetOkrMeetingCountAsync(okr.ObjectiveId);
+                }
+            }
+            
             return _okrs;
         }
 
@@ -289,6 +309,16 @@ namespace Tracker.Managers
         {
             _kpis?.Clear();
             _kpis = await TrackerDbManager.Instance!.GetKPIsAsync();
+            
+            // Populate meeting counts for each KPI
+            if (_kpis != null)
+            {
+                foreach (var kpi in _kpis)
+                {
+                    kpi.MeetingCount = await TrackerDbManager.Instance.GetKpiMeetingCountAsync(kpi.KpiId);
+                }
+            }
+            
             return _kpis;
         }
 

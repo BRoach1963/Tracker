@@ -67,6 +67,7 @@
         </Grid>
         <DataGrid Grid.Row="1"
                   ItemsSource="{Binding Tasks}"
+                  SelectedItem="{Binding SelectedTask, Mode=TwoWay}"
                   AutoGenerateColumns="False"
                   SelectionMode="Single" 
                   IsReadOnly="True"
@@ -96,14 +97,50 @@
                                     HeaderStyle="{StaticResource CenteredHeaderStyle}"
                                     Binding="{Binding Type, Converter={StaticResource EnumDescriptionConverter}}"
                                     Width="Auto" />
+                <DataGridTextColumn Header="Discussed In"
+                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                    Binding="{Binding MeetingCount, StringFormat={}{0} meeting(s)}"
+                                    Width="Auto" />
+                <!-- Action column with Edit and Delete buttons -->
                 <DataGridTemplateColumn Header="Action"
-                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
+                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
+                                        Width="Auto">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Style="{StaticResource MoreButtonStyle}" 
-                                    CommandParameter="{Binding}">
-                             
-                            </Button>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center">
+                                <!-- Edit Button -->
+                                <Button Style="{StaticResource GridActionButtonStyle}"
+                                        Command="{Binding DataContext.EditTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}">
+                                    <Path Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                          Fill="{DynamicResource ForegroundBrush}"
+                                          Width="14"
+                                          Height="14"
+                                          Stretch="Uniform" />
+                                    <Button.ToolTip>
+                                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                            <local:TrackerToolTip ToolTipText="Edit Task" />
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button>
+                                <!-- Delete Button -->
+                                <Button Style="{StaticResource GridActionButtonStyle}"
+                                        Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Margin="4,0,0,0">
+                                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                          Fill="{DynamicResource ErrorBrush}"
+                                          Width="14"
+                                          Height="14"
+                                          Stretch="Uniform" />
+                                    <Button.ToolTip>
+                                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                            <local:TrackerToolTip ToolTipText="Delete Task" />
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button>
+                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

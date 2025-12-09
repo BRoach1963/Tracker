@@ -4,6 +4,9 @@ using DeepEndControls.Theming;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Eventing;
+using Tracker.Eventing.Messages;
+using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.ViewModels;
@@ -19,6 +22,7 @@ namespace Tracker
     public partial class App : Application
     {
         private Views.SplashScreen? _splashScreen;
+        private bool _emptyDatabaseDetected = false;
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string appId);
@@ -46,6 +50,9 @@ namespace Tracker
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
+            // Close all active toast notifications before shutdown
+            NotificationManager.Instance.CloseAllToasts();
+            
             UserSettingsManager.Instance.Shutdown();
             LoggingManager.Instance.Shutdown();
             TrackerDataManager.Instance.Shutdown();
@@ -94,7 +101,8 @@ namespace Tracker
             var setupWindow = new SetupWizard
             {
                 DataContext = setupVm,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ShowInTaskbar = false
             };
 
             setupWindow.Closed += (s, e) =>
@@ -129,7 +137,7 @@ namespace Tracker
                 // Show error dialog instead of silently dying
                 await Current.Dispatcher.InvokeAsync(() => _splashScreen?.Close());
                 
-                var result = MessageBox.Show(
+                var result = MessageBoxHelper.Show(
                     $"An error occurred during startup:\n\n{ex.Message}\n\nWould you like to continue anyway (some features may not work)?",
                     "Startup Error",
                     MessageBoxButton.YesNo,
@@ -183,7 +191,15 @@ namespace Tracker
             _splashScreen?.UpdateProgress(50);
             try
             {
-                await TrackerDbManager.Instance!.InitializeAsync(dbSettings, true);
+                // Initialize database (don't seed here - seeding happens in setup wizard or via Settings)
+                await TrackerDbManager.Instance!.InitializeAsync(dbSettings, createIfNotExists: false, seedSampleData: false);
+                
+                // Check if database is empty and flag for prompt after login
+                var hasData = await TrackerDbManager.Instance!.HasDataAsync();
+                if (!hasData)
+                {
+                    _emptyDatabaseDetected = true;
+                }
             }
             catch (Exception ex)
             {
@@ -227,10 +243,11 @@ namespace Tracker
 
             var loginWindow = new LoginDialog
             {
-                WindowStartupLocation = WindowStartupLocation.CenterScreen
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ShowInTaskbar = false
             };
 
-            var callback = new Action(() =>
+            var callback = new Action(async () =>
             {
                 if (loginVm.DialogResult.Cancelled)
                 {
@@ -241,9 +258,43 @@ namespace Tracker
 
                 TrackerDbManager.Instance?.CheckUserAsync();
 
-                Current.Dispatcher.BeginInvoke(() =>
+                Current.Dispatcher.BeginInvoke(async () =>
                 {
-                    DialogManager.Instance.LaunchDialogByType(DialogType.MainWindow, false, () => { });
+                    DialogManager.Instance.LaunchDialogByType(DialogType.MainWindow, false, async () => 
+                    {
+                        // Check if database is empty and prompt user to add sample data
+                        if (_emptyDatabaseDetected)
+                        {
+                            await Task.Delay(500); // Wait for main window to fully load
+                            var result = MessageBoxHelper.Show(
+                                "Your database is empty. Would you like to add sample data?\n\n" +
+                                "This will populate your database with:\n" +
+                                "• 7 team members (Steelers team)\n" +
+                                "• Sample 1:1 meetings\n" +
+                                "• Sample projects with OKRs and KPIs\n" +
+                                "• Sample tasks\n" +
+                                "• Linked items (Phase 1 features)",
+                                "Empty Database",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question);
+                            
+                            if (result == MessageBoxResult.Yes)
+                            {
+                                var success = await TrackerDbManager.Instance!.SeedSampleDataAsync(forceReseed: false);
+                                if (success)
+                                {
+                                    // Refresh the UI
+                                    Messenger.Publish(new PropertyChangedMessage
+                                    {
+                                        ChangedProperty = PropertyChangedEnum.All,
+                                        RefreshData = true
+                                    });
+                                    NotificationManager.Instance.ShowSuccess("Sample Data Added", "Sample data has been added to your database.");
+                                }
+                            }
+                            _emptyDatabaseDetected = false;
+                        }
+                    });
                     loginVm.Dispose();
                     loginWindow.Close();
                 });

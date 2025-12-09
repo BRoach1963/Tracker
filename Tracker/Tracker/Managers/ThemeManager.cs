@@ -5,8 +5,43 @@ using DeepEndControls.Theming;
 namespace Tracker.Managers
 {
     /// <summary>
-    /// Manages application theming using DeepEndControls themes.
-    /// Provides runtime theme switching with resource dictionary updates.
+    /// Manages application theming with support for runtime theme switching.
+    /// 
+    /// This manager integrates with DeepEndControls theming system and provides
+    /// dynamic resource dictionary updates for seamless theme changes without restart.
+    /// 
+    /// Supported Themes:
+    /// - Default (Black/Gold): Dark theme with gold accents - classic CLEZ styling
+    /// - Light: Clean white theme with blue accents - professional look
+    /// - Modern: Contemporary indigo/purple theme - trendy appearance
+    /// - Spicy: Bold red/coral on dark - high contrast, energetic
+    /// 
+    /// Theme Resources Generated:
+    /// - Core brushes: BackgroundBrush, ForegroundBrush, AccentBrush, etc.
+    /// - Component-specific: ButtonBackgroundBrush, PopupBackgroundBrush, etc.
+    /// - DataGrid-specific: DataGridCellBackgroundBrush, DataGridHeaderBackgroundBrush, etc.
+    /// 
+    /// Usage:
+    /// <code>
+    /// // Initialize on app startup
+    /// ThemeManager.Instance.Initialize(savedTheme);
+    /// 
+    /// // Change theme at runtime
+    /// ThemeManager.Instance.ApplyTheme(DeepEndTheme.Modern);
+    /// 
+    /// // Listen for changes
+    /// ThemeManager.Instance.ThemeChanged += (s, theme) => UpdateUI();
+    /// </code>
+    /// 
+    /// XAML Usage:
+    /// <code>
+    /// &lt;Border Background="{DynamicResource BackgroundBrush}"&gt;
+    ///     &lt;TextBlock Foreground="{DynamicResource ForegroundBrush}"/&gt;
+    /// &lt;/Border&gt;
+    /// </code>
+    /// 
+    /// Note: Always use DynamicResource (not StaticResource) for theme brushes
+    /// to enable live updates when the theme changes.
     /// </summary>
     public class ThemeManager
     {
@@ -86,30 +121,46 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Applies the specified theme to the application.
+        /// Applies the specified theme to the application at runtime.
+        /// 
+        /// This method performs the following steps:
+        /// 1. Gets the color palette for the requested theme
+        /// 2. Creates a ResourceDictionary with all theme brushes
+        /// 3. Removes any existing theme dictionaries
+        /// 4. Inserts the new theme dictionary in the correct position
+        /// 5. Notifies subscribers of the theme change
         /// </summary>
         /// <param name="theme">The theme to apply.</param>
+        /// <remarks>
+        /// This method is thread-safe and will marshal to the UI thread if called
+        /// from a background thread.
+        /// </remarks>
         public void ApplyTheme(DeepEndTheme theme)
         {
             if (Application.Current == null) return;
 
-            // Ensure we're on the UI thread
+            // Theme changes must happen on the UI thread since we're modifying
+            // WPF resources. Marshal the call if we're on a background thread.
             if (!Application.Current.Dispatcher.CheckAccess())
             {
                 Application.Current.Dispatcher.Invoke(() => ApplyTheme(theme));
                 return;
             }
 
+            // Get the color palette from DeepEndControls for the selected theme
             var palette = ThemePalette.GetPalette(theme);
+            
+            // Create a new ResourceDictionary populated with all theme brushes
             var newThemeDictionary = CreateThemeDictionary(palette, theme);
 
-            // Remove old theme dictionary if exists (including the one from App.xaml)
+            // Remove the previously applied theme dictionary (if any)
             if (_currentThemeDictionary != null)
             {
                 Application.Current.Resources.MergedDictionaries.Remove(_currentThemeDictionary);
             }
 
-            // Also remove any theme dictionaries loaded from XAML (DefaultTheme, LightTheme, etc.)
+            // Also remove any theme dictionaries that were loaded from XAML files
+            // (e.g., DefaultTheme.xaml, LightTheme.xaml loaded in App.xaml)
             var existingThemeDicts = Application.Current.Resources.MergedDictionaries
                 .Where(d => d.Source != null && d.Source.ToString().Contains("Theme.xaml"))
                 .ToList();
@@ -119,8 +170,9 @@ namespace Tracker.Managers
                 Application.Current.Resources.MergedDictionaries.Remove(dict);
             }
 
-            // Add new theme dictionary - insert AFTER Styles.xaml so theme colors take precedence
-            // Find the position after Styles.xaml, or add at the end if not found
+            // Insert the new theme dictionary AFTER Styles.xaml
+            // This ensures theme brushes override any hardcoded values in styles
+            // (ResourceDictionaries later in the MergedDictionaries collection take precedence)
             var stylesIndex = -1;
             for (int i = 0; i < Application.Current.Resources.MergedDictionaries.Count; i++)
             {
@@ -134,24 +186,26 @@ namespace Tracker.Managers
 
             if (stylesIndex >= 0)
             {
-                // Insert after Styles.xaml so our theme values take precedence
+                // Insert immediately after Styles.xaml for proper precedence
                 Application.Current.Resources.MergedDictionaries.Insert(stylesIndex + 1, newThemeDictionary);
             }
             else
             {
-                // Add at end if Styles.xaml not found
+                // Fallback: add at end if Styles.xaml not found
                 Application.Current.Resources.MergedDictionaries.Add(newThemeDictionary);
             }
 
+            // Track the current theme state
             _currentThemeDictionary = newThemeDictionary;
             _currentTheme = theme;
 
-            // Apply to MainWindow for DeepEndControls (if available)
+            // Also apply theme to DeepEndControls components on the MainWindow
             if (Application.Current.MainWindow != null)
             {
                 DeepEndThemeManager.SetTheme(Application.Current.MainWindow, theme);
             }
 
+            // Notify listeners that the theme has changed
             ThemeChanged?.Invoke(this, theme);
         }
 
@@ -228,6 +282,30 @@ namespace Tracker.Managers
                 AdjustBrightness(bgColor, isDarkTheme ? 0.05 : -0.02));
             dictionary["SurfaceAltBrush"] = CreateFrozenBrush(
                 AdjustBrightness(bgColor, isDarkTheme ? 0.1 : -0.05));
+
+            // DataGrid specific brushes - Default theme keeps dark cells, others get white cells
+            var primaryColor = ((SolidColorBrush)palette.PrimaryBrush).Color;
+            
+            if (theme == DeepEndTheme.Default)
+            {
+                // Default (Black/Gold) - dark cells with gold text
+                dictionary["DataGridCellBackgroundBrush"] = palette.BackgroundBrush;
+                dictionary["DataGridCellForegroundBrush"] = palette.PrimaryBrush;
+                dictionary["DataGridCellBorderBrush"] = palette.PrimaryBrush;
+                dictionary["DataGridHeaderBackgroundBrush"] = CreateFrozenBrush(AdjustBrightness(bgColor, 0.1));
+                dictionary["DataGridHeaderForegroundBrush"] = palette.PrimaryBrush;
+                dictionary["DataGridRowAlternateBrush"] = CreateFrozenBrush(AdjustBrightness(bgColor, 0.05));
+            }
+            else
+            {
+                // All other themes - white cells with colored text, colored headers with white text
+                dictionary["DataGridCellBackgroundBrush"] = CreateFrozenBrush(Colors.White);
+                dictionary["DataGridCellForegroundBrush"] = palette.PrimaryBrush;
+                dictionary["DataGridCellBorderBrush"] = palette.PrimaryBrush;
+                dictionary["DataGridHeaderBackgroundBrush"] = palette.PrimaryBrush;
+                dictionary["DataGridHeaderForegroundBrush"] = CreateFrozenBrush(Colors.White);
+                dictionary["DataGridRowAlternateBrush"] = CreateFrozenBrush(Color.FromRgb(0xF8, 0xF8, 0xF8));
+            }
 
             return dictionary;
         }

@@ -12,7 +12,8 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
 
     <Border Background="{DynamicResource BackgroundBrush}"
             BorderBrush="{DynamicResource AccentBrush}"
@@ -336,6 +337,25 @@
                                           Foreground="{DynamicResource ForegroundBrush}"
                                           Margin="0,16,0,0"/>
                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Sample Data Option -->
+                    <Border Background="{DynamicResource SurfaceBrush}"
+                            CornerRadius="8"
+                            Padding="20"
+                            Margin="0,16,0,0">
+                        <StackPanel>
+                            <CheckBox Content="Include sample data"
+                                      IsChecked="{Binding IncludeSampleData}"
+                                      Foreground="{DynamicResource ForegroundBrush}"
+                                      FontWeight="SemiBold"/>
+                            <TextBlock Text="Populates the database with sample team members, projects, and tasks to help you get started. You can clear this data later from Settings."
+                                       FontSize="12"
+                                       Foreground="{DynamicResource ForegroundBrush}"
+                                       Opacity="0.7"
+                                       Margin="24,8,0,0"
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 

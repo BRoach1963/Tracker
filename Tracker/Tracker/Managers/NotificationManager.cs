@@ -132,6 +132,36 @@ namespace Tracker.Managers
 
         #endregion
 
+        #region Public Methods - Cleanup
+
+        /// <summary>
+        /// Closes all active toast notifications.
+        /// Called during application shutdown to ensure clean exit.
+        /// </summary>
+        public void CloseAllToasts()
+        {
+            lock (_toastLock)
+            {
+                foreach (var toast in _activeToasts.ToList())
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        try
+                        {
+                            toast.Close();
+                        }
+                        catch
+                        {
+                            // Ignore errors during shutdown
+                        }
+                    });
+                }
+                _activeToasts.Clear();
+            }
+        }
+
+        #endregion
+
         #region Private Methods
 
         private void OnToastClosed(TrackerToast closedToast)

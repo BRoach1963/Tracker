@@ -16,7 +16,8 @@ namespace Tracker.Common.Converters
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
-            throw new NotImplementedException();
+            // Return empty array for multi-value converter (can't convert back)
+            return Array.Empty<object>();
         }
     }
 }

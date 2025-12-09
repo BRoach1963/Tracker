@@ -9,7 +9,7 @@ namespace Tracker.MockData
     {
         public static ObservableCollection<Project> GetMockProjects(List<TeamMember> teamMembers)
         { 
-            if (teamMembers.Count == 0) return new ObservableCollection<Project>();
+            if (teamMembers == null || teamMembers.Count == 0) return new ObservableCollection<Project>();
             var okrs = MockOkRs.GetMockOkrData(teamMembers);
 
             var projects = new ObservableCollection<Project>()

@@ -37,11 +37,46 @@ namespace Tracker.DataModels
 
         public List<FollowUpItem> FollowUpItems { get; set; } = new() { };
 
+        /// <summary>
+        /// Links to existing IndividualTasks that were discussed in this meeting.
+        /// </summary>
+        public List<OneOnOneLinkedTask> LinkedTasks { get; set; } = new() { };
+
+        /// <summary>
+        /// Links to existing ObjectiveKeyResults (OKRs) that were discussed in this meeting.
+        /// </summary>
+        public List<OneOnOneLinkedOkr> LinkedOkrs { get; set; } = new() { };
+
+        /// <summary>
+        /// Links to existing KeyPerformanceIndicators (KPIs) that were discussed in this meeting.
+        /// </summary>
+        public List<OneOnOneLinkedKpi> LinkedKpis { get; set; } = new() { };
+
         public MeetingStatusEnum Status { get; set; }
 
         public TeamMember TeamMember { get; set; } = new();
 
         public string TeamMemberName => $"{TeamMember.FirstName} {TeamMember.LastName}";
+
+        /// <summary>
+        /// Google Calendar event ID for this meeting.
+        /// </summary>
+        public string? GoogleCalendarEventId { get; set; }
+
+        /// <summary>
+        /// Outlook Calendar event ID for this meeting.
+        /// </summary>
+        public string? OutlookCalendarEventId { get; set; }
+
+        /// <summary>
+        /// Whether this meeting is synced to Google Calendar.
+        /// </summary>
+        public bool IsSyncedToGoogle { get; set; }
+
+        /// <summary>
+        /// Whether this meeting is synced to Outlook Calendar.
+        /// </summary>
+        public bool IsSyncedToOutlook { get; set; }
 
         #endregion
     }

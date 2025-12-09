@@ -1,7 +1,8 @@
-﻿C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\GeneratedInternalTypeHelper.g.cs
+﻿
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\App.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\ContactDataDisplayCard.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\CustomControls\SocialMediaLinkTextBoxControl.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\DashboardControl.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\DialogTitleBar.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\EditableContactCard.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Controls\KpisControl.xaml;;
@@ -20,6 +21,9 @@ FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddOneOnOneDi
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddProjectDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\AddTaskDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\LoginDialog.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\ManualAuthCodeDialog.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\MessageBoxDialog.xaml;;
+FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\ReportsDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\SettingsDialog.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\SetupWizard.xaml;;
 FC:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\Views\Dialogs\TeamMemberDialog.xaml;;

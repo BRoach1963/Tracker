@@ -1,22 +1,27 @@
 ﻿<controls:BaseWindow x:Class="Tracker.Views.Dialogs.AddTaskDialog"
-                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                     xmlns:local="clr-namespace:Tracker.Views.Dialogs"
-                     xmlns:controls="clr-namespace:Tracker.Controls"
-                     xmlns:languages="clr-namespace:Tracker.Resources.Languages"
-                     xmlns:commands="clr-namespace:Tracker.Command"
-                     mc:Ignorable="d"
-                     Title="AddTaskDialog"
-                     MouseDown="OnDragHandleMouseDown"
-                     WindowStyle="None"
-                     ResizeMode="CanResize"
-                     Foreground="{DynamicResource ForegroundBrush}"
-                     AllowsTransparency="True"
-                     SizeToContent="WidthAndHeight"
-                     Background="Transparent"
-                     MinWidth="400">
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:local="clr-namespace:Tracker.Views.Dialogs"
+                    xmlns:controls="clr-namespace:Tracker.Controls"
+                    xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+                    xmlns:commands="clr-namespace:Tracker.Command"
+                    xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                    xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                    mc:Ignorable="d"
+                    Title="Add Task"
+                    MouseDown="OnDragHandleMouseDown"
+                    WindowStyle="None"
+                    ResizeMode="CanResize"
+                    Foreground="{DynamicResource ForegroundBrush}"
+                    AllowsTransparency="True"
+                    SizeToContent="WidthAndHeight"
+                    Background="Transparent"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:NewTaskViewModel}"
+                    MinWidth="450"
+                    MinHeight="350">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -34,10 +39,10 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="5" />
                 </Grid.RowDefinitions>
+                
+                <!-- Title Bar -->
                 <Border Grid.Row="0"
                         Height="Auto"
                         Background="{DynamicResource BackgroundBrush}"
@@ -50,12 +55,114 @@
                                              MaximizeClicked="Maximize_Click"
                                              RestoreClicked="Restore_Click" />
                 </Border>
+                
+                <!-- Content Area -->
                 <Grid Grid.Row="1"
+                      Margin="15,10,15,10"
                       MinHeight="200">
-
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Description -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Label Style="{StaticResource LabelStyle}"
+                               Content="Description *"
+                               Grid.Row="0" />
+                        <customControls:TextBoxWithHint TextBoxType="Text"
+                                                        HintText="Enter task description"
+                                                        Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                        Grid.Row="1" />
+                    </Grid>
+                    
+                    <!-- Owner Selection -->
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Label Style="{StaticResource LabelStyle}"
+                               Content="Assigned To *"
+                               Grid.Row="0" />
+                        <ComboBox Grid.Row="1"
+                                  ItemsSource="{Binding TeamMembers}"
+                                  SelectedItem="{Binding SelectedOwner}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} {1}">
+                                                <Binding Path="FirstName" />
+                                                <Binding Path="LastName" />
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                    
+                    <!-- Due Date -->
+                    <Grid Grid.Row="2" Margin="0,0,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Label Style="{StaticResource LabelStyle}"
+                               Content="Due Date"
+                               Grid.Row="0" />
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <customControls:TextBoxWithHint TextBoxType="LongDate"
+                                                            HintText="MM/DD/YYYY"
+                                                            Text="{Binding DueDateDisplay, UpdateSourceTrigger=PropertyChanged}"
+                                                            Grid.Column="0" />
+                            <DatePicker SelectedDate="{Binding DueDate, UpdateSourceTrigger=PropertyChanged}"
+                                        Style="{StaticResource DatePickerStyle}"
+                                        Grid.Column="1" />
+                        </Grid>
+                    </Grid>
+                    
+                    <!-- Completed Checkbox -->
+                    <Grid Grid.Row="3" Margin="0,0,0,10">
+                        <CheckBox Content="Mark as Completed"
+                                  IsChecked="{Binding IsCompleted}"
+                                  Style="{StaticResource CheckBoxStyle}"
+                                  VerticalAlignment="Center" />
+                    </Grid>
+                    
+                    <!-- Notes -->
+                    <Grid Grid.Row="4" Margin="0,0,0,5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="80" />
+                        </Grid.RowDefinitions>
+                        <Label Style="{StaticResource LabelStyle}"
+                               Content="Notes"
+                               Grid.Row="0" />
+                        <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Grid.Row="1" />
+                    </Grid>
                 </Grid>
-                <StackPanel Grid.Row="4"
-                            Margin="0,10,10,0"
+                
+                <!-- Button Bar -->
+                <StackPanel Grid.Row="2"
+                            Margin="0,10,15,10"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
                     <Button Style="{StaticResource DialogButtonStyle}"
@@ -64,7 +171,15 @@
                             CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
                             Content="Cancel" />
                     <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Add" />
+                            Content="Add"
+                            Command="{Binding AddTaskCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                            Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}" />
+                    <Button Style="{StaticResource DialogButtonStyle}"
+                            Content="Update"
+                            Command="{Binding UpdateTaskCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                            Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
                 </StackPanel>
             </Grid>
         </Border>

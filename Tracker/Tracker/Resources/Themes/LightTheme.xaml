@@ -30,4 +30,12 @@
     <SolidColorBrush x:Key="HoverBrush" Color="#F3F4F6"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="#FAFAFA"/>
     <SolidColorBrush x:Key="SurfaceAltBrush" Color="#F5F5F5"/>
+    
+    <!-- DataGrid Specific - White cells with dark text, blue headers with white text -->
+    <SolidColorBrush x:Key="DataGridCellBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="DataGridCellForegroundBrush" Color="#1F2937"/>
+    <SolidColorBrush x:Key="DataGridCellBorderBrush" Color="#0078D4"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="#0078D4"/>
+    <SolidColorBrush x:Key="DataGridHeaderForegroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="DataGridRowAlternateBrush" Color="#F9FAFB"/>
 </ResourceDictionary>

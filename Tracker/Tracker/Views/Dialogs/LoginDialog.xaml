@@ -16,6 +16,7 @@
         AllowsTransparency="True"
         SizeToContent="WidthAndHeight"
         Background="Transparent"
+        ShowInTaskbar="False"
         d:DataContext="{d:DesignInstance Type=dialogViewModels:LoginDialogViewModel}"
         MinWidth="250">
     <Window.Resources>

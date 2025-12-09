@@ -1,0 +1,232 @@
+# Tracker Project - Cursor Rules
+
+## Overview
+Tracker is a WPF application for managing engineering teams, including 1:1 meetings, projects, OKRs, KPIs, and tasks. It supports dual database backends (SQLite for local, SQL Server for networked) and features runtime theme switching.
+
+## Technology Stack
+- .NET 8.0 / WPF
+- Entity Framework Core (SQLite + SQL Server)
+- MVVM Pattern
+- DeepEndControls for theming
+
+---
+
+## Documentation Standards
+
+### XML Documentation Comments
+
+**All public classes MUST have class-level XML documentation that includes:**
+1. A summary describing the class's purpose
+2. Key features or responsibilities (as a bulleted list if multiple)
+3. Usage examples with `<code>` blocks where helpful
+4. Any important notes or caveats in `<remarks>` tags
+
+**Example:**
+```csharp
+/// <summary>
+/// Manages database operations for team member entities.
+/// 
+/// Key responsibilities:
+/// - CRUD operations for TeamMember records
+/// - Query optimization with proper includes
+/// - Soft delete support
+/// 
+/// Usage:
+/// <code>
+/// var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
+/// </code>
+/// </summary>
+/// <remarks>
+/// All operations automatically update audit fields (CreatedAt, ModifiedAt, etc.)
+/// </remarks>
+```
+
+**All public methods MUST have:**
+1. `<summary>` explaining what the method does
+2. `<param>` for each parameter explaining its purpose
+3. `<returns>` describing what is returned (if not void)
+4. `<remarks>` for implementation details, threading considerations, or important notes
+
+**Example:**
+```csharp
+/// <summary>
+/// Applies the specified theme to the application at runtime.
+/// </summary>
+/// <param name="theme">The theme to apply.</param>
+/// <returns>True if theme was applied successfully.</returns>
+/// <remarks>
+/// This method is thread-safe and will marshal to the UI thread if needed.
+/// </remarks>
+```
+
+**All public properties SHOULD have:**
+- A brief `<summary>` explaining the property's purpose
+- Document any side effects (e.g., "Setting this property triggers a database save")
+
+### Inline Comments
+
+**Use inline comments to explain:**
+1. **Why** something is done (not just what)
+2. Complex algorithms or business logic
+3. Non-obvious code patterns
+4. Workarounds or technical debt
+5. Order-dependent operations (e.g., "Must happen before X")
+
+**Comment style:**
+```csharp
+// Good: Explains WHY
+// Insert after Styles.xaml so theme values take precedence over defaults
+Application.Current.Resources.MergedDictionaries.Insert(stylesIndex + 1, dict);
+
+// Bad: Just restates the code
+// Insert at stylesIndex + 1
+Application.Current.Resources.MergedDictionaries.Insert(stylesIndex + 1, dict);
+```
+
+**Use region comments for logical groupings:**
+```csharp
+#region Entity Configurations
+// Configuration methods for EF Core entity mappings
+#endregion
+```
+
+---
+
+## Code Organization
+
+### File Structure
+- One class per file (exceptions: small helper classes, enums)
+- Use `#region` to organize large files:
+  - Fields
+  - Constructors  
+  - Properties
+  - Commands (for ViewModels)
+  - Public Methods
+  - Private Methods
+  - Event Handlers
+
+### Naming Conventions
+- **Classes**: PascalCase, noun phrases (`TeamMemberViewModel`, `DatabaseSeeder`)
+- **Methods**: PascalCase, verb phrases (`GetTeamMembersAsync`, `ApplyTheme`)
+- **Properties**: PascalCase (`CurrentTheme`, `IsInitialized`)
+- **Private fields**: _camelCase with underscore prefix (`_currentTheme`, `_isInitialized`)
+- **Constants**: PascalCase or UPPER_SNAKE_CASE
+- **Async methods**: Suffix with `Async` (`SaveChangesAsync`, `InitializeAsync`)
+
+---
+
+## Architecture Patterns
+
+### Singleton Managers
+Core functionality is exposed via singleton managers:
+- `ThemeManager.Instance` - Theme switching
+- `TrackerDbManager.Instance` - Database operations
+- `UserSettingsManager.Instance` - User preferences
+- `NotificationManager.Instance` - Toast notifications
+- `DialogManager.Instance` - Dialog launching
+
+**Pattern:**
+```csharp
+private static MyManager? _instance;
+private static readonly object SyncRoot = new();
+
+public static MyManager Instance
+{
+    get
+    {
+        if (_instance == null)
+        {
+            lock (SyncRoot)
+            {
+                _instance ??= new MyManager();
+            }
+        }
+        return _instance;
+    }
+}
+```
+
+### MVVM Pattern
+- **Views**: XAML only, no code-behind logic (except window management)
+- **ViewModels**: Inherit from `BaseViewModel` or `BaseDialogViewModel`
+- **Models**: Data entities in `DataModels/` folder
+- **Commands**: Use `TrackerCommand` (implements ICommand)
+
+### Database Access
+- Use Entity Framework Core for all database operations
+- All entities inherit from `AuditableEntity` for audit tracking
+- Use soft deletes (set `IsDeleted = true`) instead of hard deletes
+- Always use async methods (`GetTeamMembersAsync`, not `GetTeamMembers`)
+
+---
+
+## Theming
+
+### Resource Usage
+**Always use `DynamicResource` for theme-aware brushes:**
+```xml
+<!-- Good: Updates when theme changes -->
+<Border Background="{DynamicResource BackgroundBrush}">
+
+<!-- Bad: Won't update when theme changes -->
+<Border Background="{StaticResource BackgroundBrush}">
+```
+
+### Available Theme Brushes
+Core: `BackgroundBrush`, `ForegroundBrush`, `AccentBrush`, `BorderBrush`
+Text: `TextBrush`, `HintTextBrush`, `WhiteBrush`
+Components: `ButtonBackgroundBrush`, `PopupBackgroundBrush`, `SurfaceBrush`
+DataGrid: `DataGridCellBackgroundBrush`, `DataGridHeaderBackgroundBrush`
+
+---
+
+## Error Handling
+
+- Use try-catch in public methods that may fail
+- Log exceptions via `LoggingManager`
+- Show user-friendly messages via `NotificationManager`
+- Don't swallow exceptions silently - at minimum log them
+
+```csharp
+try
+{
+    await DoSomethingAsync();
+}
+catch (Exception ex)
+{
+    _logger.Exception(ex, "Failed to do something");
+    NotificationManager.Instance.ShowError("Error", "Operation failed. See logs for details.");
+}
+```
+
+---
+
+## Testing Considerations
+
+- Mock data is in `MockData/` folder
+- Sample data seeding is in `DatabaseSeeder.cs`
+- Settings stored in `%LocalAppData%\Tracker\`
+- Database stored in `%LocalAppData%\Tracker\tracker.db` (SQLite)
+
+---
+
+## Common Tasks
+
+### Adding a New Entity
+1. Create model class in `DataModels/`, inherit from `AuditableEntity`
+2. Add `DbSet<T>` to `TrackerDbContext`
+3. Add configuration method in `TrackerDbContext.OnModelCreating()`
+4. Add CRUD methods to `TrackerDbManager`
+5. Update `DatabaseSeeder` if sample data needed
+
+### Adding a New Theme Brush
+1. Add to each theme file in `Resources/Themes/`
+2. Add to `ThemeManager.CreateThemeDictionary()`
+3. Use in XAML with `{DynamicResource BrushName}`
+
+### Adding a New Dialog
+1. Create XAML in `Views/Dialogs/`
+2. Create ViewModel in `ViewModels/DialogViewModels/`
+3. Add to `DialogType` enum
+4. Register in `DialogFactory`
+

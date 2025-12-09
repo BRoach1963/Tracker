@@ -78,6 +78,15 @@
                                 </ToolTip>
                             </TabItem.ToolTip>
                         </TabItem>
+                        <TabItem x:Name="Calendar"
+                                 Header="Calendar"
+                                 attachedProperties:TabItemExtensions.IconData="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z">
+                            <TabItem.ToolTip>
+                                <ToolTip Style="{StaticResource CustomInformationToolTip}">
+                                    <controls:TrackerToolTip ToolTipText="Calendar &amp; Email Integration Settings" />
+                                </ToolTip>
+                            </TabItem.ToolTip>
+                        </TabItem>
                     </TabControl>
                     <StackPanel  Orientation="Vertical"
                                  Grid.Column="1"
@@ -114,11 +123,148 @@
                                 Grid.Column="1"
                                 Visibility="{Binding ElementName= Database, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"                                
                                 Margin="20,0,0,0">
-                        <customControls:CheckBoxWithHelperText x:Name="UseLocalCreds"
-                                                               Grid.Row="3"
-                                                               HelperText="Uses your local credentials"
-                                                               Margin="10,0,10,10"
-                                                               Content="Use Windows Login" />
+                        
+                        <!-- Current Connection Info -->
+                        <Label Style="{StaticResource LabelStyle}" Content="Current Connection" />
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="6"
+                                Padding="12"
+                                Margin="0,5,0,15">
+                            <StackPanel>
+                                <TextBlock Foreground="{DynamicResource ForegroundBrush}">
+                                    <Run Text="Type: " FontWeight="SemiBold"/>
+                                    <Run Text="{Binding CurrentDatabaseType, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock Foreground="{DynamicResource ForegroundBrush}" Margin="0,4,0,0">
+                                    <Run Text="Location: " FontWeight="SemiBold"/>
+                                    <Run Text="{Binding CurrentDatabaseLocation, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Change Connection Button -->
+                        <Button Content="Change Database Connection..."
+                                Command="{Binding ChangeDatabaseCommand}"
+                                HorizontalAlignment="Left"
+                                Padding="16,8"
+                                Margin="0,0,0,15"/>
+                        
+                        <TextBlock Text="⚠ Changing database connections may result in different data being displayed. Your data in the current database will not be migrated."
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="350"
+                                   HorizontalAlignment="Left"/>
+                        
+                        <!-- Data Management Section -->
+                        <Label Style="{StaticResource LabelStyle}" Content="Data Management" Margin="0,20,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Add Sample Data"
+                                    Command="{Binding SeedSampleDataCommand}"
+                                    Padding="16,8"
+                                    Margin="0,0,10,0"/>
+                            <Button Content="Clear All Data"
+                                    Command="{Binding ClearDataCommand}"
+                                    Padding="16,8"
+                                    Background="#8B0000"
+                                    Foreground="White"/>
+                        </StackPanel>
+                        
+                        <TextBlock Text="'Add Sample Data' populates empty databases with demo content. 'Clear All Data' permanently removes all records."
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="350"
+                                   HorizontalAlignment="Left"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical"
+                                Grid.Column="1"
+                                Visibility="{Binding ElementName= Calendar, Path=IsSelected, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"                                
+                                Margin="20,0,0,0">
+                        
+                        <!-- Google Calendar Section -->
+                        <Label Style="{StaticResource LabelStyle}" Content="Google Calendar" />
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="6"
+                                Padding="12"
+                                Margin="0,5,0,10">
+                            <StackPanel>
+                                <TextBlock Foreground="{DynamicResource ForegroundBrush}">
+                                    <Run Text="Status: " FontWeight="SemiBold"/>
+                                    <Run Text="{Binding CalendarSettings.GoogleStatus, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock Foreground="{DynamicResource ForegroundBrush}" Margin="0,4,0,0">
+                                    <Run Text="Account: " FontWeight="SemiBold"/>
+                                    <Run Text="{Binding CalendarSettings.GoogleUserEmail, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Button Content="Connect Google Calendar"
+                                    Command="{Binding CalendarSettings.ConnectGoogleCommand}"
+                                    Padding="16,8"
+                                    Margin="0,0,10,0"
+                                    IsEnabled="{Binding CalendarSettings.IsConnectingGoogle, Converter={x:Static converters:ReverseBooleanConverter.Instance}}"/>
+                            <Button Content="Disconnect"
+                                    Command="{Binding CalendarSettings.DisconnectGoogleCommand}"
+                                    Padding="16,8"
+                                    Background="#8B0000"
+                                    Foreground="White"/>
+                        </StackPanel>
+                        
+                        <!-- Outlook Calendar Section -->
+                        <Label Style="{StaticResource LabelStyle}" Content="Outlook Calendar" Margin="0,10,0,0"/>
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="6"
+                                Padding="12"
+                                Margin="0,5,0,10">
+                            <StackPanel>
+                                <TextBlock Foreground="{DynamicResource ForegroundBrush}">
+                                    <Run Text="Status: " FontWeight="SemiBold"/>
+                                    <Run Text="{Binding CalendarSettings.OutlookStatus, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock Foreground="{DynamicResource ForegroundBrush}" Margin="0,4,0,0">
+                                    <Run Text="Account: " FontWeight="SemiBold"/>
+                                    <Run Text="{Binding CalendarSettings.OutlookUserEmail, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Button Content="Connect Outlook Calendar"
+                                    Command="{Binding CalendarSettings.ConnectOutlookCommand}"
+                                    Padding="16,8"
+                                    Margin="0,0,10,0"
+                                    IsEnabled="{Binding CalendarSettings.IsConnectingOutlook, Converter={x:Static converters:ReverseBooleanConverter.Instance}}"/>
+                            <Button Content="Disconnect"
+                                    Command="{Binding CalendarSettings.DisconnectOutlookCommand}"
+                                    Padding="16,8"
+                                    Background="#8B0000"
+                                    Foreground="White"/>
+                        </StackPanel>
+                        
+                        <!-- Sync Options -->
+                        <Label Style="{StaticResource LabelStyle}" Content="Sync Options" Margin="0,10,0,0"/>
+                        <CheckBox Content="Automatically sync meetings when created or updated"
+                                  IsChecked="{Binding CalendarSettings.AutoSyncOnSave}"
+                                  Margin="0,10,0,5"
+                                  Foreground="{DynamicResource ForegroundBrush}"/>
+                        <CheckBox Content="Send meeting invitations via email"
+                                  IsChecked="{Binding CalendarSettings.SyncMeetingInvitations}"
+                                  Margin="0,5,0,5"
+                                  Foreground="{DynamicResource ForegroundBrush}"/>
+                        <CheckBox Content="Send meeting summaries via email after meetings"
+                                  IsChecked="{Binding CalendarSettings.SyncMeetingSummaries}"
+                                  Margin="0,5,0,0"
+                                  Foreground="{DynamicResource ForegroundBrush}"/>
+                        
+                        <TextBlock Text="Calendar sync settings are saved automatically. Meetings will be synced to your connected calendars when created or updated."
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="350"
+                                   HorizontalAlignment="Left"
+                                   Margin="0,15,0,0"/>
                     </StackPanel>
 
                 </Grid>

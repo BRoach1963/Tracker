@@ -31,5 +31,13 @@
     <SolidColorBrush x:Key="HoverBrush" Color="#2A2A2A"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="#1F1F1F"/>
     <SolidColorBrush x:Key="SurfaceAltBrush" Color="#252525"/>
+    
+    <!-- DataGrid Specific - Default keeps dark cells with gold -->
+    <SolidColorBrush x:Key="DataGridCellBackgroundBrush" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="DataGridCellForegroundBrush" Color="#FFB612"/>
+    <SolidColorBrush x:Key="DataGridCellBorderBrush" Color="#FFB612"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="DataGridHeaderForegroundBrush" Color="#FFB612"/>
+    <SolidColorBrush x:Key="DataGridRowAlternateBrush" Color="#222222"/>
 </ResourceDictionary>
 

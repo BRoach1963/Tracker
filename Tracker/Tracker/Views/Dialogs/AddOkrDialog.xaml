@@ -5,9 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Tracker.Views.Dialogs"
         xmlns:controls="clr-namespace:Tracker.Controls"
+                    xmlns:languages="clr-namespace:Tracker.Resources.Languages"
         xmlns:commands="clr-namespace:Tracker.Command"
-        xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+                    xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                    xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
         mc:Ignorable="d"
+                    Title="Add OKR"
         MouseDown="OnDragHandleMouseDown"
         WindowStyle="None"
         ResizeMode="CanResize"
@@ -15,7 +19,9 @@
         AllowsTransparency="True"
         SizeToContent="WidthAndHeight"
         Background="Transparent"
-        MinWidth="400">
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:NewOkrViewModel}"
+                    MinWidth="600"
+                    MinHeight="500">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -33,10 +39,10 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="5" />
                 </Grid.RowDefinitions>
+                
+                <!-- Title Bar -->
                 <Border Grid.Row="0"
                         Height="Auto"
                         Background="{DynamicResource BackgroundBrush}"
@@ -49,12 +55,336 @@
                                              MaximizeClicked="Maximize_Click"
                                              RestoreClicked="Restore_Click" />
                 </Border>
+                
+                <!-- Content Area -->
                 <Grid Grid.Row="1"
-                      MinHeight="200">
-
+                      Margin="15,10,15,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="15" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Left Column - Objective Info -->
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Objective Title -->
+                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Style="{StaticResource LabelStyle}"
+                                   Content="Objective Title *"
+                                   Grid.Row="0" />
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="e.g., Improve Customer Satisfaction"
+                                                            Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                            Grid.Row="1" />
+                        </Grid>
+                        
+                        <!-- Owner -->
+                        <Grid Grid.Row="1" Margin="0,0,0,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Style="{StaticResource LabelStyle}"
+                                   Content="Owner *"
+                                   Grid.Row="0" />
+                            <ComboBox Grid.Row="1"
+                                      ItemsSource="{Binding TeamMembers}"
+                                      SelectedItem="{Binding SelectedOwner}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} {1}">
+                                                    <Binding Path="FirstName" />
+                                                    <Binding Path="LastName" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        
+                        <!-- Link to Project (Optional) -->
+                        <Grid Grid.Row="2" Margin="0,0,0,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Style="{StaticResource LabelStyle}"
+                                   Content="Link to Project (Optional)"
+                                   Grid.Row="0" />
+                            <ComboBox Grid.Row="1"
+                                      ItemsSource="{Binding AvailableProjects}"
+                                      SelectedItem="{Binding SelectedProject}"
+                                      DisplayMemberPath="Name"
+                                      HorizontalAlignment="Stretch" />
+                        </Grid>
+                        
+                        <!-- Date Range -->
+                        <Grid Grid.Row="3" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Start Date -->
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Start Date"
+                                       Grid.Row="0" />
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <customControls:TextBoxWithHint TextBoxType="LongDate"
+                                                                    HintText="MM/DD/YYYY"
+                                                                    Text="{Binding StartDateDisplay, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Grid.Column="0" />
+                                    <DatePicker SelectedDate="{Binding StartDate, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource DatePickerStyle}"
+                                                Grid.Column="1" />
+                                </Grid>
+                            </Grid>
+                            
+                            <!-- End Date -->
+                            <Grid Grid.Column="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="End Date"
+                                       Grid.Row="0" />
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <customControls:TextBoxWithHint TextBoxType="LongDate"
+                                                                    HintText="MM/DD/YYYY"
+                                                                    Text="{Binding EndDateDisplay, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Grid.Column="0" />
+                                    <DatePicker SelectedDate="{Binding EndDate, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource DatePickerStyle}"
+                                                Grid.Column="1" />
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                        
+                        <!-- Status & Progress Display -->
+                        <Grid Grid.Row="4" Margin="0,5,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Status -->
+                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Status:" />
+                                <Border CornerRadius="4"
+                                        Padding="8,4"
+                                        Margin="5,0,0,0"
+                                        VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Gray" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="OnTrack">
+                                                    <Setter Property="Background" Value="#4CAF50" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="AtRisk">
+                                                    <Setter Property="Background" Value="#FF9800" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="OffTrack">
+                                                    <Setter Property="Background" Value="#F44336" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding Status}"
+                                               Foreground="White"
+                                               FontWeight="SemiBold"
+                                               FontSize="11" />
+                                </Border>
+                            </StackPanel>
+                            
+                            <!-- Completion -->
+                            <StackPanel Orientation="Horizontal" Grid.Column="2">
+                                <Label Style="{StaticResource LabelStyle}"
+                                       Content="Progress:" />
+                                <TextBlock Text="{Binding CompletionPercentage, StringFormat={}{0:N0}%}"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"
+                                           Margin="5,0,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Description -->
+                        <Grid Grid.Row="5" Margin="0,0,0,5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" MinHeight="60" />
+                            </Grid.RowDefinitions>
+                            <Label Style="{StaticResource LabelStyle}"
+                                   Content="Description"
+                                   Grid.Row="0" />
+                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Grid.Row="1" />
+                        </Grid>
+                    </Grid>
+                    
+                    <!-- Right Column - Key Results (KPIs) -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        
+                        <Label Style="{StaticResource LabelStyle}"
+                               Content="Key Results (KPIs)"
+                               Grid.Row="0" />
+                        
+                        <!-- Current Key Results List -->
+                        <Border Grid.Row="1"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Margin="0,5,0,10">
+                            <Grid>
+                                <ListBox ItemsSource="{Binding KeyResults}"
+                                         SelectedItem="{Binding SelectedKeyResult}"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="5,3">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource ForegroundBrush}" />
+                                                    <TextBlock Foreground="{DynamicResource HintTextBrush}"
+                                                               FontSize="11">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat="Value: {0} / Target: {1}">
+                                                                <Binding Path="Value" />
+                                                                <Binding Path="TargetValue" />
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <Border Grid.Column="1"
+                                                        CornerRadius="3"
+                                                        Padding="5,2"
+                                                        VerticalAlignment="Center">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="Gray" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="OnTarget">
+                                                                    <Setter Property="Background" Value="#4CAF50" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="CloseToTarget">
+                                                                    <Setter Property="Background" Value="#FF9800" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="OffTarget">
+                                                                    <Setter Property="Background" Value="#F44336" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Status}"
+                                                               Foreground="White"
+                                                               FontSize="10" />
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                
+                                <!-- Empty state message -->
+                                <TextBlock Text="No Key Results added yet"
+                                           Foreground="{DynamicResource HintTextBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontStyle="Italic"
+                                           Visibility="{Binding KeyResults.Count, Converter={x:Static converters:ZeroToVisibilityConverter.Instance}}" />
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Remove Button -->
+                        <Button Grid.Row="2"
+                                Style="{StaticResource DialogButtonStyle}"
+                                Content="Remove Selected"
+                                Command="{Binding RemoveKeyResultCommand}"
+                                HorizontalAlignment="Left"
+                                Margin="0,0,0,10" />
+                        
+                        <!-- Add KPI Section -->
+                        <Grid Grid.Row="3">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Style="{StaticResource LabelStyle}"
+                                   Content="Add KPI as Key Result"
+                                   Grid.Row="0" />
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Column="0"
+                                          ItemsSource="{Binding AvailableKpis}"
+                                          SelectedItem="{Binding SelectedAvailableKpi}"
+                                          DisplayMemberPath="Name"
+                                          HorizontalAlignment="Stretch" />
+                                <Button Grid.Column="1"
+                                        Style="{StaticResource DialogButtonStyle}"
+                                        Content="Add"
+                                        Command="{Binding AddKeyResultCommand}"
+                                        Margin="10,0,0,0" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
                 </Grid>
-                <StackPanel Grid.Row="4"
-                            Margin="0,10,10,0"
+                
+                <!-- Button Bar -->
+                <StackPanel Grid.Row="2"
+                            Margin="0,10,15,10"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
                     <Button Style="{StaticResource DialogButtonStyle}"
@@ -63,7 +393,15 @@
                             CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
                             Content="Cancel" />
                     <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Add" />
+                            Content="Add"
+                            Command="{Binding AddOkrCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                            Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}" />
+                    <Button Style="{StaticResource DialogButtonStyle}"
+                            Content="Update"
+                            Command="{Binding UpdateOkrCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                            Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
                 </StackPanel>
             </Grid>
         </Border>

@@ -6,6 +6,34 @@ using Tracker.Managers;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
+    /// <summary>
+    /// ViewModel for the first-run Setup Wizard dialog.
+    /// 
+    /// This wizard guides users through initial database configuration:
+    /// 
+    /// Step 1 - Choose Database Type:
+    ///   - Local (SQLite): Stores data on user's machine, no setup required
+    ///   - SQL Server: Connect to networked server for team-wide access
+    /// 
+    /// Step 2 - SQL Server Configuration (if selected):
+    ///   - Server name and database
+    ///   - Authentication method (Windows Auth, SQL Auth, or ODBC)
+    ///   - Connection testing
+    /// 
+    /// Step 3 - Summary:
+    ///   - Review configuration
+    ///   - Option to include sample data
+    ///   - Complete setup
+    /// 
+    /// The wizard appears automatically on first launch (when SetupCompleted = false)
+    /// and can be triggered later from Settings if the user wants to change databases.
+    /// 
+    /// After completion:
+    /// - Settings are saved to %LocalAppData%\Tracker\TrackerSettings.json
+    /// - Database is created/connected
+    /// - Optional sample data is seeded
+    /// - App continues to login screen
+    /// </summary>
     public class SetupWizardViewModel : BaseDialogViewModel
     {
         #region Fields
@@ -28,6 +56,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private bool _connectionTestSucceeded = false;
         private string _connectionStatus = string.Empty;
         private bool _createDatabase = true;
+        private bool _includeSampleData = true;
 
         // Commands
         private ICommand? _selectLocalCommand;
@@ -226,6 +255,16 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
+        public bool IncludeSampleData
+        {
+            get => _includeSampleData;
+            set
+            {
+                _includeSampleData = value;
+                RaisePropertyChanged();
+            }
+        }
+
         #endregion
 
         #region Command Implementations
@@ -339,7 +378,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 UserSettingsManager.Instance.SaveSettings();
 
                 // Initialize database
-                await TrackerDbManager.Instance!.InitializeAsync(settings, CreateDatabase);
+                await TrackerDbManager.Instance!.InitializeAsync(settings, CreateDatabase, IncludeSampleData);
 
                 // Signal completion
                 DialogResult.Cancelled = false;

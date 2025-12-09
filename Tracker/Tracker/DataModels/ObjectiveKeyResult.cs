@@ -42,5 +42,10 @@ namespace Tracker.DataModels
                 return (completed / KeyResults.Count) * 100;
             }
         }
+        
+        /// <summary>
+        /// Number of 1:1 meetings where this OKR was discussed (non-persisted, computed property).
+        /// </summary>
+        public int MeetingCount { get; set; }
     }
 }

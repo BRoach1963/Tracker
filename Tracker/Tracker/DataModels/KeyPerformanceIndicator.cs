@@ -64,5 +64,10 @@ namespace Tracker.DataModels
                 }
             }
         }
+        
+        /// <summary>
+        /// Number of 1:1 meetings where this KPI was discussed (non-persisted, computed property).
+        /// </summary>
+        public int MeetingCount { get; set; }
     }
 }

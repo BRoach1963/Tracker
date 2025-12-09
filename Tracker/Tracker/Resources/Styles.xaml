@@ -53,6 +53,66 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Style for action buttons inside DataGrid cells (Edit, Delete) -->
+    <Style x:Key="GridActionButtonStyle"
+           TargetType="{x:Type Button}">
+        <Setter Property="Margin"
+                Value="2" />
+        <Setter Property="Height"
+                Value="22" />
+        <Setter Property="Width"
+                Value="22" />
+        <Setter Property="Padding"
+                Value="3" />
+        <Setter Property="Background"
+                Value="Transparent" />
+        <Setter Property="BorderBrush"
+                Value="Transparent" />
+        <Setter Property="Cursor"
+                Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Border x:Name="BackBorder"
+                                CornerRadius="3"
+                                BorderThickness="1"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver"
+                                 Value="True">
+                            <Setter TargetName="BackBorder"
+                                    Property="Background"
+                                    Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="BackBorder"
+                                    Property="BorderBrush"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed"
+                                 Value="True">
+                            <Setter TargetName="BackBorder"
+                                    Property="Background"
+                                    Value="{DynamicResource ForegroundBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled"
+                     Value="False">
+                <Setter Property="Opacity"
+                        Value=".5" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style TargetType="{x:Type customControls:TextBoxWithHint}">
         <Setter Property="Background"
                 Value="White" />
@@ -1544,9 +1604,9 @@ style so that the DatePicker will use the application's calendar style.-->
     <Style x:Key="BaseDataGridColumnHeaderStyle"
            TargetType="DataGridColumnHeader">
         <Setter Property="Background"
-                Value="{DynamicResource BackgroundBrush}" />
+                Value="{DynamicResource DataGridHeaderBackgroundBrush}" />
         <Setter Property="Foreground"
-                Value="{DynamicResource ForegroundBrush}" />
+                Value="{DynamicResource DataGridHeaderForegroundBrush}" />
         <Setter Property="HorizontalContentAlignment"
                 Value="Center" />
         <Setter Property="VerticalContentAlignment"
@@ -1661,11 +1721,11 @@ style so that the DatePicker will use the application's calendar style.-->
 
     <Style TargetType="DataGridCell">
         <Setter Property="Background"
-                Value="{DynamicResource ForegroundBrush}" />
+                Value="{DynamicResource DataGridCellBackgroundBrush}" />
         <Setter Property="Foreground"
-                Value="{DynamicResource BackgroundBrush}" />
+                Value="{DynamicResource DataGridCellForegroundBrush}" />
         <Setter Property="BorderBrush"
-                Value="Transparent" />
+                Value="{DynamicResource DataGridCellBorderBrush}" />
         <Setter Property="BorderThickness"
                 Value="0" />
         <Setter Property="Padding"
@@ -1700,11 +1760,11 @@ style so that the DatePicker will use the application's calendar style.-->
     <Style x:Key="LeftAlignedCellStyle"
            TargetType="DataGridCell">
         <Setter Property="Background"
-                Value="{DynamicResource ForegroundBrush}" />
+                Value="{DynamicResource DataGridCellBackgroundBrush}" />
         <Setter Property="Foreground"
-                Value="{DynamicResource BackgroundBrush}" />
+                Value="{DynamicResource DataGridCellForegroundBrush}" />
         <Setter Property="BorderBrush"
-                Value="Transparent" />
+                Value="{DynamicResource DataGridCellBorderBrush}" />
         <Setter Property="BorderThickness"
                 Value="0" />
         <Setter Property="Padding"

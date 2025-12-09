@@ -9,7 +9,7 @@
         public DateTime? EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public TeamMember Owner { get; set; } = new();
-        public List<Task> Tasks { get; set; } = new List<Task>();
+        public List<IndividualTask> Tasks { get; set; } = new List<IndividualTask>();
         public List<ObjectiveKeyResult> OKRs { get; set; } = new List<ObjectiveKeyResult>();
         public List<KeyPerformanceIndicator> KPIs => GetKpis();
 

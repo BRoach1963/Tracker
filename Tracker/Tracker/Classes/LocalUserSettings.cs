@@ -26,5 +26,10 @@ namespace Tracker.Classes
         /// Whether to remember the last used database connection.
         /// </summary>
         public bool RememberConnection { get; set; } = true;
+
+        /// <summary>
+        /// Calendar and email integration settings.
+        /// </summary>
+        public CalendarSettings Calendar { get; set; } = new();
     }
 }

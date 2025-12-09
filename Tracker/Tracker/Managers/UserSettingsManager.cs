@@ -69,6 +69,12 @@ namespace Tracker.Managers
             }
         }
 
+        /// <summary>
+        /// Gets or sets the currently logged in user (runtime only, not persisted).
+        /// Used for audit tracking in database operations.
+        /// </summary>
+        public string CurrentUser { get; set; } = Environment.UserName;
+
         #endregion
 
         #region Public Methods

@@ -9,7 +9,7 @@ namespace Tracker.MockData
     {
         public static ObservableCollection<OneOnOne> GetMockOneOnOneData(List<TeamMember> teamMembers)
         {
-            if (teamMembers.Count == 0) return new ObservableCollection<OneOnOne>();
+            if (teamMembers == null || teamMembers.Count < 3) return new ObservableCollection<OneOnOne>();
             return
                 new ObservableCollection<OneOnOne>
                 {

@@ -8,7 +8,7 @@ namespace Tracker.MockData
     {
         public static ObservableCollection<ObjectiveKeyResult> GetMockOkrData(List<TeamMember> teamMembers)
         { 
-            if (teamMembers.Count == 0) return new ObservableCollection<ObjectiveKeyResult>();
+            if (teamMembers == null || teamMembers.Count == 0) return new ObservableCollection<ObjectiveKeyResult>();
             var kpis = MockKpIs.GetMockKpiData(teamMembers);
             var random = new Random();
             DateTime today = DateTime.Today;

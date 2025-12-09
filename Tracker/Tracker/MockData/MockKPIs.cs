@@ -9,7 +9,7 @@ namespace Tracker.MockData
     {
         public static ObservableCollection<KeyPerformanceIndicator> GetMockKpiData(List<TeamMember> teamMembers)
         { 
-            if (teamMembers.Count == 0) return new ObservableCollection<KeyPerformanceIndicator>();
+            if (teamMembers == null || teamMembers.Count == 0) return new ObservableCollection<KeyPerformanceIndicator>();
             var random = new Random();
             DateTime today = DateTime.Today;
 

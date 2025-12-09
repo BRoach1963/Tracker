@@ -20,6 +20,10 @@ namespace Tracker.Views.Toasts
         {
             InitializeComponent();
             
+            // Ensure toast is unparented (no Owner) and doesn't show in taskbar
+            Owner = null;
+            ShowInTaskbar = false;
+            
             ToastTitle.Text = title;
             ToastMessage.Text = message;
             _toastType = type;

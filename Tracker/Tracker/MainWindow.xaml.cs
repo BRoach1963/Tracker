@@ -20,19 +20,33 @@ namespace Tracker
             InitializeComponent(); 
             SubscribeToSizingEvents();
             
+            // Set Dashboard ViewModel
+            DashboardControl.DataContext = new DashboardViewModel();
+            
             // Apply the current theme to this window for DeepEndControls
             DeepEndThemeManager.SetTheme(this, ThemeManager.Instance.CurrentTheme);
+            
+            // Ensure data loads after window is fully loaded
+            this.Loaded += async (_, _) =>
+            {
+                if (DataContext is TrackerMainViewModel vm)
+                {
+                    await vm.RefreshAllDataAsync();
+                }
+            };
             
             this.Unloaded += (_, _) =>
             { 
                 UnsubscribeFromSizingEvents();
                 if(DataContext is IDisposable vm) vm.Dispose();
+                if(DashboardControl.DataContext is IDisposable dashboardVm) dashboardVm.Dispose();
                 this.Unloaded -= (RoutedEventHandler)((_, _) => { /* Same logic here if needed */ });
             };
         }
 
         private void SubscribeToSizingEvents()
         {
+            this.DashboardControl.SizeChanged += Control_SizeChanged;
             this.TeamControl.SizeChanged += Control_SizeChanged;
             this.OneOnOnesControl.SizeChanged += Control_SizeChanged;
             this.KpisControl.SizeChanged += Control_SizeChanged;
@@ -43,6 +57,7 @@ namespace Tracker
 
         private void UnsubscribeFromSizingEvents()
         {
+            this.DashboardControl.SizeChanged -= Control_SizeChanged;
             this.TeamControl.SizeChanged -= Control_SizeChanged;
             this.OneOnOnesControl.SizeChanged -= Control_SizeChanged;
             this.KpisControl.SizeChanged -= Control_SizeChanged;
@@ -94,6 +109,9 @@ namespace Tracker
 
                     switch (selectedTab.Name)
                     {
+                        case "Dashboard":
+                            correspondingControl = DashboardControl;
+                            break;
                         case "Team":
                             correspondingControl = TeamControl;
                             break;
