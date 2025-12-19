@@ -30,6 +30,14 @@ namespace Tracker.Logging
 
             public LogLevel LogLevel { get; set; }
 
+            /// <summary>
+            /// Updates the log file path (used for daily rollover).
+            /// </summary>
+            public void UpdateLogFile(string newLogFile)
+            {
+                LogFileName = newLogFile;
+            }
+
             #endregion
 
             #region Methods

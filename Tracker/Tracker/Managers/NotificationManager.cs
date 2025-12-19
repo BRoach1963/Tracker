@@ -20,23 +20,13 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        private static NotificationManager? _instance;
-        private static readonly object SyncRoot = new();
+        private static readonly Lazy<NotificationManager> _lazyInstance = 
+            new(() => new NotificationManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-        public static NotificationManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        _instance ??= new NotificationManager();
-                    }
-                }
-                return _instance;
-            }
-        }
+        /// <summary>
+        /// Gets the singleton instance of NotificationManager.
+        /// </summary>
+        public static NotificationManager Instance => _lazyInstance.Value;
 
         #endregion
 

@@ -1,0 +1,52 @@
+﻿<Project Sdk="WixToolset.Sdk/6.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <OutputName>TrackerSetup</OutputName>
+  </PropertyGroup>
+
+  <!-- WiX Extensions for installer dialogs, utilities, and .NET detection -->
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="6.0.2" />
+    <PackageReference Include="WixToolset.Netfx.wixext" Version="6.0.2" />
+  </ItemGroup>
+
+  <!-- Reference the main Tracker project -->
+  <ItemGroup>
+    <ProjectReference Include="..\Tracker\Tracker.csproj">
+      <Publish>true</Publish>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- Bind path for source files - uses the publish output directory -->
+  <PropertyGroup>
+    <BindPaths>$(MSBuildProjectDirectory)\obj\$(Platform)\$(Configuration)\publish\Tracker</BindPaths>
+  </PropertyGroup>
+  
+  <!-- Ensure Tracker publishes before installer builds -->
+  <Target Name="PublishTrackerFirst" BeforeTargets="Build">
+    <MSBuild Projects="..\Tracker\Tracker.csproj" 
+             Targets="Publish" 
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=false;PublishDir=$(MSBuildProjectDirectory)\obj\$(Platform)\$(Configuration)\publish\Tracker\" />
+  </Target>
+
+  <!-- Code Signing Configuration (Release only) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SignToolPath>C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe</SignToolPath>
+    <CertificatePath>C:\Certs\PricklyCactusSoftware.pfx</CertificatePath>
+    <TimestampServer>http://timestamp.digicert.com</TimestampServer>
+    <!-- Password: prefer environment variable, fallback to hardcoded (TODO: remove hardcoded for production) -->
+    <CertificatePassword Condition="'$(PRICKLY_CACTUS_CERT_PASSWORD)' != ''">$(PRICKLY_CACTUS_CERT_PASSWORD)</CertificatePassword>
+    <CertificatePassword Condition="'$(PRICKLY_CACTUS_CERT_PASSWORD)' == ''">PricklyCactus2024!</CertificatePassword>
+  </PropertyGroup>
+
+  <!-- Sign MSI after build (Release only) -->
+  <Target Name="SignInstaller" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <Message Importance="high" Text="Signing installer with Prickly Cactus certificate..." />
+    <Exec Command="&quot;$(SignToolPath)&quot; sign /f &quot;$(CertificatePath)&quot; /p &quot;$(CertificatePassword)&quot; /fd SHA256 /tr $(TimestampServer) /td SHA256 /d &quot;Tracker - Team Management&quot; &quot;$(OutputPath)en-US\$(OutputName).msi&quot;" />
+    <Message Importance="high" Text="Installer signed successfully!" />
+  </Target>
+
+</Project>

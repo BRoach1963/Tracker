@@ -12,23 +12,26 @@ using Tracker.Eventing.Messages;
 using Tracker.Eventing;
 using Tracker.Managers;
 using Tracker.Services;
+using Tracker.Services.Google;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
     /// <summary>
     /// ViewModel for creating and editing 1:1 meetings.
-    /// Manages discussion points, concerns, action items, and follow-ups.
+    /// Redesigned: Single panel layout with AutoSuggest team member picker and RichTextEditor notes.
     /// </summary>
     public class OneOnOneViewModel : BaseDialogViewModel
     {
         #region Fields
 
         private OneOnOne? _data;
-        private ObservableCollection<ActionItem> _actionItems = new();
-        private ObservableCollection<ObjectiveKeyResult> _keyResults = new();
-        private ObservableCollection<FollowUpItem> _followUpItems = new();
-        private ObservableCollection<DiscussionPoint> _discussionPoints = new();
-        private ObservableCollection<Concern> _concerns = new();
+        private ObservableCollection<AgendaItem> _agendaItems = new();
+        private ObservableCollection<MeetingTask> _tasks = new();
+        
+        // Team member search
+        private ObservableCollection<TeamMember> _allTeamMembers = new();
+        private ObservableCollection<TeamMember> _filteredTeamMembers = new();
+        private string _teamMemberSearchText = string.Empty;
 
         // Linked items (existing tasks/OKRs/KPIs discussed in this meeting)
         private ObservableCollection<OneOnOneLinkedTask> _linkedTasks = new();
@@ -40,13 +43,18 @@ namespace Tracker.ViewModels.DialogViewModels
         private ObservableCollection<ObjectiveKeyResult> _availableOkrs = new();
         private ObservableCollection<KeyPerformanceIndicator> _availableKpis = new();
 
-        // Previous meeting and uncompleted items
+        // Previous meeting and uncompleted tasks
         private OneOnOne? _previousMeeting;
-        private ObservableCollection<ActionItem> _uncompletedActionItems = new();
-        private ObservableCollection<FollowUpItem> _uncompletedFollowUpItems = new();
+        private ObservableCollection<MeetingTask> _uncompletedTasks = new();
+
+        // Meeting templates
+        private ObservableCollection<MeetingTemplate> _templates = new();
+        private MeetingTemplate? _selectedTemplate;
+
+        // Status options
+        private readonly MeetingStatusEnum[] _statuses = Enum.GetValues<MeetingStatusEnum>();
 
         private bool _inEditMode;
-
         private Dictionary<string, object> _changedProperties = new();
 
         public bool InEditMode => _inEditMode;
@@ -55,24 +63,33 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _updateOneOnOneCommand;
         private ICommand? _addOneOnOneCommand;
 
-        // Discussion Point commands
-        private ICommand? _addDiscussionPointCommand;
-        private ICommand? _editDiscussionPointCommand;
-        private ICommand? _deleteDiscussionPointCommand;
-        private DiscussionPoint? _selectedDiscussionPoint;
+        // Agenda Item commands
+        private ICommand? _addAgendaItemCommand;
+        private ICommand? _editAgendaItemCommand;
+        private ICommand? _deleteAgendaItemCommand;
+        private AgendaItem? _selectedAgendaItem;
 
-        // Concern commands
-        private ICommand? _addConcernCommand;
-        private ICommand? _editConcernCommand;
-        private ICommand? _deleteConcernCommand;
-        private Concern? _selectedConcern;
-
-        // Task commands (Action Items / Follow-ups)
+        // Task commands
         private ICommand? _addTaskCommand;
         private ICommand? _editTaskCommand;
         private ICommand? _deleteTaskCommand;
-        private ActionItem? _selectedActionItem;
-        private FollowUpItem? _selectedFollowUpItem;
+        private MeetingTask? _selectedTask;
+
+        // Template command
+        private ICommand? _applyTemplateCommand;
+
+        // Quick Message commands
+        private ICommand? _sendMessageCommand;
+        private ICommand? _sendSummaryCommand;
+
+        // Teams Meeting
+        private bool _createTeamsMeeting;
+        private bool _syncToOutlook;
+        private ICommand? _copyTeamsMeetingLinkCommand;
+
+        // Google Meet
+        private bool _createGoogleMeet;
+        private ICommand? _copyGoogleMeetLinkCommand;
 
         #endregion
 
@@ -84,9 +101,47 @@ namespace Tracker.ViewModels.DialogViewModels
             _data = data;
             if (teamMember != null && !_inEditMode) _data.TeamMember = teamMember;
             SetLists();
-            LoadPreviousMeetingAndUncompletedItems();
+            LoadTeamMembers();
+            LoadPreviousMeetingAndUncompletedTasks();
             LoadAvailableItemsForLinking();
             LoadLinkedItems();
+            LoadTemplates();
+            
+            // Initialize search text if team member already selected
+            if (_data?.TeamMember != null && _data.TeamMember.Id > 0)
+            {
+                _teamMemberSearchText = _data.TeamMember.FullName;
+            }
+        }
+
+        private async void LoadTemplates()
+        {
+            try
+            {
+                var templates = await TrackerDbManager.Instance.GetMeetingTemplatesAsync();
+                _templates.Clear();
+                foreach (var template in templates)
+                {
+                    _templates.Add(template);
+                }
+
+                // If no templates exist, create defaults
+                if (_templates.Count == 0)
+                {
+                    await TrackerDbManager.Instance.CreateDefaultTemplatesAsync();
+                    templates = await TrackerDbManager.Instance.GetMeetingTemplatesAsync();
+                    foreach (var template in templates)
+                    {
+                        _templates.Add(template);
+                    }
+                }
+
+                RaisePropertyChanged(nameof(Templates));
+            }
+            catch
+            {
+                // Ignore errors loading templates
+            }
         }
 
         protected override void Dispose(bool disposing)
@@ -104,25 +159,19 @@ namespace Tracker.ViewModels.DialogViewModels
         public ICommand AddOneOnOneCommand =>
             _addOneOnOneCommand ??= new TrackerCommand(AddOneOnOneExecuted, CanExecuteAddOneOnOne);
 
-        // Discussion Point Commands
-        public ICommand AddDiscussionPointCommand =>
-            _addDiscussionPointCommand ??= new TrackerCommand(AddDiscussionPointExecuted);
+        // Agenda Item Commands
+        public ICommand AddAgendaItemCommand =>
+            _addAgendaItemCommand ??= new TrackerCommand(AddAgendaItemExecuted);
 
-        public ICommand EditDiscussionPointCommand =>
-            _editDiscussionPointCommand ??= new TrackerCommand(EditDiscussionPointExecuted, CanEditOrDeleteDiscussionPoint);
+        public ICommand EditAgendaItemCommand =>
+            _editAgendaItemCommand ??= new TrackerCommand(EditAgendaItemExecuted, CanEditOrDeleteAgendaItem);
 
-        public ICommand DeleteDiscussionPointCommand =>
-            _deleteDiscussionPointCommand ??= new TrackerCommand(DeleteDiscussionPointExecuted, CanEditOrDeleteDiscussionPoint);
+        public ICommand DeleteAgendaItemCommand =>
+            _deleteAgendaItemCommand ??= new TrackerCommand(DeleteAgendaItemExecuted);
 
-        // Concern Commands
-        public ICommand AddConcernCommand =>
-            _addConcernCommand ??= new TrackerCommand(AddConcernExecuted);
-
-        public ICommand EditConcernCommand =>
-            _editConcernCommand ??= new TrackerCommand(EditConcernExecuted, CanEditOrDeleteConcern);
-
-        public ICommand DeleteConcernCommand =>
-            _deleteConcernCommand ??= new TrackerCommand(DeleteConcernExecuted, CanEditOrDeleteConcern);
+        private ICommand? _linkAgendaItemCommand;
+        public ICommand LinkAgendaItemCommand =>
+            _linkAgendaItemCommand ??= new TrackerCommand(LinkAgendaItemExecuted);
 
         // Task Commands
         public ICommand AddTaskCommand =>
@@ -141,7 +190,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _unlinkTaskCommand;
         private ICommand? _unlinkOkrCommand;
         private ICommand? _unlinkKpiCommand;
-        private ICommand? _rolloverUncompletedItemsCommand;
+        private ICommand? _rolloverUncompletedTasksCommand;
 
         public ICommand LinkTaskCommand =>
             _linkTaskCommand ??= new TrackerCommand(LinkTaskExecuted, CanLinkTask);
@@ -161,8 +210,8 @@ namespace Tracker.ViewModels.DialogViewModels
         public ICommand UnlinkKpiCommand =>
             _unlinkKpiCommand ??= new TrackerCommand(UnlinkKpiExecuted, CanUnlinkKpi);
 
-        public ICommand RolloverUncompletedItemsCommand =>
-            _rolloverUncompletedItemsCommand ??= new TrackerCommand(RolloverUncompletedItemsExecuted);
+        public ICommand RolloverUncompletedTasksCommand =>
+            _rolloverUncompletedTasksCommand ??= new TrackerCommand(RolloverUncompletedTasksExecuted);
 
         #endregion
 
@@ -172,17 +221,11 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public OneOnOne Data => _data;
 
-        public ObservableCollection<ActionItem> ActionItems => _actionItems;
+        public ObservableCollection<AgendaItem> AgendaItems => _agendaItems;
 
-        public ObservableCollection<ObjectiveKeyResult> KeyResults => _keyResults;
+        public ObservableCollection<MeetingTask> Tasks => _tasks;
 
-        public ObservableCollection<FollowUpItem> FollowUpItems => _followUpItems;
-
-        public ObservableCollection<DiscussionPoint> DiscussionPoints => _discussionPoints;
-
-        public ObservableCollection<Concern> Concerns => _concerns;
-
-        // Linked items (existing tasks/OKRs/KPIs discussed in this meeting)
+        // Linked items
         public ObservableCollection<OneOnOneLinkedTask> LinkedTasks => _linkedTasks;
         public ObservableCollection<OneOnOneLinkedOkr> LinkedOkrs => _linkedOkrs;
         public ObservableCollection<OneOnOneLinkedKpi> LinkedKpis => _linkedKpis;
@@ -213,15 +256,166 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 if (_previousMeeting == null) return "No previous meeting";
                 return $"Last meeting: {_previousMeeting.Date:MM/dd/yyyy}\n" +
-                       $"Action Items: {_previousMeeting.ActionItems.Count}\n" +
-                       $"Follow-ups: {_previousMeeting.FollowUpItems.Count}\n" +
-                       $"Discussion Points: {_previousMeeting.DiscussionPoints.Count}";
+                       $"Tasks: {_previousMeeting.Tasks.Count}\n" +
+                       $"Agenda Items: {_previousMeeting.AgendaItems.Count}";
             }
         }
 
-        // Uncompleted items from previous meetings
-        public ObservableCollection<ActionItem> UncompletedActionItems => _uncompletedActionItems;
-        public ObservableCollection<FollowUpItem> UncompletedFollowUpItems => _uncompletedFollowUpItems;
+        // Uncompleted tasks from previous meetings
+        public ObservableCollection<MeetingTask> UncompletedTasks => _uncompletedTasks;
+
+        // Meeting templates
+        public ObservableCollection<MeetingTemplate> Templates => _templates;
+
+        public MeetingTemplate? SelectedTemplate
+        {
+            get => _selectedTemplate;
+            set
+            {
+                _selectedTemplate = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public ICommand ApplyTemplateCommand =>
+            _applyTemplateCommand ??= new TrackerCommand(ApplyTemplateExecuted, CanApplyTemplate);
+
+        private bool CanApplyTemplate(object? obj) => SelectedTemplate != null && !_inEditMode;
+
+        // Quick Message Commands
+        public ICommand SendMessageCommand =>
+            _sendMessageCommand ??= new TrackerCommand(SendMessageExecuted, CanSendMessage);
+
+        public ICommand SendSummaryCommand =>
+            _sendSummaryCommand ??= new TrackerCommand(SendSummaryExecuted, CanSendSummary);
+
+        private bool CanSendMessage(object? obj) => SelectedTeamMember != null && 
+            !string.IsNullOrEmpty(SelectedTeamMember.Email) &&
+            Services.Microsoft365.MicrosoftGraphAuthService.Instance.IsAuthenticated;
+
+        private bool CanSendSummary(object? obj) => _inEditMode && SelectedTeamMember != null && 
+            !string.IsNullOrEmpty(SelectedTeamMember.Email) &&
+            Services.Microsoft365.MicrosoftGraphAuthService.Instance.IsAuthenticated;
+
+        private void SendMessageExecuted(object? parameter)
+        {
+            if (SelectedTeamMember == null || _data == null) return;
+            Views.Dialogs.QuickMessageDialog.ShowDialog(SelectedTeamMember, _data);
+        }
+
+        private void SendSummaryExecuted(object? parameter)
+        {
+            if (SelectedTeamMember == null || _data == null) return;
+            
+            // Open Quick Message dialog with Summary template pre-selected
+            var dialog = new Views.Dialogs.QuickMessageDialog();
+            var vm = new QuickMessageViewModel(() => dialog.Close());
+            vm.Initialize(SelectedTeamMember, _data);
+            vm.SelectedTemplate = MessageTemplate.OneOnOneSummary;
+            dialog.DataContext = vm;
+            dialog.ShowDialog();
+        }
+
+        public bool CanShowMessaging => Services.Microsoft365.MicrosoftGraphAuthService.Instance.IsAuthenticated;
+
+        // Teams Meeting Properties
+        public bool CreateTeamsMeeting
+        {
+            get => _createTeamsMeeting;
+            set
+            {
+                _createTeamsMeeting = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool SyncToOutlook
+        {
+            get => _syncToOutlook;
+            set
+            {
+                _syncToOutlook = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool CanCreateTeamsMeeting => Services.Microsoft365.MicrosoftGraphAuthService.Instance.IsAuthenticated;
+
+        public bool HasTeamsMeetingUrl => !string.IsNullOrEmpty(_data?.TeamsMeetingUrl);
+
+        public string TeamsMeetingUrlPreview => _data?.TeamsMeetingUrl?.Length > 40 
+            ? _data.TeamsMeetingUrl.Substring(0, 40) + "..." 
+            : _data?.TeamsMeetingUrl ?? "";
+
+        public ICommand CopyTeamsMeetingLinkCommand => _copyTeamsMeetingLinkCommand ??= 
+            new TrackerCommand(CopyTeamsMeetingLink, _ => HasTeamsMeetingUrl);
+
+        private void CopyTeamsMeetingLink(object? parameter)
+        {
+            if (!string.IsNullOrEmpty(_data?.TeamsMeetingUrl))
+            {
+                System.Windows.Clipboard.SetText(_data.TeamsMeetingUrl);
+                NotificationManager.Instance.ShowSuccess("Copied", "Teams meeting link copied to clipboard.");
+            }
+        }
+
+        // Google Meet Properties
+        public bool CreateGoogleMeet
+        {
+            get => _createGoogleMeet;
+            set
+            {
+                _createGoogleMeet = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool CanCreateGoogleMeet => Services.Google.GoogleAuthService.Instance.IsAuthenticated;
+
+        public bool HasGoogleMeetUrl => !string.IsNullOrEmpty(_data?.GoogleMeetUrl);
+
+        public string GoogleMeetUrlPreview => _data?.GoogleMeetUrl?.Length > 40 
+            ? _data.GoogleMeetUrl.Substring(0, 40) + "..." 
+            : _data?.GoogleMeetUrl ?? "";
+
+        public ICommand CopyGoogleMeetLinkCommand => _copyGoogleMeetLinkCommand ??= 
+            new TrackerCommand(CopyGoogleMeetLink, _ => HasGoogleMeetUrl);
+
+        private void CopyGoogleMeetLink(object? parameter)
+        {
+            if (!string.IsNullOrEmpty(_data?.GoogleMeetUrl))
+            {
+                System.Windows.Clipboard.SetText(_data.GoogleMeetUrl);
+                NotificationManager.Instance.ShowSuccess("Copied", "Google Meet link copied to clipboard.");
+            }
+        }
+
+        private void ApplyTemplateExecuted(object? parameter)
+        {
+            if (SelectedTemplate == null) return;
+
+            // Apply template duration
+            if (_data != null)
+            {
+                _data.Duration = TimeSpan.FromMinutes(SelectedTemplate.SuggestedDurationMinutes);
+                _data.EndTime = _data.StartTime.Add(_data.Duration);
+            }
+
+            // Apply template items to agenda
+            foreach (var templateItem in SelectedTemplate.Items.OrderBy(i => i.SortOrder))
+            {
+                var agendaItem = new AgendaItem
+                {
+                    Description = templateItem.Description,
+                    Category = templateItem.Category,
+                    Priority = templateItem.Priority
+                };
+                _agendaItems.Add(agendaItem);
+            }
+
+            RaisePropertyChanged(nameof(AgendaItems));
+            NotificationManager.Instance.ShowSuccess("Template Applied", $"Added {SelectedTemplate.Items.Count} agenda items from '{SelectedTemplate.Name}'");
+        }
 
         // Selected items for linking
         private IndividualTask? _selectedAvailableTask;
@@ -234,102 +428,50 @@ namespace Tracker.ViewModels.DialogViewModels
         public IndividualTask? SelectedAvailableTask
         {
             get => _selectedAvailableTask;
-            set
-            {
-                _selectedAvailableTask = value;
-                RaisePropertyChanged();
-            }
+            set { _selectedAvailableTask = value; RaisePropertyChanged(); }
         }
 
         public ObjectiveKeyResult? SelectedAvailableOkr
         {
             get => _selectedAvailableOkr;
-            set
-            {
-                _selectedAvailableOkr = value;
-                RaisePropertyChanged();
-            }
+            set { _selectedAvailableOkr = value; RaisePropertyChanged(); }
         }
 
         public KeyPerformanceIndicator? SelectedAvailableKpi
         {
             get => _selectedAvailableKpi;
-            set
-            {
-                _selectedAvailableKpi = value;
-                RaisePropertyChanged();
-            }
+            set { _selectedAvailableKpi = value; RaisePropertyChanged(); }
         }
 
         public OneOnOneLinkedTask? SelectedLinkedTask
         {
             get => _selectedLinkedTask;
-            set
-            {
-                _selectedLinkedTask = value;
-                RaisePropertyChanged();
-            }
+            set { _selectedLinkedTask = value; RaisePropertyChanged(); }
         }
 
         public OneOnOneLinkedOkr? SelectedLinkedOkr
         {
             get => _selectedLinkedOkr;
-            set
-            {
-                _selectedLinkedOkr = value;
-                RaisePropertyChanged();
-            }
+            set { _selectedLinkedOkr = value; RaisePropertyChanged(); }
         }
 
         public OneOnOneLinkedKpi? SelectedLinkedKpi
         {
             get => _selectedLinkedKpi;
-            set
-            {
-                _selectedLinkedKpi = value;
-                RaisePropertyChanged();
-            }
+            set { _selectedLinkedKpi = value; RaisePropertyChanged(); }
         }
 
         // Selected items for editing/deleting
-        public DiscussionPoint? SelectedDiscussionPoint
+        public AgendaItem? SelectedAgendaItem
         {
-            get => _selectedDiscussionPoint;
-            set
-            {
-                _selectedDiscussionPoint = value;
-                RaisePropertyChanged();
-            }
+            get => _selectedAgendaItem;
+            set { _selectedAgendaItem = value; RaisePropertyChanged(); }
         }
 
-        public Concern? SelectedConcern
+        public MeetingTask? SelectedTask
         {
-            get => _selectedConcern;
-            set
-            {
-                _selectedConcern = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public ActionItem? SelectedActionItem
-        {
-            get => _selectedActionItem;
-            set
-            {
-                _selectedActionItem = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public FollowUpItem? SelectedFollowUpItem
-        {
-            get => _selectedFollowUpItem;
-            set
-            {
-                _selectedFollowUpItem = value;
-                RaisePropertyChanged();
-            }
+            get => _selectedTask;
+            set { _selectedTask = value; RaisePropertyChanged(); }
         }
 
         public string Description
@@ -340,17 +482,6 @@ namespace Tracker.ViewModels.DialogViewModels
                 _data.Description = value;
                 RaisePropertyChanged();
                 UpdateChangedValues(TrackerConstants.OneOnOneDescription, value);
-            }
-        }
-
-        public string Agenda
-        {
-            get => _data.Agenda;
-            set
-            {
-                _data.Agenda = value;
-                RaisePropertyChanged();
-                UpdateChangedValues(TrackerConstants.OneOnOneAgenda, value);
             }
         }
 
@@ -389,6 +520,97 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public string TeamMemberName => _data.TeamMemberName;
 
+        // Team Member Search (for AutoSuggestBox)
+        public ObservableCollection<TeamMember> AllTeamMembers => _allTeamMembers;
+        public ObservableCollection<TeamMember> FilteredTeamMembers => _filteredTeamMembers;
+
+        public string TeamMemberSearchText
+        {
+            get => _teamMemberSearchText;
+            set
+            {
+                _teamMemberSearchText = value;
+                RaisePropertyChanged();
+                FilterTeamMembers();
+            }
+        }
+
+        private void FilterTeamMembers()
+        {
+            _filteredTeamMembers.Clear();
+            
+            if (string.IsNullOrWhiteSpace(_teamMemberSearchText))
+            {
+                foreach (var member in _allTeamMembers)
+                    _filteredTeamMembers.Add(member);
+            }
+            else
+            {
+                var searchLower = _teamMemberSearchText.ToLower();
+                foreach (var member in _allTeamMembers.Where(m =>
+                    m.FullName.ToLower().Contains(searchLower) ||
+                    m.JobTitle.ToLower().Contains(searchLower) ||
+                    m.Email.ToLower().Contains(searchLower)))
+                {
+                    _filteredTeamMembers.Add(member);
+                }
+            }
+            
+            RaisePropertyChanged(nameof(FilteredTeamMembers));
+        }
+
+        public TeamMember? SelectedTeamMember
+        {
+            get => _data?.TeamMember;
+            set
+            {
+                if (value != null && _data != null)
+                {
+                    _data.TeamMember = value;
+                    _teamMemberSearchText = value.FullName;
+                    RaisePropertyChanged();
+                    RaisePropertyChanged(nameof(TeamMember));
+                    RaisePropertyChanged(nameof(TeamMemberName));
+                    RaisePropertyChanged(nameof(TeamMemberSearchText));
+                    UpdateChangedValues(TrackerConstants.OneOnOneTeamMemberId, value.Id);
+                    
+                    // Load previous meeting for newly selected member
+                    LoadPreviousMeetingAndUncompletedTasks();
+                }
+            }
+        }
+
+        // Notes as Markdown (for RichTextEditor)
+        public string NotesMarkdown
+        {
+            get => _data?.Notes ?? string.Empty;
+            set
+            {
+                if (_data != null)
+                {
+                    _data.Notes = value;
+                    RaisePropertyChanged();
+                    RaisePropertyChanged(nameof(Notes));
+                    UpdateChangedValues(TrackerConstants.OneOnOneNotes, value);
+                }
+            }
+        }
+
+        // Agenda (free-form) as Markdown
+        public string AgendaMarkdown
+        {
+            get => _data?.Agenda ?? string.Empty;
+            set
+            {
+                if (_data != null)
+                {
+                    _data.Agenda = value;
+                    RaisePropertyChanged();
+                    UpdateChangedValues("Agenda", value);
+                }
+            }
+        }
+
         public MeetingStatusEnum Status
         {
             get => _data.Status;
@@ -399,6 +621,11 @@ namespace Tracker.ViewModels.DialogViewModels
                 UpdateChangedValues(TrackerConstants.OneOnOneStatus, value);
             }
         }
+
+        /// <summary>
+        /// Available meeting statuses for the dropdown.
+        /// </summary>
+        public MeetingStatusEnum[] Statuses => _statuses;
 
         public bool IsRecurring
         {
@@ -430,6 +657,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.StartTime = value;
                 RaisePropertyChanged();
+                RaisePropertyChanged(nameof(StartTimeDateTime));
                 UpdateChangedValues(TrackerConstants.OneOnOneStartTime, _data.StartTime.ToString(@"hh\:mm\:ss"));
             }
         }
@@ -441,7 +669,38 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.EndTime = value;
                 RaisePropertyChanged();
+                RaisePropertyChanged(nameof(EndTimeDateTime));
                 Duration = EndTime - StartTime;
+            }
+        }
+
+        /// <summary>
+        /// DateTime wrapper for StartTime - used by TimePicker which expects DateTime?.
+        /// </summary>
+        public DateTime? StartTimeDateTime
+        {
+            get => DateTime.Today.Add(_data.StartTime);
+            set
+            {
+                if (value.HasValue)
+                {
+                    StartTime = value.Value.TimeOfDay;
+                }
+            }
+        }
+
+        /// <summary>
+        /// DateTime wrapper for EndTime - used by TimePicker which expects DateTime?.
+        /// </summary>
+        public DateTime? EndTimeDateTime
+        {
+            get => DateTime.Today.Add(_data.EndTime);
+            set
+            {
+                if (value.HasValue)
+                {
+                    EndTime = value.Value.TimeOfDay;
+                }
             }
         }
 
@@ -468,7 +727,6 @@ namespace Tracker.ViewModels.DialogViewModels
                 _data.Duration = value;
                 RaisePropertyChanged();
                 UpdateChangedValues(TrackerConstants.OneOnOneDuration, value);
-                UpdateChangedValues(TrackerConstants.OneOnOneStartTime, _data.Duration.ToString(@"hh\:mm\:ss"));
             }
         }
 
@@ -518,29 +776,15 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        /// <summary>
-        /// Saves all related items (discussion points, concerns, action items, follow-ups, OKRs).
-        /// These are saved as part of the OneOnOne entity through navigation properties.
-        /// </summary>
         private async Task SaveRelatedItems(int oneOnOneId)
         {
-            // Ensure all items are in the OneOnOne's collections
-            _data.DiscussionPoints = _discussionPoints.ToList();
-            _data.Concerns = _concerns.ToList();
-            _data.ActionItems = _actionItems.ToList();
-            _data.FollowUpItems = _followUpItems.ToList();
-            _data.ObjectiveKeyResults = _keyResults.ToList();
-
-            // Update the OneOnOne to save all related items
+            _data.AgendaItems = _agendaItems.ToList();
+            _data.Tasks = _tasks.ToList();
             await TrackerDataManager.Instance.UpdateOneOnOne(_data);
         }
 
-        /// <summary>
-        /// Saves linked items (existing tasks/OKRs/KPIs discussed in this meeting).
-        /// </summary>
         private async Task SaveLinkedItems(int oneOnOneId)
         {
-            // Update OneOnOneId for all linked items
             foreach (var linkedTask in _linkedTasks)
             {
                 linkedTask.OneOnOneId = oneOnOneId;
@@ -571,11 +815,10 @@ namespace Tracker.ViewModels.DialogViewModels
             
             if (success)
             {
-                // Sync to calendars if enabled
                 var settings = UserSettingsManager.Instance.Settings.Calendar;
                 if (settings.AutoSyncOnSave)
                 {
-                    await CalendarSyncManager.Instance.SyncToAllCalendarsAsync(_data);
+                    await CalendarSyncManager.Instance.SyncToAllCalendarsAsync(_data!);
                 }
 
                 NotificationManager.Instance.ShowSuccess("1:1 Updated", $"Meeting with {TeamMemberName} has been updated.");
@@ -601,19 +844,35 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             else
             {
-                // Load existing collections from data
-                if (_data.ActionItems != null) _actionItems = new ObservableCollection<ActionItem>(_data.ActionItems);
-                if (_data.FollowUpItems != null) _followUpItems = new ObservableCollection<FollowUpItem>(_data.FollowUpItems);
-                if (_data.DiscussionPoints != null) _discussionPoints = new ObservableCollection<DiscussionPoint>(_data.DiscussionPoints);
-                if (_data.Concerns != null) _concerns = new ObservableCollection<Concern>(_data.Concerns);
-                if (_data.ObjectiveKeyResults != null) _keyResults = new ObservableCollection<ObjectiveKeyResult>(_data.ObjectiveKeyResults);
+                if (_data.AgendaItems != null) _agendaItems = new ObservableCollection<AgendaItem>(_data.AgendaItems);
+                if (_data.Tasks != null) _tasks = new ObservableCollection<MeetingTask>(_data.Tasks);
             }
         }
 
-        /// <summary>
-        /// Loads the previous meeting and uncompleted items for rollover.
-        /// </summary>
-        private async void LoadPreviousMeetingAndUncompletedItems()
+        private async void LoadTeamMembers()
+        {
+            try
+            {
+                var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
+                _allTeamMembers.Clear();
+                _filteredTeamMembers.Clear();
+                
+                foreach (var member in members.Where(m => !m.IsDeleted))
+                {
+                    _allTeamMembers.Add(member);
+                    _filteredTeamMembers.Add(member);
+                }
+                
+                RaisePropertyChanged(nameof(AllTeamMembers));
+                RaisePropertyChanged(nameof(FilteredTeamMembers));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading team members: {ex.Message}");
+            }
+        }
+
+        private async void LoadPreviousMeetingAndUncompletedTasks()
         {
             if (_data?.TeamMember?.Id == null || _data.TeamMember.Id == 0) return;
 
@@ -622,22 +881,16 @@ namespace Tracker.ViewModels.DialogViewModels
                 var excludeId = _inEditMode ? _data.Id : (int?)null;
                 PreviousMeeting = await TrackerDbManager.Instance.GetPreviousOneOnOneAsync(_data.TeamMember.Id, excludeId);
 
-                var (actionItems, followUpItems) = await TrackerDbManager.Instance.GetUncompletedItemsAsync(_data.TeamMember.Id);
-                _uncompletedActionItems = new ObservableCollection<ActionItem>(actionItems);
-                _uncompletedFollowUpItems = new ObservableCollection<FollowUpItem>(followUpItems);
-                RaisePropertyChanged(nameof(UncompletedActionItems));
-                RaisePropertyChanged(nameof(UncompletedFollowUpItems));
+                var uncompletedTasks = await TrackerDbManager.Instance.GetUncompletedMeetingTasksAsync(_data.TeamMember.Id);
+                _uncompletedTasks = new ObservableCollection<MeetingTask>(uncompletedTasks);
+                RaisePropertyChanged(nameof(UncompletedTasks));
             }
             catch (Exception ex)
             {
-                // Log error but don't crash the dialog
                 System.Diagnostics.Debug.WriteLine($"Error loading previous meeting: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Loads available tasks, OKRs, and KPIs that can be linked to this meeting.
-        /// </summary>
         private async void LoadAvailableItemsForLinking()
         {
             try
@@ -660,9 +913,6 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        /// <summary>
-        /// Loads already linked items if editing an existing meeting.
-        /// </summary>
         private void LoadLinkedItems()
         {
             if (_data?.LinkedTasks != null)
@@ -698,126 +948,136 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #endregion
 
-        #region Private Methods - Discussion Points
+        #region Private Methods - Agenda Items
 
-        private void AddDiscussionPointExecuted(object? parameter)
+        private void AddAgendaItemExecuted(object? parameter)
         {
-            var newPoint = new DiscussionPoint
+            var newItem = new AgendaItem
             {
-                Description = "New Discussion Point",
-                Type = DiscussionType.Other,
-                DateRaised = DateTime.Now,
-                TeamMemberId = _data?.TeamMember?.Id ?? 0
+                Description = "New Agenda Item",
+                Category = AgendaItemCategory.Topic,
+                Priority = Severity.Medium
             };
-            _discussionPoints.Add(newPoint);
-            SelectedDiscussionPoint = newPoint;
-            UpdateChangedValues("DiscussionPoints", _discussionPoints.Count);
+            _agendaItems.Add(newItem);
+            SelectedAgendaItem = newItem;
+            UpdateChangedValues("AgendaItems", _agendaItems.Count);
         }
 
-        private bool CanEditOrDeleteDiscussionPoint(object? parameter)
-        {
-            return SelectedDiscussionPoint != null;
-        }
+        private bool CanEditOrDeleteAgendaItem(object? parameter) => parameter is AgendaItem || SelectedAgendaItem != null;
 
-        private void EditDiscussionPointExecuted(object? parameter)
+        private void EditAgendaItemExecuted(object? parameter)
         {
-            // For now, selection allows inline editing in the DataGrid
-            // Could open a dialog for more complex editing in the future
-            if (SelectedDiscussionPoint != null)
+            var item = parameter as AgendaItem ?? SelectedAgendaItem;
+            if (item != null)
             {
-                UpdateChangedValues("DiscussionPoints", _discussionPoints.Count);
+                UpdateChangedValues("AgendaItems", _agendaItems.Count);
             }
         }
 
-        private void DeleteDiscussionPointExecuted(object? parameter)
+        private void DeleteAgendaItemExecuted(object? parameter)
         {
-            if (SelectedDiscussionPoint != null)
+            var item = parameter as AgendaItem ?? SelectedAgendaItem;
+            if (item != null && _agendaItems.Contains(item))
             {
-                _discussionPoints.Remove(SelectedDiscussionPoint);
-                SelectedDiscussionPoint = null;
-                UpdateChangedValues("DiscussionPoints", _discussionPoints.Count);
+                // Use dispatcher to ensure UI thread execution
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    _agendaItems.Remove(item);
+                    if (SelectedAgendaItem == item) SelectedAgendaItem = null;
+                    UpdateChangedValues("AgendaItems", _agendaItems.Count);
+                });
+            }
+        }
+
+        private void LinkAgendaItemExecuted(object? parameter)
+        {
+            if (parameter is not AgendaItem agendaItem) return;
+
+            // Show a dialog to select what to link this agenda item to
+            var linkItems = new List<(string Title, LinkedItemType Type, int Id)>();
+            
+            // Add available tasks
+            foreach (var task in _availableTasks.Where(t => !t.IsDeleted))
+            {
+                linkItems.Add((task.Description, LinkedItemType.Task, task.Id));
+            }
+            
+            // Add available OKRs
+            foreach (var okr in _availableOkrs.Where(o => !o.IsDeleted))
+            {
+                linkItems.Add((okr.Title, LinkedItemType.OKR, okr.ObjectiveId));
+            }
+            
+            // Add available KPIs
+            foreach (var kpi in _availableKpis.Where(k => !k.IsDeleted))
+            {
+                linkItems.Add((kpi.Name, LinkedItemType.KPI, kpi.KpiId));
+            }
+
+            if (linkItems.Count > 0)
+            {
+                var dialog = new Views.Dialogs.LinkAgendaItemDialog(linkItems, agendaItem)
+                {
+                    WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+                    Owner = System.Windows.Application.Current.Windows.OfType<System.Windows.Window>().FirstOrDefault(w => w.IsActive) 
+                            ?? System.Windows.Application.Current.MainWindow
+                };
+                if (dialog.ShowDialog() == true && dialog.SelectedItem.HasValue)
+                {
+                    var selected = dialog.SelectedItem.Value;
+                    
+                    // Check if already linked
+                    if (agendaItem.LinkedItems.Any(li => li.Type == selected.Type && li.ItemId == selected.Id))
+                    {
+                        NotificationManager.Instance.ShowInfo("Already Linked", "This item is already linked.");
+                        return;
+                    }
+                    
+                    // Add to the LinkedItems collection (supports multiple links)
+                    agendaItem.AddLinkedItem(selected.Type, selected.Id, selected.Title);
+                    UpdateChangedValues("AgendaItems", _agendaItems.Count);
+                }
+            }
+            else
+            {
+                NotificationManager.Instance.ShowInfo("No Items", "No tasks, OKRs, or KPIs available to link. Create some first!");
             }
         }
 
         #endregion
 
-        #region Private Methods - Concerns
-
-        private void AddConcernExecuted(object? parameter)
-        {
-            var newConcern = new Concern
-            {
-                Description = "New Concern",
-                DateRaised = DateTime.Now,
-                TeamMemberId = _data?.TeamMember?.Id ?? 0
-            };
-            _concerns.Add(newConcern);
-            SelectedConcern = newConcern;
-            UpdateChangedValues("Concerns", _concerns.Count);
-        }
-
-        private bool CanEditOrDeleteConcern(object? parameter)
-        {
-            return SelectedConcern != null;
-        }
-
-        private void EditConcernExecuted(object? parameter)
-        {
-            // For now, selection allows inline editing in the DataGrid
-            if (SelectedConcern != null)
-            {
-                UpdateChangedValues("Concerns", _concerns.Count);
-            }
-        }
-
-        private void DeleteConcernExecuted(object? parameter)
-        {
-            if (SelectedConcern != null)
-            {
-                _concerns.Remove(SelectedConcern);
-                SelectedConcern = null;
-                UpdateChangedValues("Concerns", _concerns.Count);
-            }
-        }
-
-        #endregion
-
-        #region Private Methods - Tasks (Action Items)
+        #region Private Methods - Tasks
 
         private void AddTaskExecuted(object? parameter)
         {
-            var newItem = new ActionItem
+            var newItem = new MeetingTask
             {
-                Description = "New Action Item",
+                Description = "New Task",
                 DueDate = DateTime.Now.AddDays(7),
                 Owner = _data?.TeamMember ?? new TeamMember()
             };
-            _actionItems.Add(newItem);
-            SelectedActionItem = newItem;
-            UpdateChangedValues("ActionItems", _actionItems.Count);
+            _tasks.Add(newItem);
+            SelectedTask = newItem;
+            UpdateChangedValues("Tasks", _tasks.Count);
         }
 
-        private bool CanEditOrDeleteTask(object? parameter)
-        {
-            return SelectedActionItem != null;
-        }
+        private bool CanEditOrDeleteTask(object? parameter) => SelectedTask != null;
 
         private void EditTaskExecuted(object? parameter)
         {
-            // For now, selection allows inline editing in the DataGrid
-            if (SelectedActionItem != null)
+            if (SelectedTask != null)
             {
-                UpdateChangedValues("ActionItems", _actionItems.Count);
+                UpdateChangedValues("Tasks", _tasks.Count);
             }
         }
 
         private void DeleteTaskExecuted(object? parameter)
         {
-            if (SelectedActionItem != null)
+            if (SelectedTask != null)
             {
-                _actionItems.Remove(SelectedActionItem);
-                SelectedActionItem = null;
-                UpdateChangedValues("ActionItems", _actionItems.Count);
+                _tasks.Remove(SelectedTask);
+                SelectedTask = null;
+                UpdateChangedValues("Tasks", _tasks.Count);
             }
         }
 
@@ -836,7 +1096,6 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             if (SelectedAvailableTask == null || _data == null) return;
 
-            // Check if already linked
             if (_linkedTasks.Any(lt => lt.TaskId == SelectedAvailableTask.Id))
             {
                 NotificationManager.Instance.ShowWarning("Already Linked", "This task is already linked to this meeting.");
@@ -845,7 +1104,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
             var link = new OneOnOneLinkedTask
             {
-                OneOnOneId = _data.Id > 0 ? _data.Id : 0, // Will be set when meeting is saved
+                OneOnOneId = _data.Id > 0 ? _data.Id : 0,
                 TaskId = SelectedAvailableTask.Id,
                 Task = SelectedAvailableTask,
                 DiscussionNotes = string.Empty
@@ -908,7 +1167,6 @@ namespace Tracker.ViewModels.DialogViewModels
 
             if (_data.Id > 0)
             {
-                // Meeting already saved - remove from database
                 await TrackerDbManager.Instance.UnlinkTaskFromMeetingAsync(_data.Id, SelectedLinkedTask.TaskId);
             }
 
@@ -945,42 +1203,27 @@ namespace Tracker.ViewModels.DialogViewModels
             RaisePropertyChanged(nameof(LinkedKpis));
         }
 
-        /// <summary>
-        /// Rolls over uncompleted action items and follow-ups from previous meetings into this meeting.
-        /// </summary>
-        private void RolloverUncompletedItemsExecuted(object? parameter)
+        private void RolloverUncompletedTasksExecuted(object? parameter)
         {
             int addedCount = 0;
 
-            // Add uncompleted action items
-            foreach (var item in _uncompletedActionItems)
+            foreach (var item in _uncompletedTasks)
             {
-                if (!_actionItems.Any(ai => ai.Id == item.Id))
+                if (!_tasks.Any(t => t.Id == item.Id))
                 {
-                    _actionItems.Add(item);
-                    addedCount++;
-                }
-            }
-
-            // Add uncompleted follow-up items
-            foreach (var item in _uncompletedFollowUpItems)
-            {
-                if (!_followUpItems.Any(fi => fi.Id == item.Id))
-                {
-                    _followUpItems.Add(item);
+                    _tasks.Add(item);
                     addedCount++;
                 }
             }
 
             if (addedCount > 0)
             {
-                NotificationManager.Instance.ShowSuccess("Items Rolled Over", $"Added {addedCount} uncompleted item(s) from previous meetings.");
-                RaisePropertyChanged(nameof(ActionItems));
-                RaisePropertyChanged(nameof(FollowUpItems));
+                NotificationManager.Instance.ShowSuccess("Tasks Rolled Over", $"Added {addedCount} uncompleted task(s) from previous meetings.");
+                RaisePropertyChanged(nameof(Tasks));
             }
             else
             {
-                NotificationManager.Instance.ShowInfo("No Items", "No uncompleted items to roll over.");
+                NotificationManager.Instance.ShowInfo("No Tasks", "No uncompleted tasks to roll over.");
             }
         }
 

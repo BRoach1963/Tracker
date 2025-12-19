@@ -16,7 +16,7 @@ namespace Tracker.Command
 
         #region Public Commands
 
-        public static ICommand CloseDialogCommand => _closeDialogCommand ?? new TrackerCommand(CloseDialogExecuted);
+        public static ICommand CloseDialogCommand => _closeDialogCommand ??= new TrackerCommand(CloseDialogExecuted);
 
         public static ICommand LaunchDialogCommand => _launchDialogCommand ??= new TrackerCommand(LaunchDialogExecuted);
 

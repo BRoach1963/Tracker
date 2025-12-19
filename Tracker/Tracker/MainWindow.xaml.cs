@@ -1,10 +1,15 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using DeepEndControls.Theming;
+using Tracker.Command;
 using Tracker.Managers;
+using Tracker.Services;
 using Tracker.ViewModels;
+using Tracker.Views.Dialogs;
 
 namespace Tracker
 {
@@ -13,12 +18,26 @@ namespace Tracker
     /// </summary>
     public partial class MainWindow 
     {
+        private RoutedEventHandler? _loadedHandler;
+        private RoutedEventHandler? _unloadedHandler;
+        private bool _forceClose = false;
+
+        #region Static Navigation Command
+
+        /// <summary>
+        /// Static command for keyboard navigation to tabs (Ctrl+1-5).
+        /// </summary>
+        public static readonly RoutedCommand NavigateToTabCommand = new RoutedCommand("NavigateToTab", typeof(MainWindow));
+
+        #endregion
 
         public MainWindow(TrackerMainViewModel dataContext)
         {
             DataContext = dataContext;
             InitializeComponent(); 
-            SubscribeToSizingEvents();
+            
+            // Register command bindings for navigation
+            CommandBindings.Add(new CommandBinding(NavigateToTabCommand, OnNavigateToTab));
             
             // Set Dashboard ViewModel
             DashboardControl.DataContext = new DashboardViewModel();
@@ -26,135 +45,168 @@ namespace Tracker
             // Apply the current theme to this window for DeepEndControls
             DeepEndThemeManager.SetTheme(this, ThemeManager.Instance.CurrentTheme);
             
+            // Initialize system tray
+            InitializeSystemTray();
+            
+            // Start reminder service
+            ReminderService.Instance.Start();
+            
             // Ensure data loads after window is fully loaded
-            this.Loaded += async (_, _) =>
+            _loadedHandler = async (_, _) =>
             {
                 if (DataContext is TrackerMainViewModel vm)
                 {
                     await vm.RefreshAllDataAsync();
                 }
             };
+            this.Loaded += _loadedHandler;
             
-            this.Unloaded += (_, _) =>
+            _unloadedHandler = (_, _) =>
             { 
-                UnsubscribeFromSizingEvents();
                 if(DataContext is IDisposable vm) vm.Dispose();
                 if(DashboardControl.DataContext is IDisposable dashboardVm) dashboardVm.Dispose();
-                this.Unloaded -= (RoutedEventHandler)((_, _) => { /* Same logic here if needed */ });
+                
+                // Unsubscribe from events
+                if (_loadedHandler != null)
+                {
+                    this.Loaded -= _loadedHandler;
+                }
+                if (_unloadedHandler != null)
+                {
+                    this.Unloaded -= _unloadedHandler;
+                }
+            };
+            this.Unloaded += _unloadedHandler;
+            
+            // Handle closing
+            this.Closing += MainWindow_Closing;
+        }
+
+        private void InitializeSystemTray()
+        {
+            SystemTrayService.Instance.Initialize();
+            
+            SystemTrayService.Instance.ShowWindowRequested += (_, _) =>
+            {
+                this.Show();
+                this.WindowState = WindowState.Normal;
+                this.Activate();
+            };
+            
+            SystemTrayService.Instance.ExitRequested += (_, _) =>
+            {
+                _forceClose = true;
+                Application.Current.Shutdown();
             };
         }
 
-        private void SubscribeToSizingEvents()
+        private void MainWindow_Closing(object? sender, CancelEventArgs e)
         {
-            this.DashboardControl.SizeChanged += Control_SizeChanged;
-            this.TeamControl.SizeChanged += Control_SizeChanged;
-            this.OneOnOnesControl.SizeChanged += Control_SizeChanged;
-            this.KpisControl.SizeChanged += Control_SizeChanged;
-            this.OkrsControl.SizeChanged += Control_SizeChanged;
-            this.TasksControl.SizeChanged += Control_SizeChanged;
-            this.ProjectsControl.SizeChanged += Control_SizeChanged;
-        }
-
-        private void UnsubscribeFromSizingEvents()
-        {
-            this.DashboardControl.SizeChanged -= Control_SizeChanged;
-            this.TeamControl.SizeChanged -= Control_SizeChanged;
-            this.OneOnOnesControl.SizeChanged -= Control_SizeChanged;
-            this.KpisControl.SizeChanged -= Control_SizeChanged;
-            this.OkrsControl.SizeChanged -= Control_SizeChanged;
-            this.TasksControl.SizeChanged -= Control_SizeChanged;
-            this.ProjectsControl.SizeChanged -= Control_SizeChanged;
-        }
-
-        private void Control_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            if (sender is FrameworkElement control)
+            var settings = UserSettingsManager.Instance.ReminderSettings;
+            
+            // If minimize to tray is enabled and not force closing
+            if (settings.MinimizeToTray && !_forceClose)
             {
-                if (control.RenderTransform is TranslateTransform transform)
-                {
-                    // If the control is not visible (i.e., not selected), keep it off-screen
-                    // Otherwise, ensure it's in the correct position
-                    var tabItem = FindParentTabItem(control);
-                    {
-                        bool isSelected = tabItem is { IsSelected: true };
-                        transform.X = isSelected ? 0 : control.ActualWidth;
-                    }
-                }
+                e.Cancel = true;
+                this.Hide();
+                SystemTrayService.Instance.Show();
+                SystemTrayService.Instance.ShowBalloon(
+                    "Tracker",
+                    "Tracker is still running. Double-click the tray icon to open.",
+                    System.Windows.Forms.ToolTipIcon.Info,
+                    2000
+                );
             }
         }
 
-        private TabItem? FindParentTabItem(DependencyObject element)
-        {
-            DependencyObject? parent = VisualTreeHelper.GetParent(element);
-            while (parent != null && !(parent is TabItem))
-            {
-                parent = VisualTreeHelper.GetParent(parent);
-            }
-            return parent as TabItem ?? null;
-        }
         private void Window_Closed(object sender, EventArgs e)
         {
+            // Stop services
+            ReminderService.Instance.Stop();
+            ReminderService.Instance.Dispose();
+            SystemTrayService.Instance.Dispose();
+            
             Application.Current.Shutdown();
         }
 
         private void TabChangedEventHandler(object sender, SelectionChangedEventArgs e)
         {
-            if (e.AddedItems.Count > 0)
+            // Only handle TabControl selection changes (not RadioButton changes within content)
+            if (e.Source != TabControl) return;
+            
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is TabItem selectedTab)
             {
-                var selectedTab = e.AddedItems[0] as TabItem;
-                if (selectedTab != null)
+                // Simple slide animation for main content transitions
+                AnimateContentTransition(selectedTab.Name);
+            }
+        }
+
+        private void AnimateContentTransition(string tabName)
+        {
+            // Get the content element that corresponds to the selected tab
+            FrameworkElement? content = tabName switch
+            {
+                "Home" => DashboardControl,
+                "Circle" => FindName("CircleContent") as FrameworkElement,
+                "Pulse" => FindName("PulseContent") as FrameworkElement,
+                "Chronicle" => FindName("ChronicleContent") as FrameworkElement,
+                "Settings" => SettingsControl,
+                _ => null
+            };
+
+            // For pillars with sub-navigation, we don't need individual control animation
+            // The content is managed by the RadioButton visibility bindings
+            
+            if (content == null && tabName != "Circle" && tabName != "Pulse" && tabName != "Chronicle")
+            {
+                return;
+            }
+
+            // Apply a subtle fade-in animation to the content area
+            if (content != null)
+            {
+                var fadeIn = new DoubleAnimation
                 {
-                    // Identify the corresponding control based on the selected tab
-                    FrameworkElement? correspondingControl = null;
+                    From = 0.7,
+                    To = 1,
+                    Duration = TimeSpan.FromSeconds(0.2),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                content.BeginAnimation(OpacityProperty, fadeIn);
+            }
+        }
 
-                    switch (selectedTab.Name)
+        private void Profile_Click(object sender, RoutedEventArgs e)
+        {
+            // Open the account/profile dialog
+            var profileDialog = new AccountDialog { Owner = this };
+            profileDialog.ShowDialog();
+        }
+
+        #region Navigation Command Handler
+
+        /// <summary>
+        /// Handles the Ctrl+1-5 navigation keyboard shortcuts.
+        /// </summary>
+        private void OnNavigateToTab(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (e.Parameter is string indexStr && int.TryParse(indexStr, out int tabIndex))
+            {
+                if (tabIndex >= 0 && tabIndex < TabControl.Items.Count)
+                {
+                    TabControl.SelectedIndex = tabIndex;
+                    
+                    // Announce navigation change for screen readers
+                    var tabItem = TabControl.Items[tabIndex] as TabItem;
+                    if (tabItem != null)
                     {
-                        case "Dashboard":
-                            correspondingControl = DashboardControl;
-                            break;
-                        case "Team":
-                            correspondingControl = TeamControl;
-                            break;
-                        case "OneOnOne":
-                            correspondingControl = OneOnOnesControl;
-                            break;
-                        case "Projects":
-                            correspondingControl = ProjectsControl;
-                            break;
-                        case "Tasks":
-                            correspondingControl = TasksControl;
-                            break;
-                        case "Kpis":
-                            correspondingControl = this.KpisControl;
-                            break;
-                        case "Okrs":
-                            correspondingControl = OkrsControl;
-                            break;
-
-                    }
-
-                    if (correspondingControl != null)
-                    {
-                        if (!(correspondingControl.RenderTransform is TranslateTransform))
-                        {
-                            correspondingControl.RenderTransform = new TranslateTransform();
-                        }
-
-                        var transform = (TranslateTransform)correspondingControl.RenderTransform;
-                        transform.X = correspondingControl.ActualWidth; // Set the starting position
-
-                        var slideInAnimation = new DoubleAnimation
-                        {
-                            From = correspondingControl.ActualWidth,
-                            To = 0,
-                            Duration = TimeSpan.FromSeconds(0.4),
-                            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                        };
-
-                        transform.BeginAnimation(TranslateTransform.XProperty, slideInAnimation);
+                        // Focus the tab to allow screen readers to announce the change
+                        tabItem.Focus();
                     }
                 }
             }
         }
+
+        #endregion
     }
 }

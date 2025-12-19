@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-US" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  
+  <!-- Prickly Cactus Software - Tracker Installer Strings -->
+  
+  <String Id="DowngradeError" Value="A newer version of Tracker is already installed. Setup will now exit." />
+  
+  <String Id="WelcomeTitle" Value="Welcome to Tracker Setup" />
+  <String Id="WelcomeDescription" Value="The Setup Wizard will install Tracker on your computer. Tracker helps you manage your team effectively with 1:1 meetings, goals, tasks, and more." />
+  
+  <String Id="InstallDirTitle" Value="Choose Install Location" />
+  <String Id="InstallDirDescription" Value="Choose the folder in which to install Tracker." />
+  
+  <String Id="VerifyReadyTitle" Value="Ready to Install" />
+  <String Id="VerifyReadyDescription" Value="Click Install to begin the installation. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard." />
+  
+  <String Id="ProgressTitle" Value="Installing Tracker" />
+  <String Id="ProgressDescription" Value="Please wait while the Setup Wizard installs Tracker." />
+  
+  <String Id="ExitTitle" Value="Tracker Setup Complete" />
+  <String Id="ExitDescription" Value="The Setup Wizard has successfully installed Tracker. Click Finish to exit the wizard." />
+  
+  <String Id="MaintenanceTitle" Value="Modify, Repair or Remove Installation" />
+  <String Id="MaintenanceDescription" Value="Select the operation you wish to perform." />
+  
+  <String Id="CancelMessage" Value="Are you sure you want to cancel Tracker Setup?" />
+  
+  <!-- Prickly Cactus branding -->
+  <String Id="ManufacturerName" Value="Prickly Cactus Software" />
+  <String Id="ProductName" Value="Tracker" />
+  <String Id="ProductDescription" Value="Team Management Application - Making team management less prickly!" />
+  
+</WixLocalization>

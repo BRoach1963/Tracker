@@ -5,12 +5,45 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Tracker.Controls"
              mc:Ignorable="d"   
-             Opacity=".7" 
              Height="Auto"
-             MaxWidth="250"> 
-        <TextBlock Text="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}},Path=ToolTipText}"
-               Foreground="{DynamicResource ToolTipForeground}"
-               FontSize="14"
-               TextWrapping="Wrap" /> 
-
+             MaxWidth="280"
+             d:DesignWidth="250">
+    <Grid>
+        <StackPanel>
+            <!-- Title (optional) -->
+            <TextBlock x:Name="TitleBlock"
+                       Text="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}}, Path=Title}"
+                       Foreground="{DynamicResource ToolTipForeground}"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,4"
+                       Visibility="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}}, Path=HasTitle, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            
+            <!-- Main text -->
+            <TextBlock Text="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}}, Path=ToolTipText}"
+                       Foreground="{DynamicResource ToolTipForeground}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       LineHeight="18"/>
+            
+            <!-- Shortcut hint (optional) -->
+            <Border x:Name="ShortcutBorder"
+                    Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="4"
+                    Padding="6,3"
+                    Margin="0,6,0,0"
+                    HorizontalAlignment="Left"
+                    Visibility="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}}, Path=HasShortcut, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TrackerToolTip}}, Path=Shortcut}"
+                           Foreground="{DynamicResource HintTextBrush}"
+                           FontSize="11"
+                           FontFamily="Consolas"/>
+            </Border>
+        </StackPanel>
+    </Grid>
+    
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
 </UserControl>

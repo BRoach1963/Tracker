@@ -86,7 +86,7 @@ namespace Tracker.Views.Dialogs {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Tracker;component/views/dialogs/messageboxdialog.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Tracker;V1.0.0.0;component/views/dialogs/messageboxdialog.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\Views\Dialogs\MessageBoxDialog.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

@@ -33,7 +33,8 @@ namespace Tracker.ViewModels
             {
                 if (disposing)
                 {
-                    // Dispose managed resources
+                    // Clear event handlers to prevent memory leaks
+                    PropertyChanged = null;
                 }
 
                 _isDisposed = true;

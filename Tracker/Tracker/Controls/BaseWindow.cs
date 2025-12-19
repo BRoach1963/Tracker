@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Input;
+using DeepEndControls.Theming;
 using Tracker.Common.Enums;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
@@ -32,6 +33,20 @@ namespace Tracker.Controls
             MouseLeftButtonDown += OnMouseLeftButtonDown;
             MouseLeftButtonUp += OnMouseLeftButtonUp;
             Messenger.Subscribe<DialogCloseMessage>(HandleDialogCloseMessage);
+            
+            // Apply DeepEndControls theme to this window so child controls inherit it
+            DeepEndThemeManager.SetTheme(this, ThemeManager.Instance.CurrentTheme);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // Unsubscribe from events to prevent memory leaks
+            MouseMove -= OnMouseMove;
+            MouseLeftButtonDown -= OnMouseLeftButtonDown;
+            MouseLeftButtonUp -= OnMouseLeftButtonUp;
+            Messenger.Unsubscribe<DialogCloseMessage>(HandleDialogCloseMessage);
+            
+            base.OnClosed(e);
         }
 
         private void HandleDialogCloseMessage(DialogCloseMessage msg)

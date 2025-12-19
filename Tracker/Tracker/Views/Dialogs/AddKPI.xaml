@@ -3,7 +3,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                    xmlns:local="clr-namespace:Tracker.Views.Dialogs"
                     xmlns:controls="clr-namespace:Tracker.Controls"
                     xmlns:languages="clr-namespace:Tracker.Resources.Languages"
                     xmlns:commands="clr-namespace:Tracker.Command"
@@ -20,297 +19,232 @@
                     SizeToContent="WidthAndHeight"
                     Background="Transparent"
                     d:DataContext="{d:DesignInstance Type=dialogViewModels:NewKpiViewModel}"
-                    MinWidth="500"
-                    MinHeight="450">
+                    MinWidth="560"
+                    MinHeight="480"
+                    AutomationProperties.Name="Add KPI Dialog"
+                    AutomationProperties.HelpText="Create a new Key Performance Indicator">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"></ResourceDictionary>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </controls:BaseWindow.Resources>
+    
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
                 BorderThickness="1"
-                BorderBrush="{DynamicResource ForegroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="5" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
                 <!-- Title Bar -->
-                <Border Grid.Row="0"
-                        Height="Auto"
-                        Background="{DynamicResource BackgroundBrush}"
-                        CornerRadius="12,12,0,0">
+                <Border Grid.Row="0" CornerRadius="12,12,0,0">
                     <controls:DialogTitleBar x:Name="TitleBar"
                                              DialogTitle="{x:Static languages:Resources.Add_Kpi}"
                                              IconData="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"
                                              CloseClicked="Close_Click"
                                              MinimizeClicked="Minimize_Click"
                                              MaximizeClicked="Maximize_Click"
-                                             RestoreClicked="Restore_Click" />
+                                             RestoreClicked="Restore_Click"/>
                 </Border>
                 
                 <!-- Content Area -->
-                <Grid Grid.Row="1"
-                      Margin="15,10,15,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="15" />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- Left Column - Basic Info -->
-                    <Grid Grid.Column="0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="24,16,24,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
                         
-                        <!-- KPI Name -->
-                        <Grid Grid.Row="0" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="KPI Name *"
-                                   Grid.Row="0" />
-                            <customControls:TextBoxWithHint TextBoxType="Text"
-                                                            HintText="e.g., Customer Satisfaction Score"
-                                                            Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                                                            Grid.Row="1" />
-                        </Grid>
-                        
-                        <!-- Owner -->
-                        <Grid Grid.Row="1" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Owner *"
-                                   Grid.Row="0" />
-                            <ComboBox Grid.Row="1"
-                                      ItemsSource="{Binding TeamMembers}"
-                                      SelectedItem="{Binding SelectedOwner}"
-                                      HorizontalAlignment="Stretch">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0} {1}">
-                                                    <Binding Path="FirstName" />
-                                                    <Binding Path="LastName" />
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </Grid>
-                        
-                        <!-- Link to OKR (Optional) -->
-                        <Grid Grid.Row="2" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Link to OKR (Optional)"
-                                   Grid.Row="0" />
-                            <ComboBox Grid.Row="1"
-                                      ItemsSource="{Binding AvailableOkrs}"
-                                      SelectedItem="{Binding SelectedOkr}"
-                                      DisplayMemberPath="Title"
-                                      HorizontalAlignment="Stretch" />
-                        </Grid>
-                        
-                        <!-- Description -->
-                        <Grid Grid.Row="4" Margin="0,0,0,5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" MinHeight="80" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Description"
-                                   Grid.Row="0" />
-                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                                     AcceptsReturn="True"
-                                     TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto"
-                                     Grid.Row="1" />
-                        </Grid>
-                    </Grid>
-                    
-                    <!-- Right Column - Values & Thresholds -->
-                    <Grid Grid.Column="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        
-                        <!-- Current Value -->
-                        <Grid Grid.Row="0" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Current Value"
-                                   Grid.Row="0" />
-                            <customControls:TextBoxWithHint TextBoxType="Text"
-                                                            HintText="0"
-                                                            Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                            Grid.Row="1" />
-                        </Grid>
-                        
-                        <!-- Target Value -->
-                        <Grid Grid.Row="1" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Target Value"
-                                   Grid.Row="0" />
-                            <customControls:TextBoxWithHint TextBoxType="Text"
-                                                            HintText="100"
-                                                            Text="{Binding TargetValue, UpdateSourceTrigger=PropertyChanged}"
-                                                            Grid.Row="1" />
-                        </Grid>
-                        
-                        <!-- Target Direction -->
-                        <Grid Grid.Row="2" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Target Direction"
-                                   Grid.Row="0" />
-                            <ComboBox Grid.Row="1"
-                                      ItemsSource="{Binding TargetDirections}"
-                                      SelectedItem="{Binding SelectedTargetDirection}"
-                                      DisplayMemberPath="Description"
-                                      HorizontalAlignment="Stretch" />
-                        </Grid>
-                        
-                        <!-- Thresholds Section -->
-                        <Label Style="{StaticResource LabelStyle}"
-                               Content="Thresholds (%)"
-                               Grid.Row="3"
-                               Margin="0,5,0,5" />
-                        
-                        <!-- On Target Threshold -->
-                        <Grid Grid.Row="4" Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="10" />
-                                <ColumnDefinition />
-                            </Grid.ColumnDefinitions>
-                            <Grid Grid.Column="0">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Label Style="{StaticResource LabelStyle}"
-                                       Content="On Target"
-                                       FontSize="11"
-                                       Grid.Row="0" />
+                        <!-- Left Column - Basic Info -->
+                        <StackPanel Grid.Column="0">
+                            
+                            <!-- KPI Name -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="KPI Name" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                                </StackPanel>
                                 <customControls:TextBoxWithHint TextBoxType="Text"
-                                                                HintText="5"
-                                                                Text="{Binding OnTargetThresholdPercentage, UpdateSourceTrigger=PropertyChanged}"
-                                                                Grid.Row="1" />
-                            </Grid>
-                            <Grid Grid.Column="2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Label Style="{StaticResource LabelStyle}"
-                                       Content="Off Target"
-                                       FontSize="11"
-                                       Grid.Row="0" />
+                                                                HintText="e.g., Customer Satisfaction Score"
+                                                                Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            
+                            <!-- Owner -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Owner" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                                </StackPanel>
+                                <ComboBox ItemsSource="{Binding TeamMembers}"
+                                          SelectedItem="{Binding SelectedOwner}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Grid Width="24" Height="24" Margin="0,0,8,0">
+                                                    <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                    <TextBlock Text="{Binding Initials}" 
+                                                               FontSize="9" FontWeight="Bold"
+                                                               Foreground="{DynamicResource BackgroundBrush}"
+                                                               HorizontalAlignment="Center" 
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <TextBlock VerticalAlignment="Center">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0} {1}">
+                                                            <Binding Path="FirstName"/>
+                                                            <Binding Path="LastName"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <!-- Link to OKR -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <TextBlock Text="Link to OKR (Optional)" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding AvailableOkrs}"
+                                          SelectedItem="{Binding SelectedOkr}"
+                                          DisplayMemberPath="Title"
+                                          HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Link this KPI to an existing objective" 
+                                           Style="{StaticResource FieldHint}"/>
+                            </StackPanel>
+                            
+                            <!-- Description -->
+                            <StackPanel>
                                 <customControls:TextBoxWithHint TextBoxType="Text"
-                                                                HintText="10"
-                                                                Text="{Binding OffTargetThresholdPercentage, UpdateSourceTrigger=PropertyChanged}"
-                                                                Grid.Row="1" />
-                            </Grid>
-                        </Grid>
+                                                                HintText="Describe this KPI and what it measures..."
+                                                                Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                                AcceptsReturn="True"
+                                                                TextWrapping="Wrap"
+                                                                VerticalScrollBarVisibility="Auto"
+                                                                MinHeight="100"/>
+                            </StackPanel>
+                            
+                        </StackPanel>
                         
-                        <!-- Status Display -->
-                        <Grid Grid.Row="5" Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="10" />
-                                <ColumnDefinition />
-                            </Grid.ColumnDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Current Status:"
-                                   Grid.Column="0" />
-                            <Border Grid.Column="2"
-                                    CornerRadius="4"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Left">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background" Value="Gray" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Status}" Value="OnTarget">
-                                                <Setter Property="Background" Value="#4CAF50" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="CloseToTarget">
-                                                <Setter Property="Background" Value="#FF9800" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="OffTarget">
-                                                <Setter Property="Background" Value="#F44336" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <TextBlock Text="{Binding Status}"
-                                           Foreground="White"
-                                           FontWeight="SemiBold" />
+                        <!-- Right Column - Values -->
+                        <StackPanel Grid.Column="2">
+                            
+                            <!-- Values Card -->
+                            <Border Style="{StaticResource DialogCardStyle}" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="METRIC VALUES" 
+                                               FontSize="11" FontWeight="Bold" 
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               Margin="0,0,0,12"/>
+                                    
+                                    <!-- Current Value -->
+                                    <StackPanel Margin="0,0,0,12">
+                                        <TextBlock Text="Current Value" Style="{StaticResource FieldLabel}"/>
+                                        <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                        HintText="0"
+                                                                        Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Target Value -->
+                                    <StackPanel Margin="0,0,0,12">
+                                        <TextBlock Text="Target Value" Style="{StaticResource FieldLabel}"/>
+                                        <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                        HintText="100"
+                                                                        Text="{Binding TargetValue, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Target Direction -->
+                                    <StackPanel>
+                                        <TextBlock Text="Target Direction" Style="{StaticResource FieldLabel}"/>
+                                        <ComboBox ItemsSource="{Binding TargetDirections}"
+                                                  SelectedItem="{Binding SelectedTargetDirection}"
+                                                  DisplayMemberPath="Description"
+                                                  HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </Border>
-                        </Grid>
+                            
+                            <!-- Status Preview -->
+                            <Border Style="{StaticResource DialogCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="STATUS PREVIEW" 
+                                               FontSize="11" FontWeight="Bold" 
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,0,0,12"/>
+                                    
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <TextBlock Text="Current Status:" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        
+                                        <Border Grid.Column="1"
+                                                CornerRadius="6"
+                                                Padding="12,6"
+                                                HorizontalAlignment="Right">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#64748B"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="OnTarget">
+                                                            <Setter Property="Background" Value="#10B981"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="CloseToTarget">
+                                                            <Setter Property="Background" Value="#F59E0B"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="OffTarget">
+                                                            <Setter Property="Background" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Status}"
+                                                       Foreground="White"
+                                                       FontWeight="Bold"
+                                                       FontSize="12"/>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            
+                        </StackPanel>
                     </Grid>
-                </Grid>
+                </ScrollViewer>
                 
-                <!-- Button Bar -->
-                <StackPanel Grid.Row="2"
-                            Margin="0,10,15,10"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Margin="0,0,10,0"
-                            Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Content="Cancel" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Add"
-                            Command="{Binding AddKpiCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Update"
-                            Command="{Binding UpdateKpiCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                </StackPanel>
+                <!-- Footer with Buttons -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Margin="0,0,12,0"
+                                Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                        <Button Content="Create KPI"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding AddKpiCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"/>
+                        <Button Content="Save Changes"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding UpdateKpiCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
     </Grid>

@@ -9,6 +9,8 @@ using Tracker.Classes;
 using Tracker.Helpers;
 using Tracker.Managers;
 using Tracker.Services;
+using Tracker.Services.Google;
+using Tracker.Services.Slack;
 using Tracker.Views.Dialogs;
 
 namespace Tracker.ViewModels.DialogViewModels
@@ -23,8 +25,10 @@ namespace Tracker.ViewModels.DialogViewModels
         private CalendarSettings _settings;
         private bool _isConnectingGoogle;
         private bool _isConnectingOutlook;
+        private bool _isConnectingSlack;
         private string _googleStatus = "Not Connected";
         private string _outlookStatus = "Not Connected";
+        private string _slackStatus = "Not Connected";
 
         #endregion
 
@@ -148,6 +152,30 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public string OutlookUserEmail => _settings.OutlookUserEmail ?? "Not signed in";
 
+        public string SlackStatus
+        {
+            get => _slackStatus;
+            set
+            {
+                _slackStatus = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool IsConnectingSlack
+        {
+            get => _isConnectingSlack;
+            set
+            {
+                _isConnectingSlack = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool SlackConnected => UserSettingsManager.Instance.Settings.Slack.IsConnected;
+
+        public string SlackWorkspace => UserSettingsManager.Instance.Settings.Slack.WorkspaceName ?? "Not connected";
+
         #endregion
 
         #region Commands
@@ -156,6 +184,8 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _disconnectGoogleCommand;
         private ICommand? _connectOutlookCommand;
         private ICommand? _disconnectOutlookCommand;
+        private ICommand? _connectSlackCommand;
+        private ICommand? _disconnectSlackCommand;
 
         public ICommand ConnectGoogleCommand =>
             _connectGoogleCommand ??= new TrackerCommand(ConnectGoogleExecuted, _ => !IsConnectingGoogle);
@@ -169,6 +199,12 @@ namespace Tracker.ViewModels.DialogViewModels
         public ICommand DisconnectOutlookCommand =>
             _disconnectOutlookCommand ??= new TrackerCommand(DisconnectOutlookExecuted, _ => OutlookCalendarEnabled);
 
+        public ICommand ConnectSlackCommand =>
+            _connectSlackCommand ??= new TrackerCommand(ConnectSlackExecuted, _ => !IsConnectingSlack);
+
+        public ICommand DisconnectSlackCommand =>
+            _disconnectSlackCommand ??= new TrackerCommand(DisconnectSlackExecuted, _ => SlackConnected);
+
         #endregion
 
         #region Constructor
@@ -178,6 +214,7 @@ namespace Tracker.ViewModels.DialogViewModels
             _settings = UserSettingsManager.Instance.Settings.Calendar;
             UpdateGoogleStatus();
             UpdateOutlookStatus();
+            UpdateSlackStatus();
         }
 
         #endregion
@@ -213,72 +250,29 @@ namespace Tracker.ViewModels.DialogViewModels
             IsConnectingGoogle = true;
             try
             {
-                const int callbackPort = 8080;
-                var redirectUri = $"http://localhost:{callbackPort}/";
-
-                // Get authorization URL
-                var authUrl = GoogleAuthService.Instance.GetAuthorizationUrl(redirectUri);
-                
-                // Start callback listener
-                var callbackHandler = OAuthCallbackHandler.Instance;
-                var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5)); // 5 minute timeout
-                
-                var listenTask = callbackHandler.ListenForCallbackAsync(callbackPort, cancellationTokenSource.Token);
-                
-                // Open browser for user to authenticate
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = authUrl,
-                    UseShellExecute = true
-                });
-
-                NotificationManager.Instance.ShowInfo("Google Calendar", 
-                    "Please complete authentication in your browser. Waiting for callback...");
-
-                // Wait for callback (with timeout)
-                var authorizationCode = await listenTask;
-
-                // Stop listener
-                callbackHandler.Stop();
-
-                if (string.IsNullOrEmpty(authorizationCode))
-                {
-                    // Fallback to manual entry
-                    var manualDialog = new Views.Dialogs.ManualAuthCodeDialog
-                    {
-                        Owner = Application.Current.MainWindow
-                    };
-                    manualDialog.ShowDialog();
-
-                    if (manualDialog.DialogResult && !string.IsNullOrEmpty(manualDialog.AuthorizationCode))
-                    {
-                        authorizationCode = manualDialog.AuthorizationCode;
-                    }
-                    else
-                    {
-                        NotificationManager.Instance.ShowWarning("Authentication Cancelled", 
-                            "Authentication was cancelled. Please try again.");
-                        return;
-                    }
-                }
-
-                // Exchange code for tokens
-                var success = await GoogleAuthService.Instance.CompleteAuthenticationAsync(authorizationCode, redirectUri);
+                // Use Google's built-in web authorization flow
+                var success = await GoogleAuthService.Instance.SignInAsync();
 
                 if (success)
                 {
                     GoogleCalendarEnabled = true;
+                    
+                    // Update settings
+                    UserSettingsManager.Instance.Settings.Google.IsConnected = true;
+                    UserSettingsManager.Instance.Settings.Google.CalendarSyncEnabled = true;
+                    UserSettingsManager.Instance.SaveSettings();
+                    
                     UpdateGoogleStatus();
-                    NotificationManager.Instance.ShowSuccess("Connected", "Google Calendar has been connected successfully!");
+                    NotificationManager.Instance.ShowSuccess("Connected", 
+                        $"Google Calendar connected as {GoogleAuthService.Instance.UserEmail}");
                 }
                 else
                 {
-                    NotificationManager.Instance.ShowError("Error", "Failed to complete authentication. Please try again.");
+                    NotificationManager.Instance.ShowError("Error", "Failed to connect to Google. Please try again.");
                 }
             }
             catch (Exception ex)
             {
-                OAuthCallbackHandler.Instance.Stop();
                 NotificationManager.Instance.ShowError("Error", $"Failed to connect Google Calendar: {ex.Message}");
             }
             finally
@@ -287,7 +281,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        private void DisconnectGoogleExecuted(object? parameter)
+        private async void DisconnectGoogleExecuted(object? parameter)
         {
             var result = MessageBoxHelper.Show(
                 "Are you sure you want to disconnect Google Calendar? This will stop syncing meetings to your Google Calendar.",
@@ -297,8 +291,14 @@ namespace Tracker.ViewModels.DialogViewModels
 
             if (result == MessageBoxResult.Yes)
             {
-                GoogleAuthService.Instance.Disconnect(_settings);
+                await GoogleAuthService.Instance.SignOutAsync();
                 GoogleCalendarEnabled = false;
+                
+                // Update settings
+                UserSettingsManager.Instance.Settings.Google.IsConnected = false;
+                UserSettingsManager.Instance.Settings.Google.CalendarSyncEnabled = false;
+                UserSettingsManager.Instance.SaveSettings();
+                
                 UpdateGoogleStatus();
                 NotificationManager.Instance.ShowSuccess("Disconnected", "Google Calendar has been disconnected.");
             }
@@ -314,6 +314,92 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             // TODO: Implement Outlook disconnect
             NotificationManager.Instance.ShowInfo("Coming Soon", "Outlook Calendar integration will be available in Phase 2.");
+        }
+
+        private void UpdateSlackStatus()
+        {
+            var slackSettings = UserSettingsManager.Instance.Settings.Slack;
+            if (slackSettings.IsConnected && !string.IsNullOrEmpty(slackSettings.WorkspaceName))
+            {
+                SlackStatus = $"Connected ({slackSettings.WorkspaceName})";
+            }
+            else if (SlackAuthService.Instance.IsConnected)
+            {
+                // Bot token is valid even without user OAuth
+                SlackStatus = "Connected (Bot Token)";
+                slackSettings.IsConnected = true;
+            }
+            else
+            {
+                SlackStatus = "Not Connected";
+            }
+        }
+
+        private async void ConnectSlackExecuted(object? parameter)
+        {
+            IsConnectingSlack = true;
+            try
+            {
+                // First validate the bot token
+                var botValid = await SlackAuthService.Instance.ValidateBotTokenAsync();
+                
+                if (botValid)
+                {
+                    // Bot token is always available, update settings
+                    var slackSettings = UserSettingsManager.Instance.Settings.Slack;
+                    slackSettings.IsConnected = true;
+                    slackSettings.WorkspaceName = SlackAuthService.Instance.TeamName;
+                    slackSettings.WorkspaceId = SlackAuthService.Instance.TeamId;
+                    UserSettingsManager.Instance.SaveSettings();
+                    
+                    UpdateSlackStatus();
+                    RaisePropertyChanged(nameof(SlackConnected));
+                    RaisePropertyChanged(nameof(SlackWorkspace));
+                    
+                    NotificationManager.Instance.ShowSuccess("Connected", 
+                        $"Slack connected to workspace: {SlackAuthService.Instance.TeamName}");
+                }
+                else
+                {
+                    NotificationManager.Instance.ShowError("Error", "Failed to connect to Slack. Please check the bot token configuration.");
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationManager.Instance.ShowError("Error", $"Failed to connect Slack: {ex.Message}");
+            }
+            finally
+            {
+                IsConnectingSlack = false;
+            }
+        }
+
+        private void DisconnectSlackExecuted(object? parameter)
+        {
+            var result = MessageBoxHelper.Show(
+                "Are you sure you want to disconnect Slack? This will stop messaging and presence sync.",
+                "Disconnect Slack",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                SlackAuthService.Instance.Disconnect();
+                
+                // Update settings
+                var slackSettings = UserSettingsManager.Instance.Settings.Slack;
+                slackSettings.IsConnected = false;
+                slackSettings.WorkspaceName = null;
+                slackSettings.WorkspaceId = null;
+                slackSettings.UserId = null;
+                UserSettingsManager.Instance.SaveSettings();
+                
+                UpdateSlackStatus();
+                RaisePropertyChanged(nameof(SlackConnected));
+                RaisePropertyChanged(nameof(SlackWorkspace));
+                
+                NotificationManager.Instance.ShowSuccess("Disconnected", "Slack has been disconnected.");
+            }
         }
 
         #endregion

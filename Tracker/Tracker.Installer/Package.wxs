@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
+
+  <!--
+    Tracker Installer - Prickly Cactus Software
+    Team Management Application (Per-User Installation)
+  -->
+
+  <?define ProductName = "Tracker" ?>
+  <?define ProductVersion = "1.0.0.0" ?>
+  <?define Manufacturer = "Prickly Cactus Software" ?>
+  <?define UpgradeCode = "A1B2C3D4-E5F6-7890-ABCD-EF1234567890" ?>
+  <?define RegKeyPath = "Software\$(Manufacturer)\$(ProductName)" ?>
+
+  <Package Name="$(ProductName)"
+           Manufacturer="$(Manufacturer)"
+           Version="$(ProductVersion)"
+           UpgradeCode="$(UpgradeCode)"
+           Scope="perUser"
+           Compressed="yes">
+
+    <SummaryInformation Description="$(ProductName) - Team Management Application by $(Manufacturer)"
+                        Manufacturer="$(Manufacturer)" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)"
+                  Schedule="afterInstallInitialize" />
+
+    <!-- Installation Directory Structure (per-user to avoid UAC) -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ManufacturerFolder" Name="$(Manufacturer)">
+        <Directory Id="INSTALLFOLDER" Name="$(ProductName)">
+
+          <!-- Main application -->
+          <Component Id="MainApp" Guid="D4E5F6A7-B8C9-0123-DEFA-456789012345">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="MainApp" Type="integer" Value="1" KeyPath="yes" />
+            <File Id="TrackerExe" Source="Tracker.exe" />
+            <File Source="Tracker.dll" />
+            <File Source="Tracker.deps.json" />
+            <File Source="Tracker.runtimeconfig.json" />
+          </Component>
+
+          <!-- DeepEnd Controls -->
+          <Component Id="DeepEndControls" Guid="11111111-1111-1111-1111-111111111111">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="DeepEndControls" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="DeepEndControls.dll" />
+          </Component>
+
+          <!-- Entity Framework & SQLite -->
+          <Component Id="EFCoreDeps" Guid="22222222-2222-2222-2222-222222222222">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="EFCoreDeps" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="Microsoft.EntityFrameworkCore.dll" />
+            <File Source="Microsoft.EntityFrameworkCore.Abstractions.dll" />
+            <File Source="Microsoft.EntityFrameworkCore.Relational.dll" />
+            <File Source="Microsoft.EntityFrameworkCore.Sqlite.dll" />
+            <File Source="Microsoft.EntityFrameworkCore.SqlServer.dll" />
+            <File Source="Microsoft.Data.Sqlite.dll" />
+            <File Source="Microsoft.Data.SqlClient.dll" />
+            <File Source="SQLitePCLRaw.batteries_v2.dll" />
+            <File Source="SQLitePCLRaw.core.dll" />
+            <File Source="SQLitePCLRaw.provider.e_sqlite3.dll" />
+          </Component>
+
+          <!-- Azure & Identity -->
+          <Component Id="AzureIdentity" Guid="33333333-3333-3333-3333-333333333333">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="AzureIdentity" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="Azure.Core.dll" />
+            <File Source="Azure.Identity.dll" />
+            <File Source="Microsoft.Identity.Client.dll" />
+            <File Source="Microsoft.Identity.Client.Extensions.Msal.dll" />
+            <File Source="Microsoft.IdentityModel.Abstractions.dll" />
+            <File Source="Microsoft.IdentityModel.JsonWebTokens.dll" />
+            <File Source="Microsoft.IdentityModel.Logging.dll" />
+            <File Source="Microsoft.IdentityModel.Protocols.dll" />
+            <File Source="Microsoft.IdentityModel.Protocols.OpenIdConnect.dll" />
+            <File Source="Microsoft.IdentityModel.Tokens.dll" />
+            <File Source="System.IdentityModel.Tokens.Jwt.dll" />
+          </Component>
+
+          <!-- Google APIs -->
+          <Component Id="GoogleApis" Guid="44444444-4444-4444-4444-444444444444">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="GoogleApis" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="Google.Apis.dll" />
+            <File Source="Google.Apis.Auth.dll" />
+            <File Source="Google.Apis.Core.dll" />
+            <File Source="Google.Apis.Calendar.v3.dll" />
+          </Component>
+
+          <!-- UI Components -->
+          <Component Id="UIComponents" Guid="55555555-5555-5555-5555-555555555555">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="UIComponents" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="LiveCharts.dll" />
+            <File Source="LiveCharts.Wpf.dll" />
+            <File Source="Newtonsoft.Json.dll" />
+          </Component>
+
+          <!-- Document/Excel -->
+          <Component Id="DocumentDeps" Guid="66666666-6666-6666-6666-666666666666">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="DocumentDeps" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="DocumentFormat.OpenXml.dll" />
+            <File Source="DocumentFormat.OpenXml.Framework.dll" />
+            <File Source="EPPlus.dll" />
+            <File Source="EPPlus.Interfaces.dll" />
+            <File Source="EPPlus.System.Drawing.dll" />
+          </Component>
+
+          <!-- Microsoft Extensions -->
+          <Component Id="MicrosoftExtensions" Guid="77777777-7777-7777-7777-777777777777">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="MicrosoftExtensions" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="Microsoft.Bcl.AsyncInterfaces.dll" />
+            <File Source="Microsoft.Extensions.Caching.Abstractions.dll" />
+            <File Source="Microsoft.Extensions.Caching.Memory.dll" />
+            <File Source="Microsoft.Extensions.Configuration.Abstractions.dll" />
+            <File Source="Microsoft.Extensions.Configuration.dll" />
+            <File Source="Microsoft.Extensions.Configuration.FileExtensions.dll" />
+            <File Source="Microsoft.Extensions.Configuration.Json.dll" />
+            <File Source="Microsoft.Extensions.DependencyInjection.Abstractions.dll" />
+            <File Source="Microsoft.Extensions.DependencyInjection.dll" />
+            <File Source="Microsoft.Extensions.DependencyModel.dll" />
+            <File Source="Microsoft.Extensions.FileProviders.Abstractions.dll" />
+            <File Source="Microsoft.Extensions.FileProviders.Physical.dll" />
+            <File Source="Microsoft.Extensions.FileSystemGlobbing.dll" />
+            <File Source="Microsoft.Extensions.Logging.Abstractions.dll" />
+            <File Source="Microsoft.Extensions.Logging.dll" />
+            <File Source="Microsoft.Extensions.Options.dll" />
+            <File Source="Microsoft.Extensions.Primitives.dll" />
+          </Component>
+
+          <!-- Syncfusion -->
+          <Component Id="SyncfusionDeps" Guid="99999999-9999-9999-9999-999999999999">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="SyncfusionDeps" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="Syncfusion.Licensing.dll" />
+            <File Source="Syncfusion.SfRadialMenu.WPF.dll" />
+            <File Source="Syncfusion.SfSchedule.WPF.dll" />
+            <File Source="Syncfusion.SfShared.WPF.dll" />
+            <File Source="Syncfusion.Shared.WPF.dll" />
+          </Component>
+
+          <!-- System/Other Dependencies -->
+          <Component Id="SystemDeps" Guid="AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="SystemDeps" Type="integer" Value="1" KeyPath="yes" />
+            <File Source="System.Drawing.Common.dll" />
+            <File Source="System.Management.dll" />
+            <File Source="System.Memory.Data.dll" />
+            <File Source="System.Runtime.Caching.dll" />
+            <File Source="System.Security.Cryptography.Pkcs.dll" />
+            <File Source="Microsoft.IO.RecyclableMemoryStream.dll" />
+            <File Source="Microsoft.SqlServer.Server.dll" />
+            <File Source="Microsoft.Toolkit.Uwp.Notifications.dll" />
+            <File Source="Microsoft.Windows.SDK.NET.dll" />
+            <File Source="WinRT.Runtime.dll" />
+          </Component>
+
+          <!-- Images subfolder -->
+          <Directory Id="ImagesFolder" Name="Images">
+            <Component Id="AppIcon" Guid="DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD">
+              <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="AppIcon" Type="integer" Value="1" KeyPath="yes" />
+              <File Id="TrackerIco" Source="Images\Tracker.ico" />
+              <RemoveFile Id="CleanupImagesFiles" Name="*.*" On="uninstall" />
+            </Component>
+          </Directory>
+
+          <!-- Native runtime dependencies (SQLite, SqlClient, WebView2) -->
+          <Directory Id="RuntimesFolder" Name="runtimes">
+            <Directory Id="WinX64Folder" Name="win-x64">
+              <Directory Id="NativeFolder" Name="native">
+                <Component Id="NativeRuntimes" Guid="FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF">
+                  <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="NativeRuntimes" Type="integer" Value="1" KeyPath="yes" />
+                  <File Id="e_sqlite3" Source="runtimes\win-x64\native\e_sqlite3.dll" />
+                  <File Id="SqlClientSNI" Source="runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll" />
+                  <RemoveFile Id="CleanupNativeFiles" Name="*.*" On="uninstall" />
+                </Component>
+              </Directory>
+            </Directory>
+          </Directory>
+
+          <!-- Cleanup component for the install folder on uninstall -->
+          <Component Id="CleanupInstallFolder" Guid="EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE">
+            <RegistryValue Root="HKCU" Key="$(RegKeyPath)" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+            <RemoveFile Id="CleanupAllFiles" Name="*.*" On="uninstall" />
+            <RemoveFolder Id="CleanupImagesFolder" Directory="ImagesFolder" On="uninstall" />
+            <RemoveFolder Id="CleanupNativeFolder" Directory="NativeFolder" On="uninstall" />
+            <RemoveFolder Id="CleanupWinX64Folder" Directory="WinX64Folder" On="uninstall" />
+            <RemoveFolder Id="CleanupRuntimesFolder" Directory="RuntimesFolder" On="uninstall" />
+            <RemoveFolder Id="CleanupInstallDir" Directory="INSTALLFOLDER" On="uninstall" />
+            <RemoveFolder Id="CleanupManufacturerDir" Directory="ManufacturerFolder" On="uninstall" />
+          </Component>
+
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Start Menu Shortcuts -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="$(ProductName)">
+        <Component Id="ApplicationShortcuts" Guid="BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB">
+          <Shortcut Id="AppStartMenuShortcut"
+                    Name="$(ProductName)"
+                    Description="$(ProductName) - Team Management"
+                    Target="[INSTALLFOLDER]Tracker.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="TrackerIcon" />
+
+          <Shortcut Id="UninstallShortcut"
+                    Name="Uninstall $(ProductName)"
+                    Target="[System64Folder]msiexec.exe"
+                    Arguments="/x [ProductCode]" />
+
+          <RemoveFolder Id="CleanupStartMenuFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="$(RegKeyPath)"
+                         Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Desktop Shortcut -->
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC">
+        <Shortcut Id="DesktopShortcutId"
+                  Name="$(ProductName)"
+                  Description="$(ProductName) - Team Management"
+                  Target="[INSTALLFOLDER]Tracker.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="TrackerIcon" />
+        <RegistryValue Root="HKCU" Key="$(RegKeyPath)"
+                       Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Feature definition -->
+    <Feature Id="ProductFeature" Title="$(ProductName)" Level="1">
+      <ComponentRef Id="MainApp" />
+      <ComponentRef Id="DeepEndControls" />
+      <ComponentRef Id="EFCoreDeps" />
+      <ComponentRef Id="AzureIdentity" />
+      <ComponentRef Id="GoogleApis" />
+      <ComponentRef Id="UIComponents" />
+      <ComponentRef Id="DocumentDeps" />
+      <ComponentRef Id="MicrosoftExtensions" />
+      <ComponentRef Id="SyncfusionDeps" />
+      <ComponentRef Id="SystemDeps" />
+      <ComponentRef Id="AppIcon" />
+      <ComponentRef Id="NativeRuntimes" />
+      <ComponentRef Id="CleanupInstallFolder" />
+      <ComponentRef Id="ApplicationShortcuts" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <!-- Icon -->
+    <Icon Id="TrackerIcon" SourceFile="Tracker.exe" />
+
+    <!-- .NET 8 Desktop Runtime Detection via Registry -->
+    <!-- Checks for WindowsDesktop.App 8.x installed -->
+    <Property Id="DOTNET8DESKTOP">
+      <RegistrySearch Id="DotNet8DesktopReg" Root="HKLM" 
+                      Key="SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App"
+                      Type="raw" />
+    </Property>
+    
+    <!-- Launch condition: Require .NET 8 Desktop Runtime -->
+    <Launch Condition="Installed OR DOTNET8DESKTOP"
+            Message="This application requires .NET 8 Desktop Runtime (x64).&#13;&#10;&#13;&#10;Please download and install it from:&#13;&#10;https://dotnet.microsoft.com/download/dotnet/8.0&#13;&#10;&#13;&#10;Then run this installer again." />
+
+    <!-- WiX UI -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <!-- Branding -->
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="Images\Banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="Images\Dialog.bmp" />
+
+    <!-- Properties -->
+    <Property Id="ARPPRODUCTICON" Value="TrackerIcon" />
+    <Property Id="ARPHELPLINK" Value="https://pricklycactus.com/support" />
+    <Property Id="ARPURLINFOABOUT" Value="https://pricklycactus.com" />
+
+    <!-- Default license checkbox to accepted -->
+    <Property Id="LicenseAccepted" Value="1" />
+
+    <!-- Launch after install - checkbox on exit dialog (default checked) -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Tracker when setup exits" />
+    <Property Id="WixShellExecTarget" Value="[#TrackerExe]" />
+
+    <!-- Custom action to launch app - runs from UI, not execute sequence -->
+    <CustomAction Id="LaunchApplication"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixShellExec"
+                  Impersonate="yes" />
+
+    <!-- UI sequence: Launch app when user clicks Finish (not during install) -->
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+  </Package>
+</Wix>

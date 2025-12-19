@@ -6,153 +6,516 @@
              xmlns:local="clr-namespace:Tracker.Controls"
              xmlns:commands="clr-namespace:Tracker.Command"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
-             xmlns:languages="clr-namespace:Tracker.Resources.Languages"
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
-             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels"
              mc:Ignorable="d"
-             d:DesignHeight="450"
-             d:DesignWidth="800">
+             d:DesignHeight="700"
+             d:DesignWidth="1200"
+             d:DataContext="{d:DesignInstance Type=viewModels:TrackerMainViewModel}"
+             AutomationProperties.Name="One on One Meetings"
+             AutomationProperties.HelpText="Schedule and manage 1:1 meetings with team members">
+    
     <UserControl.Resources>
+        <Style x:Key="StatCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource HintTextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+        </Style>
+        
+        <!-- Team Member Card Style -->
+        <Style x:Key="TeamMemberCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                </Trigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Meeting Row Style -->
+        <Style x:Key="MeetingRowStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Panel Header Style -->
+        <Style x:Key="PanelHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource HintTextBrush}"/>
+            <Setter Property="Margin" Value="12,12,12,8"/>
+        </Style>
 
-        <Style TargetType="syncfusion:HeaderTitleBarView"> 
-            <Setter Property="Foreground"
-                    Value="{DynamicResource ForegroundBrush}" />
-            <Setter Property="FontSize"
-                    Value="12" />
-        </Style>
-        <Style TargetType="syncfusion:ScheduleDaysHeaderViewItemsControl">
-            <Setter Property="Foreground"
-                    Value="{DynamicResource BackgroundBrush}" /> 
-            <Setter Property="FontSize"
-                    Value="12" />
-        </Style>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </UserControl.Resources>
-    <Grid>
+    
+    <Grid Margin="20,16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0">
+        
+        <!-- ROW 0: HEADER -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Border HorizontalAlignment="Stretch"
-                    BorderBrush="{DynamicResource ForegroundBrush}"
-                    BorderThickness="1"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="2"
-                    Background="{DynamicResource BackgroundBrush}" />
-            <StackPanel Orientation="Horizontal"
-                        Grid.Column="0">
-                <Button Style="{StaticResource ToolbarButtonStyle}"
-                        Command="{x:Static commands:DialogCommands.LaunchDialogCommand}"
-                        CommandParameter="{x:Static enums:DialogType.AddOneOnOne}">
-                    <Grid>
-                        <!-- Calendar Icon -->
-                        <Path Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"
-                              Fill="{DynamicResource ForegroundBrush}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Stretch="Uniform"
-                              Margin="0,0,0,0" />
-                    </Grid>
-                    <Button.ToolTip>
-                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                            <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_AddOneOnOne}" />
-                        </ToolTip>
-                    </Button.ToolTip>
-                </Button>
+            
+            <StackPanel>
+                <TextBlock Text="1:1 Meetings" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"/>
+                <TextBlock Text="Track and manage your team check-ins" FontSize="14" Foreground="{DynamicResource HintTextBrush}" Margin="0,4,0,0"/>
             </StackPanel>
-            <StackPanel Grid.Column="1"
-                        Orientation="Horizontal">
-                <RadioButton x:Name="GridViewSelected"
-                             Style="{StaticResource GridViewCheckboxStyle}"
-                             GroupName="View"
-                             IsChecked="True"
-                             Margin="0,3,0,3">
-                    <RadioButton.ToolTip>
-                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                            <local:TrackerToolTip ToolTipText="Grid View" />
-                        </ToolTip>
-                    </RadioButton.ToolTip>
-                </RadioButton>
-                <RadioButton x:Name="CalendarViewSelected"
-                             GroupName="View"
-                             Style="{StaticResource CalendarViewCheckboxStyle}"
-                             Margin="3,3,0,3">
-                    <RadioButton.ToolTip>
-                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                            <local:TrackerToolTip ToolTipText="Calendar View" />
-                        </ToolTip>
-                    </RadioButton.ToolTip>
-                </RadioButton>
-                <Button Style="{StaticResource ToolbarButtonStyle}"
-                        Command="{x:Static commands:DialogCommands.LaunchDialogCommand}"
-                        CommandParameter="{x:Static enums:DialogType.Settings}">
-                    <Path Data="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z"
-                          Fill="{DynamicResource ForegroundBrush}"
-                          Stretch="Uniform" />
-                    <Button.ToolTip>
-                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                            <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_Settings}" />
-                        </ToolTip>
-                    </Button.ToolTip>
-                </Button>
-            </StackPanel>
-
+            
+            <Button Grid.Column="1" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Command="{x:Static commands:DialogCommands.LaunchDialogCommand}"
+                    CommandParameter="{x:Static enums:DialogType.AddOneOnOne}"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Schedule 1:1 Meeting"
+                    AutomationProperties.HelpText="Open dialog to schedule a new one-on-one meeting"
+                    ToolTip="Schedule a new 1:1 meeting"
+                    TabIndex="100">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                          Fill="{DynamicResource BackgroundBrush}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0"/>
+                    <TextBlock Text="Schedule 1:1"/>
+                </StackPanel>
+            </Button>
         </Grid>
-        <DataGrid Grid.Row="1"
-                  Visibility="{Binding ElementName=GridViewSelected, Path=IsChecked, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
-                  ItemsSource="{Binding OneOnOnes}"
-                  AutoGenerateColumns="False"
-                  SelectionMode="Single"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Vertical"
-                  HeadersVisibility="Column"
-                  SelectionUnit="FullRow">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_TeamMember}"
-                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
-                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                    Binding="{Binding TeamMemberName}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_Date}"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding Date, StringFormat={}{0:MM/dd/yy}}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_StartTime}"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding StartTime}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeader_Duration}"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding Duration}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="{x:Static languages:Resources.ColumnHeaer_Status}"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding Status}"
-                                    Width="Auto" />
-                <!-- Empty column to fill remaining space -->
-                <DataGridTextColumn Width="*"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    IsReadOnly="True" />
-            </DataGrid.Columns>
-        </DataGrid>
-        <syncfusion:SfSchedule ScheduleType="WorkWeek"
-                               FontSize="12"
-                               Grid.Row="1"
-                               ShowNonWorkingHours="False"
-                               Visibility="{Binding ElementName=CalendarViewSelected, Path=IsChecked, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
-                               Background="{DynamicResource BackgroundBrush}"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               HeaderBackground="{DynamicResource ForegroundBrush}"
-                               CurrentDateBackground="{DynamicResource BackgroundBrush}"
-                               MajorTickLabelStroke="{DynamicResource BackgroundBrush}"
-                               MinorTickLabelStroke="{DynamicResource BackgroundBrush}"
-                               CurrentDateForeground="{DynamicResource ForegroundBrush}">
-        </syncfusion:SfSchedule>
+        
+        <!-- ROW 1: STATS BAR - This Month Stats -->
+        <Grid Grid.Row="1" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <Border Grid.Column="0" Style="{StaticResource StatCardStyle}" Margin="0,0,6,0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionHeader}">
+                        <Run Text="COMPLETED"/>
+                        <Run Text=" this month" Foreground="{DynamicResource HintTextBrush}" FontWeight="Normal" FontSize="8"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding CompletedMeetingsThisMonth, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="#10B981"/>
+                </StackPanel>
+            </Border>
+            
+            <Border Grid.Column="1" Style="{StaticResource StatCardStyle}" Margin="3,0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionHeader}">
+                        <Run Text="SCHEDULED"/>
+                        <Run Text=" this month" Foreground="{DynamicResource HintTextBrush}" FontWeight="Normal" FontSize="8"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding ScheduledMeetingsThisMonth, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="{DynamicResource AccentBrush}"/>
+                </StackPanel>
+            </Border>
+            
+            <Border Grid.Column="2" Style="{StaticResource StatCardStyle}" Margin="3,0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionHeader}">
+                        <Run Text="CANCELLED"/>
+                        <Run Text=" this month" Foreground="{DynamicResource HintTextBrush}" FontWeight="Normal" FontSize="8"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding CancelledMeetingsThisMonth, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="#EF4444"/>
+                </StackPanel>
+            </Border>
+            
+            <Border Grid.Column="3" Style="{StaticResource StatCardStyle}" Margin="6,0,0,0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionHeader}">
+                        <Run Text="OPEN TASKS"/>
+                        <Run Text=" from meetings" Foreground="{DynamicResource HintTextBrush}" FontWeight="Normal" FontSize="8"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding OpenMeetingTasksCount, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="#F59E0B"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+        
+        <!-- ROW 2: 3-PANEL LAYOUT -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" MinWidth="180"/>
+                <ColumnDefinition Width="*" MinWidth="280"/>
+                <ColumnDefinition Width="350" MinWidth="300"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- ========== LEFT PANEL: Team Members ========== -->
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Text="TEAM MEMBERS" Style="{StaticResource PanelHeaderStyle}"/>
+                    
+                    <!-- Quick Search -->
+                    <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}" CornerRadius="6" Margin="10,0,10,8" Padding="8,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Path Data="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+                                  Fill="{DynamicResource HintTextBrush}" Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding MemberSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" BorderThickness="0" FontSize="12"
+                                     Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Team Member List -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="6,0">
+                        <ItemsControl ItemsSource="{Binding TeamMembers}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource TeamMemberCardStyle}"
+                                            MouseLeftButtonUp="TeamMember_Click"
+                                            Tag="{Binding}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- Avatar -->
+                                            <Grid Width="32" Height="32">
+                                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                <TextBlock Text="{Binding Initials}" FontSize="11" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BackgroundBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            
+                                            <!-- Name -->
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FullName}" FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ForegroundBrush}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock FontSize="10" Foreground="{DynamicResource HintTextBrush}">
+                                                    <Run Text="Last: "/>
+                                                    <Run Text="{Binding LastOneOnOneDisplay, Mode=OneWay}"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            
+                                            <!-- Meeting Count Badge -->
+                                            <Border Grid.Column="2" Background="{DynamicResource BackgroundBrush}" 
+                                                    CornerRadius="10" Padding="6,2" VerticalAlignment="Center"
+                                                    Visibility="{Binding UpcomingMeetingCount, Converter={x:Static converters:IntToVisibilityConverter.Instance}}">
+                                                <TextBlock Text="{Binding UpcomingMeetingCount}" FontSize="10" FontWeight="Bold"
+                                                           Foreground="{DynamicResource AccentBrush}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            
+            <!-- ========== MIDDLE PANEL: Meetings List ========== -->
+            <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Margin="4,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Header with member name -->
+                    <Grid Grid.Row="0" Margin="12,12,12,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedMemberForMeetings.FullName, FallbackValue='Select a team member'}"
+                                       FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}"/>
+                            <TextBlock Text="1:1 MEETINGS" Style="{StaticResource SectionHeader}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        
+                        <!-- Add meeting for this member -->
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButtonStyle}" Padding="8,4"
+                                Command="{Binding AddTeamMemberOneOnOneCommand}"
+                                Visibility="{Binding SelectedMemberForMeetings, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"
+                                ToolTip="Schedule 1:1 with this member">
+                            <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                  Fill="{DynamicResource ForegroundBrush}" Width="12" Height="12" Stretch="Uniform"/>
+                        </Button>
+                    </Grid>
+                    
+                    <!-- Filter: Upcoming / Past -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,8">
+                        <RadioButton x:Name="ShowUpcoming" Content="Upcoming" IsChecked="True" GroupName="TimeFilter" 
+                                     Style="{StaticResource SegmentedButtonStyle}" Checked="MeetingFilter_Changed"/>
+                        <RadioButton x:Name="ShowPast" Content="Past" GroupName="TimeFilter" 
+                                     Style="{StaticResource SegmentedButtonStyle}" Checked="MeetingFilter_Changed"/>
+                        <RadioButton x:Name="ShowAllTime" Content="All" GroupName="TimeFilter" 
+                                     Style="{StaticResource SegmentedButtonStyle}" Checked="MeetingFilter_Changed"/>
+                    </StackPanel>
+                    
+                    <!-- Meetings List -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="6,0,6,6">
+                        <ItemsControl x:Name="MeetingsListControl" ItemsSource="{Binding SelectedMemberMeetings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource MeetingRowStyle}"
+                                            MouseLeftButtonUp="Meeting_Click"
+                                            Tag="{Binding}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- Date -->
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Date, StringFormat='{}{0:MMM dd}'}" 
+                                                           FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ForegroundBrush}"/>
+                                                <TextBlock Text="{Binding StartTime, StringFormat='{}{0:h\\:mm tt}'}" 
+                                                           FontSize="10" Foreground="{DynamicResource HintTextBrush}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Description & Task indicator -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                                                <TextBlock Text="{Binding DescriptionPreview}" FontSize="11"
+                                                           Foreground="{DynamicResource HintTextBrush}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
+                                                            Visibility="{Binding IncompleteTaskCount, Converter={x:Static converters:IntToVisibilityConverter.Instance}}">
+                                                    <Path Data="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4V14Z"
+                                                          Fill="{DynamicResource AccentBrush}" Width="10" Height="10" Stretch="Uniform"/>
+                                                    <TextBlock FontSize="10" Foreground="{DynamicResource AccentBrush}" Margin="4,0,0,0">
+                                                        <Run Text="{Binding IncompleteTaskCount, Mode=OneWay}"/>
+                                                        <Run Text=" open tasks"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            
+                                            <!-- Status Badge -->
+                                            <Border Grid.Column="2" CornerRadius="6" Padding="8,4" VerticalAlignment="Center"
+                                                    Background="{Binding Status, Converter={x:Static converters:MeetingStatusToColorConverter.Instance}}">
+                                                <TextBlock Text="{Binding Status}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Empty State -->
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedMemberForMeetings}" Value="{x:Null}">
+                                        <Setter Property="Content">
+                                            <Setter.Value>
+                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,60,0,0">
+                                                    <Path Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                                          Fill="{DynamicResource HintTextBrush}" Width="40" Height="40" Stretch="Uniform" Opacity="0.4"/>
+                                                    <TextBlock Text="Select a team member" FontSize="13" 
+                                                               Foreground="{DynamicResource HintTextBrush}" Margin="0,12,0,0"/>
+                                                </StackPanel>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            
+            <!-- ========== RIGHT PANEL: Meeting Details ========== -->
+            <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Margin="8,0,0,0">
+                <!-- Has Selection -->
+                <Grid Visibility="{Binding SelectedOneOnOne, Converter={x:Static converters:NullToVisibilityConverter.Instance}}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                        <StackPanel>
+                            <!-- Meeting Header -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Grid Width="50" Height="50">
+                                    <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                    <TextBlock Text="{Binding SelectedOneOnOne.TeamMember.Initials, Mode=OneWay}" 
+                                               FontSize="18" FontWeight="Bold"
+                                               Foreground="{DynamicResource BackgroundBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                                
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding SelectedOneOnOne.TeamMemberName, Mode=OneWay}"
+                                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"/>
+                                    <TextBlock FontSize="12" Foreground="{DynamicResource HintTextBrush}">
+                                        <Run Text="{Binding SelectedOneOnOne.Date, StringFormat='{}{0:dddd, MMMM d}', Mode=OneWay}"/>
+                                        <Run Text=" at "/>
+                                        <Run Text="{Binding SelectedOneOnOne.StartTime, StringFormat='{}{0:h\\:mm tt}', Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Status & Duration Row -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Border CornerRadius="8" Padding="10,5"
+                                        Background="{Binding SelectedOneOnOne.Status, Converter={x:Static converters:MeetingStatusToColorConverter.Instance}}">
+                                    <TextBlock Text="{Binding SelectedOneOnOne.Status, Mode=OneWay}" 
+                                               FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                                
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <Path Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"
+                                          Fill="{DynamicResource HintTextBrush}" Width="14" Height="14" Stretch="Uniform"/>
+                                    <TextBlock Text="{Binding SelectedOneOnOne.Duration, StringFormat='{}{0:h\\:mm}', Mode=OneWay}"
+                                               FontSize="12" Foreground="{DynamicResource HintTextBrush}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Notes Section -->
+                            <TextBlock Text="NOTES" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,0,0,16">
+                                <TextBlock Text="{Binding SelectedOneOnOne.Description, Mode=OneWay, TargetNullValue='No notes recorded'}"
+                                           Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" FontSize="12" LineHeight="18"/>
+                            </Border>
+                            
+                            <!-- Agenda Section -->
+                            <TextBlock Text="AGENDA ITEMS" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,0,0,16">
+                                <ItemsControl ItemsSource="{Binding SelectedOneOnOne.AgendaItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Width="5" Height="5" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Top" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Description}" FontSize="12"
+                                                           Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                            
+                            <!-- Action Items Section -->
+                            <TextBlock Text="ACTION ITEMS" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,0,0,16">
+                                <ItemsControl ItemsSource="{Binding SelectedOneOnOne.Tasks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <CheckBox IsChecked="{Binding IsCompleted}" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                                
+                                                <TextBlock Grid.Column="1" Text="{Binding Description}" FontSize="12"
+                                                           Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" Margin="8,0,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                                    <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                                    <Setter Property="Opacity" Value="0.5"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                
+                                                <TextBlock Grid.Column="2" Text="{Binding DueDate, StringFormat='{}{0:M/d}'}" FontSize="10"
+                                                           Foreground="{DynamicResource HintTextBrush}" VerticalAlignment="Top" Margin="8,2,0,0"
+                                                           Visibility="{Binding DueDate, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                            
+                            <!-- Actions -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                <Button Content="Edit Meeting" Command="{Binding EditOneOnOneCommand}" 
+                                        CommandParameter="{Binding SelectedOneOnOne}"
+                                        Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0"/>
+                                <Button Content="Delete" Command="{Binding DeleteOneOnOneCommand}" 
+                                        CommandParameter="{Binding SelectedOneOnOne}"
+                                        Style="{StaticResource SecondaryButtonStyle}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            
+            <!-- Empty Details State (overlays right panel when no selection) -->
+            <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Margin="8,0,0,0"
+                    Visibility="{Binding SelectedOneOnOne, Converter={x:Static converters:NullToVisibilityConverter.InverseInstance}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Path Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"
+                          Fill="{DynamicResource HintTextBrush}" Width="48" Height="48" Stretch="Uniform" Opacity="0.4"/>
+                    <TextBlock Text="Select a meeting" FontSize="14" Foreground="{DynamicResource HintTextBrush}" 
+                               HorizontalAlignment="Center" Margin="0,16,0,4"/>
+                    <TextBlock Text="to view details" FontSize="12" Foreground="{DynamicResource HintTextBrush}" 
+                               HorizontalAlignment="Center" Opacity="0.7"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
-
 </UserControl>

@@ -52,6 +52,9 @@ namespace Tracker.Database
 
         #region DbSets - Entity Tables
 
+        /// <summary>Users/managers who own all data in the system.</summary>
+        public DbSet<User> Users { get; set; } = null!;
+
         /// <summary>Team members/employees being tracked.</summary>
         public DbSet<TeamMember> TeamMembers { get; set; } = null!;
 
@@ -64,23 +67,32 @@ namespace Tracker.Database
         /// <summary>Individual tasks assigned to team members.</summary>
         public DbSet<IndividualTask> Tasks { get; set; } = null!;
 
-        /// <summary>Action items from meetings.</summary>
-        public DbSet<ActionItem> ActionItems { get; set; } = null!;
+        /// <summary>Tasks created from 1:1 meetings.</summary>
+        public DbSet<MeetingTask> MeetingTasks { get; set; } = null!;
 
-        /// <summary>Follow-up items from meetings.</summary>
-        public DbSet<FollowUpItem> FollowUpItems { get; set; } = null!;
-
-        /// <summary>Discussion points raised in meetings.</summary>
-        public DbSet<DiscussionPoint> DiscussionPoints { get; set; } = null!;
-
-        /// <summary>Concerns raised by team members.</summary>
-        public DbSet<Concern> Concerns { get; set; } = null!;
+        /// <summary>Agenda items for 1:1 meetings (topics, concerns, questions, etc.).</summary>
+        public DbSet<AgendaItem> AgendaItems { get; set; } = null!;
 
         /// <summary>Objectives and Key Results (OKRs).</summary>
         public DbSet<ObjectiveKeyResult> ObjectiveKeyResults { get; set; } = null!;
 
-        /// <summary>Key Performance Indicators (KPIs) linked to OKRs.</summary>
+        /// <summary>Key Performance Indicators (KPIs) - standalone metrics.</summary>
         public DbSet<KeyPerformanceIndicator> KeyPerformanceIndicators { get; set; } = null!;
+
+        /// <summary>Key Results that belong to OKRs.</summary>
+        public DbSet<KeyResult> KeyResults { get; set; } = null!;
+
+        /// <summary>Links between Key Results and their measurable sources (KPI, Project, TaskCollection).</summary>
+        public DbSet<KeyResultMeasurable> KeyResultMeasurables { get; set; } = null!;
+
+        /// <summary>Data sources that feed KPI values.</summary>
+        public DbSet<KpiDataSource> KpiDataSources { get; set; } = null!;
+
+        /// <summary>Collections of tasks treated as single measurable units.</summary>
+        public DbSet<TaskCollection> TaskCollections { get; set; } = null!;
+
+        /// <summary>Links between TaskCollections and their tasks.</summary>
+        public DbSet<TaskCollectionItem> TaskCollectionItems { get; set; } = null!;
 
         /// <summary>Project milestones.</summary>
         public DbSet<Milestone> Milestones { get; set; } = null!;
@@ -112,6 +124,30 @@ namespace Tracker.Database
         /// </summary>
         public DbSet<OneOnOneLinkedKpi> OneOnOneLinkedKpis { get; set; } = null!;
 
+        /// <summary>Feedback given to team members.</summary>
+        public DbSet<Feedback> Feedbacks { get; set; } = null!;
+
+        /// <summary>Individual goals for team members.</summary>
+        public DbSet<IndividualGoal> IndividualGoals { get; set; } = null!;
+
+        /// <summary>Milestones for individual goals.</summary>
+        public DbSet<GoalMilestone> GoalMilestones { get; set; } = null!;
+
+        /// <summary>Reminders and notifications.</summary>
+        public DbSet<Reminder> Reminders { get; set; } = null!;
+
+        /// <summary>Meeting templates for quick 1:1 setup.</summary>
+        public DbSet<MeetingTemplate> MeetingTemplates { get; set; } = null!;
+
+        /// <summary>Items within meeting templates.</summary>
+        public DbSet<MeetingTemplateItem> MeetingTemplateItems { get; set; } = null!;
+
+        /// <summary>Quick notes and journal entries.</summary>
+        public DbSet<QuickNote> QuickNotes { get; set; } = null!;
+
+        /// <summary>Links from agenda items to other entities (Task, OKR, KPI, Project).</summary>
+        public DbSet<LinkedItem> LinkedItems { get; set; } = null!;
+
         #endregion
 
         #region Configuration
@@ -128,7 +164,8 @@ namespace Tracker.Database
                 case DatabaseType.SQLite:
                     // SQLite stores data in a local file - great for single-user scenarios
                     var sqlitePath = DatabaseSettings.GetSqlitePath();
-                    optionsBuilder.UseSqlite($"Data Source={sqlitePath}");
+                    // Enable foreign keys via connection string (SQLite has them disabled by default)
+                    optionsBuilder.UseSqlite($"Data Source={sqlitePath};Foreign Keys=True");
                     break;
 
                 case DatabaseType.SqlServer:
@@ -155,21 +192,32 @@ namespace Tracker.Database
             ConfigureAuditableEntities(modelBuilder);
 
             // Configure each entity type with its specific relationships and constraints
+            ConfigureUser(modelBuilder);
             ConfigureTeamMember(modelBuilder);
             ConfigureOneOnOne(modelBuilder);
             ConfigureProject(modelBuilder);
             ConfigureIndividualTask(modelBuilder);
-            ConfigureActionItem(modelBuilder);
-            ConfigureFollowUpItem(modelBuilder);
-            ConfigureDiscussionPoint(modelBuilder);
-            ConfigureConcern(modelBuilder);
+            ConfigureMeetingTask(modelBuilder);
+            ConfigureAgendaItem(modelBuilder);
             ConfigureObjectiveKeyResult(modelBuilder);
+            ConfigureKeyResult(modelBuilder);
+            ConfigureKeyResultMeasurable(modelBuilder);
             ConfigureKeyPerformanceIndicator(modelBuilder);
+            ConfigureKpiDataSource(modelBuilder);
+            ConfigureTaskCollection(modelBuilder);
+            ConfigureTaskCollectionItem(modelBuilder);
             ConfigureMilestone(modelBuilder);
             ConfigureRisk(modelBuilder);
             ConfigureProjectDependency(modelBuilder);
             ConfigureChangeTracking(modelBuilder);
             ConfigureOneOnOneLinkedEntities(modelBuilder);
+            ConfigureFeedback(modelBuilder);
+            ConfigureIndividualGoal(modelBuilder);
+            ConfigureGoalMilestone(modelBuilder);
+            ConfigureReminder(modelBuilder);
+            ConfigureMeetingTemplate(modelBuilder);
+            ConfigureQuickNote(modelBuilder);
+            ConfigureLinkedItem(modelBuilder);
         }
 
         #endregion
@@ -229,6 +277,28 @@ namespace Tracker.Database
         }
 
         /// <summary>
+        /// Configures the User entity - the logged-in manager who owns all data.
+        /// </summary>
+        private void ConfigureUser(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                // Set reasonable max lengths for string fields
+                entity.Property(e => e.Username).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Email).HasMaxLength(200);
+                entity.Property(e => e.DisplayName).HasMaxLength(200);
+
+                // Unique constraint on Username (one user per username)
+                entity.HasIndex(e => e.Username).IsUnique();
+                
+                // Index for querying active users
+                entity.HasIndex(e => e.IsActive);
+            });
+        }
+
+        /// <summary>
         /// Configures the TeamMember entity - the core entity representing employees.
         /// </summary>
         private void ConfigureTeamMember(ModelBuilder modelBuilder)
@@ -249,9 +319,17 @@ namespace Tracker.Database
                 entity.Property(e => e.InstagramProfile).HasMaxLength(500);
                 entity.Property(e => e.XProfile).HasMaxLength(500);
 
+                // Relationship: Each TeamMember belongs to one User (the manager who owns them)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict); // Don't delete team members if user is deleted
+
                 // Indexes for common query patterns
                 entity.HasIndex(e => e.Email);
                 entity.HasIndex(e => new { e.LastName, e.FirstName });
+                entity.HasIndex("UserId"); // Index for filtering by User
             });
         }
 
@@ -273,7 +351,14 @@ namespace Tracker.Database
                 // TeamMemberName is computed from TeamMember navigation property
                 entity.Ignore(e => e.TeamMemberName);
                 
-                // Relationship: Each 1:1 belongs to one TeamMember
+                // User ownership: Each 1:1 belongs to one User (the manager conducting the meeting)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Relationship: Each 1:1 is with one TeamMember
                 entity.HasOne(e => e.TeamMember)
                     .WithMany()
                     .HasForeignKey("TeamMemberId")
@@ -281,6 +366,7 @@ namespace Tracker.Database
 
                 // Index for querying by date
                 entity.HasIndex(e => e.Date);
+                entity.HasIndex("UserId"); // Index for filtering by User
             });
         }
 
@@ -361,31 +447,70 @@ namespace Tracker.Database
                 entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
                 entity.Property(e => e.Status).HasMaxLength(50);
-                entity.Property(e => e.Budget).HasPrecision(18, 2); // Decimal precision for money
+                entity.Property(e => e.Budget).HasPrecision(18, 2);
                 
-                // KPIs is a computed property derived from OKRs
-                entity.Ignore(e => e.KPIs);
+                // Interface and computed properties - ignore
+                entity.Ignore(e => e.MeasurableId);
+                entity.Ignore(e => e.DisplayName);
+                entity.Ignore(e => e.Progress);
+                entity.Ignore(e => e.DisplayValue);
+                entity.Ignore(e => e.MeasurableType);
+                entity.Ignore(e => e.SourceId);
+                entity.Ignore(e => e.SourceDisplayName);
+                entity.Ignore(e => e.SourceType);
+                entity.Ignore(e => e.TotalTasks);
+                entity.Ignore(e => e.CompletedTasks);
+                entity.Ignore(e => e.IncompleteTasks);
+                entity.Ignore(e => e.IsOverdue);
+                entity.Ignore(e => e.DaysRemaining);
                 
-                // Project owner relationship
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Project owner relationship (TeamMember who manages the project)
                 entity.HasOne(e => e.Owner)
                     .WithMany()
                     .HasForeignKey("OwnerId")
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
                 
                 // Many-to-many: Projects have multiple team members
-                // EF Core creates a join table automatically
                 entity.HasMany(e => e.TeamMembers)
                     .WithMany()
                     .UsingEntity(j => j.ToTable("ProjectTeamMembers"));
+                
+                // Note: Tasks relationship is configured in ConfigureIndividualTask
+                
+                // Configure Milestones relationship
+                entity.HasMany(e => e.Milestones)
+                    .WithOne()
+                    .HasForeignKey(m => m.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                // Configure Risks relationship
+                entity.HasMany(e => e.Risks)
+                    .WithOne()
+                    .HasForeignKey(r => r.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                // Configure Dependencies relationship
+                entity.HasMany(e => e.Dependencies)
+                    .WithOne()
+                    .HasForeignKey(d => d.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-                // Indexes for common queries
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Status);
+                entity.HasIndex("UserId");
             });
         }
 
         /// <summary>
-        /// Configures IndividualTask - standalone tasks assigned to team members.
+        /// Configures IndividualTask - tasks that can be standalone or belong to projects.
         /// </summary>
         private void ConfigureIndividualTask(ModelBuilder modelBuilder)
         {
@@ -395,29 +520,58 @@ namespace Tracker.Database
                 entity.Property(e => e.Description).HasMaxLength(1000);
                 entity.Property(e => e.Notes).HasMaxLength(2000);
                 
-                // These are computed properties from the ITask interface
+                // Computed properties - ignore
                 entity.Ignore(e => e.Status);
                 entity.Ignore(e => e.OwnerName);
                 entity.Ignore(e => e.Type);
-                entity.Ignore(e => e.MeetingCount); // Non-persisted property
+                entity.Ignore(e => e.MeetingCount);
+                entity.Ignore(e => e.IsOverdue);
+                entity.Ignore(e => e.DaysUntilDue);
+                entity.Ignore(e => e.HasSubtasks);
+                entity.Ignore(e => e.SubtaskProgress);
                 
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Task owner relationship (TeamMember who the task is assigned to)
                 entity.HasOne(e => e.Owner)
                     .WithMany()
                     .HasForeignKey("OwnerId")
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Optional link to Project
+                entity.HasOne(e => e.Project)
+                    .WithMany(p => p.Tasks)
+                    .HasForeignKey(e => e.ProjectId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull); // Keep task if project is deleted
+                
+                // Self-referential relationship for subtasks
+                entity.HasOne(e => e.ParentTask)
+                    .WithMany(e => e.Subtasks)
+                    .HasForeignKey(e => e.ParentTaskId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete subtasks when parent is deleted
 
-                // Common query patterns: find tasks by due date or completion status
                 entity.HasIndex(e => e.DueDate);
                 entity.HasIndex(e => e.IsCompleted);
+                entity.HasIndex(e => e.ProjectId);
+                entity.HasIndex(e => e.ParentTaskId);
+                entity.HasIndex("UserId");
             });
         }
 
         /// <summary>
-        /// Configures ActionItem - tasks created during 1:1 meetings.
+        /// Configures MeetingTask - tasks that come out of 1:1 meetings.
         /// </summary>
-        private void ConfigureActionItem(ModelBuilder modelBuilder)
+        private void ConfigureMeetingTask(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<ActionItem>(entity =>
+            modelBuilder.Entity<MeetingTask>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Description).HasMaxLength(1000);
@@ -427,78 +581,80 @@ namespace Tracker.Database
                 entity.Ignore(e => e.OwnerName);
                 entity.Ignore(e => e.Type);
                 
+                // User ownership: Each MeetingTask belongs to one User (the manager's 1:1)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // MeetingTask belongs to a OneOnOne meeting
+                entity.HasOne<OneOnOne>()
+                    .WithMany(o => o.Tasks)
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                // MeetingTask owner relationship (TeamMember who owns the task)
                 entity.HasOne(e => e.Owner)
                     .WithMany()
                     .HasForeignKey("OwnerId")
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(e => e.DueDate);
+                entity.HasIndex(e => e.IsCompleted);
+                entity.HasIndex("UserId");
             });
         }
 
         /// <summary>
-        /// Configures FollowUpItem - follow-up tasks from meetings.
+        /// Configures AgendaItem - topics, concerns, questions discussed in 1:1 meetings.
         /// </summary>
-        private void ConfigureFollowUpItem(ModelBuilder modelBuilder)
+        private void ConfigureAgendaItem(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<FollowUpItem>(entity =>
+            modelBuilder.Entity<AgendaItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Notes).HasMaxLength(2000);
+                entity.Property(e => e.Resolution).HasMaxLength(2000);
                 
-                entity.Ignore(e => e.Status);
-                entity.Ignore(e => e.OwnerName);
-                entity.Ignore(e => e.Type);
+                // Computed properties - ignore
+                entity.Ignore(e => e.IsResolved);
+                entity.Ignore(e => e.CategoryDisplay);
+                entity.Ignore(e => e.HasLinkedItems);
                 
-                entity.HasOne(e => e.Owner)
+                // Legacy single-link properties - ignore (using LinkedItems collection instead)
+                entity.Ignore(e => e.HasLinkedItem);
+                entity.Ignore(e => e.LinkedItemDisplay);
+                
+                // User ownership: Each AgendaItem belongs to one User (the manager's 1:1)
+                entity.HasOne<User>()
                     .WithMany()
-                    .HasForeignKey("OwnerId")
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // AgendaItem belongs to a OneOnOne meeting
+                entity.HasOne<OneOnOne>()
+                    .WithMany(o => o.AgendaItems)
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                // Optional link to a MeetingTask created from this item
+                entity.HasOne<MeetingTask>()
+                    .WithMany()
+                    .HasForeignKey(e => e.LinkedTaskId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(e => e.DueDate);
+                
+                // Indexes for common queries
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex("UserId");
             });
         }
 
         /// <summary>
-        /// Configures DiscussionPoint - topics discussed in meetings.
-        /// </summary>
-        private void ConfigureDiscussionPoint(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<DiscussionPoint>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Details).HasMaxLength(4000);
-                
-                // Discussion points can optionally be linked to action items
-                entity.HasOne(e => e.LinkedActionItem)
-                    .WithMany()
-                    .HasForeignKey(e => e.ActionItemId)
-                    .OnDelete(DeleteBehavior.SetNull);
-            });
-        }
-
-        /// <summary>
-        /// Configures Concern - issues raised by team members.
-        /// </summary>
-        private void ConfigureConcern(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Concern>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Details).HasMaxLength(4000);
-                
-                entity.HasOne(e => e.LinkedActionItem)
-                    .WithMany()
-                    .HasForeignKey(e => e.ActionItemId)
-                    .OnDelete(DeleteBehavior.SetNull);
-            });
-        }
-
-        /// <summary>
-        /// Configures ObjectiveKeyResult - OKRs that contain multiple KPIs.
+        /// Configures ObjectiveKeyResult - OKRs that contain Key Results.
         /// </summary>
         private void ConfigureObjectiveKeyResult(ModelBuilder modelBuilder)
         {
@@ -508,29 +664,130 @@ namespace Tracker.Database
                 entity.Property(e => e.Title).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
                 
-                // Status and completion percentage are computed from KPIs
+                // Computed properties - ignore
                 entity.Ignore(e => e.Status);
                 entity.Ignore(e => e.CompletionPercentage);
-                entity.Ignore(e => e.MeetingCount); // Non-persisted property
+                entity.Ignore(e => e.MeetingCount);
+                entity.Ignore(e => e.TimePeriodDisplay);
+                entity.Ignore(e => e.KeyResultCount);
+                entity.Ignore(e => e.HasKeyResults);
+                entity.Ignore(e => e.LinkedKpiCount);
+                entity.Ignore(e => e.LinkedProjectCount);
+                entity.Ignore(e => e.LinkedTaskCollectionCount);
+                entity.Ignore(e => e.IsActive);
+                entity.Ignore(e => e.DaysRemaining);
                 
+                // User ownership: Each OKR belongs to one User (the manager who owns it)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // OKR owner relationship (TeamMember who owns the OKR)
                 entity.HasOne(e => e.Owner)
                     .WithMany()
                     .HasForeignKey("OwnerId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // OKR can optionally belong to a Project (backwards compatibility)
+                // New design: OKRs connect to Projects through Key Results' Measurables
+                entity.HasOne<Project>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ProjectId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
                 
-                // One OKR has many KPIs (Key Results)
-                // Cascade delete: deleting an OKR deletes its KPIs
+                // One OKR has many Key Results
                 entity.HasMany(e => e.KeyResults)
-                    .WithOne()
-                    .HasForeignKey(k => k.OkrId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .WithOne(kr => kr.Okr)
+                    .HasForeignKey(kr => kr.OkrId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade); // Delete KRs when parent OKR is deleted
 
                 entity.HasIndex(e => e.EndDate);
+                entity.HasIndex(e => e.TimePeriod);
+                entity.HasIndex(e => e.Year);
+                entity.HasIndex(e => e.ProjectId);
+                entity.HasIndex("UserId");
             });
         }
 
         /// <summary>
-        /// Configures KeyPerformanceIndicator - measurable metrics for OKRs.
+        /// Configures KeyResult - measurable outcomes within OKRs.
+        /// </summary>
+        private void ConfigureKeyResult(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<KeyResult>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.Property(e => e.Unit).HasMaxLength(50);
+                entity.Property(e => e.TargetValue).HasPrecision(18, 4);
+                entity.Property(e => e.CurrentValue).HasPrecision(18, 4);
+                entity.Property(e => e.StartingValue).HasPrecision(18, 4);
+                entity.Property(e => e.Weight).HasPrecision(5, 2).HasDefaultValue(1.0m);
+                
+                // Computed properties - ignore
+                entity.Ignore(e => e.Progress);
+                entity.Ignore(e => e.Status);
+                entity.Ignore(e => e.DisplayValue);
+                entity.Ignore(e => e.HasMeasurables);
+                
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Key Result has many Measurables
+                entity.HasMany(e => e.Measurables)
+                    .WithOne(m => m.KeyResult)
+                    .HasForeignKey(m => m.KeyResultId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.OkrId);
+                entity.HasIndex(e => e.SortOrder);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures KeyResultMeasurable - links between Key Results and their sources.
+        /// </summary>
+        private void ConfigureKeyResultMeasurable(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<KeyResultMeasurable>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Weight).HasPrecision(5, 2).HasDefaultValue(1.0m);
+                
+                // Computed properties - ignore (resolved at runtime)
+                entity.Ignore(e => e.DisplayName);
+                entity.Ignore(e => e.CurrentProgress);
+                entity.Ignore(e => e.CurrentDisplayValue);
+                
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Note: MeasurableId is a polymorphic FK - not enforced at DB level
+                // Application code resolves to KPI, Project, or TaskCollection based on MeasurableType
+
+                entity.HasIndex(e => e.KeyResultId);
+                entity.HasIndex(e => new { e.MeasurableType, e.MeasurableId });
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures KeyPerformanceIndicator - standalone metrics that can feed Key Results.
         /// </summary>
         private void ConfigureKeyPerformanceIndicator(ModelBuilder modelBuilder)
         {
@@ -539,17 +796,158 @@ namespace Tracker.Database
                 entity.HasKey(e => e.KpiId);
                 entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.Property(e => e.Unit).HasMaxLength(50);
+                entity.Property(e => e.Category).HasMaxLength(100);
                 
-                // Status is computed from value vs target
+                // Computed/interface properties - ignore
                 entity.Ignore(e => e.Status);
-                entity.Ignore(e => e.MeetingCount); // Non-persisted property
+                entity.Ignore(e => e.MeetingCount);
+                entity.Ignore(e => e.PercentComplete);
+                entity.Ignore(e => e.MeasurableId);
+                entity.Ignore(e => e.DisplayName);
+                entity.Ignore(e => e.Progress);
+                entity.Ignore(e => e.DisplayValue);
+                entity.Ignore(e => e.MeasurableType);
+                entity.Ignore(e => e.SourceId);
+                entity.Ignore(e => e.SourceDisplayName);
+                entity.Ignore(e => e.SourceType);
+                entity.Ignore(e => e.HasDataSources);
+                entity.Ignore(e => e.HasChildKpis);
                 
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // KPI owner relationship (TeamMember who owns the KPI)
                 entity.HasOne(e => e.Owner)
                     .WithMany()
                     .HasForeignKey("OwnerId")
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Self-referential relationship for composite KPIs
+                entity.HasOne(e => e.ParentKpi)
+                    .WithMany(e => e.ChildKpis)
+                    .HasForeignKey(e => e.ParentKpiId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict); // Don't cascade delete through hierarchy
+                
+                // KPI has many data sources
+                entity.HasMany(e => e.DataSources)
+                    .WithOne(ds => ds.Kpi)
+                    .HasForeignKey(ds => ds.KpiId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.IsComposite);
+                entity.HasIndex(e => e.ParentKpiId);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures KpiDataSource - data sources that feed KPI values.
+        /// </summary>
+        private void ConfigureKpiDataSource(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<KpiDataSource>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Weight).HasPrecision(5, 2).HasDefaultValue(1.0m);
+                entity.Property(e => e.QueryCriteria).HasMaxLength(2000);
+                
+                // Computed properties - ignore (resolved at runtime)
+                entity.Ignore(e => e.DisplayName);
+                entity.Ignore(e => e.CurrentValue);
+                
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Note: SourceId is a polymorphic FK - not enforced at DB level
+                // Application code resolves to Project, TaskCollection, or KPI based on SourceType
+
+                entity.HasIndex(e => e.KpiId);
+                entity.HasIndex(e => new { e.SourceType, e.SourceId });
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures TaskCollection - groups of tasks treated as single measurable units.
+        /// </summary>
+        private void ConfigureTaskCollection(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<TaskCollection>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                
+                // Interface and computed properties - ignore
+                entity.Ignore(e => e.MeasurableId);
+                entity.Ignore(e => e.DisplayName);
+                entity.Ignore(e => e.Progress);
+                entity.Ignore(e => e.DisplayValue);
+                entity.Ignore(e => e.MeasurableType);
+                entity.Ignore(e => e.SourceId);
+                entity.Ignore(e => e.SourceDisplayName);
+                entity.Ignore(e => e.SourceType);
+                entity.Ignore(e => e.TotalTasks);
+                entity.Ignore(e => e.CompletedTasks);
+                entity.Ignore(e => e.IncompleteTasks);
+                
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Collection has many items
+                entity.HasMany(e => e.Items)
+                    .WithOne(i => i.Collection)
+                    .HasForeignKey(i => i.CollectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures TaskCollectionItem - links between TaskCollections and tasks.
+        /// </summary>
+        private void ConfigureTaskCollectionItem(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<TaskCollectionItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Link to task
+                entity.HasOne(e => e.Task)
+                    .WithMany()
+                    .HasForeignKey(e => e.TaskId)
+                    .OnDelete(DeleteBehavior.Cascade); // Remove from collection when task is deleted
+                
+                // Unique constraint: task can only be in a collection once
+                entity.HasIndex(e => new { e.CollectionId, e.TaskId }).IsUnique();
+                entity.HasIndex(e => e.TaskId);
+                entity.HasIndex("UserId");
             });
         }
 
@@ -563,8 +961,19 @@ namespace Tracker.Database
                 entity.HasKey(e => e.ID);
                 entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
-
+                
+                // User ownership: Each Milestone belongs to one User (via Project owner)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Note: Project FK is configured in ConfigureProject via HasMany(e => e.Milestones)
+                
                 entity.HasIndex(e => e.TargetDate);
+                entity.HasIndex(e => e.ProjectId);
+                entity.HasIndex("UserId");
             });
         }
 
@@ -579,8 +988,19 @@ namespace Tracker.Database
                 entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
                 entity.Property(e => e.MitigationStrategy).HasMaxLength(4000);
-
-                entity.HasIndex(e => e.RiskLevel);
+                
+                // User ownership: Each Risk belongs to one User (via Project owner)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Note: Project FK is configured in ConfigureProject via HasMany(e => e.Risks)
+                
+                entity.HasIndex(e => e.Severity);
+                entity.HasIndex(e => e.ProjectId);
+                entity.HasIndex("UserId");
             });
         }
 
@@ -594,6 +1014,30 @@ namespace Tracker.Database
                 entity.HasKey(e => e.ID);
                 entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
+                
+                // User ownership: Each ProjectDependency belongs to one User
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // Note: Primary ProjectId FK is configured in ConfigureProject via HasMany(e => e.Dependencies)
+                
+                // FK to the dependent project
+                entity.HasOne<Project>()
+                    .WithMany()
+                    .HasForeignKey(e => e.DependentProjectID)
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                // FK to the required project
+                entity.HasOne<Project>()
+                    .WithMany()
+                    .HasForeignKey(e => e.RequiredProjectID)
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasIndex(e => e.ProjectId);
+                entity.HasIndex("UserId");
             });
         }
 
@@ -666,6 +1110,302 @@ namespace Tracker.Database
         {
             UpdateAuditFields();
             return base.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Configures Feedback - feedback given to team members.
+        /// </summary>
+        private void ConfigureFeedback(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Feedback>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.Content).HasMaxLength(4000);
+                entity.Property(e => e.Context).HasMaxLength(500);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Feedback belongs to a TeamMember
+                entity.HasOne(e => e.TeamMember)
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional link to OneOnOne
+                entity.HasOne<OneOnOne>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.TeamMemberId);
+                entity.HasIndex(e => e.Date);
+                entity.HasIndex(e => e.Type);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures IndividualGoal - personal goals for team members.
+        /// </summary>
+        private void ConfigureIndividualGoal(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<IndividualGoal>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.Property(e => e.Notes).HasMaxLength(2000);
+
+                // Computed properties - ignore
+                entity.Ignore(e => e.IsOverdue);
+                entity.Ignore(e => e.DaysRemaining);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Goal belongs to a TeamMember
+                entity.HasOne(e => e.TeamMember)
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Goal has many Milestones
+                entity.HasMany(e => e.Milestones)
+                    .WithOne()
+                    .HasForeignKey(m => m.GoalId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.TeamMemberId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures GoalMilestone - milestones for individual goals.
+        /// </summary>
+        private void ConfigureGoalMilestone(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<GoalMilestone>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Description).HasMaxLength(500);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.GoalId);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures Reminder - notifications and alerts.
+        /// </summary>
+        private void ConfigureReminder(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Reminder>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.Message).HasMaxLength(1000);
+
+                // Computed properties - ignore
+                entity.Ignore(e => e.IsDue);
+                entity.Ignore(e => e.IsSnoozed);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Optional FK to OneOnOne
+                entity.HasOne<OneOnOne>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional FK to TeamMember
+                entity.HasOne<TeamMember>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional FK to IndividualTask
+                entity.HasOne<IndividualTask>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TaskId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional FK to IndividualGoal
+                entity.HasOne<IndividualGoal>()
+                    .WithMany()
+                    .HasForeignKey(e => e.GoalId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.DueDateTime);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.Type);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures MeetingTemplate and MeetingTemplateItem - reusable meeting templates.
+        /// </summary>
+        private void ConfigureMeetingTemplate(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<MeetingTemplate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(500);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Items relationship
+                entity.HasMany(e => e.Items)
+                    .WithOne()
+                    .HasForeignKey(i => i.MeetingTemplateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex("UserId");
+            });
+
+            modelBuilder.Entity<MeetingTemplateItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Description).HasMaxLength(500).IsRequired();
+
+                // User ownership (inherited from template, but track individually for filtering)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.MeetingTemplateId);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures QuickNote - quick notes and journal entries.
+        /// </summary>
+        private void ConfigureQuickNote(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<QuickNote>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.Content).HasMaxLength(4000).IsRequired();
+                entity.Property(e => e.Tags).HasMaxLength(500);
+
+                // Polymorphic linking
+                entity.Property(e => e.LinkedEntityType).HasDefaultValue(Common.Enums.NoteLinkedEntityType.None);
+                entity.Property(e => e.LinkedEntityId);
+
+                // Computed properties - ignore
+                entity.Ignore(e => e.DisplayTitle);
+                entity.Ignore(e => e.CategoryDisplay);
+                entity.Ignore(e => e.LinkedEntityTypeDisplay);
+                entity.Ignore(e => e.LinkedToDisplay);
+                entity.Ignore(e => e.HasLinkedEntity);
+                entity.Ignore(e => e.Preview);
+                entity.Ignore(e => e.TagList);
+                entity.Ignore(e => e.CreatedDisplay);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Optional FK to TeamMember (legacy + for navigation)
+                entity.HasOne(e => e.TeamMember)
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Optional FK to Project (legacy)
+                entity.HasOne<Project>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ProjectId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Optional FK to OneOnOne (legacy)
+                entity.HasOne<OneOnOne>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Indexes
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.LinkedEntityType);
+                entity.HasIndex(e => new { e.LinkedEntityType, e.LinkedEntityId });
+                entity.HasIndex(e => e.IsPinned);
+                entity.HasIndex(e => e.IsArchived);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures LinkedItem - links from agenda items to other entities (Tasks, OKRs, KPIs, Projects).
+        /// </summary>
+        private void ConfigureLinkedItem(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LinkedItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                
+                // Computed property - ignore
+                entity.Ignore(e => e.TypeDisplay);
+                
+                // Relationship: LinkedItem belongs to an AgendaItem
+                entity.HasOne(e => e.AgendaItem)
+                    .WithMany(a => a.LinkedItems)
+                    .HasForeignKey(e => e.AgendaItemId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete linked items when agenda item is deleted
+                
+                // Indexes
+                entity.HasIndex(e => e.AgendaItemId);
+                entity.HasIndex(e => new { e.Type, e.ItemId }); // For finding links by entity type and ID
+            });
         }
 
         /// <summary>

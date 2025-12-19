@@ -1,0 +1,243 @@
+<UserControl x:Class="Tracker.Controls.SearchControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="500"
+             d:DataContext="{d:DesignInstance Type=viewModels:SearchViewModel}"
+             AutomationProperties.Name="Search"
+             AutomationProperties.HelpText="Search across all data in the application">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Search Header -->
+        <TextBlock Grid.Row="0"
+                   Text="🔍 Search Everything"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource ForegroundBrush}"
+                   Margin="0,0,0,15"/>
+        
+        <!-- Search Box -->
+        <Grid Grid.Row="1" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Border Grid.Column="0"
+                    Background="{DynamicResource BackgroundBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="2"
+                    CornerRadius="20"
+                    Padding="5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" 
+                               Text="🔍" 
+                               FontSize="16"
+                               VerticalAlignment="Center"
+                               Margin="10,0,5,0"/>
+                    
+                    <TextBox Grid.Column="1"
+                             Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="{DynamicResource ForegroundBrush}"
+                             VerticalContentAlignment="Center"
+                             FontSize="14"
+                             Padding="5">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                            <KeyBinding Key="Escape" Command="{Binding ClearCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    
+                    <Button Grid.Column="2"
+                            Content="✕"
+                            Command="{Binding ClearCommand}"
+                            Visibility="{Binding SearchQuery, Converter={x:Static converters:EmptyStringToVisibilityConverter.Instance}}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource HintTextBrush}"
+                            Cursor="Hand"
+                            Padding="10,5"
+                            FontSize="12"/>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <!-- Results Area -->
+        <Grid Grid.Row="2">
+            <!-- Loading Indicator -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding IsSearching, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                <TextBlock Text="Searching..."
+                           FontSize="14"
+                           Foreground="{DynamicResource HintTextBrush}"/>
+            </StackPanel>
+            
+            <!-- No Results -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding ShowNoResults, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                <TextBlock Text="No results found"
+                           FontSize="16"
+                           Foreground="{DynamicResource HintTextBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Try different keywords or check your spelling"
+                           FontSize="12"
+                           Foreground="{DynamicResource HintTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,5,0,0"/>
+            </StackPanel>
+            
+            <!-- Recent Items -->
+            <StackPanel Visibility="{Binding ShowRecentItems, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                <TextBlock Text="Recent Items"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           Margin="0,0,0,10"/>
+                <ItemsControl ItemsSource="{Binding RecentItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource BackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,8"
+                                    Margin="0,0,0,5"
+                                    Cursor="Hand"
+                                    MouseLeftButtonDown="Result_Click">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Icon}"
+                                               FontSize="18"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0"/>
+                                    
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontWeight="Medium"
+                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Description}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Type}"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+            
+            <!-- Search Results -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding HasResults, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,10">
+                        <Run Text="{Binding ResultCount, Mode=OneWay}"/>
+                        <Run Text=" results found"/>
+                    </TextBlock>
+                    
+                    <ItemsControl ItemsSource="{Binding Results}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource BackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12,10"
+                                        Margin="0,0,0,8"
+                                        Cursor="Hand"
+                                        MouseLeftButtonDown="Result_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Icon}"
+                                                   FontSize="24"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                                        
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="Medium"
+                                                       FontSize="14"
+                                                       Foreground="{DynamicResource ForegroundBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource HintTextBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Margin="0,2,0,0"/>
+                                            <TextBlock FontSize="10"
+                                                       Foreground="{DynamicResource HintTextBrush}"
+                                                       Margin="0,4,0,0"
+                                                       Visibility="{Binding Date, Converter={x:Static converters:NullToVisibilityConverter.Instance}}">
+                                                <Run Text="{Binding Date, StringFormat='{}{0:MMM dd, yyyy}'}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        
+                                        <Border Grid.Column="2"
+                                                Background="{DynamicResource AccentBrush}"
+                                                CornerRadius="4"
+                                                Padding="8,4"
+                                                VerticalAlignment="Center"
+                                                Margin="10,0,0,0">
+                                            <TextBlock Text="{Binding Type}"
+                                                       FontSize="10"
+                                                       Foreground="White"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>
+

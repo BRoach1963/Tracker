@@ -23,26 +23,13 @@ namespace Tracker.Logging
 
         #region Singleton Instance
 
-        private static volatile LoggingManager? _instance;
-        private static readonly object SyncRoot = new object(); 
+        private static readonly Lazy<LoggingManager> _lazyInstance = 
+            new(() => new LoggingManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-        public static LoggingManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        if (_instance == null)
-                        {
-                            _instance = new LoggingManager();
-                        }
-                    }
-                }
-                return _instance;
-            }
-        }
+        /// <summary>
+        /// Gets the singleton instance of LoggingManager.
+        /// </summary>
+        public static LoggingManager Instance => _lazyInstance.Value;
 
         #endregion
 
@@ -63,15 +50,20 @@ namespace Tracker.Logging
 
         #endregion
 
+        /// <summary>
+        /// Number of days to keep log files before cleanup.
+        /// </summary>
+        public const int LogRetentionDays = 7;
+
         [MethodImpl(MethodImplOptions.Synchronized)]
         private LoggingManager()
         {
             _logQueue = new ConcurrentQueue<StrongBox<LogEntry>>();
             _logMessagePending = new AutoResetEvent(false);
 
-            var logFileName = "Tracker.log"; 
-            _logDirectory = $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\Tracker\\Logs\\";  
-            _logFileFullName = $"{_logDirectory}{logFileName}";  
+            _logDirectory = $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\Tracker\\Logs\\";
+            _currentLogDate = DateTime.Today;
+            _logFileFullName = GetLogFilePathForDate(_currentLogDate);
 
             _logFileMutex = new Mutex(false, "TrackerLogMutex");
 
@@ -81,6 +73,9 @@ namespace Tracker.Logging
 
             LoadConfiguration();
             _cancellationTokenSource = new CancellationTokenSource();
+
+            // Clean up old log files on startup
+            CleanupOldLogFiles();
 
             _writeThread = new Thread(() => WriteThread(_cancellationTokenSource.Token)) { Name = "LogWriteThread", IsBackground = true };
             _writeThread.Start();
@@ -93,6 +88,14 @@ namespace Tracker.Logging
 
             Write(Logger.Format(LogLevel.Info, null, "Core", "Tracker Application {0} is starting, Version {1}",
                 Environment.Is64BitProcess ? "x64" : "x86", VersionHelper.GetAppVersion()));
+        }
+
+        /// <summary>
+        /// Gets the log file path for a specific date.
+        /// </summary>
+        private string GetLogFilePathForDate(DateTime date)
+        {
+            return $"{_logDirectory}Tracker_{date:yyyy-MM-dd}.log";
         }
 
         private void LoadConfiguration()
@@ -392,12 +395,24 @@ namespace Tracker.Logging
                     Directory.CreateDirectory(_logDirectory);
                 }
 
-                //DateTime now = DateTime.Now;
-                //if (_startTime.DayOfYear != now.DayOfYear)
-                //{
-                //    ArchiveLogs();
-                //    _startTime = now;
-                //}
+                // Check for day rollover
+                if (DateTime.Today != _currentLogDate)
+                {
+                    _currentLogDate = DateTime.Today;
+                    _logFileFullName = GetLogFilePathForDate(_currentLogDate);
+                    
+                    // Update all loggers to use new file
+                    foreach (var logger in _loggers.Values)
+                    {
+                        logger.UpdateLogFile(_logFileFullName);
+                    }
+                    
+                    // Clean up old files
+                    CleanupOldLogFiles();
+                    
+                    // Write header to new file
+                    Write("Date|Time|LogLevel|Component|ThreadId|Cpu|Ram|vRam|ClrMem|LOH|Message");
+                }
 
                 bool setCreationTime = !File.Exists(_logFileFullName);
 
@@ -412,8 +427,6 @@ namespace Tracker.Logging
                 if (setCreationTime)
                 {
                     File.SetCreationTime(_logFileFullName, DateTime.Now);
-                    // ReSharper disable once RedundantAssignment
-                    setCreationTime = false;
                 }
             }
             catch (UnauthorizedAccessException)
@@ -434,6 +447,249 @@ namespace Tracker.Logging
                 catch { /* swallow */ }
             }
         }
+
+        /// <summary>
+        /// Cleans up log files older than the retention period.
+        /// </summary>
+        private void CleanupOldLogFiles()
+        {
+            try
+            {
+                if (!Directory.Exists(_logDirectory)) return;
+
+                var cutoffDate = DateTime.Today.AddDays(-LogRetentionDays);
+                var logFiles = Directory.GetFiles(_logDirectory, "Tracker_*.log");
+
+                foreach (var file in logFiles)
+                {
+                    try
+                    {
+                        var fileName = Path.GetFileNameWithoutExtension(file);
+                        // Parse date from filename: Tracker_2025-12-11
+                        if (fileName.Length >= 17 && DateTime.TryParse(fileName.Substring(8), out var fileDate))
+                        {
+                            if (fileDate < cutoffDate)
+                            {
+                                File.Delete(file);
+                            }
+                        }
+                    }
+                    catch { /* ignore individual file errors */ }
+                }
+            }
+            catch { /* ignore cleanup errors */ }
+        }
+
+        #region Public Log Access Methods
+
+        /// <summary>
+        /// Gets the log directory path.
+        /// </summary>
+        public string LogDirectory => _logDirectory;
+
+        /// <summary>
+        /// Gets all available log files, newest first.
+        /// </summary>
+        public List<LogFileInfo> GetLogFiles()
+        {
+            var result = new List<LogFileInfo>();
+            
+            try
+            {
+                if (!Directory.Exists(_logDirectory)) return result;
+
+                var logFiles = Directory.GetFiles(_logDirectory, "Tracker_*.log")
+                    .OrderByDescending(f => f);
+
+                foreach (var file in logFiles)
+                {
+                    var fileInfo = new FileInfo(file);
+                    var fileName = Path.GetFileNameWithoutExtension(file);
+                    DateTime? logDate = null;
+                    
+                    if (fileName.Length >= 17 && DateTime.TryParse(fileName.Substring(8), out var parsed))
+                    {
+                        logDate = parsed;
+                    }
+
+                    result.Add(new LogFileInfo
+                    {
+                        FilePath = file,
+                        FileName = fileInfo.Name,
+                        Date = logDate ?? fileInfo.CreationTime.Date,
+                        SizeBytes = fileInfo.Length,
+                        IsCurrentLog = file == _logFileFullName
+                    });
+                }
+            }
+            catch { /* return empty list on error */ }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Reads log entries from a specific date range with optional text filter.
+        /// </summary>
+        public List<LogEntryParsed> ReadLogs(DateTime? startDate = null, DateTime? endDate = null, 
+            string? searchText = null, LogLevel? minLevel = null, int maxEntries = 1000)
+        {
+            var result = new List<LogEntryParsed>();
+            var start = startDate ?? DateTime.Today.AddDays(-7);
+            var end = endDate ?? DateTime.Today;
+
+            try
+            {
+                var logFiles = GetLogFiles()
+                    .Where(f => f.Date >= start.Date && f.Date <= end.Date)
+                    .OrderBy(f => f.Date);
+
+                foreach (var logFile in logFiles)
+                {
+                    if (result.Count >= maxEntries) break;
+
+                    var entries = ReadLogFile(logFile.FilePath, searchText, minLevel, maxEntries - result.Count);
+                    result.AddRange(entries);
+                }
+            }
+            catch { /* return partial results on error */ }
+
+            return result.OrderByDescending(e => e.Timestamp).ToList();
+        }
+
+        /// <summary>
+        /// Reads entries from a specific log file.
+        /// </summary>
+        private List<LogEntryParsed> ReadLogFile(string filePath, string? searchText, LogLevel? minLevel, int maxEntries)
+        {
+            var result = new List<LogEntryParsed>();
+
+            try
+            {
+                if (!File.Exists(filePath)) return result;
+
+                // Read file with shared access (allows reading while logging)
+                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(fs);
+
+                string? line;
+                while ((line = reader.ReadLine()) != null && result.Count < maxEntries)
+                {
+                    // Skip header line
+                    if (line.StartsWith("Date|Time|")) continue;
+
+                    var entry = ParseLogEntry(line);
+                    if (entry == null) continue;
+
+                    // Apply filters
+                    if (minLevel.HasValue && entry.Level < minLevel.Value) continue;
+                    if (!string.IsNullOrEmpty(searchText) && 
+                        !entry.Message.Contains(searchText, StringComparison.OrdinalIgnoreCase) &&
+                        !entry.Component.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    result.Add(entry);
+                }
+            }
+            catch { /* return partial results */ }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a log line into a structured entry.
+        /// Format: Date|Time|LogLevel|Component|ThreadId|Cpu|Ram|vRam|ClrMem|LOH|Message
+        /// </summary>
+        private LogEntryParsed? ParseLogEntry(string line)
+        {
+            try
+            {
+                var parts = line.Split('|');
+                if (parts.Length < 11) return null;
+
+                var dateStr = parts[0];
+                var timeStr = parts[1];
+                
+                if (!DateTime.TryParse($"{dateStr} {timeStr}", out var timestamp))
+                    return null;
+
+                if (!Enum.TryParse<LogLevel>(parts[2], true, out var level))
+                    level = LogLevel.Info;
+
+                return new LogEntryParsed
+                {
+                    Timestamp = timestamp,
+                    Level = level,
+                    Component = parts[3],
+                    ThreadId = parts[4],
+                    Message = string.Join("|", parts.Skip(10)) // Message may contain |
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Clears all log files except the current one.
+        /// </summary>
+        public int ClearOldLogs()
+        {
+            int deletedCount = 0;
+            
+            try
+            {
+                if (!Directory.Exists(_logDirectory)) return 0;
+
+                var logFiles = Directory.GetFiles(_logDirectory, "Tracker_*.log");
+
+                foreach (var file in logFiles)
+                {
+                    // Don't delete the current log file
+                    if (file == _logFileFullName) continue;
+
+                    try
+                    {
+                        File.Delete(file);
+                        deletedCount++;
+                    }
+                    catch { /* ignore individual file errors */ }
+                }
+            }
+            catch { /* ignore cleanup errors */ }
+
+            return deletedCount;
+        }
+
+        /// <summary>
+        /// Clears all log files including the current one (starts fresh).
+        /// </summary>
+        public void ClearAllLogs()
+        {
+            try
+            {
+                _logFileMutex.WaitOne();
+                
+                if (Directory.Exists(_logDirectory))
+                {
+                    var logFiles = Directory.GetFiles(_logDirectory, "Tracker_*.log");
+                    foreach (var file in logFiles)
+                    {
+                        try { File.Delete(file); } catch { }
+                    }
+                }
+
+                // Write header to fresh log
+                Write("Date|Time|LogLevel|Component|ThreadId|Cpu|Ram|vRam|ClrMem|LOH|Message");
+                Write(Logger.Format(LogLevel.Info, null, "Core", "Logs cleared by user"));
+            }
+            finally
+            {
+                try { _logFileMutex.ReleaseMutex(); } catch { }
+            }
+        }
+
+        #endregion
 
         public void Shutdown()
         {
@@ -467,6 +723,7 @@ namespace Tracker.Logging
         private Dictionary<string, Logger> _loggers = new Dictionary<string, Logger>();
         private string _logDirectory;  
         private string _logFileFullName;
+        private DateTime _currentLogDate;
         private Mutex _logFileMutex;
 
         private CancellationTokenSource _cancellationTokenSource;
@@ -493,5 +750,37 @@ namespace Tracker.Logging
         private int _performanceHitCount;
 
         #endregion
+    }
+
+    /// <summary>
+    /// Information about a log file.
+    /// </summary>
+    public class LogFileInfo
+    {
+        public string FilePath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public long SizeBytes { get; set; }
+        public bool IsCurrentLog { get; set; }
+        
+        public string SizeFormatted => SizeBytes < 1024 ? $"{SizeBytes} B" :
+                                        SizeBytes < 1024 * 1024 ? $"{SizeBytes / 1024.0:F1} KB" :
+                                        $"{SizeBytes / 1024.0 / 1024.0:F1} MB";
+    }
+
+    /// <summary>
+    /// A parsed log entry.
+    /// </summary>
+    public class LogEntryParsed
+    {
+        public DateTime Timestamp { get; set; }
+        public LogLevel Level { get; set; }
+        public string Component { get; set; } = string.Empty;
+        public string ThreadId { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+
+        public string LevelDisplay => Level.ToString().ToUpper();
+        public string TimeDisplay => Timestamp.ToString("HH:mm:ss.fff");
+        public string DateDisplay => Timestamp.ToString("yyyy-MM-dd");
     }
 }

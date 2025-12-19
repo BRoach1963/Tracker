@@ -15,33 +15,8 @@ namespace Tracker.Views.Dialogs
             InitializeComponent();
         }
 
-        private void OnDragHandleMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                DragMove();
-            }
-        }
-
-        private void Close_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
-        private void Minimize_Click(object sender, RoutedEventArgs e)
-        {
-            WindowState = WindowState.Minimized;
-        }
-
-        private void Maximize_Click(object sender, RoutedEventArgs e)
-        {
-            WindowState = WindowState.Maximized;
-        }
-
-        private void Restore_Click(object sender, RoutedEventArgs e)
-        {
-            WindowState = WindowState.Normal;
-        }
+        // Use base class methods: OnDragHandleMouseDown, Close_Click, 
+        // Minimize_Click, Maximize_Click, Restore_Click are inherited from BaseWindow
     }
 }
 

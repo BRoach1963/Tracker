@@ -34,12 +34,14 @@ namespace Tracker.Services
         {
             _codeCompletionSource = new TaskCompletionSource<string?>();
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            HttpListener? listener = null;
 
             try
             {
-                _listener = new HttpListener();
-                _listener.Prefixes.Add($"http://localhost:{port}/");
-                _listener.Start();
+                listener = new HttpListener();
+                _listener = listener; // Store reference for cleanup
+                listener.Prefixes.Add($"http://localhost:{port}/");
+                listener.Start();
                 _logger.Info("OAuth callback listener started on port {0}", port);
 
                 // Start listening in background
@@ -55,6 +57,15 @@ namespace Tracker.Services
             {
                 _logger.Exception(ex, "Error starting OAuth callback listener");
                 _codeCompletionSource?.TrySetResult(null);
+                
+                // Ensure listener is stopped even if exception occurs
+                try
+                {
+                    listener?.Stop();
+                    listener?.Close();
+                }
+                catch { }
+                
                 return null;
             }
         }

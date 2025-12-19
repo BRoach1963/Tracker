@@ -1,26 +1,36 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Input;
 using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Database;
+using Tracker.Eventing;
+using Tracker.Eventing.Messages;
 using Tracker.Managers;
+using Tracker.Services.Backend;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
     /// <summary>
     /// ViewModel for the first-run Setup Wizard dialog.
     /// 
-    /// This wizard guides users through initial database configuration:
+    /// This wizard guides users through initial database and account configuration:
     /// 
     /// Step 1 - Choose Database Type:
     ///   - Local (SQLite): Stores data on user's machine, no setup required
     ///   - SQL Server: Connect to networked server for team-wide access
     /// 
-    /// Step 2 - SQL Server Configuration (if selected):
+    /// Step 2 - SQL Server Configuration (if SQL Server selected):
     ///   - Server name and database
     ///   - Authentication method (Windows Auth, SQL Auth, or ODBC)
     ///   - Connection testing
     /// 
-    /// Step 3 - Summary:
+    /// Step 3 - Account Setup:
+    ///   - Create new Tracker account (email/password)
+    ///   - Or sign in to existing account
+    ///   - Links app to cloud services and subscription
+    /// 
+    /// Step 4 - Summary:
     ///   - Review configuration
     ///   - Option to include sample data
     ///   - Complete setup
@@ -32,7 +42,8 @@ namespace Tracker.ViewModels.DialogViewModels
     /// - Settings are saved to %LocalAppData%\Tracker\TrackerSettings.json
     /// - Database is created/connected
     /// - Optional sample data is seeded
-    /// - App continues to login screen
+    /// - User account linked to cloud backend
+    /// - App continues to main interface
     /// </summary>
     public class SetupWizardViewModel : BaseDialogViewModel
     {
@@ -58,6 +69,17 @@ namespace Tracker.ViewModels.DialogViewModels
         private bool _createDatabase = true;
         private bool _includeSampleData = true;
 
+        // Account Setup (Supabase)
+        private bool _isCreatingAccount = true;
+        private string _accountEmail = string.Empty;
+        private string _accountPassword = string.Empty;
+        private string _accountPasswordConfirm = string.Empty;
+        private string _accountDisplayName = string.Empty;
+        private string _accountStatus = string.Empty;
+        private bool _isAccountProcessing = false;
+        private bool _accountSetupComplete = false;
+        private bool _skipAccountSetup = false;
+
         // Commands
         private ICommand? _selectLocalCommand;
         private ICommand? _selectSqlServerCommand;
@@ -65,6 +87,10 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _nextCommand;
         private ICommand? _backCommand;
         private ICommand? _finishCommand;
+        private ICommand? _createAccountCommand;
+        private ICommand? _signInCommand;
+        private ICommand? _skipAccountCommand;
+        private ICommand? _toggleAccountModeCommand;
 
         #endregion
 
@@ -84,6 +110,10 @@ namespace Tracker.ViewModels.DialogViewModels
         public ICommand NextCommand => _nextCommand ??= new TrackerCommand(ExecuteNext, CanExecuteNext);
         public ICommand BackCommand => _backCommand ??= new TrackerCommand(ExecuteBack, CanExecuteBack);
         public ICommand FinishCommand => _finishCommand ??= new TrackerCommand(ExecuteFinish, CanExecuteFinish);
+        public ICommand CreateAccountCommand => _createAccountCommand ??= new TrackerCommand(ExecuteCreateAccount, CanExecuteAccountAction);
+        public ICommand SignInCommand => _signInCommand ??= new TrackerCommand(ExecuteSignIn, CanExecuteAccountAction);
+        public ICommand SkipAccountCommand => _skipAccountCommand ??= new TrackerCommand(ExecuteSkipAccount);
+        public ICommand ToggleAccountModeCommand => _toggleAccountModeCommand ??= new TrackerCommand(ExecuteToggleAccountMode);
 
         #endregion
 
@@ -99,12 +129,50 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged(nameof(IsStep1));
                 RaisePropertyChanged(nameof(IsStep2));
                 RaisePropertyChanged(nameof(IsStep3));
+                RaisePropertyChanged(nameof(IsStep4));
+                RaisePropertyChanged(nameof(CurrentStepNumber));
+                RaisePropertyChanged(nameof(ShowNextButton));
             }
         }
 
         public bool IsStep1 => CurrentStep == 1;
         public bool IsStep2 => CurrentStep == 2;
         public bool IsStep3 => CurrentStep == 3;
+        public bool IsStep4 => CurrentStep == 4;
+
+        /// <summary>
+        /// Gets the current step number for display.
+        /// SQLite: 1-Database → 2-Account → 3-Summary (skips SQL config)
+        /// SQL Server: 1-Database → 2-SQL Config → 3-Account → 4-Summary
+        /// </summary>
+        public int CurrentStepNumber
+        {
+            get
+            {
+                if (IsLocalSelected)
+                {
+                    // Skip step 2 (SQL config) for local
+                    return CurrentStep switch
+                    {
+                        1 => 1,
+                        3 => 2, // Account step shows as 2
+                        4 => 3, // Summary shows as 3
+                        _ => CurrentStep
+                    };
+                }
+                return CurrentStep;
+            }
+        }
+
+        /// <summary>
+        /// Gets the total number of steps (3 for SQLite, 4 for SQL Server).
+        /// </summary>
+        public int TotalSteps => IsLocalSelected ? 3 : 4;
+
+        /// <summary>
+        /// Gets whether to show the Next button.
+        /// </summary>
+        public bool ShowNextButton => (IsStep2 && IsSqlServerSelected) || IsStep3;
 
         public DatabaseType SelectedDatabaseType
         {
@@ -115,6 +183,9 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(IsLocalSelected));
                 RaisePropertyChanged(nameof(IsSqlServerSelected));
+                RaisePropertyChanged(nameof(TotalSteps));
+                RaisePropertyChanged(nameof(CurrentStepNumber));
+                RaisePropertyChanged(nameof(ShowNextButton));
             }
         }
 
@@ -265,6 +336,215 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether to use Windows Authentication for automatic login.
+        #region Account Setup Properties
+
+        /// <summary>
+        /// Whether user is in "create account" mode (vs sign in).
+        /// </summary>
+        public bool IsCreatingAccount
+        {
+            get => _isCreatingAccount;
+            set
+            {
+                _isCreatingAccount = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(IsSigningIn));
+                RaisePropertyChanged(nameof(AccountActionButtonText));
+                RaisePropertyChanged(nameof(AccountToggleLinkText));
+                AccountStatus = string.Empty;
+            }
+        }
+
+        public bool IsSigningIn => !_isCreatingAccount;
+
+        public string AccountEmail
+        {
+            get => _accountEmail;
+            set
+            {
+                _accountEmail = value;
+                RaisePropertyChanged();
+                AccountStatus = string.Empty;
+                RaiseAccountCommandsCanExecuteChanged();
+            }
+        }
+
+        public string AccountPassword
+        {
+            get => _accountPassword;
+            set
+            {
+                _accountPassword = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(PasswordValidationMessage));
+                RaisePropertyChanged(nameof(ConfirmPasswordValidationMessage));
+                AccountStatus = string.Empty;
+                RaiseAccountCommandsCanExecuteChanged();
+            }
+        }
+
+        public string AccountPasswordConfirm
+        {
+            get => _accountPasswordConfirm;
+            set
+            {
+                _accountPasswordConfirm = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(ConfirmPasswordValidationMessage));
+                AccountStatus = string.Empty;
+                RaiseAccountCommandsCanExecuteChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets the password validation message (if any).
+        /// </summary>
+        public string? PasswordValidationMessage
+        {
+            get
+            {
+                if (!IsCreatingAccount) return null;
+                if (string.IsNullOrEmpty(AccountPassword)) return null;
+                
+                var errors = new List<string>();
+                
+                if (AccountPassword.Length < 8)
+                    errors.Add($"at least 8 characters (currently {AccountPassword.Length})");
+                
+                if (!AccountPassword.Any(char.IsUpper))
+                    errors.Add("an uppercase letter (A-Z)");
+                
+                if (!AccountPassword.Any(char.IsLower))
+                    errors.Add("a lowercase letter (a-z)");
+                
+                if (!AccountPassword.Any(char.IsDigit))
+                    errors.Add("a number (0-9)");
+                
+                // Safe special characters (exclude: \ ' " ` < > & | ; and SQL injection chars)
+                const string safeSpecialChars = "!@#$%^*()_+-=[]{}:,.?/~";
+                if (!AccountPassword.Any(c => safeSpecialChars.Contains(c)))
+                    errors.Add($"a special character ({safeSpecialChars})");
+                
+                // Check for problematic characters
+                const string problematicChars = "\\'\"`<>&|;";
+                var foundProblematic = AccountPassword.Where(c => problematicChars.Contains(c)).Distinct().ToList();
+                if (foundProblematic.Any())
+                    errors.Add($"remove unsafe characters: {string.Join(" ", foundProblematic)}");
+                
+                if (errors.Count == 0) return null;
+                
+                return "Password needs: " + string.Join(", ", errors);
+            }
+        }
+
+        /// <summary>
+        /// Gets the confirm password validation message (if any).
+        /// </summary>
+        public string? ConfirmPasswordValidationMessage
+        {
+            get
+            {
+                if (!IsCreatingAccount) return null;
+                if (string.IsNullOrEmpty(AccountPasswordConfirm)) return null;
+                if (AccountPassword != AccountPasswordConfirm)
+                    return "Passwords do not match";
+                return null;
+            }
+        }
+
+        public string AccountDisplayName
+        {
+            get => _accountDisplayName;
+            set
+            {
+                _accountDisplayName = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string AccountStatus
+        {
+            get => _accountStatus;
+            set
+            {
+                _accountStatus = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool IsAccountProcessing
+        {
+            get => _isAccountProcessing;
+            set
+            {
+                _isAccountProcessing = value;
+                RaisePropertyChanged();
+                RaiseAccountCommandsCanExecuteChanged();
+            }
+        }
+
+        public bool AccountSetupComplete
+        {
+            get => _accountSetupComplete;
+            set
+            {
+                _accountSetupComplete = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool SkipAccountSetup
+        {
+            get => _skipAccountSetup;
+            set
+            {
+                _skipAccountSetup = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets the text for the main account action button.
+        /// </summary>
+        public string AccountActionButtonText => IsCreatingAccount ? "Create Account" : "Sign In";
+
+        /// <summary>
+        /// Gets the text for toggling between create/sign in.
+        /// </summary>
+        public string AccountToggleLinkText => IsCreatingAccount
+            ? "Already have an account? Sign in"
+            : "Don't have an account? Create one";
+
+        /// <summary>
+        /// Gets the signed-in user's email for display.
+        /// </summary>
+        public string? SignedInUserEmail => SupabaseService.Instance.CurrentUser?.Email;
+
+        /// <summary>
+        /// Gets the signed-in user's display name.
+        /// </summary>
+        public string? SignedInUserName => SupabaseService.Instance.CurrentProfile?.DisplayName
+            ?? SupabaseService.Instance.CurrentUser?.Email?.Split('@')[0];
+
+        /// <summary>
+        /// Gets the account name for the summary page.
+        /// Uses locally entered values as fallback if Supabase hasn't populated yet.
+        /// </summary>
+        public string AccountSummaryName => 
+            SignedInUserName 
+            ?? (string.IsNullOrWhiteSpace(AccountDisplayName) ? AccountEmail?.Split('@')[0] : AccountDisplayName) 
+            ?? "User";
+
+        /// <summary>
+        /// Gets the account email for the summary page.
+        /// Uses locally entered value as fallback.
+        /// </summary>
+        public string AccountSummaryEmail => SignedInUserEmail ?? AccountEmail ?? "Not set";
+
+        #endregion
+
         #endregion
 
         #region Command Implementations
@@ -272,7 +552,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private void ExecuteSelectLocal(object? parameter)
         {
             SelectedDatabaseType = DatabaseType.SQLite;
-            CurrentStep = 3; // Skip SQL config, go to summary
+            CurrentStep = 3; // Skip SQL config, go to account setup
         }
 
         private void ExecuteSelectSqlServer(object? parameter)
@@ -280,6 +560,157 @@ namespace Tracker.ViewModels.DialogViewModels
             SelectedDatabaseType = DatabaseType.SqlServer;
             CurrentStep = 2; // Go to SQL configuration
         }
+
+        #region Account Commands
+
+        private bool CanExecuteAccountAction(object? parameter)
+        {
+            if (IsAccountProcessing) return false;
+
+            if (string.IsNullOrWhiteSpace(AccountEmail)) return false;
+            if (string.IsNullOrWhiteSpace(AccountPassword)) return false;
+
+            if (IsCreatingAccount)
+            {
+                if (AccountPassword != AccountPasswordConfirm) return false;
+                if (!IsPasswordValid(AccountPassword)) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Validates password meets all security requirements.
+        /// </summary>
+        private static bool IsPasswordValid(string password)
+        {
+            if (string.IsNullOrEmpty(password)) return false;
+            if (password.Length < 8) return false;
+            if (!password.Any(char.IsUpper)) return false;
+            if (!password.Any(char.IsLower)) return false;
+            if (!password.Any(char.IsDigit)) return false;
+            
+            const string safeSpecialChars = "!@#$%^*()_+-=[]{}:,.?/~";
+            if (!password.Any(c => safeSpecialChars.Contains(c))) return false;
+            
+            // Reject passwords with problematic characters
+            const string problematicChars = "\\'\"`<>&|;";
+            if (password.Any(c => problematicChars.Contains(c))) return false;
+            
+            return true;
+        }
+
+        private async void ExecuteCreateAccount(object? parameter)
+        {
+            if (!CanExecuteAccountAction(null)) return;
+
+            IsAccountProcessing = true;
+            AccountStatus = "Creating your account...";
+
+            try
+            {
+                // Initialize Supabase if not already
+                if (!SupabaseService.Instance.IsInitialized)
+                {
+                    await SupabaseService.Instance.InitializeAsync();
+                }
+
+                var displayName = !string.IsNullOrWhiteSpace(AccountDisplayName)
+                    ? AccountDisplayName
+                    : AccountEmail.Split('@')[0];
+
+                var (success, error) = await SupabaseService.Instance.SignUpAsync(
+                    AccountEmail, AccountPassword, displayName);
+
+                if (success)
+                {
+                    AccountSetupComplete = true;
+                    AccountStatus = "✓ Account created successfully! Check your email to confirm.";
+                    RaisePropertyChanged(nameof(SignedInUserEmail));
+                    RaisePropertyChanged(nameof(SignedInUserName));
+                    RaisePropertyChanged(nameof(AccountSummaryName));
+                    RaisePropertyChanged(nameof(AccountSummaryEmail));
+                }
+                else
+                {
+                    AccountStatus = $"✗ {error}";
+                }
+            }
+            catch (Exception ex)
+            {
+                AccountStatus = $"✗ Error: {ex.Message}";
+            }
+            finally
+            {
+                IsAccountProcessing = false;
+            }
+        }
+
+        private async void ExecuteSignIn(object? parameter)
+        {
+            if (!CanExecuteAccountAction(null)) return;
+
+            IsAccountProcessing = true;
+            AccountStatus = "Signing in...";
+
+            try
+            {
+                // Initialize Supabase if not already
+                if (!SupabaseService.Instance.IsInitialized)
+                {
+                    await SupabaseService.Instance.InitializeAsync();
+                }
+
+                var (success, error) = await SupabaseService.Instance.SignInAsync(
+                    AccountEmail, AccountPassword);
+
+                if (success)
+                {
+                    AccountSetupComplete = true;
+                    AccountStatus = $"✓ Welcome back, {AccountSummaryName}!";
+                    RaisePropertyChanged(nameof(SignedInUserEmail));
+                    RaisePropertyChanged(nameof(SignedInUserName));
+                    RaisePropertyChanged(nameof(AccountSummaryName));
+                    RaisePropertyChanged(nameof(AccountSummaryEmail));
+                }
+                else
+                {
+                    AccountStatus = $"✗ {error}";
+                }
+            }
+            catch (Exception ex)
+            {
+                AccountStatus = $"✗ Error: {ex.Message}";
+            }
+            finally
+            {
+                IsAccountProcessing = false;
+            }
+        }
+
+        private void ExecuteSkipAccount(object? parameter)
+        {
+            SkipAccountSetup = true;
+            AccountSetupComplete = true;
+            AccountStatus = "Account setup skipped. You can create an account later in Settings.";
+        }
+
+        private void ExecuteToggleAccountMode(object? parameter)
+        {
+            IsCreatingAccount = !IsCreatingAccount;
+            RaiseAccountCommandsCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// Notifies account-related commands to re-evaluate their CanExecute state.
+        /// </summary>
+        private void RaiseAccountCommandsCanExecuteChanged()
+        {
+            (_createAccountCommand as TrackerCommand)?.RaiseCanExecuteChanged();
+            (_signInCommand as TrackerCommand)?.RaiseCanExecuteChanged();
+        }
+
+        #endregion
 
         private bool CanTestConnection(object? parameter)
         {
@@ -327,7 +758,14 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanExecuteNext(object? parameter)
         {
-            return CurrentStep < 3;
+            // Can go next from Step 2 (SQL config) or Step 3 (Account)
+            if (CurrentStep == 2 && IsSqlServerSelected)
+                return ConnectionTestSucceeded;
+            
+            if (CurrentStep == 3)
+                return AccountSetupComplete || SkipAccountSetup;
+
+            return CurrentStep < 4;
         }
 
         private void ExecuteNext(object? parameter)
@@ -335,6 +773,12 @@ namespace Tracker.ViewModels.DialogViewModels
             if (CurrentStep == 2 && IsSqlServerSelected && !ConnectionTestSucceeded)
             {
                 ConnectionStatus = "Please test the connection before proceeding.";
+                return;
+            }
+
+            if (CurrentStep == 3 && !AccountSetupComplete && !SkipAccountSetup)
+            {
+                AccountStatus = "Please create an account, sign in, or skip to continue.";
                 return;
             }
             
@@ -350,7 +794,11 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             if (CurrentStep == 3 && IsLocalSelected)
             {
-                CurrentStep = 1; // Go back to selection
+                CurrentStep = 1; // Go back to database selection (skip SQL config)
+            }
+            else if (CurrentStep == 4 && IsLocalSelected)
+            {
+                CurrentStep = 3; // Go back to account setup
             }
             else
             {
@@ -360,10 +808,10 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanExecuteFinish(object? parameter)
         {
-            if (IsLocalSelected)
-                return true;
+            if (IsSqlServerSelected && !ConnectionTestSucceeded)
+                return false;
             
-            return ConnectionTestSucceeded;
+            return AccountSetupComplete || SkipAccountSetup;
         }
 
         private async void ExecuteFinish(object? parameter)
@@ -373,12 +821,49 @@ namespace Tracker.ViewModels.DialogViewModels
                 var settings = BuildDatabaseSettings();
                 settings.SetupCompleted = true;
 
-                // Save settings
+                // Save database settings
                 UserSettingsManager.Instance.Settings.Database = settings;
+                
+                // Save authentication settings
+                var authSettings = UserSettingsManager.Instance.Settings.Authentication;
+                
+                // Save cloud account settings
+                authSettings.CloudAccountLinked = !SkipAccountSetup && AccountSetupComplete;
+                if (SupabaseService.Instance.CurrentUser != null)
+                {
+                    authSettings.CloudUserId = SupabaseService.Instance.CurrentUser.Id;
+                    authSettings.CloudUserEmail = SupabaseService.Instance.CurrentUser.Email;
+                }
+                
                 UserSettingsManager.Instance.SaveSettings();
 
                 // Initialize database
                 await TrackerDbManager.Instance!.InitializeAsync(settings, CreateDatabase, IncludeSampleData);
+
+                // Create the local user account
+                var displayName = SupabaseService.Instance.CurrentProfile?.DisplayName
+                    ?? AccountDisplayName
+                    ?? Environment.UserName;
+                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(displayName ?? "User");
+                
+                if (user != null)
+                {
+                    // Update auth settings with local user ID
+                    authSettings.StoredUserId = user.Id;
+                    authSettings.AccountSetupCompleted = true;
+                    UserSettingsManager.Instance.CurrentUser = displayName ?? user.Username;
+                    UserSettingsManager.Instance.SaveSettings();
+                }
+
+                // Update subscription service with cloud subscription
+                if (SupabaseService.Instance.CurrentSubscription != null)
+                {
+                    Services.Subscription.SubscriptionService.Instance.SetTier(
+                        SupabaseService.Instance.CurrentSubscription.Tier);
+                }
+
+                // Notify all views to refresh their data
+                DataMessenger.SendRefreshAll();
 
                 // Signal completion
                 DialogResult.Cancelled = false;

@@ -8,6 +8,7 @@ namespace Tracker.Views.Toasts
 {
     /// <summary>
     /// Modern toast notification with type-based styling and animations.
+    /// Supports pause on hover for better user experience.
     /// </summary>
     public partial class TrackerToast : Window
     {
@@ -15,6 +16,10 @@ namespace Tracker.Views.Toasts
         private readonly int _durationSeconds;
         private readonly ToastType _toastType;
         private bool _isClosing;
+        private bool _isPaused;
+        private DateTime _timerStartTime;
+        private TimeSpan _remainingTime;
+        private DoubleAnimation? _progressAnimation;
 
         public TrackerToast(string title, string message, ToastType type = ToastType.Information, int durationSeconds = 5)
         {
@@ -28,6 +33,7 @@ namespace Tracker.Views.Toasts
             ToastMessage.Text = message;
             _toastType = type;
             _durationSeconds = durationSeconds;
+            _remainingTime = TimeSpan.FromSeconds(durationSeconds);
 
             ApplyToastType(type);
 
@@ -66,6 +72,7 @@ namespace Tracker.Views.Toasts
         {
             PositionToast();
             AnimateIn();
+            _timerStartTime = DateTime.Now;
             _dismissTimer.Start();
         }
 
@@ -89,7 +96,7 @@ namespace Tracker.Views.Toasts
             };
 
             // Progress bar shrink animation (linear - no easing)
-            var progressShrink = new DoubleAnimation
+            _progressAnimation = new DoubleAnimation
             {
                 From = 1,
                 To = 0,
@@ -102,10 +109,70 @@ namespace Tracker.Views.Toasts
             transform.BeginAnimation(TranslateTransform.XProperty, slideIn);
             BeginAnimation(OpacityProperty, fadeIn);
 
-            ProgressBar.Width = ToastBorder.ActualWidth > 0 ? ToastBorder.ActualWidth : 360;
+            ProgressBar.Width = ToastBorder.ActualWidth > 0 ? ToastBorder.ActualWidth : 380;
             var scaleTransform = (ScaleTransform)ProgressBar.RenderTransform;
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, progressShrink);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, _progressAnimation);
         }
+
+        #region Pause/Resume on Hover
+
+        private void Toast_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isClosing || _isPaused) return;
+            
+            _isPaused = true;
+            
+            // Calculate remaining time
+            var elapsed = DateTime.Now - _timerStartTime;
+            _remainingTime = TimeSpan.FromSeconds(_durationSeconds) - elapsed;
+            if (_remainingTime < TimeSpan.Zero)
+                _remainingTime = TimeSpan.Zero;
+            
+            // Stop the timer
+            _dismissTimer.Stop();
+            
+            // Pause the progress bar animation by setting speed to 0
+            var scaleTransform = (ScaleTransform)ProgressBar.RenderTransform;
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null); // Remove animation
+            
+            // Hold at current position
+            var currentScale = scaleTransform.ScaleX;
+            scaleTransform.ScaleX = currentScale;
+        }
+
+        private void Toast_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isClosing || !_isPaused) return;
+            
+            _isPaused = false;
+            
+            // Resume with remaining time
+            if (_remainingTime > TimeSpan.Zero)
+            {
+                _dismissTimer.Interval = _remainingTime;
+                _timerStartTime = DateTime.Now;
+                _dismissTimer.Start();
+                
+                // Resume progress bar animation from current position
+                var scaleTransform = (ScaleTransform)ProgressBar.RenderTransform;
+                var currentScale = scaleTransform.ScaleX;
+                
+                var resumeAnimation = new DoubleAnimation
+                {
+                    From = currentScale,
+                    To = 0,
+                    Duration = _remainingTime
+                };
+                
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, resumeAnimation);
+            }
+            else
+            {
+                CloseToast();
+            }
+        }
+
+        #endregion
 
         private void AnimateOut(Action onComplete)
         {

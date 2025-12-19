@@ -9,5 +9,6 @@
         OKRs = 4,
         KPIs = 5,
         All = 99, // Refresh all data
+        NavigateToSearch = 100, // Navigate to search view (Ctrl+K)
     }
 }

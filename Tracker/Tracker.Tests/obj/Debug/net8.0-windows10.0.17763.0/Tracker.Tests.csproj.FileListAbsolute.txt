@@ -1,0 +1,6 @@
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.csproj.AssemblyReference.cache
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.AssemblyInfoInputs.cache
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.AssemblyInfo.cs
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.csproj.CoreCompileInputs.cache
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.sourcelink.json

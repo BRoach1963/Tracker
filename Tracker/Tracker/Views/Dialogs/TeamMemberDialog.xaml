@@ -11,16 +11,22 @@
                      xmlns:converters="clr-namespace:Tracker.Common.Converters"
                      xmlns:commands="clr-namespace:Tracker.Command"
                      xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                     xmlns:help="clr-namespace:Tracker.Help.Attributes"
+                     xmlns:attachedProperties="clr-namespace:Tracker.AttachedProperties"
                      mc:Ignorable="d"
                      MouseDown="OnDragHandleMouseDown"
                      WindowStyle="None"
                      ResizeMode="CanResize"
                      AllowsTransparency="True"
-                     SizeToContent="WidthAndHeight"
                      Background="Transparent"
-                     MinHeight="515"
-                     MinWidth="600"
-                     d:DataContext="{d:DesignInstance Type=dialogViewModels:TeamMemberViewModel}">
+                     MinHeight="715"
+                     MinWidth="700"
+                     SizeToContent="Width"
+                     MaxWidth="1400"
+                     Height="700"
+                     d:DataContext="{d:DesignInstance Type=dialogViewModels:TeamMemberViewModel}"
+                     AutomationProperties.Name="Team Member Dialog"
+                     AutomationProperties.HelpText="Add or edit team member information">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -30,8 +36,8 @@
     </controls:BaseWindow.Resources>
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
-                BorderThickness="1.5"
-                BorderBrush="{DynamicResource ForegroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BorderBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
@@ -45,7 +51,8 @@
                         Background="{DynamicResource BackgroundBrush}"
                         CornerRadius="12,12,0,0">
                     <controls:DialogTitleBar x:Name="TitleBar"
-                                             DialogTitle="{x:Static languages:Resources.Add_Team_Member_Title}"
+                                             d:DialogTitle="Team Member"
+                                             DialogTitle="{Binding InEditMode, Converter={x:Static converters:BoolToStringConverter.Instance}, ConverterParameter='Edit Team Member|New Team Member'}"
                                              IconData="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
                                              CloseClicked="Close_Click"
                                              MinimizeClicked="Minimize_Click"
@@ -59,9 +66,33 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="10" />
-                        <ColumnDefinition />
+                        <ColumnDefinition Width="280"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition>
+                            <ColumnDefinition.Style>
+                                <Style TargetType="ColumnDefinition">
+                                    <Setter Property="Width" Value="0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding InEditMode}" Value="True">
+                                            <Setter Property="Width" Value="15"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ColumnDefinition.Style>
+                        </ColumnDefinition>
+                        <ColumnDefinition>
+                            <ColumnDefinition.Style>
+                                <Style TargetType="ColumnDefinition">
+                                    <Setter Property="Width" Value="0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding InEditMode}" Value="True">
+                                            <Setter Property="Width" Value="400"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ColumnDefinition.Style>
+                        </ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <!--<controls:EditableContactCard Grid.Row="0" 
                                                   Grid.Column="0"/>-->
@@ -72,33 +103,38 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Ellipse Grid.Row="0"
-                                     Width="100"
+                        <!-- Profile Photo with hover-to-edit -->
+                        <Grid Width="100" Height="100"
+                              HorizontalAlignment="Center"
+                              Margin="0,10,0,10">
+                            <!-- Profile image -->
+                            <Ellipse Width="100"
                                      Height="100"
                                      Stroke="{DynamicResource ForegroundBrush}"
                                      StrokeThickness="2"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Top"
-                                     SnapsToDevicePixels="True"
-                                     Margin="0,10,0,10">
+                                     SnapsToDevicePixels="True">
                                 <Ellipse.Fill>
                                     <ImageBrush ImageSource="{Binding ProfileImage}"
                                                 RenderOptions.BitmapScalingMode="HighQuality"
                                                 Stretch="UniformToFill" />
                                 </Ellipse.Fill>
                             </Ellipse>
-                            <Button Style="{StaticResource DialogButtonStyle}"
-                                    HorizontalAlignment="Center"
-                                    Command="{Binding ChooseProfilePictureCommand}"
-                                    VerticalAlignment="Center"
-                                    Content="Change Profile Picture"
-                                    Margin="0,-2,0,0"
-                                    Grid.Row="1" />
+                            <!-- Edit overlay on hover -->
+                            <Border x:Name="PhotoEditOverlay"
+                                    Background="#80000000"
+                                    CornerRadius="50"
+                                    Opacity="0"
+                                    Cursor="Hand"
+                                    MouseEnter="PhotoOverlay_MouseEnter"
+                                    MouseLeave="PhotoOverlay_MouseLeave"
+                                    MouseDown="ChangePhoto_Click">
+                                <Path Data="M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25ZM20.71,7.04C21.1,6.65 21.1,6.02 20.71,5.63L18.37,3.29C17.98,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04Z"
+                                      Width="24" Height="24"
+                                      Fill="White"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Border>
                         </Grid>
                         <Label Style="{StaticResource LabelStyle}"
                                Margin="0,0,0, 0"
@@ -211,9 +247,10 @@
                                               DisplayMemberPath="Description" />
                                 </DockPanel>
                             </Grid>
-
                         </Grid>
                     </Grid>
+
+                    <!-- COLUMN 2: Dates and Social -->
                     <Grid Grid.Row="0"
                           Grid.Column="2">
                         <Grid.RowDefinitions>
@@ -225,6 +262,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto" />
                             <RowDefinition />
                         </Grid.RowDefinitions>
@@ -244,10 +283,9 @@
                                                         Grid.Row="1"
                                                         Grid.ColumnSpan="2"
                                                         Grid.Column="0" />
-                        <DatePicker Grid.Column="2"
-                                    SelectedDate="{Binding HireDate, UpdateSourceTrigger=PropertyChanged}"
-                                    Style="{StaticResource DatePickerStyle}"
-                                    Grid.Row="1" />
+                        <customControls:CalendarButton Grid.Column="2"
+                                                       SelectedDate="{Binding HireDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                       Grid.Row="1" />
                         <Label Style="{StaticResource LabelStyle}"
                                Grid.Row="3"
                                Margin="05,05,0, 0"
@@ -259,10 +297,9 @@
                                                         Grid.Row="4"
                                                         Grid.ColumnSpan="2"
                                                         Grid.Column="0" />
-                        <DatePicker Grid.Column="2"
-                                    SelectedDate="{Binding BirthDay, UpdateSourceTrigger=PropertyChanged}"
-                                    Style="{StaticResource DatePickerStyle}"
-                                    Grid.Row="4" />
+                        <customControls:CalendarButton Grid.Column="2"
+                                                       SelectedDate="{Binding BirthDay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                       Grid.Row="4" />
                         <StackPanel Grid.Row="5"
                                     Grid.Column="0"
                                     Margin="5,05,0,0"
@@ -293,11 +330,10 @@
                                                         Grid.ColumnSpan="2"
                                                         Grid.Column="0"
                                                         Visibility="{Binding ElementName=InactiveStatus, Path=IsChecked, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                        <DatePicker Grid.Column="2"
-                                    SelectedDate="{Binding TerminationDate, UpdateSourceTrigger=PropertyChanged}"
-                                    Style="{StaticResource DatePickerStyle}"
-                                    Grid.Row="7"
-                                    Visibility="{Binding ElementName=InactiveStatus, Path=IsChecked, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
+                        <customControls:CalendarButton Grid.Column="2"
+                                                       SelectedDate="{Binding TerminationDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                       Grid.Row="7"
+                                                       Visibility="{Binding ElementName=InactiveStatus, Path=IsChecked, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
                         <Label Style="{StaticResource LabelStyle}"
                                Grid.Row="8"
                                Grid.Column="0"
@@ -317,70 +353,99 @@
                                                                           SocialHintText="{x:Static languages:Resources.Label_LinkIn}"
                                                                           SocialMediaType="LinkedIn"
                                                                           Text="{Binding LinkedInProfile, UpdateSourceTrigger=PropertyChanged}"
-                                                                          Margin="0,5,0, 0">
-                                <customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}" />
-                                    </ToolTip>
-                                </customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                            </customControls:SocialMediaLinkTextBoxControl>
+                                                                          Margin="0,5,0, 0"
+                                                                          attachedProperties:TooltipProperties.Text="{x:Static languages:Resources.ToolTip_LinkedIn}"/>
                             <customControls:SocialMediaLinkTextBoxControl Grid.Row="1"
                                                                           SocialHintText="{x:Static languages:Resources.Label_Facebook}"
                                                                           SocialMediaType="Facebook"
                                                                           Text="{Binding FacebookProfile, UpdateSourceTrigger=PropertyChanged}"
-                                                                          Margin="0,05,0, 0">
-                                <customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}" />
-                                    </ToolTip>
-                                </customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                            </customControls:SocialMediaLinkTextBoxControl>
+                                                                          Margin="0,05,0, 0"
+                                                                          attachedProperties:TooltipProperties.Text="View or edit Facebook profile link"/>
                             <customControls:SocialMediaLinkTextBoxControl Grid.Row="2"
                                                                           SocialHintText="{x:Static languages:Resources.HintText_Instagram}"
                                                                           SocialMediaType="Instagram"
                                                                           Text="{Binding InstagramProfile, UpdateSourceTrigger=PropertyChanged}"
-                                                                          Margin="0,05,0, 0">
-                                <customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}" />
-                                    </ToolTip>
-                                </customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                            </customControls:SocialMediaLinkTextBoxControl>
+                                                                          Margin="0,05,0, 0"
+                                                                          attachedProperties:TooltipProperties.Text="View or edit Instagram profile link"/>
                             <customControls:SocialMediaLinkTextBoxControl Grid.Row="3"
                                                                           SocialHintText="{x:Static languages:Resources.HintText_XTwitter}"
                                                                           SocialMediaType="XTwitter"
                                                                           Text="{Binding XProfile, UpdateSourceTrigger=PropertyChanged}"
-                                                                          Margin="0,05,0, 0">
-                                <customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <controls:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_LinkedIn}" />
-                                    </ToolTip>
-                                </customControls:SocialMediaLinkTextBoxControl.ToolTip>
-                            </customControls:SocialMediaLinkTextBoxControl>
+                                                                          Margin="0,05,0, 0"
+                                                                          attachedProperties:TooltipProperties.Text="View or edit X/Twitter profile link"/>
                         </Grid>
-
+                    </Grid>
+                    
+                    <!-- COLUMN 3: Team Member Data Tabs (far right) -->
+                    <Grid Grid.Row="0"
+                          Grid.Column="4"
+                          Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                        <TabControl Style="{StaticResource DialogTabControlStyle}">
+                            <TabItem Header="Meetings" 
+                                     Style="{StaticResource DialogTabItemStyle}"
+                                     help:HelpProperties.TopicId="dialogs/add-team-member"
+                                     help:HelpProperties.Section="meeting-history">
+                                <controls:MeetingHistoryControl DataContext="{Binding}" MinHeight="400"/>
+                            </TabItem>
+                            <TabItem Header="Feedback" 
+                                     Style="{StaticResource DialogTabItemStyle}"
+                                     help:HelpProperties.TopicId="dialogs/add-team-member"
+                                     help:HelpProperties.Section="feedback-history">
+                                <controls:TeamMemberFeedbackControl DataContext="{Binding}" MinHeight="400"/>
+                            </TabItem>
+                            <TabItem Header="Goals" 
+                                     Style="{StaticResource DialogTabItemStyle}"
+                                     help:HelpProperties.TopicId="dialogs/add-team-member"
+                                     help:HelpProperties.Section="goals-tab">
+                                <controls:TeamMemberGoalsControl DataContext="{Binding}" MinHeight="400"/>
+                            </TabItem>
+                        </TabControl>
                     </Grid>
                 </Grid>
-                <StackPanel Grid.Row="2"
-                            Margin="0,10,10,0"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Margin="0,0,10,0"
-                            Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Content="Cancel" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Add"
-                            Command="{Binding AddTeamMemberCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Update"
-                            Command="{Binding UpdateTeamMemberCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                </StackPanel>
+                <!-- Footer -->
+                <Border Grid.Row="2" 
+                        Style="{StaticResource DialogFooterStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Left: Quick Message button (when M365 connected) -->
+                        <Button Grid.Column="0"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Command="{Binding SendMessageCommand}"
+                                ToolTip="Send a quick Teams message or email"
+                                Visibility="{Binding CanShowMessaging, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💬" Margin="0,0,6,0"/>
+                                <TextBlock Text="Send Message"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <!-- Right: Action buttons -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource DialogSecondaryButtonStyle}"
+                                    Margin="0,0,12,0"
+                                    Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                    Content="Cancel"/>
+                            <Button Style="{StaticResource DialogPrimaryButtonStyle}"
+                                    Content="Add Team Member"
+                                    Command="{Binding AddTeamMemberCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                    Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"/>
+                            <Button Style="{StaticResource DialogPrimaryButtonStyle}"
+                                    Content="Save Changes"
+                                    Margin="10,0,0,0"
+                                    Command="{Binding UpdateTeamMemberCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                    Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
     </Grid>

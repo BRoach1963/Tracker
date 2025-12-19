@@ -1,0 +1,259 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.AddGoalDialog"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:controls="clr-namespace:Tracker.Controls"
+                    xmlns:commands="clr-namespace:Tracker.Command"
+                    xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                    xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                    mc:Ignorable="d"
+                    Title="Add Goal"
+                    MouseDown="OnDragHandleMouseDown"
+                    WindowStyle="None"
+                    ResizeMode="CanResize"
+                    Foreground="{DynamicResource ForegroundBrush}"
+                    AllowsTransparency="True"
+                    Width="580"
+                    Height="650"
+                    Background="Transparent"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:GoalViewModel}"
+                    MinWidth="520"
+                    MinHeight="550"
+                    AutomationProperties.Name="Add Goal Dialog"
+                    AutomationProperties.HelpText="Create a new development goal">
+    <controls:BaseWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </controls:BaseWindow.Resources>
+    
+    <Grid>
+        <Border Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BorderBrush}"
+                CornerRadius="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Title Bar -->
+                <Border Grid.Row="0" CornerRadius="12,12,0,0">
+                    <controls:DialogTitleBar x:Name="TitleBar"
+                                             DialogTitle="Add Goal"
+                                             IconData="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"
+                                             CloseClicked="Close_Click"
+                                             MinimizeClicked="Minimize_Click"
+                                             MaximizeClicked="Maximize_Click"
+                                             RestoreClicked="Restore_Click"/>
+                </Border>
+                
+                <!-- Content Area -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,16,24,16">
+                        
+                        <!-- Title -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Goal Title" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                            </StackPanel>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="What do you want to achieve?"
+                                                            Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                            MaxLength="200"/>
+                        </StackPanel>
+                        
+                        <!-- Category and Status Row -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Category" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding GoalCategories}"
+                                          SelectedItem="{Binding SelectedCategory}"
+                                          HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Status" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding GoalStatuses}"
+                                          SelectedItem="{Binding SelectedStatus}"
+                                          HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Target Date and Progress Row -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Target Date" Style="{StaticResource FieldLabel}"/>
+                                <customControls:CalendarButton SelectedDate="{Binding TargetDate, Mode=TwoWay}"
+                                                               HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Progress" Style="{StaticResource FieldLabel}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="50"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="0" Maximum="100"
+                                            Value="{Binding ProgressPercent}"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource ModernSliderStyle}"/>
+                                    <Border Grid.Column="1" 
+                                            Background="{DynamicResource AccentBrush}" 
+                                            CornerRadius="6" 
+                                            Padding="8,4" 
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ProgressPercent, StringFormat={}{0}%}"
+                                                   FontWeight="Bold"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource BackgroundBrush}"/>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Description -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Describe your goal in more detail..."
+                                                            Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                            AcceptsReturn="True"
+                                                            TextWrapping="Wrap"
+                                                            VerticalScrollBarVisibility="Auto"
+                                                            MinHeight="60"
+                                                            MaxHeight="100"/>
+                        </StackPanel>
+                        
+                        <!-- Milestones Section -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <TextBlock Text="MILESTONES" 
+                                       FontSize="11" FontWeight="Bold" 
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Margin="0,0,0,8"/>
+                            <Border Style="{StaticResource DialogCardStyle}">
+                                <StackPanel>
+                                    <!-- Add Milestone -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                        HintText="Add a milestone..."
+                                                                        Text="{Binding NewMilestoneDescription, UpdateSourceTrigger=PropertyChanged}"
+                                                                        VerticalAlignment="Center"/>
+                                        <Button Grid.Column="2"
+                                                Content="+ Add"
+                                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                                Command="{Binding AddMilestoneCommand}"
+                                                Padding="12,8"
+                                                MinWidth="80"/>
+                                    </Grid>
+                                    
+                                    <!-- Milestone List -->
+                                    <ItemsControl ItemsSource="{Binding Milestones}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource BackgroundBrush}"
+                                                        CornerRadius="6"
+                                                        Padding="10,8"
+                                                        Margin="0,0,0,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox IsChecked="{Binding IsCompleted}"
+                                                                  VerticalAlignment="Center"
+                                                                  Margin="0,0,10,0"/>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Description}"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                                   TextTrimming="CharacterEllipsis">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                                            <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                                            <Setter Property="Opacity" Value="0.6"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <Button Grid.Column="2"
+                                                                Content="✕"
+                                                                Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Foreground="{DynamicResource HintTextBrush}"
+                                                                Command="{Binding DataContext.RemoveMilestoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Padding="8,4"
+                                                                FontSize="12"
+                                                                Cursor="Hand"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        
+                        <!-- Notes -->
+                        <StackPanel>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Add notes or action items..."
+                                                            Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                                                            AcceptsReturn="True"
+                                                            TextWrapping="Wrap"
+                                                            VerticalScrollBarVisibility="Auto"
+                                                            MinHeight="60"
+                                                            MaxHeight="80"/>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- Footer with Buttons -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Margin="0,0,12,0"
+                                Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                        <Button Content="{Binding InEditMode, Converter={x:Static converters:BoolToStringConverter.Instance}, ConverterParameter='Save Changes|Save Goal'}"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding SaveCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</controls:BaseWindow>

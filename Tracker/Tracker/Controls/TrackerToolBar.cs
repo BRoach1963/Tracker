@@ -5,8 +5,6 @@ namespace Tracker.Controls
 {
     public class TrackerToolBar : ToolBar
     {
-        private Button? _overflowButton;
-
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();

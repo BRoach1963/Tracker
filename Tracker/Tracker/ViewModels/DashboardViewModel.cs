@@ -4,19 +4,24 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Media;
 using LiveCharts;
 using LiveCharts.Wpf;
 using LiveCharts.Defaults;
 using Tracker.Command;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
+using Tracker.Eventing;
+using Tracker.Eventing.Messages;
 using Tracker.Managers;
 
 namespace Tracker.ViewModels
 {
     /// <summary>
-    /// ViewModel for the Dashboard view, providing summary statistics and chart data.
+    /// ViewModel for the Dashboard view - Manager's Team Health command center.
+    /// Provides actionable insights focused on what needs attention NOW.
     /// </summary>
-    public class DashboardViewModel : BaseViewModel
+    public class DashboardViewModel : BaseViewModel, IDisposable
     {
         #region Fields
 
@@ -26,28 +31,54 @@ namespace Tracker.ViewModels
         private ObservableCollection<ObjectiveKeyResult> _okrs = new();
         private ObservableCollection<KeyPerformanceIndicator> _kpis = new();
         private ObservableCollection<Project> _projects = new();
+        private ObservableCollection<Feedback> _feedbacks = new();
+        private ObservableCollection<IndividualGoal> _goals = new();
 
         // Summary statistics
         private int _totalTeamMembers;
-        private int _totalOneOnOnes;
         private int _totalTasks;
         private int _completedTasks;
-        private int _totalProjects;
-        private int _totalOKRs;
-        private int _totalKPIs;
         private int _upcomingMeetings;
+        private int _activeOkrs;
+        private int _kpisOnTarget;
+        private int _totalKpis;
+
+        // Manager-centric metrics
+        private int _overdueMeetingsCount;
+        private int _openActionItemsCount;
+        private int _totalActionItems;
+        private int _completedActionItems;
+        private int _unresolvedConcernsCount;
+        private int _goalsDueSoonCount;
+
+        // KPI Card metrics
+        private int _meetingCadencePercent;
+        private int _actionItemCompletionPercent;
+        private int _okrOnTrackPercent;
 
         // Chart series
-        private SeriesCollection _taskCompletionSeries;
-        private SeriesCollection _okrProgressSeries;
-        private SeriesCollection _kpiStatusSeries;
-        private SeriesCollection _teamActivitySeries;
-        private string[] _taskCompletionLabels;
-        private string[] _okrProgressLabels;
-        private string[] _kpiStatusLabels;
-        private string[] _teamActivityLabels;
+        private SeriesCollection _taskCompletionSeries = new();
+        private SeriesCollection _okrProgressSeries = new();
+        private SeriesCollection _kpiStatusSeries = new();
+        private string[] _okrProgressLabels = Array.Empty<string>();
+
+        // Collections for display
+        private ObservableCollection<OneOnOne> _upcomingMeetingsList = new();
+        private ObservableCollection<TeamMemberCadenceInfo> _teamMemberCadence = new();
+        private ObservableCollection<TeamMemberCadenceInfo> _overdueMeetingMembers = new();
+        private ObservableCollection<MeetingTask> _recentActionItems = new();
+        private ObservableCollection<AgendaItem> _recentConcerns = new();
+        private ObservableCollection<IndividualGoal> _goalsDueSoon = new();
+        private ObservableCollection<TeamHealthRow> _teamHealthRows = new();
 
         private ICommand? _refreshCommand;
+        private ICommand? _newOneOnOneCommand;
+
+        // Color brushes
+        private static readonly Brush GreenBrush = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+        private static readonly Brush AmberBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
+        private static readonly Brush RedBrush = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+        private static readonly Brush GrayBrush = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80));
 
         #endregion
 
@@ -57,181 +88,273 @@ namespace Tracker.ViewModels
         {
             InitializeCharts();
             LoadData();
+            
+            // Subscribe to data change messages
+            DataMessenger.Register(this, OnDataChanged);
         }
 
         #endregion
 
-        #region Properties - Summary Statistics
+        #region IDisposable
+
+        public void Dispose()
+        {
+            DataMessenger.Unregister(this);
+        }
+
+        #endregion
+
+        #region Message Handlers
+
+        private void OnDataChanged(DataChangeInfo info)
+        {
+            // Refresh if any relevant data type changed
+            if (info.RefreshAll ||
+                info.Includes(DataChangeType.TeamMembers) ||
+                info.Includes(DataChangeType.OneOnOnes) ||
+                info.Includes(DataChangeType.Tasks) ||
+                info.Includes(DataChangeType.Projects) ||
+                info.Includes(DataChangeType.OKRs) ||
+                info.Includes(DataChangeType.KPIs) ||
+                info.Includes(DataChangeType.Goals) ||
+                info.Includes(DataChangeType.Feedback))
+            {
+                // Refresh on UI thread
+                System.Windows.Application.Current?.Dispatcher.InvokeAsync(async () =>
+                {
+                    await RefreshDataAsync();
+                });
+            }
+        }
+
+        #endregion
+
+        #region Properties - Header
+
+        public string CurrentUserName => UserSettingsManager.Instance.CurrentUser ?? "Manager";
+        
+        public string TodayDateFormatted => DateTime.Now.ToString("dddd, MMMM d, yyyy");
+
+        public string TimeOfDayGreeting
+        {
+            get
+            {
+                var hour = DateTime.Now.Hour;
+                if (hour < 12) return "morning";
+                if (hour < 17) return "afternoon";
+                return "evening";
+            }
+        }
+
+        #endregion
+
+        #region Properties - KPI Cards
+
+        public int MeetingCadencePercent
+        {
+            get => _meetingCadencePercent;
+            set { _meetingCadencePercent = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(MeetingCadenceColor)); RaisePropertyChanged(nameof(MeetingCadenceStatus)); }
+        }
+
+        public Brush MeetingCadenceColor => _meetingCadencePercent >= 80 ? GreenBrush : _meetingCadencePercent >= 50 ? AmberBrush : RedBrush;
+
+        public string MeetingCadenceStatus => _meetingCadencePercent >= 80 ? "On Track" : _meetingCadencePercent >= 50 ? "Needs Attn" : "Critical";
+
+        public int ActionItemCompletionPercent
+        {
+            get => _actionItemCompletionPercent;
+            set { _actionItemCompletionPercent = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(ActionItemColor)); }
+        }
+
+        public Brush ActionItemColor => _actionItemCompletionPercent >= 70 ? GreenBrush : _actionItemCompletionPercent >= 40 ? AmberBrush : RedBrush;
+
+        public Brush TaskCompletionColor => TaskCompletionPercentage >= 70 ? GreenBrush : TaskCompletionPercentage >= 40 ? AmberBrush : RedBrush;
+
+        public int OkrOnTrackPercent
+        {
+            get => _okrOnTrackPercent;
+            set { _okrOnTrackPercent = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(OkrColor)); }
+        }
+
+        public Brush OkrColor => _okrOnTrackPercent >= 70 ? GreenBrush : _okrOnTrackPercent >= 40 ? AmberBrush : RedBrush;
+
+        public Brush KpiColor => _kpisOnTarget >= 70 ? GreenBrush : _kpisOnTarget >= 40 ? AmberBrush : RedBrush;
+
+        public int TotalKpis
+        {
+            get => _totalKpis;
+            set { _totalKpis = value; RaisePropertyChanged(); }
+        }
+
+        #endregion
+
+        #region Properties - Needs Attention Section
+
+        public int OverdueMeetingsCount
+        {
+            get => _overdueMeetingsCount;
+            set { _overdueMeetingsCount = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoOverdueMeetings)); }
+        }
+
+        public bool HasNoOverdueMeetings => OverdueMeetingsCount == 0;
+
+        public ObservableCollection<TeamMemberCadenceInfo> OverdueMeetingMembers
+        {
+            get => _overdueMeetingMembers;
+            set { _overdueMeetingMembers = value; RaisePropertyChanged(); }
+        }
+
+        public int OpenActionItemsCount
+        {
+            get => _openActionItemsCount;
+            set { _openActionItemsCount = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoOpenActionItems)); }
+        }
+
+        public bool HasNoOpenActionItems => OpenActionItemsCount == 0;
+
+        public ObservableCollection<MeetingTask> RecentActionItems
+        {
+            get => _recentActionItems;
+            set { _recentActionItems = value; RaisePropertyChanged(); }
+        }
+
+        public int UnresolvedConcernsCount
+        {
+            get => _unresolvedConcernsCount;
+            set { _unresolvedConcernsCount = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoConcerns)); }
+        }
+
+        public bool HasNoConcerns => UnresolvedConcernsCount == 0;
+
+        public ObservableCollection<AgendaItem> RecentConcerns
+        {
+            get => _recentConcerns;
+            set { _recentConcerns = value; RaisePropertyChanged(); }
+        }
+
+        #endregion
+
+        #region Properties - Team Health Table
+
+        public ObservableCollection<TeamHealthRow> TeamHealthRows
+        {
+            get => _teamHealthRows;
+            set { _teamHealthRows = value; RaisePropertyChanged(); }
+        }
+
+        #endregion
+
+        #region Properties - Team Pulse Section
+
+        public ObservableCollection<TeamMemberCadenceInfo> TeamMemberCadence
+        {
+            get => _teamMemberCadence;
+            set { _teamMemberCadence = value; RaisePropertyChanged(); }
+        }
+
+        public string MeetingCadenceSummary
+        {
+            get
+            {
+                var onTrack = TeamMemberCadence?.Count(t => t.IsOnTrack) ?? 0;
+                var total = TeamMemberCadence?.Count ?? 0;
+                return $"{onTrack} of {total} on track";
+            }
+        }
+
+        #endregion
+
+        #region Properties - This Week Section
+
+        public int UpcomingMeetings
+        {
+            get => _upcomingMeetings;
+            set { _upcomingMeetings = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoUpcomingMeetings)); }
+        }
+
+        public bool HasNoUpcomingMeetings => UpcomingMeetings == 0;
+
+        public ObservableCollection<OneOnOne> UpcomingMeetingsList
+        {
+            get => _upcomingMeetingsList;
+            set { _upcomingMeetingsList = value; RaisePropertyChanged(); }
+        }
+
+        public int GoalsDueSoonCount
+        {
+            get => _goalsDueSoonCount;
+            set { _goalsDueSoonCount = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoGoalsDueSoon)); }
+        }
+
+        public bool HasNoGoalsDueSoon => GoalsDueSoonCount == 0;
+
+        public ObservableCollection<IndividualGoal> GoalsDueSoon
+        {
+            get => _goalsDueSoon;
+            set { _goalsDueSoon = value; RaisePropertyChanged(); }
+        }
+
+        #endregion
+
+        #region Properties - Performance Section
 
         public int TotalTeamMembers
         {
             get => _totalTeamMembers;
-            set
-            {
-                _totalTeamMembers = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public int TotalOneOnOnes
-        {
-            get => _totalOneOnOnes;
-            set
-            {
-                _totalOneOnOnes = value;
-                RaisePropertyChanged();
-            }
+            set { _totalTeamMembers = value; RaisePropertyChanged(); }
         }
 
         public int TotalTasks
         {
             get => _totalTasks;
-            set
-            {
-                _totalTasks = value;
-                RaisePropertyChanged();
-            }
+            set { _totalTasks = value; RaisePropertyChanged(); }
         }
 
         public int CompletedTasks
         {
             get => _completedTasks;
-            set
-            {
-                _completedTasks = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public int TotalProjects
-        {
-            get => _totalProjects;
-            set
-            {
-                _totalProjects = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public int TotalOKRs
-        {
-            get => _totalOKRs;
-            set
-            {
-                _totalOKRs = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public int TotalKPIs
-        {
-            get => _totalKPIs;
-            set
-            {
-                _totalKPIs = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public int UpcomingMeetings
-        {
-            get => _upcomingMeetings;
-            set
-            {
-                _upcomingMeetings = value;
-                RaisePropertyChanged();
-            }
+            set { _completedTasks = value; RaisePropertyChanged(); }
         }
 
         public double TaskCompletionPercentage => TotalTasks > 0 
             ? Math.Round((CompletedTasks / (double)TotalTasks) * 100, 1) 
             : 0;
 
-        #endregion
+        public int ActiveOkrs
+        {
+            get => _activeOkrs;
+            set { _activeOkrs = value; RaisePropertyChanged(); }
+        }
 
-        #region Properties - Charts
+        public int KpisOnTarget
+        {
+            get => _kpisOnTarget;
+            set { _kpisOnTarget = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(KpiColor)); }
+        }
 
         public SeriesCollection TaskCompletionSeries
         {
             get => _taskCompletionSeries;
-            set
-            {
-                _taskCompletionSeries = value;
-                RaisePropertyChanged();
-            }
+            set { _taskCompletionSeries = value; RaisePropertyChanged(); }
         }
 
         public SeriesCollection OkrProgressSeries
         {
             get => _okrProgressSeries;
-            set
-            {
-                _okrProgressSeries = value;
-                RaisePropertyChanged();
-            }
+            set { _okrProgressSeries = value; RaisePropertyChanged(); }
         }
 
         public SeriesCollection KpiStatusSeries
         {
             get => _kpiStatusSeries;
-            set
-            {
-                _kpiStatusSeries = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public SeriesCollection TeamActivitySeries
-        {
-            get => _teamActivitySeries;
-            set
-            {
-                _teamActivitySeries = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public string[] TaskCompletionLabels
-        {
-            get => _taskCompletionLabels;
-            set
-            {
-                _taskCompletionLabels = value;
-                RaisePropertyChanged();
-            }
+            set { _kpiStatusSeries = value; RaisePropertyChanged(); }
         }
 
         public string[] OkrProgressLabels
         {
             get => _okrProgressLabels;
-            set
-            {
-                _okrProgressLabels = value;
-                RaisePropertyChanged();
-            }
+            set { _okrProgressLabels = value; RaisePropertyChanged(); }
         }
-
-        public string[] KpiStatusLabels
-        {
-            get => _kpiStatusLabels;
-            set
-            {
-                _kpiStatusLabels = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public string[] TeamActivityLabels
-        {
-            get => _teamActivityLabels;
-            set
-            {
-                _teamActivityLabels = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public Func<double, string> Formatter { get; set; } = value => value.ToString("N0");
 
         #endregion
 
@@ -239,6 +362,9 @@ namespace Tracker.ViewModels
 
         public ICommand RefreshCommand => _refreshCommand ??= 
             new TrackerCommand(ExecuteRefresh, _ => true);
+
+        public ICommand NewOneOnOneCommand => _newOneOnOneCommand ??=
+            new TrackerCommand(ExecuteNewOneOnOne, _ => true);
 
         #endregion
 
@@ -249,7 +375,6 @@ namespace Tracker.ViewModels
             TaskCompletionSeries = new SeriesCollection();
             OkrProgressSeries = new SeriesCollection();
             KpiStatusSeries = new SeriesCollection();
-            TeamActivitySeries = new SeriesCollection();
         }
 
         private async void LoadData()
@@ -259,29 +384,242 @@ namespace Tracker.ViewModels
 
         public async Task RefreshDataAsync()
         {
-            _teamMembers = new ObservableCollection<TeamMember>(await TrackerDataManager.Instance.GetTeamData());
-            _oneOnOnes = new ObservableCollection<OneOnOne>(await TrackerDataManager.Instance.GetOneOnOnes());
-            _tasks = new ObservableCollection<IndividualTask>(await TrackerDataManager.Instance.GetTasks());
-            _okrs = new ObservableCollection<ObjectiveKeyResult>(await TrackerDataManager.Instance.GetOKRs());
-            _kpis = new ObservableCollection<KeyPerformanceIndicator>(await TrackerDataManager.Instance.GetKPIs());
-            _projects = new ObservableCollection<Project>(await TrackerDataManager.Instance.GetProjects());
+            try
+            {
+                _teamMembers = new ObservableCollection<TeamMember>(await TrackerDataManager.Instance.GetTeamData());
+                _oneOnOnes = new ObservableCollection<OneOnOne>(await TrackerDataManager.Instance.GetOneOnOnes());
+                _tasks = new ObservableCollection<IndividualTask>(await TrackerDataManager.Instance.GetTasks());
+                _okrs = new ObservableCollection<ObjectiveKeyResult>(await TrackerDataManager.Instance.GetOKRs());
+                _kpis = new ObservableCollection<KeyPerformanceIndicator>(await TrackerDataManager.Instance.GetKPIs());
+                _projects = new ObservableCollection<Project>(await TrackerDataManager.Instance.GetProjects());
+                _feedbacks = new ObservableCollection<Feedback>(await TrackerDataManager.Instance.GetFeedbacks());
+                
+                // Try to load goals if available
+                try
+                {
+                    _goals = new ObservableCollection<IndividualGoal>(await TrackerDataManager.Instance.GetGoals());
+                }
+                catch
+                {
+                    _goals = new ObservableCollection<IndividualGoal>();
+                }
 
-            UpdateSummaryStatistics();
-            UpdateCharts();
+                UpdateManagerMetrics();
+                UpdateTeamHealthTable();
+                UpdateCharts();
+            }
+            catch (Exception)
+            {
+                // Handle gracefully - dashboard can work with partial data
+            }
         }
 
-        private void UpdateSummaryStatistics()
+        private void UpdateManagerMetrics()
         {
+            var today = DateTime.Today;
+            var endOfWeek = today.AddDays(7 - (int)today.DayOfWeek);
+            var endOfMonth = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+
+            // Basic counts
             TotalTeamMembers = _teamMembers.Count;
-            TotalOneOnOnes = _oneOnOnes.Count;
             TotalTasks = _tasks.Count;
             CompletedTasks = _tasks.Count(t => t.IsCompleted);
-            TotalProjects = _projects.Count;
-            TotalOKRs = _okrs.Count;
-            TotalKPIs = _kpis.Count;
-            UpcomingMeetings = _oneOnOnes.Count(m => m.Date >= DateTime.Today);
+            TotalKpis = _kpis.Count;
+
+            // =====================================================
+            // NEEDS ATTENTION: Overdue 1:1s
+            // =====================================================
+            var meetingCadenceDays = 14; // Assume bi-weekly cadence
+            var cadenceInfo = new List<TeamMemberCadenceInfo>();
+            
+            foreach (var member in _teamMembers)
+            {
+                var lastMeeting = _oneOnOnes
+                    .Where(m => m.TeamMember?.Id == member.Id && m.Date <= today)
+                    .OrderByDescending(m => m.Date)
+                    .FirstOrDefault();
+
+                var daysSince = lastMeeting != null 
+                    ? (int)(today - lastMeeting.Date).TotalDays 
+                    : 999; // Never met
+
+                var isOverdue = daysSince > meetingCadenceDays;
+                var statusColor = isOverdue 
+                    ? RedBrush
+                    : daysSince > meetingCadenceDays - 3 
+                        ? AmberBrush
+                        : GreenBrush;
+
+                cadenceInfo.Add(new TeamMemberCadenceInfo
+                {
+                    FullName = member.FullName,
+                    DaysSinceLastMeeting = daysSince == 999 ? "Never" : daysSince.ToString(),
+                    IsOnTrack = !isOverdue,
+                    CadenceStatusColor = statusColor
+                });
+            }
+
+            TeamMemberCadence = new ObservableCollection<TeamMemberCadenceInfo>(
+                cadenceInfo.OrderByDescending(c => c.IsOnTrack ? 0 : 1).ThenBy(c => c.FullName));
+            
+            OverdueMeetingMembers = new ObservableCollection<TeamMemberCadenceInfo>(
+                cadenceInfo.Where(c => !c.IsOnTrack).OrderBy(c => c.FullName).Take(5));
+            
+            OverdueMeetingsCount = cadenceInfo.Count(c => !c.IsOnTrack);
+            
+            // Meeting cadence percentage
+            var onTrackCount = cadenceInfo.Count(c => c.IsOnTrack);
+            MeetingCadencePercent = TotalTeamMembers > 0 
+                ? (int)Math.Round((onTrackCount / (double)TotalTeamMembers) * 100) 
+                : 100;
+            
+            RaisePropertyChanged(nameof(MeetingCadenceSummary));
+
+            // =====================================================
+            // NEEDS ATTENTION: Open Action Items
+            // =====================================================
+            var allActionItems = _oneOnOnes
+                .SelectMany(m => m.Tasks ?? new List<MeetingTask>())
+                .ToList();
+
+            _totalActionItems = allActionItems.Count;
+            _completedActionItems = allActionItems.Count(t => t.IsCompleted);
+            var openItems = allActionItems.Where(t => !t.IsCompleted).ToList();
+
+            OpenActionItemsCount = openItems.Count;
+            RecentActionItems = new ObservableCollection<MeetingTask>(openItems.Take(5));
+            
+            // Action item completion percentage
+            ActionItemCompletionPercent = _totalActionItems > 0 
+                ? (int)Math.Round((_completedActionItems / (double)_totalActionItems) * 100) 
+                : 100;
+
+            // =====================================================
+            // NEEDS ATTENTION: Unresolved Concerns
+            // =====================================================
+            var allConcerns = _oneOnOnes
+                .SelectMany(m => m.AgendaItems ?? new List<AgendaItem>())
+                .Where(a => a.Category == AgendaItemCategory.Concern && 
+                           string.IsNullOrWhiteSpace(a.Resolution))
+                .ToList();
+
+            UnresolvedConcernsCount = allConcerns.Count;
+            RecentConcerns = new ObservableCollection<AgendaItem>(allConcerns.Take(5));
+
+            // =====================================================
+            // THIS WEEK: Upcoming Meetings
+            // =====================================================
+            UpcomingMeetings = _oneOnOnes.Count(m => m.Date >= today && m.Date <= endOfWeek);
+            UpcomingMeetingsList = new ObservableCollection<OneOnOne>(
+                _oneOnOnes
+                    .Where(m => m.Date >= today && m.Date <= endOfWeek)
+                    .OrderBy(m => m.Date)
+                    .Take(8));
+
+            // =====================================================
+            // THIS WEEK: Goals Due Soon
+            // =====================================================
+            var goalsDue = _goals
+                .Where(g => g.TargetDate.HasValue && 
+                           g.TargetDate.Value >= today && 
+                           g.TargetDate.Value <= endOfMonth &&
+                           g.Status != GoalStatus.Completed)
+                .OrderBy(g => g.TargetDate)
+                .ToList();
+
+            GoalsDueSoonCount = goalsDue.Count;
+            GoalsDueSoon = new ObservableCollection<IndividualGoal>(goalsDue.Take(5));
+
+            // =====================================================
+            // PERFORMANCE: OKRs and KPIs
+            // =====================================================
+            var onTrackOkrs = _okrs.Count(o => o.Status == ObjectiveStatusEnum.OnTrack);
+            ActiveOkrs = _okrs.Count;
+            OkrOnTrackPercent = ActiveOkrs > 0 
+                ? (int)Math.Round((onTrackOkrs / (double)ActiveOkrs) * 100) 
+                : 0;
+            
+            var onTargetKpis = _kpis.Count(k => k.Status == KpiStatusEnum.OnTarget);
+            KpisOnTarget = TotalKpis > 0 ? (int)Math.Round((onTargetKpis / (double)TotalKpis) * 100) : 0;
             
             RaisePropertyChanged(nameof(TaskCompletionPercentage));
+            RaisePropertyChanged(nameof(TaskCompletionColor));
+        }
+
+        private void UpdateTeamHealthTable()
+        {
+            var today = DateTime.Today;
+            var meetingCadenceDays = 14;
+            var healthRows = new List<TeamHealthRow>();
+
+            foreach (var member in _teamMembers)
+            {
+                // Last meeting
+                var lastMeeting = _oneOnOnes
+                    .Where(m => m.TeamMember?.Id == member.Id && m.Date <= today)
+                    .OrderByDescending(m => m.Date)
+                    .FirstOrDefault();
+
+                var daysSince = lastMeeting != null 
+                    ? (int)(today - lastMeeting.Date).TotalDays 
+                    : 999;
+
+                // Tasks for this member
+                var memberTasks = _tasks.Where(t => t.Owner?.Id == member.Id && !t.IsCompleted).Count();
+                
+                // Goals for this member
+                var memberGoals = _goals.Where(g => g.TeamMember?.Id == member.Id && g.Status != GoalStatus.Completed).Count();
+
+                // Determine health status
+                var isOverdue = daysSince > meetingCadenceDays;
+                var hasManyTasks = memberTasks > 5;
+                
+                string status;
+                Brush statusBg;
+                Brush statusFg;
+
+                if (isOverdue && hasManyTasks)
+                {
+                    status = "Alert";
+                    statusBg = new SolidColorBrush(Color.FromArgb(30, 0xEF, 0x44, 0x44));
+                    statusFg = RedBrush;
+                }
+                else if (isOverdue || hasManyTasks)
+                {
+                    status = "Watch";
+                    statusBg = new SolidColorBrush(Color.FromArgb(30, 0xF5, 0x9E, 0x0B));
+                    statusFg = AmberBrush;
+                }
+                else
+                {
+                    status = "Good";
+                    statusBg = new SolidColorBrush(Color.FromArgb(30, 0x10, 0xB9, 0x81));
+                    statusFg = GreenBrush;
+                }
+
+                healthRows.Add(new TeamHealthRow
+                {
+                    FullName = member.FullName,
+                    PresenceEmoji = member.CombinedPresenceEmoji,
+                    PresenceDisplay = member.CombinedPresenceDisplay,
+                    LastMeetingDisplay = daysSince == 999 ? "Never" : daysSince == 0 ? "Today" : daysSince == 1 ? "1d ago" : $"{daysSince}d ago",
+                    LastMeetingColor = isOverdue ? RedBrush : daysSince > meetingCadenceDays - 3 ? AmberBrush : (Brush)System.Windows.Application.Current.FindResource("ForegroundBrush"),
+                    OpenTasks = memberTasks.ToString(),
+                    TasksColor = memberTasks > 7 ? RedBrush : memberTasks > 4 ? AmberBrush : (Brush)System.Windows.Application.Current.FindResource("ForegroundBrush"),
+                    ActiveGoals = memberGoals.ToString(),
+                    StatusText = status,
+                    StatusBackground = statusBg,
+                    StatusForeground = statusFg
+                });
+            }
+
+            // Sort: Alert first, then Watch, then Good
+            var sortedRows = healthRows
+                .OrderBy(r => r.StatusText == "Alert" ? 0 : r.StatusText == "Watch" ? 1 : 2)
+                .ThenBy(r => r.FullName)
+                .ToList();
+
+            TeamHealthRows = new ObservableCollection<TeamHealthRow>(sortedRows);
         }
 
         private void UpdateCharts()
@@ -289,7 +627,6 @@ namespace Tracker.ViewModels
             UpdateTaskCompletionChart();
             UpdateOkrProgressChart();
             UpdateKpiStatusChart();
-            UpdateTeamActivityChart();
         }
 
         private void UpdateTaskCompletionChart()
@@ -297,113 +634,133 @@ namespace Tracker.ViewModels
             var completed = _tasks.Count(t => t.IsCompleted);
             var incomplete = _tasks.Count - completed;
 
-            TaskCompletionSeries.Clear();
-            TaskCompletionSeries.Add(new PieSeries
+            // Create new SeriesCollection to avoid LiveCharts race condition
+            TaskCompletionSeries = new SeriesCollection
             {
-                Title = "Completed",
-                Values = new ChartValues<ObservableValue> { new ObservableValue(completed) },
-                DataLabels = true
-            });
-            TaskCompletionSeries.Add(new PieSeries
-            {
-                Title = "Incomplete",
-                Values = new ChartValues<ObservableValue> { new ObservableValue(incomplete) },
-                DataLabels = true
-            });
-
-            TaskCompletionLabels = new[] { "Completed", "Incomplete" };
+                new PieSeries
+                {
+                    Title = "Done",
+                    Values = new ChartValues<ObservableValue> { new ObservableValue(completed) },
+                    DataLabels = false,
+                    Fill = GreenBrush
+                },
+                new PieSeries
+                {
+                    Title = "To Do",
+                    Values = new ChartValues<ObservableValue> { new ObservableValue(incomplete) },
+                    DataLabels = false,
+                    Fill = GrayBrush
+                }
+            };
         }
 
         private void UpdateOkrProgressChart()
         {
-            var onTrack = _okrs.Count(o => o.Status == Common.Enums.ObjectiveStatusEnum.OnTrack);
-            var atRisk = _okrs.Count(o => o.Status == Common.Enums.ObjectiveStatusEnum.AtRisk);
-            var offTrack = _okrs.Count(o => o.Status == Common.Enums.ObjectiveStatusEnum.OffTrack);
+            var onTrack = _okrs.Count(o => o.Status == ObjectiveStatusEnum.OnTrack);
+            var atRisk = _okrs.Count(o => o.Status == ObjectiveStatusEnum.AtRisk);
+            var offTrack = _okrs.Count(o => o.Status == ObjectiveStatusEnum.OffTrack);
 
-            OkrProgressSeries.Clear();
-            OkrProgressSeries.Add(new ColumnSeries
+            // Create new SeriesCollection to avoid LiveCharts race condition
+            OkrProgressSeries = new SeriesCollection
             {
-                Title = "On Track",
-                Values = new ChartValues<double> { onTrack }
-            });
-            OkrProgressSeries.Add(new ColumnSeries
-            {
-                Title = "At Risk",
-                Values = new ChartValues<double> { atRisk }
-            });
-            OkrProgressSeries.Add(new ColumnSeries
-            {
-                Title = "Off Track",
-                Values = new ChartValues<double> { offTrack }
-            });
+                new ColumnSeries
+                {
+                    Title = "On Track",
+                    Values = new ChartValues<double> { onTrack },
+                    Fill = GreenBrush
+                },
+                new ColumnSeries
+                {
+                    Title = "At Risk",
+                    Values = new ChartValues<double> { atRisk },
+                    Fill = AmberBrush
+                },
+                new ColumnSeries
+                {
+                    Title = "Off Track",
+                    Values = new ChartValues<double> { offTrack },
+                    Fill = RedBrush
+                }
+            };
 
-            OkrProgressLabels = new[] { "Status" };
+            OkrProgressLabels = new[] { "OKRs" };
         }
 
         private void UpdateKpiStatusChart()
         {
-            var onTarget = _kpis.Count(k => k.Status == Common.Enums.KpiStatusEnum.OnTarget);
-            var offTarget = _kpis.Count(k => k.Status == Common.Enums.KpiStatusEnum.OffTarget);
-            var closeToTarget = _kpis.Count(k => k.Status == Common.Enums.KpiStatusEnum.CloseToTarget);
+            var onTarget = _kpis.Count(k => k.Status == KpiStatusEnum.OnTarget);
+            var offTarget = _kpis.Count(k => k.Status == KpiStatusEnum.OffTarget);
+            var closeToTarget = _kpis.Count(k => k.Status == KpiStatusEnum.CloseToTarget);
 
-            KpiStatusSeries.Clear();
-            KpiStatusSeries.Add(new PieSeries
+            // Create new SeriesCollection to avoid LiveCharts race condition
+            KpiStatusSeries = new SeriesCollection
             {
-                Title = "On Target",
-                Values = new ChartValues<ObservableValue> { new ObservableValue(onTarget) },
-                DataLabels = true
-            });
-            KpiStatusSeries.Add(new PieSeries
-            {
-                Title = "Off Target",
-                Values = new ChartValues<ObservableValue> { new ObservableValue(offTarget) },
-                DataLabels = true
-            });
-            KpiStatusSeries.Add(new PieSeries
-            {
-                Title = "Close To Target",
-                Values = new ChartValues<ObservableValue> { new ObservableValue(closeToTarget) },
-                DataLabels = true
-            });
-
-            KpiStatusLabels = new[] { "On Target", "Off Target", "Close To Target" };
-        }
-
-        private void UpdateTeamActivityChart()
-        {
-            // Group 1:1s by month for the last 6 months
-            var sixMonthsAgo = DateTime.Today.AddMonths(-6);
-            var recentMeetings = _oneOnOnes
-                .Where(m => m.Date >= sixMonthsAgo)
-                .GroupBy(m => new { m.Date.Year, m.Date.Month })
-                .OrderBy(g => g.Key.Year)
-                .ThenBy(g => g.Key.Month)
-                .Select(g => new
+                new PieSeries
                 {
-                    Label = $"{g.Key.Year}-{g.Key.Month:D2}",
-                    Count = g.Count()
-                })
-                .ToList();
-
-            TeamActivitySeries.Clear();
-            var values = new ChartValues<double>(recentMeetings.Select(m => (double)m.Count));
-            TeamActivitySeries.Add(new LineSeries
-            {
-                Title = "1:1 Meetings",
-                Values = values,
-                PointGeometry = DefaultGeometries.Circle,
-                PointGeometrySize = 8
-            });
-
-            TeamActivityLabels = recentMeetings.Select(m => m.Label).ToArray();
+                    Title = "On Target",
+                    Values = new ChartValues<ObservableValue> { new ObservableValue(onTarget) },
+                    DataLabels = false,
+                    Fill = GreenBrush
+                },
+                new PieSeries
+                {
+                    Title = "Close",
+                    Values = new ChartValues<ObservableValue> { new ObservableValue(closeToTarget) },
+                    DataLabels = false,
+                    Fill = AmberBrush
+                },
+                new PieSeries
+                {
+                    Title = "Off Target",
+                    Values = new ChartValues<ObservableValue> { new ObservableValue(offTarget) },
+                    DataLabels = false,
+                    Fill = RedBrush
+                }
+            };
         }
 
         private void ExecuteRefresh(object? parameter)
         {
-            RefreshDataAsync();
+            _ = RefreshDataAsync();
+        }
+
+        private void ExecuteNewOneOnOne(object? parameter)
+        {
+            DialogManager.Instance.LaunchDialogByType(DialogType.AddOneOnOne, false, () =>
+            {
+                _ = RefreshDataAsync();
+            });
         }
 
         #endregion
     }
-}
 
+    /// <summary>
+    /// Helper class for team member meeting cadence display.
+    /// </summary>
+    public class TeamMemberCadenceInfo
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string DaysSinceLastMeeting { get; set; } = "0";
+        public bool IsOnTrack { get; set; }
+        public Brush CadenceStatusColor { get; set; } = Brushes.Gray;
+    }
+
+    /// <summary>
+    /// Row data for the Team Health table.
+    /// </summary>
+    public class TeamHealthRow
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string PresenceEmoji { get; set; } = "⚪";
+        public string PresenceDisplay { get; set; } = "Unknown";
+        public string LastMeetingDisplay { get; set; } = "—";
+        public Brush LastMeetingColor { get; set; } = Brushes.Gray;
+        public string OpenTasks { get; set; } = "0";
+        public Brush TasksColor { get; set; } = Brushes.Gray;
+        public string ActiveGoals { get; set; } = "0";
+        public string StatusText { get; set; } = "Good";
+        public Brush StatusBackground { get; set; } = Brushes.Transparent;
+        public Brush StatusForeground { get; set; } = Brushes.Green;
+    }
+}

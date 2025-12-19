@@ -5,233 +5,685 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              xmlns:local="clr-namespace:Tracker.Controls"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="800">
+             d:DesignHeight="800" d:DesignWidth="1400"
+             AutomationProperties.Name="Dashboard"
+             AutomationProperties.HelpText="Team health dashboard showing KPIs, upcoming meetings, and alerts">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Resources/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Compact Card Style -->
+            <Style x:Key="CompactCard" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="12"/>
+            </Style>
+            
+            <!-- KPI Card Style -->
+            <Style x:Key="KpiCard" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="14,12"/>
+                <Setter Property="MinWidth" Value="140"/>
+            </Style>
+            
+            <!-- Section Header -->
+            <Style x:Key="SectionHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Foreground" Value="{DynamicResource HintTextBrush}"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+            </Style>
+            
+            <!-- Table Header Style -->
+            <Style x:Key="TableHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{DynamicResource HintTextBrush}"/>
+                <Setter Property="Padding" Value="8,6"/>
+            </Style>
+            
+            <!-- Table Cell Style -->
+            <Style x:Key="TableCell" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="8,8"/>
+            </Style>
+            
+            <!-- Status Pill Style -->
+            <Style x:Key="StatusPill" TargetType="Border">
+                <Setter Property="CornerRadius" Value="10"/>
+                <Setter Property="Padding" Value="8,3"/>
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
-    <Grid Margin="10">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <!-- Summary Cards -->
-                <TextBlock Text="Summary Statistics"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource ForegroundBrush}"
-                           Margin="0,0,0,15"/>
+    
+    <Grid Background="{DynamicResource BackgroundBrush}">
+        <Grid Margin="20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- Header -->
+                <RowDefinition Height="Auto"/>  <!-- KPI Row -->
+                <RowDefinition Height="*"/>     <!-- Main Content -->
+            </Grid.RowDefinitions>
+            
+            <!-- ============================================== -->
+            <!-- HEADER - Compact -->
+            <!-- ============================================== -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 
-                <UniformGrid Columns="4" Margin="0,0,0,20">
-                    <!-- Team Members Card -->
-                    <Border Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="5">
-                        <StackPanel>
-                            <TextBlock Text="Team Members"
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock FontSize="20" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}">
+                        <Run Text="Team Health"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding TotalTeamMembers, StringFormat=' • {0} team members'}"
+                               FontSize="13"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="8,2,0,0"/>
+                </StackPanel>
+                
+                <!-- Quick Actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="+ Schedule 1:1"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding NewOneOnOneCommand}"
+                            Padding="14,8"
+                            FontSize="12"
+                            AutomationProperties.Name="Schedule 1:1 Meeting"
+                            AutomationProperties.HelpText="Open dialog to schedule a new one-on-one meeting"
+                            ToolTip="Schedule a new 1:1 meeting with a team member"
+                            TabIndex="1"/>
+                </StackPanel>
+            </Grid>
+            
+            <!-- ============================================== -->
+            <!-- KPI ROW - Health Score Cards -->
+            <!-- ============================================== -->
+            <Grid Grid.Row="1" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Meeting Cadence Score -->
+                <Border Grid.Column="0" Style="{StaticResource KpiCard}" Margin="0,0,6,0"
+                        AutomationProperties.Name="1:1 Cadence KPI"
+                        ToolTip="Percentage of team members who have had a 1:1 meeting within their scheduled cadence">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="1:1 CADENCE" Style="{StaticResource SectionHeader}" Margin="0"/>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <TextBlock Text="{Binding MeetingCadencePercent, StringFormat='{}{0}%'}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{Binding MeetingCadenceColor}"
+                                       AutomationProperties.Name="Meeting Cadence Percentage"/>
+                            <TextBlock Text="{Binding MeetingCadenceStatus}"
+                                       FontSize="11"
                                        Foreground="{DynamicResource HintTextBrush}"
-                                       FontSize="12"/>
-                            <TextBlock Text="{Binding TotalTeamMembers}"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       FontSize="24"
-                                       FontWeight="Bold"/>
+                                       VerticalAlignment="Bottom"
+                                       Margin="8,0,0,5"/>
                         </StackPanel>
-                    </Border>
-
-                    <!-- 1:1 Meetings Card -->
-                    <Border Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="5">
-                        <StackPanel>
-                            <TextBlock Text="1:1 Meetings"
+                    </Grid>
+                </Border>
+                
+                <!-- Action Item Completion -->
+                <Border Grid.Column="1" Style="{StaticResource KpiCard}" Margin="6,0"
+                        AutomationProperties.Name="Action Items Completion KPI"
+                        ToolTip="Percentage of action items from 1:1 meetings that have been completed">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="ACTIONS DONE" Style="{StaticResource SectionHeader}" Margin="0"/>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <TextBlock Text="{Binding ActionItemCompletionPercent, StringFormat='{}{0}%'}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{Binding ActionItemColor}"
+                                       AutomationProperties.Name="Action Item Completion Percentage"/>
+                            <TextBlock Text="{Binding OpenActionItemsCount, StringFormat='{}{0} open'}"
+                                       FontSize="11"
                                        Foreground="{DynamicResource HintTextBrush}"
-                                       FontSize="12"/>
-                            <TextBlock Text="{Binding TotalOneOnOnes}"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       FontSize="24"
-                                       FontWeight="Bold"/>
-                            <TextBlock Text="{Binding UpcomingMeetings, StringFormat='{}{0} upcoming'}"
-                                       Foreground="{DynamicResource AccentBrush}"
-                                       FontSize="10"
-                                       Margin="0,5,0,0"/>
+                                       VerticalAlignment="Bottom"
+                                       Margin="8,0,0,5"/>
                         </StackPanel>
-                    </Border>
-
-                    <!-- Tasks Card -->
-                    <Border Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="5">
-                        <StackPanel>
-                            <TextBlock Text="Tasks"
+                    </Grid>
+                </Border>
+                
+                <!-- Task Completion -->
+                <Border Grid.Column="2" Style="{StaticResource KpiCard}" Margin="6,0"
+                        AutomationProperties.Name="Task Completion KPI"
+                        ToolTip="Percentage of all tasks that have been marked as complete">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="TASKS DONE" Style="{StaticResource SectionHeader}" Margin="0"/>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <TextBlock Text="{Binding TaskCompletionPercentage, StringFormat='{}{0:F0}%'}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{Binding TaskCompletionColor}"
+                                       AutomationProperties.Name="Task Completion Percentage"/>
+                            <TextBlock FontSize="11"
                                        Foreground="{DynamicResource HintTextBrush}"
-                                       FontSize="12"/>
-                            <TextBlock Text="{Binding TotalTasks}"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       FontSize="24"
-                                       FontWeight="Bold"/>
-                            <TextBlock Text="{Binding TaskCompletionPercentage, StringFormat='{}{0:F1}% complete'}"
-                                       Foreground="{DynamicResource AccentBrush}"
-                                       FontSize="10"
-                                       Margin="0,5,0,0"/>
+                                       VerticalAlignment="Bottom"
+                                       Margin="8,0,0,5">
+                                <Run Text="{Binding CompletedTasks, Mode=OneWay}"/>/<Run Text="{Binding TotalTasks, Mode=OneWay}"/>
+                            </TextBlock>
                         </StackPanel>
-                    </Border>
-
-                    <!-- Projects Card -->
-                    <Border Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="5">
-                        <StackPanel>
-                            <TextBlock Text="Projects"
+                    </Grid>
+                </Border>
+                
+                <!-- OKR Health -->
+                <Border Grid.Column="3" Style="{StaticResource KpiCard}" Margin="6,0"
+                        AutomationProperties.Name="OKRs On Track KPI"
+                        ToolTip="Percentage of Objectives and Key Results that are on track or achieved">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="OKRs ON TRACK" Style="{StaticResource SectionHeader}" Margin="0"/>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <TextBlock Text="{Binding OkrOnTrackPercent, StringFormat='{}{0}%'}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{Binding OkrColor}"
+                                       AutomationProperties.Name="OKR On Track Percentage"/>
+                            <TextBlock Text="{Binding ActiveOkrs, StringFormat='{}{0} active'}"
+                                       FontSize="11"
                                        Foreground="{DynamicResource HintTextBrush}"
-                                       FontSize="12"/>
-                            <TextBlock Text="{Binding TotalProjects}"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       FontSize="24"
-                                       FontWeight="Bold"/>
+                                       VerticalAlignment="Bottom"
+                                       Margin="8,0,0,5"/>
                         </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- KPI Health -->
+                <Border Grid.Column="4" Style="{StaticResource KpiCard}" Margin="6,0,0,0"
+                        AutomationProperties.Name="KPIs On Target KPI"
+                        ToolTip="Percentage of Key Performance Indicators that are meeting their targets">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="KPIs ON TARGET" Style="{StaticResource SectionHeader}" Margin="0"/>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <TextBlock Text="{Binding KpisOnTarget, StringFormat='{}{0}%'}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{Binding KpiColor}"
+                                       AutomationProperties.Name="KPIs On Target Percentage"/>
+                            <TextBlock Text="{Binding TotalKpis, StringFormat='{}{0} tracked'}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       VerticalAlignment="Bottom"
+                                       Margin="8,0,0,5"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+            
+            <!-- ============================================== -->
+            <!-- MAIN CONTENT - 3 Column Responsive Layout -->
+            <!-- ============================================== -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="280"/>      <!-- Team Table -->
+                    <ColumnDefinition Width="280"/>                   <!-- Alerts -->
+                    <ColumnDefinition Width="280"/>                   <!-- Schedule & Charts -->
+                </Grid.ColumnDefinitions>
+                
+                <!-- ============================================== -->
+                <!-- LEFT: Team At-a-Glance Table -->
+                <!-- ============================================== -->
+                <Border Grid.Column="0" Style="{StaticResource CompactCard}" Margin="0,0,8,0"
+                        AutomationProperties.Name="Team At-a-Glance"
+                        AutomationProperties.HelpText="Table showing all team members with their last 1:1 date, open tasks, and health status">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="TEAM AT-A-GLANCE" Style="{StaticResource SectionHeader}" Margin="0"/>
+                            <TextBlock Text="{Binding MeetingCadenceSummary}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       HorizontalAlignment="Right"/>
+                        </Grid>
+                        
+                        <!-- Team Table -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Table Header -->
+                                <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="4,4,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="120"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="80"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="NAME" Style="{StaticResource TableHeader}"/>
+                                        <TextBlock Grid.Column="1" Text="LAST 1:1" Style="{StaticResource TableHeader}"/>
+                                        <TextBlock Grid.Column="2" Text="TASKS" Style="{StaticResource TableHeader}" TextAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="GOALS" Style="{StaticResource TableHeader}" TextAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="STATUS" Style="{StaticResource TableHeader}"/>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Table Body -->
+                                <ItemsControl Grid.Row="1" ItemsSource="{Binding TeamHealthRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{DynamicResource BorderBrush}" 
+                                                    BorderThickness="0,0,0,1"
+                                                    Background="Transparent">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" MinWidth="120"/>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <!-- Name with presence -->
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,8">
+                                                        <TextBlock Text="{Binding PresenceEmoji}" 
+                                                                   FontSize="10" 
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,6,0"
+                                                                   ToolTip="{Binding PresenceDisplay}"/>
+                                                        <TextBlock Text="{Binding FullName}" 
+                                                                   Style="{StaticResource TableCell}" 
+                                                                   Padding="0"
+                                                                   FontWeight="Medium"/>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Last 1:1 -->
+                                                    <TextBlock Grid.Column="1" 
+                                                               Text="{Binding LastMeetingDisplay}" 
+                                                               Style="{StaticResource TableCell}"
+                                                               Foreground="{Binding LastMeetingColor}"/>
+                                                    
+                                                    <!-- Open Tasks -->
+                                                    <TextBlock Grid.Column="2" 
+                                                               Text="{Binding OpenTasks}" 
+                                                               Style="{StaticResource TableCell}"
+                                                               TextAlignment="Center"
+                                                               Foreground="{Binding TasksColor}"/>
+                                                    
+                                                    <!-- Active Goals -->
+                                                    <TextBlock Grid.Column="3" 
+                                                               Text="{Binding ActiveGoals}" 
+                                                               Style="{StaticResource TableCell}"
+                                                               TextAlignment="Center"/>
+                                                    
+                                                    <!-- Health Status -->
+                                                    <Border Grid.Column="4" 
+                                                            Style="{StaticResource StatusPill}"
+                                                            Background="{Binding StatusBackground}"
+                                                            Margin="8,6">
+                                                        <TextBlock Text="{Binding StatusText}" 
+                                                                   FontSize="10" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{Binding StatusForeground}"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+                
+                <!-- ============================================== -->
+                <!-- CENTER: Needs Attention -->
+                <!-- ============================================== -->
+                <Grid Grid.Column="1" Margin="8,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Overdue 1:1s -->
+                    <Border Grid.Row="0" Style="{StaticResource CompactCard}" Margin="0,0,0,6"
+                            AutomationProperties.Name="Overdue 1:1 Meetings"
+                            AutomationProperties.HelpText="List of team members who are overdue for their 1:1 meetings"
+                            AutomationProperties.LiveSetting="Polite">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Ellipse Width="8" Height="8" Fill="#EF4444" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="OVERDUE 1:1s" Style="{StaticResource SectionHeader}" Margin="0"/>
+                                <TextBlock Text="{Binding OverdueMeetingsCount, StringFormat=' ({0})'}"
+                                           FontSize="11" FontWeight="Bold"
+                                           Foreground="#EF4444"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding OverdueMeetingMembers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0,2" FontSize="12">
+                                                <Run Text="• " Foreground="{DynamicResource HintTextBrush}"/>
+                                                <Run Text="{Binding FullName, Mode=OneWay}" Foreground="{DynamicResource ForegroundBrush}"/>
+                                                <Run Text=" — " Foreground="{DynamicResource HintTextBrush}"/>
+                                                <Run Text="{Binding DaysSinceLastMeeting, Mode=OneWay, StringFormat='{}{0}d'}" 
+                                                     Foreground="#EF4444" FontWeight="SemiBold"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            
+                            <TextBlock Grid.Row="1"
+                                       Text="✓ All caught up!" 
+                                       FontSize="12"
+                                       Foreground="#10B981"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding HasNoOverdueMeetings, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"/>
+                        </Grid>
                     </Border>
-                </UniformGrid>
-
-                <!-- Charts Row 1 -->
-                <Grid Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Task Completion Chart -->
-                    <Border Grid.Column="0"
-                            Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="0,0,10,0">
-                        <StackPanel>
-                            <TextBlock Text="Task Completion"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       Margin="0,0,0,10"/>
-                            <lvc:PieChart Series="{Binding TaskCompletionSeries}"
-                                         LegendLocation="Bottom"
-                                         Hoverable="False"
-                                         DataTooltip="{x:Null}">
-                                <lvc:PieChart.ChartLegend>
-                                    <lvc:DefaultLegend Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:PieChart.ChartLegend>
-                            </lvc:PieChart>
-                        </StackPanel>
+                    
+                    <!-- Open Action Items -->
+                    <Border Grid.Row="1" Style="{StaticResource CompactCard}" Margin="0,6"
+                            AutomationProperties.Name="Open Action Items"
+                            AutomationProperties.HelpText="List of action items from 1:1 meetings that are not yet completed"
+                            AutomationProperties.LiveSetting="Polite">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Ellipse Width="8" Height="8" Fill="#F59E0B" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="OPEN ACTIONS" Style="{StaticResource SectionHeader}" Margin="0"/>
+                                <TextBlock Text="{Binding OpenActionItemsCount, StringFormat=' ({0})'}"
+                                           FontSize="11" FontWeight="Bold"
+                                           Foreground="#F59E0B"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding RecentActionItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextTrimming="CharacterEllipsis" Margin="0,2" FontSize="12">
+                                                <Run Text="• " Foreground="{DynamicResource HintTextBrush}"/>
+                                                <Run Text="{Binding Description, Mode=OneWay}" Foreground="{DynamicResource ForegroundBrush}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            
+                            <TextBlock Grid.Row="1"
+                                       Text="✓ All done!" 
+                                       FontSize="12"
+                                       Foreground="#10B981"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding HasNoOpenActionItems, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"/>
+                        </Grid>
                     </Border>
-
-                    <!-- KPI Status Chart -->
-                    <Border Grid.Column="1"
-                            Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="10,0,0,0">
-                        <StackPanel>
-                            <TextBlock Text="KPI Status Distribution"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       Margin="0,0,0,10"/>
-                            <lvc:PieChart Series="{Binding KpiStatusSeries}"
-                                         LegendLocation="Bottom"
-                                         Hoverable="False"
-                                         DataTooltip="{x:Null}">
-                                <lvc:PieChart.ChartLegend>
-                                    <lvc:DefaultLegend Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:PieChart.ChartLegend>
-                            </lvc:PieChart>
-                        </StackPanel>
+                    
+                    <!-- Unresolved Concerns -->
+                    <Border Grid.Row="2" Style="{StaticResource CompactCard}" Margin="0,6,0,0"
+                            AutomationProperties.Name="Unresolved Concerns"
+                            AutomationProperties.HelpText="List of concerns raised in 1:1 meetings that need attention"
+                            AutomationProperties.LiveSetting="Polite">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Ellipse Width="8" Height="8" Fill="#8B5CF6" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="CONCERNS" Style="{StaticResource SectionHeader}" Margin="0"/>
+                                <TextBlock Text="{Binding UnresolvedConcernsCount, StringFormat=' ({0})'}"
+                                           FontSize="11" FontWeight="Bold"
+                                           Foreground="#8B5CF6"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding RecentConcerns}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextTrimming="CharacterEllipsis" Margin="0,2" FontSize="12">
+                                                <Run Text="• " Foreground="{DynamicResource HintTextBrush}"/>
+                                                <Run Text="{Binding Description, Mode=OneWay}" Foreground="{DynamicResource ForegroundBrush}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            
+                            <TextBlock Grid.Row="1"
+                                       Text="✓ No concerns!" 
+                                       FontSize="12"
+                                       Foreground="#10B981"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding HasNoConcerns, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"/>
+                        </Grid>
                     </Border>
                 </Grid>
-
-                <!-- Charts Row 2 -->
-                <Grid Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- OKR Progress Chart -->
-                    <Border Grid.Column="0"
-                            Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="0,0,10,0">
-                        <StackPanel>
-                            <TextBlock Text="OKR Status"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       Margin="0,0,0,10"/>
-                            <lvc:CartesianChart Series="{Binding OkrProgressSeries}"
-                                               LegendLocation="Bottom"
-                                               Hoverable="True">
-                                <lvc:CartesianChart.AxisX>
-                                    <lvc:Axis Labels="{Binding OkrProgressLabels}"
-                                             Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:CartesianChart.AxisX>
-                                <lvc:CartesianChart.AxisY>
-                                    <lvc:Axis Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:CartesianChart.AxisY>
-                                <lvc:CartesianChart.ChartLegend>
-                                    <lvc:DefaultLegend Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:CartesianChart.ChartLegend>
-                            </lvc:CartesianChart>
-                        </StackPanel>
+                
+                <!-- ============================================== -->
+                <!-- RIGHT: Schedule & Performance Charts -->
+                <!-- ============================================== -->
+                <Grid Grid.Column="2" Margin="8,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" MinHeight="180"/>  <!-- Upcoming -->
+                        <RowDefinition Height="*"/>                      <!-- Charts -->
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Upcoming 1:1s -->
+                    <Border Grid.Row="0" Style="{StaticResource CompactCard}" Margin="0,0,0,8"
+                            AutomationProperties.Name="Upcoming 1:1 Meetings"
+                            AutomationProperties.HelpText="List of scheduled 1:1 meetings for this week">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Grid Margin="0,0,0,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📅" FontSize="12" Margin="0,0,6,0"/>
+                                    <TextBlock Text="UPCOMING 1:1s" Style="{StaticResource SectionHeader}" Margin="0"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding UpcomingMeetings, StringFormat='{}{0} this week'}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="140">
+                                <ItemsControl ItemsSource="{Binding UpcomingMeetingsList}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource BackgroundBrush}"
+                                                    CornerRadius="6"
+                                                    Padding="10,8"
+                                                    Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding TeamMember.FullName}"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                                                        <TextBlock Text="{Binding Date, StringFormat='{}{0:ddd, MMM d}'}"
+                                                                   FontSize="10"
+                                                                   Foreground="{DynamicResource HintTextBrush}"/>
+                                                    </StackPanel>
+                                                    
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Date, StringFormat='{}{0:h:mm tt}'}"
+                                                               FontSize="11"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            
+                            <TextBlock Grid.Row="1"
+                                       Text="No meetings scheduled"
+                                       FontSize="12"
+                                       FontStyle="Italic"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding HasNoUpcomingMeetings, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"/>
+                        </Grid>
                     </Border>
-
-                    <!-- Team Activity Chart -->
-                    <Border Grid.Column="1"
-                            Background="{DynamicResource BackgroundBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="15"
-                            Margin="10,0,0,0">
-                        <StackPanel>
-                            <TextBlock Text="Team Activity (Last 6 Months)"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       Margin="0,0,0,10"/>
-                            <lvc:CartesianChart Series="{Binding TeamActivitySeries}"
-                                               LegendLocation="Bottom"
-                                               Hoverable="True">
-                                <lvc:CartesianChart.AxisX>
-                                    <lvc:Axis Labels="{Binding TeamActivityLabels}"
-                                             Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:CartesianChart.AxisX>
-                                <lvc:CartesianChart.AxisY>
-                                    <lvc:Axis Foreground="{DynamicResource ForegroundBrush}"/>
-                                </lvc:CartesianChart.AxisY>
-                            </lvc:CartesianChart>
-                        </StackPanel>
-                    </Border>
+                    
+                    <!-- Performance Charts - Stacked Vertically -->
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Team Task Progress Chart -->
+                        <Border Grid.Row="0" Style="{StaticResource CompactCard}" Margin="0,0,0,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="TEAM TASK PROGRESS" 
+                                               Style="{StaticResource SectionHeader}" 
+                                               Margin="0,0,0,4"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding TaskCompletionPercentage, StringFormat='{}{0:F0}%'}"
+                                                   FontSize="32"
+                                                   FontWeight="Bold"
+                                                   Foreground="{Binding TaskCompletionColor}"/>
+                                        <TextBlock Text="complete"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   VerticalAlignment="Bottom"
+                                                   Margin="8,0,0,6"/>
+                                    </StackPanel>
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource HintTextBrush}">
+                                        <Run Text="{Binding CompletedTasks, Mode=OneWay}"/> of <Run Text="{Binding TotalTasks, Mode=OneWay}"/> tasks done
+                                    </TextBlock>
+                                </StackPanel>
+                                
+                                <lvc:PieChart Grid.Column="1" 
+                                             Series="{Binding TaskCompletionSeries}"
+                                             LegendLocation="None"
+                                             Hoverable="True"
+                                             InnerRadius="35"
+                                             Width="100"
+                                             Height="100"
+                                             Margin="8,0,0,0">
+                                </lvc:PieChart>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- KPI Performance Chart -->
+                        <Border Grid.Row="1" Style="{StaticResource CompactCard}" Margin="0,4,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="KPI PERFORMANCE" 
+                                               Style="{StaticResource SectionHeader}" 
+                                               Margin="0,0,0,4"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding KpisOnTarget, StringFormat='{}{0}%'}"
+                                                   FontSize="32"
+                                                   FontWeight="Bold"
+                                                   Foreground="{Binding KpiColor}"/>
+                                        <TextBlock Text="on target"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   VerticalAlignment="Bottom"
+                                                   Margin="8,0,0,6"/>
+                                    </StackPanel>
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource HintTextBrush}">
+                                        <Run Text="{Binding TotalKpis, Mode=OneWay}"/> metrics tracked
+                                    </TextBlock>
+                                </StackPanel>
+                                
+                                <lvc:PieChart Grid.Column="1" 
+                                             Series="{Binding KpiStatusSeries}"
+                                             LegendLocation="None"
+                                             Hoverable="True"
+                                             InnerRadius="35"
+                                             Width="100"
+                                             Height="100"
+                                             Margin="8,0,0,0">
+                                </lvc:PieChart>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
-            </StackPanel>
-        </ScrollViewer>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>
-

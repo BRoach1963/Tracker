@@ -7,7 +7,7 @@
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
              HorizontalAlignment="Stretch"
              mc:Ignorable="d" >
-    <Grid>
+    <Grid Margin="0,6,0,6">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="12" />
             <ColumnDefinition x:Name="Icon"
@@ -15,6 +15,8 @@
             <ColumnDefinition x:Name="Title"
                               Width="Auto" />
             <ColumnDefinition />
+            <ColumnDefinition x:Name="ProfileCol"
+                              Width="Auto" />
             <ColumnDefinition x:Name="ThemeSelector"
                               Width="Auto" />
             <ColumnDefinition x:Name="Buttons"
@@ -34,16 +36,77 @@
                    FontFamily="Arial"
                    Grid.Column="2" />
         
+        <!-- User Profile Button (Theme-aware, supports avatar image) -->
+        <Button x:Name="ProfileButton"
+                Grid.Column="4"
+                VerticalAlignment="Center"
+                Margin="0,0,10,0"
+                Width="28" Height="28"
+                Cursor="Hand"
+                ToolTip="Your Account - View profile and settings"
+                Click="ProfileButton_Click"
+                Visibility="{Binding ShowProfileButton, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                AutomationProperties.Name="User Profile"
+                AutomationProperties.HelpText="Click to view your account and profile settings"
+                TabIndex="900">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Grid Width="28" Height="28">
+                        <!-- Initials background (shown when no avatar) -->
+                        <Border x:Name="ProfileBorder"
+                                Background="{DynamicResource AccentBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="14">
+                            <TextBlock x:Name="ProfileInitials"
+                                       Text="{Binding UserInitials, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       Foreground="{DynamicResource BackgroundBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                        <!-- Avatar image (shown when available) -->
+                        <Border x:Name="AvatarBorder"
+                                CornerRadius="14"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                Visibility="{Binding HasUserAvatar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                            <Border.Background>
+                                <ImageBrush x:Name="AvatarImageBrush"
+                                            ImageSource="{Binding UserAvatarSource, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            Stretch="UniformToFill"/>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ProfileBorder" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            <Setter TargetName="ProfileInitials" Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                            <Setter TargetName="AvatarBorder" Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ProfileBorder" Property="Background" Value="{DynamicResource SelectionBrush}"/>
+                            <Setter TargetName="AvatarBorder" Property="Opacity" Value="0.7"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        
         <!-- Theme Selector -->
         <ComboBox x:Name="ThemeComboBox"
-                  Grid.Column="4"
+                  Grid.Column="5"
                   VerticalAlignment="Center"
                   Margin="0,0,15,0"
                   MinWidth="130"
                   Height="22"
                   FontSize="11"
                   SelectionChanged="ThemeComboBox_SelectionChanged"
-                  Visibility="{Binding ShowThemeSelector, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                  Visibility="{Binding ShowThemeSelector, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                  AutomationProperties.Name="Theme Selector"
+                  AutomationProperties.HelpText="Select the application color theme"
+                  TabIndex="901">
             <ComboBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
@@ -58,26 +121,43 @@
             </ComboBox.ItemTemplate>
         </ComboBox>
         
-        <StackPanel Grid.Column="5"
+        <StackPanel Grid.Column="6"
                     HorizontalAlignment="Right"
                     Margin="0,0,12,0"
-                    Orientation="Horizontal">
+                    Orientation="Horizontal"
+                    AutomationProperties.Name="Window Controls">
             <Button x:Name="MinButton"
                     Style="{StaticResource MinimizeButton}"
                     Background="{DynamicResource BackgroundBrush}"
-                    Click="Minimize_Click" />
+                    Click="Minimize_Click"
+                    AutomationProperties.Name="Minimize"
+                    AutomationProperties.HelpText="Minimize window"
+                    ToolTip="Minimize"
+                    TabIndex="997" />
             <Button x:Name="Maximize"
                     Style="{StaticResource MaximizeButton}"
                     Background="{DynamicResource BackgroundBrush}"
-                    Click="Maximize_Click" />
+                    Click="Maximize_Click"
+                    AutomationProperties.Name="Maximize"
+                    AutomationProperties.HelpText="Maximize window"
+                    ToolTip="Maximize"
+                    TabIndex="998" />
             <Button x:Name="Restore"
                     Style="{StaticResource RestoreButton}"
                     Background="{DynamicResource BackgroundBrush}"
                     Visibility="Collapsed"
-                    Click="Restore_Click" />
+                    Click="Restore_Click"
+                    AutomationProperties.Name="Restore"
+                    AutomationProperties.HelpText="Restore window to previous size"
+                    ToolTip="Restore"
+                    TabIndex="998" />
             <Button Style="{StaticResource CloseButton}"
                     Background="{DynamicResource BackgroundBrush}"
-                    Click="Close_Click" />
+                    Click="Close_Click"
+                    AutomationProperties.Name="Close"
+                    AutomationProperties.HelpText="Close window"
+                    ToolTip="Close"
+                    TabIndex="999" />
         </StackPanel>
 
     </Grid>

@@ -1,0 +1,38 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.AccountDialog"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                     xmlns:controls="clr-namespace:Tracker.Controls"
+                     mc:Ignorable="d"
+                     Title="Your Account"
+                     Height="620" Width="450"
+                     WindowStyle="None"
+                     AllowsTransparency="True"
+                     ResizeMode="NoResize"
+                     WindowStartupLocation="CenterOwner"
+                     Background="Transparent">
+    
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource BorderBrush}"
+            CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Title Bar -->
+            <controls:DialogTitleBar Grid.Row="0"
+                                     DialogTitle="Your Account"
+                                     ToolBarStyle="CloseOnly"
+                                     CloseClicked="Close_Click"/>
+            
+            <!-- Account Info Control -->
+            <controls:AccountInfoControl x:Name="AccountInfo"
+                                         Grid.Row="1"
+                                         Margin="24,16"/>
+        </Grid>
+    </Border>
+</controls:BaseWindow>

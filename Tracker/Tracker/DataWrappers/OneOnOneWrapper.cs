@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
 
@@ -14,11 +9,8 @@ namespace Tracker.DataWrappers
         #region Fields
 
         private OneOnOne? _data;
-        private ObservableCollection<ActionItem> _actionItems = new();
-        private ObservableCollection<ObjectiveKeyResult> _keyResults = new();
-        private ObservableCollection<FollowUpItem> _followUpItems = new();
-        private ObservableCollection<string> _discussionPoints = new();
-        private ObservableCollection<string> _concerns = new();
+        private ObservableCollection<AgendaItem> _agendaItems = new();
+        private ObservableCollection<MeetingTask> _tasks = new();
 
         #endregion
 
@@ -27,6 +19,10 @@ namespace Tracker.DataWrappers
         public OneOnOneWrapper(OneOnOne? data = null)
         {
             _data = data ?? new OneOnOne();
+            if (_data.AgendaItems != null)
+                _agendaItems = new ObservableCollection<AgendaItem>(_data.AgendaItems);
+            if (_data.Tasks != null)
+                _tasks = new ObservableCollection<MeetingTask>(_data.Tasks);
         }
 
         #endregion
@@ -37,15 +33,9 @@ namespace Tracker.DataWrappers
 
         public OneOnOne Data => _data;
 
-        public ObservableCollection<ActionItem> ActionItems => _actionItems;
+        public ObservableCollection<AgendaItem> AgendaItems => _agendaItems;
 
-        public ObservableCollection<ObjectiveKeyResult> KeyResults => _keyResults;
-
-        public ObservableCollection<FollowUpItem> FollowUpItems => _followUpItems;
-
-        public ObservableCollection<string> DiscussionPoints => _discussionPoints;
-
-        public ObservableCollection<string> Concerns => _concerns;
+        public ObservableCollection<MeetingTask> Tasks => _tasks;
 
         public string Description
         {
@@ -53,16 +43,6 @@ namespace Tracker.DataWrappers
             set
             {
                 _data.Description = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public string Agenda
-        {
-            get => _data.Agenda;
-            set
-            {
-                _data.Agenda = value;
                 RaisePropertyChanged();
             }
         }

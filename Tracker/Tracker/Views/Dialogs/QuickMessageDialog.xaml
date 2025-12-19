@@ -1,0 +1,231 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.QuickMessageDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Tracker.Controls"
+        xmlns:converters="clr-namespace:Tracker.Common.Converters"
+        xmlns:viewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+        xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+        mc:Ignorable="d"
+        Title="Quick Message"
+        Height="500"
+        Width="500"
+        MinHeight="400"
+        MinWidth="400"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip"
+        d:DataContext="{d:DesignInstance Type=viewModels:QuickMessageViewModel}">
+
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderBrush="{DynamicResource AccentBrush}"
+            BorderThickness="2"
+            CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource AccentBrush}"
+                    CornerRadius="10,10,0,0"
+                    Padding="16,12"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Quick Message"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BackgroundBrush}"/>
+                        <TextBlock Text="{Binding RecipientName, StringFormat='To: {0}'}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource BackgroundBrush}"
+                                   Opacity="0.8"/>
+                    </StackPanel>
+                    
+                    <Button Grid.Column="1"
+                            Content="✕"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource CloseButtonStyle}"
+                            Width="28" Height="28"
+                            FontSize="14"/>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="20">
+                <StackPanel>
+                    
+                    <!-- Message Type Toggle -->
+                    <TextBlock Text="Send via"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <RadioButton Grid.Column="0"
+                                     IsChecked="{Binding IsTeamsMessage}"
+                                     IsEnabled="{Binding CanSendTeams}"
+                                     GroupName="MessageType"
+                                     Style="{StaticResource ToggleTabRadioButtonStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💬" Margin="0,0,6,0"/>
+                                <TextBlock Text="Teams"/>
+                            </StackPanel>
+                        </RadioButton>
+                        
+                        <RadioButton Grid.Column="1"
+                                     IsChecked="{Binding IsSlackMessage}"
+                                     IsEnabled="{Binding CanSendSlack}"
+                                     GroupName="MessageType"
+                                     Style="{StaticResource ToggleTabRadioButtonStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="#" FontWeight="Bold" FontSize="14" Margin="0,0,6,0"/>
+                                <TextBlock Text="Slack"/>
+                            </StackPanel>
+                        </RadioButton>
+                        
+                        <RadioButton Grid.Column="2"
+                                     IsChecked="{Binding IsEmail}"
+                                     IsEnabled="{Binding CanSendEmail}"
+                                     GroupName="MessageType"
+                                     Style="{StaticResource ToggleTabRadioButtonStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📧" Margin="0,0,6,0"/>
+                                <TextBlock Text="Email"/>
+                            </StackPanel>
+                        </RadioButton>
+                    </Grid>
+
+                    <!-- Template Selector -->
+                    <TextBlock Text="Template"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <ComboBox ItemsSource="{Binding Templates}"
+                              SelectedItem="{Binding SelectedTemplate}"
+                              Margin="0,0,0,16"
+                              Style="{StaticResource ModernComboBoxStyle}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <Binding Converter="{StaticResource EnumToDisplayConverter}"/>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <!-- Email Subject (only for email) -->
+                    <StackPanel Visibility="{Binding ShowEmailSubject, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                Margin="0,0,0,16">
+                        <TextBlock Text="Subject"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,8"/>
+                        <customControls:TextBoxWithHint TextBoxType="Text"
+                                                        HintText="Enter email subject..."
+                                                        Text="{Binding EmailSubject, UpdateSourceTrigger=PropertyChanged}"
+                                                        IsEnabled="{Binding IsNotSending}"/>
+                    </StackPanel>
+
+                    <!-- Message Body -->
+                    <TextBlock Text="Message"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <customControls:TextBoxWithHint TextBoxType="Text"
+                                                    HintText="Type your message here..."
+                                                    Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}"
+                                                    AcceptsReturn="True"
+                                                    TextWrapping="Wrap"
+                                                    VerticalScrollBarVisibility="Auto"
+                                                    MinHeight="150"
+                                                    MaxHeight="250"
+                                                    IsEnabled="{Binding IsNotSending}"/>
+
+                    <!-- Character Count -->
+                    <TextBlock Text="{Binding MessageText.Length, StringFormat='{}{0} characters'}"
+                               FontSize="11"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               HorizontalAlignment="Right"
+                               Margin="0,4,0,0"/>
+
+                    <!-- Status Message -->
+                    <Border Background="{Binding HasError, Converter={StaticResource BoolToErrorBackgroundConverter}}"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            Margin="0,16,0,0"
+                            Visibility="{Binding HasStatus, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{Binding HasError, Converter={StaticResource BoolToErrorForegroundConverter}}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"/>
+                    </Border>
+                    
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="0,0,10,10"
+                    Padding="20,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Recipient Info -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="📤" FontSize="14" Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding RecipientEmail}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"/>
+                    </StackPanel>
+
+                    <!-- Buttons -->
+                    <Button Grid.Column="1"
+                            Content="Cancel"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="24,10"
+                            Margin="0,0,12,0"/>
+                    
+                    <Button Grid.Column="2"
+                            Command="{Binding SendCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="24,10"
+                            IsEnabled="{Binding IsNotSending}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Send" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding IsTeamsMessage, Converter={StaticResource BoolToSendIconConverter}}"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</controls:BaseWindow>
+

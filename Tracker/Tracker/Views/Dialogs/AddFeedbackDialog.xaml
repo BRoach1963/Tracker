@@ -1,0 +1,144 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.AddFeedbackDialog"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:controls="clr-namespace:Tracker.Controls"
+                    xmlns:commands="clr-namespace:Tracker.Command"
+                    xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                    xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                    mc:Ignorable="d"
+                    Title="Add Feedback"
+                    MouseDown="OnDragHandleMouseDown"
+                    WindowStyle="None"
+                    ResizeMode="CanResize"
+                    Foreground="{DynamicResource ForegroundBrush}"
+                    AllowsTransparency="True"
+                    SizeToContent="Height"
+                    Width="520"
+                    Background="Transparent"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:FeedbackViewModel}"
+                    MinWidth="480"
+                    MinHeight="450"
+                    AutomationProperties.Name="Add Feedback Dialog"
+                    AutomationProperties.HelpText="Record feedback for a team member">
+    <controls:BaseWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </controls:BaseWindow.Resources>
+    
+    <Grid>
+        <Border Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BorderBrush}"
+                CornerRadius="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Title Bar -->
+                <Border Grid.Row="0" CornerRadius="12,12,0,0">
+                    <controls:DialogTitleBar x:Name="TitleBar"
+                                             DialogTitle="Add Feedback"
+                                             IconData="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18"
+                                             CloseClicked="Close_Click"
+                                             MinimizeClicked="Minimize_Click"
+                                             MaximizeClicked="Maximize_Click"
+                                             RestoreClicked="Restore_Click"/>
+                </Border>
+                
+                <!-- Content Area -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,16,24,16">
+                        
+                        <!-- Type and Date Row -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Type -->
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Feedback Type" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                                </StackPanel>
+                                <ComboBox ItemsSource="{Binding FeedbackTypes}"
+                                          SelectedItem="{Binding SelectedType}"
+                                          HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                            
+                            <!-- Date -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Date" Style="{StaticResource FieldLabel}"/>
+                                <customControls:CalendarButton SelectedDate="{Binding Date, Mode=TwoWay}"
+                                                               HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Title -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                            </StackPanel>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Brief summary of the feedback"
+                                                            Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                            MaxLength="200"/>
+                        </StackPanel>
+                        
+                        <!-- Context -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Project, meeting, or situation this relates to"
+                                                            Text="{Binding Context, UpdateSourceTrigger=PropertyChanged}"
+                                                            MaxLength="200"/>
+                        </StackPanel>
+                        
+                        <!-- Content -->
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Feedback Details" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                            </StackPanel>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Detailed feedback with specific examples and observations"
+                                                            Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                                                            AcceptsReturn="True"
+                                                            TextWrapping="Wrap"
+                                                            VerticalScrollBarVisibility="Auto"
+                                                            MinHeight="120"
+                                                            MaxHeight="200"/>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- Footer with Buttons -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Margin="0,0,12,0"
+                                Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                        <Button Content="{Binding InEditMode, Converter={x:Static converters:BoolToStringConverter.Instance}, ConverterParameter='Save Changes|Save Feedback'}"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding SaveCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</controls:BaseWindow>

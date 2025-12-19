@@ -1,0 +1,126 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.ActivationCodeDialog"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Tracker.Controls"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                    Title="Enter Activation Code"
+                    Height="280" Width="400"
+                    WindowStyle="None"
+                    AllowsTransparency="True"
+                    ResizeMode="NoResize"
+                    WindowStartupLocation="CenterOwner"
+                    Background="Transparent">
+    
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource BorderBrush}"
+            CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Title Bar -->
+            <controls:DialogTitleBar Grid.Row="0"
+                                     DialogTitle="Enter Activation Code"
+                                     IconData="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                                     ToolBarStyle="CloseOnly"
+                                     CloseClicked="Close_Click"/>
+            
+            <!-- Content -->
+            <StackPanel Grid.Row="1" Margin="24,16">
+                <TextBlock Text="Enter your activation code to unlock Pro features:"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,16"/>
+                
+                <customControls:TextBoxWithHint x:Name="CodeTextBox"
+                                             TextBoxType="Text"
+                                             HintText="Enter your activation code"
+                                             FontSize="16"
+                                             FontFamily="Consolas"
+                                             Padding="12,10"
+                                             MaxLength="50"
+                                             KeyDown="CodeTextBox_KeyDown"/>
+                
+                <!-- Error/Success Message -->
+                <TextBlock x:Name="MessageText"
+                           FontSize="12"
+                           Margin="0,12,0,0"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed"/>
+                
+                <!-- 30-day notice -->
+                <Border Background="#2D1F00"
+                        CornerRadius="6"
+                        Padding="12"
+                        Margin="0,16,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"
+                              Width="16" Height="16"
+                              Stretch="Uniform"
+                              Fill="#F59E0B"
+                              Margin="0,0,10,0"
+                              VerticalAlignment="Top"/>
+                        <TextBlock Text="Promotional codes provide 30 days of Pro access. After the trial period, you'll need to subscribe to continue using Pro features."
+                                   FontSize="11"
+                                   Foreground="#F59E0B"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="280"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="0,0,12,12"
+                    Padding="24,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0"
+                               Text="Have a code from a friend?"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                    
+                    <Button x:Name="CancelButton"
+                            Grid.Column="1"
+                            Content="Cancel"
+                            Padding="16,8"
+                            Margin="0,0,12,0"
+                            Click="Cancel_Click"/>
+                    
+                    <Button x:Name="ActivateButton"
+                            Grid.Column="2"
+                            Content="Activate"
+                            Padding="20,8"
+                            Background="{DynamicResource AccentBrush}"
+                            Foreground="{DynamicResource BackgroundBrush}"
+                            FontWeight="SemiBold"
+                            Click="Activate_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</controls:BaseWindow>
+

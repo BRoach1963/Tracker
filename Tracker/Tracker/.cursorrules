@@ -230,3 +230,241 @@ catch (Exception ex)
 3. Add to `DialogType` enum
 4. Register in `DialogFactory`
 
+---
+
+## Modularity & Reusability Standards
+
+### Core Principles
+**"DRY - Don't Repeat Yourself"**
+
+1. **No Duplicate Code** - If logic exists, reuse it. Extract common patterns into helpers.
+2. **No Duplicate Styles** - Define styles once in ResourceDictionaries, reference everywhere.
+3. **No Duplicate Data** - Single source of truth. Use binding, not copy-paste.
+4. **Reusable Controls** - Build UserControls that can be used in multiple contexts.
+
+### Control Design Rules
+
+**Create a UserControl when:**
+- A UI pattern appears 2+ times
+- A component has distinct visual + behavioral logic
+- You need to encapsulate complexity
+
+**UserControl Requirements:**
+1. Must work via binding (support `DataContext` or dependency properties)
+2. Must use `DynamicResource` for all theme-aware styling
+3. Must be self-contained (no external dependencies except bound data)
+4. Must have clear XML documentation on the class
+
+**Example Structure:**
+```csharp
+/// <summary>
+/// Displays a progress bar with label and percentage.
+/// 
+/// Usage:
+/// <code>
+/// <controls:ProgressIndicator Value="75" Maximum="100" Label="Progress"/>
+/// </code>
+/// </summary>
+public partial class ProgressIndicator : UserControl { }
+```
+
+### Style Reusability
+
+**Define shared styles in:**
+- `Resources/Styles.xaml` - Global component styles
+- `Resources/DataTemplates.xaml` - Reusable data templates
+- Control-level resources - Only if truly local
+
+**Never inline:**
+- Colors (use `{DynamicResource BrushName}`)
+- Margins/padding patterns (define in styles)
+- Font configurations (use theme-aware text styles)
+
+### Data Pattern Rules
+
+1. **ViewModels share data via services** - Don't duplicate collections
+2. **Use ObservableCollection** for lists that change
+3. **Computed properties notify** - Raise PropertyChanged when dependencies change
+4. **Commands are reusable** - Define in appropriate scope (shared commands in static class)
+
+---
+
+## AI Assistant Guidelines
+
+### Recognizing Chat Context Limits
+
+**When to suggest starting a new chat:**
+- The conversation has exceeded 15-20 tool calls or significant back-and-forth
+- Multiple unrelated topics have been addressed in one session
+- Build errors are piling up and it's hard to track what's been fixed vs what's new
+- The assistant is losing track of earlier changes or context
+- A major phase/milestone has been completed
+
+**When this happens, the assistant should:**
+1. **Update documentation first** - Ensure all relevant design docs, READMEs, or code comments capture the current state
+2. **Provide a summary** of what was accomplished in this session
+3. **List any outstanding issues** that weren't resolved
+4. **Provide a ready-to-use prompt** for the next chat session
+
+**Example handoff prompt format:**
+```
+I'm continuing work on [feature/task]. Here's the context:
+
+**What was completed:**
+- [List of completed items]
+
+**Current state:**
+- [Describe where things stand]
+
+**Next steps:**
+- [What needs to be done next]
+
+**Relevant files:**
+- [List key files to review]
+
+Please review [specific file] and continue with [next task].
+```
+
+### Documentation for Context Preservation
+
+**Before ending a complex session, ensure these are updated:**
+1. **Design docs** (`Docs/Design/`) - Reflect any architectural decisions
+2. **Code comments** - Complex logic should be self-documenting
+3. **TODO comments** - Mark incomplete work with `// TODO: [description]`
+4. **FEATURE_IMPLEMENTATION_PLAN.md** - Update progress if it exists
+
+---
+
+## Testing Requirements
+
+### Test Maintenance is Mandatory
+
+**Every code change should consider test impact:**
+
+1. **When modifying existing code:**
+   - Check if tests exist for the changed functionality
+   - Update tests to reflect new behavior
+   - If tests break, fix them - don't just delete them
+
+2. **When adding new features:**
+   - Add unit tests for new business logic
+   - Add integration tests for new data flows
+   - Test edge cases and error conditions
+
+3. **When fixing bugs:**
+   - Write a test that reproduces the bug FIRST
+   - Then fix the bug
+   - The test should pass after the fix
+
+4. **Test Location:**
+   - Unit tests: `Tracker.Tests/` project
+   - Test naming: `[ClassName]Tests.cs`
+   - Method naming: `[MethodName]_[Scenario]_[ExpectedResult]`
+
+**Example:**
+```csharp
+[Fact]
+public async Task GetTeamMemberAsync_WithValidId_ReturnsTeamMember()
+{
+    // Arrange
+    var manager = new TrackerDbManager(testContext);
+    
+    // Act
+    var result = await manager.GetTeamMemberAsync(1);
+    
+    // Assert
+    Assert.NotNull(result);
+    Assert.Equal(1, result.Id);
+}
+```
+
+### What to Test
+
+| Layer | What to Test | Priority |
+|-------|--------------|----------|
+| ViewModels | Command logic, property changes | HIGH |
+| Services | Business logic, data transformations | HIGH |
+| Managers | CRUD operations, edge cases | HIGH |
+| Converters | All conversion scenarios | MEDIUM |
+| Utilities | Helper methods | MEDIUM |
+
+### What NOT to Test (in unit tests)
+
+- XAML layouts (use manual/UI testing)
+- Third-party libraries
+- Simple property getters/setters with no logic
+
+---
+
+## UI/UX Standards
+
+### NEVER Use Native Windows Dialogs
+
+**BANNED:**
+- `MessageBox.Show()` - Ugly, jarring, breaks theme
+- `Microsoft.VisualBasic.Interaction.InputBox()` - Even worse
+- Any native Windows dialog that doesn't match our styling
+
+**USE INSTEAD:**
+- `ConfirmationDialog.ShowAsync()` - For Yes/No questions
+- `ConfirmationDialog.ShowInfoAsync()` - For info messages
+- `ConfirmationDialog.ShowSuccessAsync()` - For success messages
+- `ConfirmationDialog.ShowWarningAsync()` - For warnings
+- `ConfirmationDialog.ShowErrorAsync()` - For errors
+- `InputDialog.ShowAsync()` - For text input
+- `InputDialog.ShowEmailAsync()` - For email input with validation
+- `NotificationManager.Instance.ShowXxx()` - For toast notifications
+
+**Example:**
+```csharp
+// BAD - Never do this
+MessageBox.Show("Are you sure?", "Confirm", MessageBoxButton.YesNo);
+
+// GOOD - Use styled dialog
+var confirmed = await ConfirmationDialog.ShowAsync("Confirm", "Are you sure?");
+```
+
+---
+
+## Collaboration Style
+
+### Operate as a Peer, Not a Yes-Man
+
+**The assistant should:**
+
+1. **Challenge assumptions** - If a proposed approach has issues, say so
+2. **Offer alternatives** - Present better options when they exist
+3. **Explain trade-offs** - Help make informed decisions
+4. **Disagree respectfully** - "I'd suggest a different approach because..."
+
+**Example pushback:**
+```
+User: "Let's store the API key in the config file"
+
+Good response: "I'd recommend against that. Config files are easily 
+readable. Instead, consider:
+1. Environment variables (better)
+2. Windows Credential Manager (more secure)
+3. Edge Functions for server-side keys (most secure)
+
+The risk with config files is [specific concern]. Would you like 
+me to implement one of these alternatives?"
+```
+
+**When to push back:**
+- Security concerns (data exposure, weak auth)
+- Performance issues (N+1 queries, memory leaks)
+- Maintainability (code duplication, tight coupling)
+- User experience (confusing flows, accessibility issues)
+- Technical debt that will compound
+
+**When to defer:**
+- Stylistic preferences with no functional impact
+- Business decisions outside technical scope
+- Time-sensitive trade-offs the user is aware of
+- "We'll fix it later" with a clear plan
+
+**Remember:** The user is the boss and has final say. But a good peer 
+raises concerns clearly, explains the reasoning, and then executes 
+the chosen direction professionally.
+

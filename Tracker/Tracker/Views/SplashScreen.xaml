@@ -9,11 +9,11 @@
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        ShowInTaskbar="False"
-        Topmost="True"
-        Title="Loading..."
-        Height="400"
-        Width="500"
+        ShowInTaskbar="True"
+        Topmost="False"
+        Title="Tracker"
+        Height="520"
+        Width="480"
         Loaded="Window_Loaded">
     <Window.Resources>
         <ResourceDictionary>
@@ -51,6 +51,97 @@
                                  From="0.3" To="0.7"
                                  Duration="0:0:1.5"/>
             </Storyboard>
+            
+            <!-- TextBox style for login -->
+            <Style x:Key="LoginTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Background" Value="#252525"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="CaretBrush" Value="#FFB612"/>
+                <Setter Property="BorderBrush" Value="#404040"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="12,10"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6">
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="#FFB612"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <!-- PasswordBox style for login -->
+            <Style x:Key="LoginPasswordBoxStyle" TargetType="PasswordBox">
+                <Setter Property="Background" Value="#252525"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="CaretBrush" Value="#FFB612"/>
+                <Setter Property="BorderBrush" Value="#404040"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="12,10"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="PasswordBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6">
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="#FFB612"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <!-- Login Button style -->
+            <Style x:Key="LoginButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#FFB612"/>
+                <Setter Property="Foreground" Value="#101820"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Padding" Value="20,12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Border"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="#E6A410"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="#CC900E"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
     
@@ -60,9 +151,9 @@
         <!-- Gradient background -->
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#1A1A1A" Offset="0"/>
-                <GradientStop Color="#0D0D0D" Offset="0.5"/>
-                <GradientStop Color="#1A1A1A" Offset="1"/>
+                <GradientStop Color="#141414" Offset="0"/>
+                <GradientStop Color="#0A0A0A" Offset="0.5"/>
+                <GradientStop Color="#141414" Offset="1"/>
             </LinearGradientBrush>
         </Border.Background>
         
@@ -80,21 +171,20 @@
         
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="30"/>
             </Grid.RowDefinitions>
             
-            <!-- Logo Section -->
+            <!-- ================================================== -->
+            <!-- LOGO AND BRANDING -->
+            <!-- ================================================== -->
             <StackPanel Grid.Row="0" 
-                        VerticalAlignment="Center" 
                         HorizontalAlignment="Center"
-                        Margin="0,20,0,0">
+                        Margin="0,30,0,0">
                 
                 <!-- Tracker Logo Icon -->
-                <Viewbox Width="100" Height="100" Margin="0,0,0,15">
+                <Viewbox Width="80" Height="80" Margin="0,0,0,12">
                     <Path x:Name="LogoPath"
                           Effect="{StaticResource LogoGlow}"
                           Fill="#FFB612"
@@ -102,8 +192,8 @@
                 </Viewbox>
                 
                 <!-- App Title -->
-                <TextBlock Text="Team Tracker"
-                           FontSize="36"
+                <TextBlock Text="Tracker"
+                           FontSize="32"
                            FontWeight="Bold"
                            Foreground="#FFB612"
                            HorizontalAlignment="Center"
@@ -114,74 +204,133 @@
                 </TextBlock>
                 
                 <!-- Tagline -->
-                <TextBlock Text="Manage your team effectively"
-                           FontSize="14"
-                           Foreground="#808080"
+                <TextBlock Text="Team Management Made Simple"
+                           FontSize="13"
+                           Foreground="#707070"
                            HorizontalAlignment="Center"
-                           Margin="0,5,0,0"
+                           Margin="0,4,0,0"
                            FontFamily="Segoe UI"/>
             </StackPanel>
             
-            <!-- Loading Section -->
-            <StackPanel Grid.Row="1" 
-                        HorizontalAlignment="Center"
-                        Margin="0,20,0,10">
+            <!-- ================================================== -->
+            <!-- CONTENT AREA (Loading OR Login) -->
+            <!-- ================================================== -->
+            <Grid Grid.Row="1" Margin="40,20">
                 
-                <!-- Custom spinner -->
-                <Canvas Width="40" Height="40" HorizontalAlignment="Center">
-                    <Canvas.RenderTransform>
-                        <RotateTransform x:Name="SpinnerTransform" CenterX="20" CenterY="20"/>
-                    </Canvas.RenderTransform>
+                <!-- Loading Panel (visible when not showing login) -->
+                <StackPanel x:Name="LoadingPanel" 
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Visibility="Visible">
                     
-                    <!-- Spinner dots -->
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="16" Canvas.Top="0" Opacity="1"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="28" Canvas.Top="4" Opacity="0.875"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="32" Canvas.Top="16" Opacity="0.75"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="28" Canvas.Top="28" Opacity="0.625"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="16" Canvas.Top="32" Opacity="0.5"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="4" Canvas.Top="28" Opacity="0.375"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="0" Canvas.Top="16" Opacity="0.25"/>
-                    <Ellipse Width="8" Height="8" Fill="#FFB612" Canvas.Left="4" Canvas.Top="4" Opacity="0.125"/>
-                </Canvas>
-            </StackPanel>
+                    <!-- Custom spinner -->
+                    <Canvas Width="36" Height="36" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Canvas.RenderTransform>
+                            <RotateTransform x:Name="SpinnerTransform" CenterX="18" CenterY="18"/>
+                        </Canvas.RenderTransform>
+                        
+                        <!-- Spinner dots -->
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="14.5" Canvas.Top="0" Opacity="1"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="25" Canvas.Top="3.5" Opacity="0.875"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="29" Canvas.Top="14.5" Opacity="0.75"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="25" Canvas.Top="25.5" Opacity="0.625"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="14.5" Canvas.Top="29" Opacity="0.5"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="4" Canvas.Top="25.5" Opacity="0.375"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="0" Canvas.Top="14.5" Opacity="0.25"/>
+                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="4" Canvas.Top="3.5" Opacity="0.125"/>
+                    </Canvas>
+                    
+                    <!-- Status Text -->
+                    <TextBlock x:Name="StatusText"
+                               Text="Initializing..."
+                               FontSize="13"
+                               Foreground="#909090"
+                               HorizontalAlignment="Center"
+                               FontFamily="Segoe UI"/>
+                </StackPanel>
+                
+                <!-- Login Panel (hidden by default) -->
+                <StackPanel x:Name="LoginPanel" 
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed"
+                            Opacity="0">
+                    
+                    <!-- Login Form -->
+                    <StackPanel Width="300">
+                        
+                        <!-- Username -->
+                        <TextBlock Text="Username"
+                                   FontSize="12"
+                                   Foreground="#909090"
+                                   Margin="0,0,0,6"
+                                   FontFamily="Segoe UI"/>
+                        <TextBox x:Name="UsernameTextBox"
+                                 Style="{StaticResource LoginTextBoxStyle}"
+                                 KeyDown="TextBox_KeyDown"/>
+                        
+                        <!-- Password -->
+                        <TextBlock Text="Password"
+                                   FontSize="12"
+                                   Foreground="#909090"
+                                   Margin="0,16,0,6"
+                                   FontFamily="Segoe UI"/>
+                        <PasswordBox x:Name="PasswordBox"
+                                     Style="{StaticResource LoginPasswordBoxStyle}"
+                                     KeyDown="PasswordBox_KeyDown"/>
+                        
+                        <!-- Error Message -->
+                        <TextBlock x:Name="ErrorText"
+                                   Text=""
+                                   FontSize="12"
+                                   Foreground="#FF6B6B"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,12,0,0"
+                                   TextWrapping="Wrap"
+                                   Visibility="Collapsed"/>
+                        
+                        <!-- Login Button -->
+                        <Button x:Name="LoginButton"
+                                Content="Sign In"
+                                Style="{StaticResource LoginButtonStyle}"
+                                Margin="0,20,0,0"
+                                Click="LoginButton_Click"/>
+                        
+                        <!-- Windows Auth Option -->
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
             
-            <!-- Status Text -->
-            <TextBlock x:Name="StatusText"
-                       Grid.Row="2"
-                       Text="Initializing..."
-                       FontSize="13"
-                       Foreground="#A0A0A0"
-                       HorizontalAlignment="Center"
-                       Margin="0,5,0,20"
-                       FontFamily="Segoe UI"/>
-            
-            <!-- Progress Bar -->
-            <Border Grid.Row="3"
-                    Height="4"
-                    Margin="40,0,40,0"
-                    CornerRadius="2"
-                    Background="#2A2A2A">
-                <Border x:Name="ProgressFill"
-                        HorizontalAlignment="Left"
-                        Width="0"
-                        CornerRadius="2"
-                        Background="#FFB612"/>
-            </Border>
-            
-            <!-- Footer -->
-            <StackPanel Grid.Row="4" 
+            <!-- ================================================== -->
+            <!-- FOOTER -->
+            <!-- ================================================== -->
+            <StackPanel Grid.Row="2" 
                         VerticalAlignment="Bottom"
                         HorizontalAlignment="Center"
-                        Margin="0,0,0,15">
-                <TextBlock Text="© 2024 DeepEnd Technologies"
-                           FontSize="11"
-                           Foreground="#505050"
+                        Margin="0,0,0,20">
+                
+                <!-- Progress Bar (only visible during loading) -->
+                <Border x:Name="ProgressBarContainer"
+                        Height="3"
+                        Width="200"
+                        Margin="0,0,0,15"
+                        CornerRadius="1.5"
+                        Background="#252525">
+                    <Border x:Name="ProgressFill"
+                            HorizontalAlignment="Left"
+                            Width="0"
+                            CornerRadius="1.5"
+                            Background="#FFB612"/>
+                </Border>
+                
+                <TextBlock Text="© 2024 Prickly Cactus Software"
+                           FontSize="10"
+                           Foreground="#404040"
                            HorizontalAlignment="Center"
                            FontFamily="Segoe UI"/>
                 <TextBlock x:Name="VersionText"
                            Text="Version 1.0.0"
-                           FontSize="10"
-                           Foreground="#404040"
+                           FontSize="9"
+                           Foreground="#353535"
                            HorizontalAlignment="Center"
                            FontFamily="Segoe UI"
                            Margin="0,2,0,0"/>
@@ -189,4 +338,3 @@
         </Grid>
     </Border>
 </Window>
-

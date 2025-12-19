@@ -4,21 +4,24 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:Tracker.Controls"
+        xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
         mc:Ignorable="d"
         Title="Tracker Setup"
-        Height="550"
-        Width="700"
+        Height="620"
+        Width="720"
+        MinHeight="500"
+        MinWidth="600"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        ResizeMode="NoResize"
-        ShowInTaskbar="False">
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="True">
 
     <Border Background="{DynamicResource BackgroundBrush}"
             BorderBrush="{DynamicResource AccentBrush}"
             BorderThickness="2"
-            CornerRadius="16">
+            CornerRadius="12">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -26,393 +29,825 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header -->
+            <!-- ================================================== -->
+            <!-- HEADER -->
+            <!-- ================================================== -->
             <Border Grid.Row="0" 
                     Background="{DynamicResource AccentBrush}"
-                    CornerRadius="14,14,0,0"
-                    Padding="24,20">
-                <StackPanel>
-                    <TextBlock Text="Welcome to Tracker"
-                               FontSize="28"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource BackgroundBrush}"/>
-                    <TextBlock Text="Let's set up your database connection"
-                               FontSize="14"
-                               Foreground="{DynamicResource BackgroundBrush}"
-                               Opacity="0.8"
-                               Margin="0,4,0,0"/>
-                </StackPanel>
+                    CornerRadius="10,10,0,0"
+                    Padding="28,24">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel>
+                        <TextBlock Text="Welcome to Tracker"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource BackgroundBrush}"/>
+                        <TextBlock Text="Let's configure your workspace"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource BackgroundBrush}"
+                                   Opacity="0.85"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Step Indicator (Visual) - Shows current progress -->
+                    <!-- Active step: Dark fill, gold text | Inactive step: Transparent, gold border/text -->
+                    <StackPanel Grid.Column="1" 
+                                Orientation="Horizontal" 
+                                VerticalAlignment="Center"
+                                Margin="20,0,0,0">
+                        <!-- Step 1: Database -->
+                        <Border Width="32" Height="32"
+                                CornerRadius="16"
+                                Background="{Binding IsStep1, Converter={StaticResource BoolToStepBackgroundConverter}}"
+                                BorderBrush="{Binding IsStep1, Converter={StaticResource BoolToStepBorderConverter}}"
+                                BorderThickness="2"
+                                ToolTip="Database">
+                            <TextBlock Text="1" 
+                                       FontWeight="Bold" 
+                                       FontSize="13"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IsStep1, Converter={StaticResource BoolToStepForegroundConverter}}"/>
+                        </Border>
+                        
+                        <!-- Connector to SQL (only if SQL Server) -->
+                        <Rectangle Width="20" Height="2" 
+                                   Fill="{DynamicResource BackgroundBrush}" 
+                                   Opacity="0.4" 
+                                   Margin="6,0"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        
+                        <!-- Step 2: SQL Config (only if SQL Server) -->
+                        <Border Width="32" Height="32"
+                                CornerRadius="16"
+                                Background="{Binding IsStep2, Converter={StaticResource BoolToStepBackgroundConverter}}"
+                                BorderBrush="{Binding IsStep2, Converter={StaticResource BoolToStepBorderConverter}}"
+                                BorderThickness="2"
+                                ToolTip="SQL Server"
+                                Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="2" 
+                                       FontWeight="Bold" 
+                                       FontSize="13"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IsStep2, Converter={StaticResource BoolToStepForegroundConverter}}"/>
+                        </Border>
+                        
+                        <!-- Connector -->
+                        <Rectangle Width="20" Height="2" 
+                                   Fill="{DynamicResource BackgroundBrush}" 
+                                   Opacity="0.4" 
+                                   Margin="6,0"
+                                   VerticalAlignment="Center"/>
+                        
+                        <!-- Step 3: Account -->
+                        <Border Width="32" Height="32"
+                                CornerRadius="16"
+                                Background="{Binding IsStep3, Converter={StaticResource BoolToStepBackgroundConverter}}"
+                                BorderBrush="{Binding IsStep3, Converter={StaticResource BoolToStepBorderConverter}}"
+                                BorderThickness="2"
+                                ToolTip="Account">
+                            <TextBlock Text="👤" 
+                                       FontSize="13"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IsStep3, Converter={StaticResource BoolToStepForegroundConverter}}"/>
+                        </Border>
+
+                        <!-- Connector -->
+                        <Rectangle Width="20" Height="2" 
+                                   Fill="{DynamicResource BackgroundBrush}" 
+                                   Opacity="0.4" 
+                                   Margin="6,0"
+                                   VerticalAlignment="Center"/>
+                        
+                        <!-- Step 4: Summary -->
+                        <Border Width="32" Height="32"
+                                CornerRadius="16"
+                                Background="{Binding IsStep4, Converter={StaticResource BoolToStepBackgroundConverter}}"
+                                BorderBrush="{Binding IsStep4, Converter={StaticResource BoolToStepBorderConverter}}"
+                                BorderThickness="2"
+                                ToolTip="Finish">
+                            <TextBlock Text="✓" 
+                                       FontWeight="Bold" 
+                                       FontSize="13"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IsStep4, Converter={StaticResource BoolToStepForegroundConverter}}"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- Content Area -->
-            <Grid Grid.Row="1" Margin="32,24">
-                
-                <!-- Step 1: Choose Database Type -->
-                <StackPanel Visibility="{Binding IsStep1, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="How would you like to store your data?"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Margin="0,0,0,24"/>
+            <!-- ================================================== -->
+            <!-- CONTENT AREA (Scrollable) -->
+            <!-- ================================================== -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0">
+                <Grid Margin="32,24">
+                    
+                    <!-- ====== STEP 1: Choose Database Type ====== -->
+                    <StackPanel Visibility="{Binding IsStep1, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Where would you like to store your data?"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Choose a storage option that fits your needs"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,0,0,24"/>
 
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="24"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                        <!-- Local Option -->
-                        <Border Grid.Column="0"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{Binding IsLocalSelected, Converter={StaticResource BoolToAccentBorderConverter}}"
-                                BorderThickness="2"
-                                CornerRadius="12"
-                                Padding="20"
-                                Cursor="Hand">
-                            <Border.InputBindings>
-                                <MouseBinding MouseAction="LeftClick" Command="{Binding SelectLocalCommand}"/>
-                            </Border.InputBindings>
+                            <!-- Local Option Card -->
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{Binding IsLocalSelected, Converter={StaticResource BoolToAccentBorderConverter}}"
+                                    BorderThickness="2"
+                                    CornerRadius="10"
+                                    Padding="20"
+                                    Cursor="Hand">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SelectLocalCommand}"/>
+                                </Border.InputBindings>
+                                <StackPanel>
+                                    <Border Width="56" Height="56" 
+                                            CornerRadius="28"
+                                            Background="{DynamicResource AccentBrush}"
+                                            HorizontalAlignment="Center"
+                                            Margin="0,0,0,16">
+                                        <TextBlock Text="💾" FontSize="24" 
+                                                   HorizontalAlignment="Center" 
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="Local Database"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Data stored securely on this PC"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,6,0,16"/>
+                                    
+                                    <StackPanel Margin="8,0,0,0">
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource ForegroundBrush}" Margin="0,3">
+                                            <Run Text="✓" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                                            <Run Text=" No server required"/>
+                                        </TextBlock>
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource ForegroundBrush}" Margin="0,3">
+                                            <Run Text="✓" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                                            <Run Text=" Works offline"/>
+                                        </TextBlock>
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource ForegroundBrush}" Margin="0,3">
+                                            <Run Text="✓" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                                            <Run Text=" Perfect for single user"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- SQL Server Option Card -->
+                            <Border Grid.Column="2"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{Binding IsSqlServerSelected, Converter={StaticResource BoolToAccentBorderConverter}}"
+                                    BorderThickness="2"
+                                    CornerRadius="10"
+                                    Padding="20"
+                                    Cursor="Hand">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SelectSqlServerCommand}"/>
+                                </Border.InputBindings>
+                                <StackPanel>
+                                    <Border Width="56" Height="56" 
+                                            CornerRadius="28"
+                                            Background="{DynamicResource AccentBrush}"
+                                            HorizontalAlignment="Center"
+                                            Margin="0,0,0,16">
+                                        <TextBlock Text="🌐" FontSize="24" 
+                                                   HorizontalAlignment="Center" 
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="SQL Server"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Connect to a shared server"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,6,0,16"/>
+                                    
+                                    <StackPanel Margin="8,0,0,0">
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource ForegroundBrush}" Margin="0,3">
+                                            <Run Text="✓" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                                            <Run Text=" Shared across team"/>
+                                        </TextBlock>
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource ForegroundBrush}" Margin="0,3">
+                                            <Run Text="✓" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                                            <Run Text=" Centralized data"/>
+                                        </TextBlock>
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource ForegroundBrush}" Margin="0,3">
+                                            <Run Text="✓" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                                            <Run Text=" Best for organizations"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- ====== STEP 2: SQL Server Configuration ====== -->
+                    <StackPanel Visibility="{Binding IsStep2, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Configure SQL Server Connection"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Enter your database connection details"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,0,0,24"/>
+
+                        <!-- Connection Type Toggle -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,0,0,16">
                             <StackPanel>
-                                <TextBlock Text="📁" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                                <TextBlock Text="Local Database"
-                                           FontSize="18"
+                                <TextBlock Text="Connection Type"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource ForegroundBrush}"
-                                           HorizontalAlignment="Center"/>
-                                <TextBlock Text="Data stored on this PC"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,8,0,16"/>
-                                <TextBlock Text="• No server required"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"/>
-                                <TextBlock Text="• Works offline"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"/>
-                                <TextBlock Text="• Best for single user"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"/>
+                                           Margin="0,0,0,12"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Content="Direct Connection" 
+                                                 IsChecked="{Binding UseOdbc, Converter={StaticResource ReverseBooleanConverter}}"
+                                                 Margin="0,0,24,0"/>
+                                    <RadioButton Content="ODBC DSN" 
+                                                 IsChecked="{Binding UseOdbc}"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
-                        <!-- SQL Server Option -->
-                        <Border Grid.Column="2"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{Binding IsSqlServerSelected, Converter={StaticResource BoolToAccentBorderConverter}}"
-                                BorderThickness="2"
-                                CornerRadius="12"
-                                Padding="20"
-                                Cursor="Hand">
-                            <Border.InputBindings>
-                                <MouseBinding MouseAction="LeftClick" Command="{Binding SelectSqlServerCommand}"/>
-                            </Border.InputBindings>
-                            <StackPanel>
-                                <TextBlock Text="🌐" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                                <TextBlock Text="SQL Server"
-                                           FontSize="18"
-                                           FontWeight="SemiBold"
+                        <!-- Connection Fields -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Direct Connection Fields -->
+                                <TextBlock Grid.Row="0" Text="Server"
                                            Foreground="{DynamicResource ForegroundBrush}"
-                                           HorizontalAlignment="Center"/>
-                                <TextBlock Text="Connect to a shared server"
-                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           FontWeight="Medium"
+                                           Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <customControls:TextBoxWithHint Grid.Row="0" Grid.Column="1"
+                                                                TextBoxType="Text"
+                                                                HintText="localhost or server.domain.com"
+                                                                Text="{Binding Server, UpdateSourceTrigger=PropertyChanged}"
+                                                                Margin="0,0,0,12"
+                                                                Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                                <TextBlock Grid.Row="1" Text="Database"
                                            Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,8,0,16"/>
-                                <TextBlock Text="• Shared across team"
-                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           FontWeight="Medium"
+                                           Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <customControls:TextBoxWithHint Grid.Row="1" Grid.Column="1"
+                                                                TextBoxType="Text"
+                                                                HintText="TrackerDB"
+                                                                Text="{Binding Database, UpdateSourceTrigger=PropertyChanged}"
+                                                                Margin="0,0,0,12"
+                                                                Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                                <!-- ODBC Field -->
+                                <TextBlock Grid.Row="0" Text="ODBC DSN"
                                            Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"/>
-                                <TextBlock Text="• Centralized data"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"/>
-                                <TextBlock Text="• Best for organizations"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"/>
-                            </StackPanel>
+                                           VerticalAlignment="Center"
+                                           FontWeight="Medium"
+                                           Visibility="{Binding UseOdbc, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <customControls:TextBoxWithHint Grid.Row="0" Grid.Column="1"
+                                                                TextBoxType="Text"
+                                                                HintText="TrackerDSN"
+                                                                Text="{Binding OdbcDsn, UpdateSourceTrigger=PropertyChanged}"
+                                                                Margin="0,0,0,12"
+                                                                Visibility="{Binding UseOdbc, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                                <!-- Trust Certificate -->
+                                <CheckBox Grid.Row="2" Grid.ColumnSpan="2"
+                                          Content="Trust server certificate (for self-signed certificates)"
+                                          IsChecked="{Binding TrustServerCertificate}"
+                                          Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
                         </Border>
-                    </Grid>
-                </StackPanel>
-
-                <!-- Step 2: SQL Server Configuration -->
-                <StackPanel Visibility="{Binding IsStep2, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Configure SQL Server Connection"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Margin="0,0,0,20"/>
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="140"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- Connection Type -->
-                        <TextBlock Grid.Row="0" Text="Connection Type:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,12"/>
-                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,12">
-                            <RadioButton Content="Direct" 
-                                         IsChecked="{Binding UseOdbc, Converter={StaticResource ReverseBooleanConverter}}"
-                                         Foreground="{DynamicResource ForegroundBrush}"
-                                         Margin="0,0,20,0"/>
-                            <RadioButton Content="ODBC DSN" 
-                                         IsChecked="{Binding UseOdbc}"
-                                         Foreground="{DynamicResource ForegroundBrush}"/>
-                        </StackPanel>
-
-                        <!-- Direct Connection Fields -->
-                        <TextBlock Grid.Row="1" Text="Server:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <TextBox Grid.Row="1" Grid.Column="1"
-                                 Text="{Binding Server, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,8"
-                                 Padding="8,6"
-                                 Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
-
-                        <TextBlock Grid.Row="2" Text="Database:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <TextBox Grid.Row="2" Grid.Column="1"
-                                 Text="{Binding Database, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,8"
-                                 Padding="8,6"
-                                 Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
-
-                        <!-- ODBC Field -->
-                        <TextBlock Grid.Row="1" Text="ODBC DSN:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding UseOdbc, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <TextBox Grid.Row="1" Grid.Column="1"
-                                 Text="{Binding OdbcDsn, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,8"
-                                 Padding="8,6"
-                                 Visibility="{Binding UseOdbc, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                         <!-- Authentication -->
-                        <TextBlock Grid.Row="3" Text="Authentication:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
-                                    Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <RadioButton Content="Windows Authentication" 
-                                         IsChecked="{Binding UseWindowsAuth}"
-                                         Foreground="{DynamicResource ForegroundBrush}"
-                                         Margin="0,0,0,4"/>
-                            <RadioButton Content="SQL Server Authentication" 
-                                         IsChecked="{Binding UseWindowsAuth, Converter={StaticResource ReverseBooleanConverter}}"
-                                         Foreground="{DynamicResource ForegroundBrush}"/>
-                        </StackPanel>
-
-                        <!-- SQL Credentials -->
-                        <TextBlock Grid.Row="4" Text="Username:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding ShowCredentials, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <TextBox Grid.Row="4" Grid.Column="1"
-                                 Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,8"
-                                 Padding="8,6"
-                                 Visibility="{Binding ShowCredentials, Converter={StaticResource BoolToVisibilityConverter}}"/>
-
-                        <TextBlock Grid.Row="5" Text="Password:"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding ShowCredentials, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <PasswordBox Grid.Row="5" Grid.Column="1"
-                                     Margin="0,0,0,8"
-                                     Padding="8,6"
-                                     Visibility="{Binding ShowCredentials, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="Authentication"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           Margin="0,0,0,12"/>
+                                <RadioButton Content="Windows Authentication (Integrated Security)" 
+                                             IsChecked="{Binding UseWindowsAuth}"
+                                             Margin="0,0,0,8"/>
+                                <RadioButton Content="SQL Server Authentication" 
+                                             IsChecked="{Binding UseWindowsAuth, Converter={StaticResource ReverseBooleanConverter}}"/>
+                                
+                                <!-- SQL Credentials -->
+                                <Grid Margin="28,12,0,0"
+                                      Visibility="{Binding ShowCredentials, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Text="Username" VerticalAlignment="Center" 
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                    <customControls:TextBoxWithHint Grid.Column="1"
+                                                                    TextBoxType="Text"
+                                                                    HintText="sa or domain\\user"
+                                                                    Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Margin="0,0,0,8" Padding="10,8"/>
+                                    
+                                    <TextBlock Grid.Row="1" Text="Password" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                    <PasswordBox Grid.Row="1" Grid.Column="1" 
+                                                 Padding="10,8"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Test Connection -->
-                        <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Margin="0,12,0,0">
-                            <Button Content="Test Connection"
-                                    Command="{Binding TestConnectionCommand}"
-                                    Padding="16,8"
-                                    IsEnabled="{Binding IsTestingConnection, Converter={StaticResource ReverseBooleanConverter}}"/>
-                            <TextBlock Text="{Binding ConnectionStatus}"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       VerticalAlignment="Center"
-                                       Margin="16,0,0,0"
-                                       TextWrapping="Wrap"
-                                       MaxWidth="300"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- Trust Certificate Option -->
-                    <CheckBox Content="Trust server certificate (for self-signed certs)"
-                              IsChecked="{Binding TrustServerCertificate}"
-                              Foreground="{DynamicResource ForegroundBrush}"
-                              Margin="0,20,0,0"
-                              Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                </StackPanel>
-
-                <!-- Step 3: Summary -->
-                <StackPanel Visibility="{Binding IsStep3, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Ready to Set Up"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Margin="0,0,0,20"/>
-
-                    <Border Background="{DynamicResource SurfaceBrush}"
-                            CornerRadius="8"
-                            Padding="20">
-                        <StackPanel>
-                            <TextBlock FontSize="14" Foreground="{DynamicResource ForegroundBrush}">
-                                <Run Text="Database Type: " FontWeight="SemiBold"/>
-                                <Run Text="{Binding SelectedDatabaseType}"/>
-                            </TextBlock>
-
-                            <!-- Local Summary -->
-                            <StackPanel Visibility="{Binding IsLocalSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                                        Margin="0,12,0,0">
-                                <TextBlock FontSize="14" Foreground="{DynamicResource ForegroundBrush}">
-                                    <Run Text="Location: " FontWeight="SemiBold"/>
-                                    <Run Text="%LocalAppData%\Tracker\tracker.db"/>
-                                </TextBlock>
-                                <TextBlock Text="A local SQLite database will be created on your machine."
-                                           FontSize="12"
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Test Connection"
+                                        Command="{Binding TestConnectionCommand}"
+                                        Padding="20,10"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        IsEnabled="{Binding IsTestingConnection, Converter={StaticResource ReverseBooleanConverter}}"/>
+                                <TextBlock Text="{Binding ConnectionStatus}"
                                            Foreground="{DynamicResource ForegroundBrush}"
-                                           Opacity="0.7"
+                                           VerticalAlignment="Center"
+                                           Margin="16,0,0,0"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="350"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- ====== STEP 3: Account Setup ====== -->
+                    <StackPanel Visibility="{Binding IsStep3, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Create Your Tracker Account"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Link your app to access cloud features and your subscription"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,0,0,24"/>
+
+                        <!-- Account Form Card -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="20"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding AccountSetupComplete, Converter={StaticResource ReverseBoolToVisConverter}}">
+                            <StackPanel>
+                                <!-- Toggle Create/Sign In -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <Button Content="Create Account" 
+                                            Click="CreateAccountModeButton_Click"
+                                            Padding="16,10"
+                                            Margin="0,0,12,0"
+                                            x:Name="CreateAccountModeButton"/>
+                                    <Button Content="Sign In" 
+                                            Click="SignInModeButton_Click"
+                                            Padding="16,10"
+                                            x:Name="SignInModeButton"/>
+                                </StackPanel>
+
+                                <!-- Display Name (Create only) -->
+                                <StackPanel Visibility="{Binding IsCreatingAccount, Converter={StaticResource BoolToVisibilityConverter}}"
+                                            Margin="0,0,0,12">
+                                    <TextBlock Text="Display Name"
+                                               FontWeight="Medium"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,0,0,6"/>
+                                    <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                    HintText="Your display name"
+                                                                    Text="{Binding AccountDisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Padding="10,8"/>
+                                </StackPanel>
+
+                                <!-- Email -->
+                                <TextBlock Text="Email"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           Margin="0,0,0,6"/>
+                                <customControls:TextBoxWithHint TextBoxType="Email"
+                                                                HintText="you@example.com"
+                                                                Text="{Binding AccountEmail, UpdateSourceTrigger=PropertyChanged}"
+                                                                Padding="10,8"
+                                                                Margin="0,0,0,12"/>
+
+                                <!-- Password -->
+                                <TextBlock FontWeight="Medium"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           Margin="0,0,0,6">
+                                    <Run Text="Password"/>
+                                    <Run Text="(8+ chars, upper, lower, number, special)"
+                                         FontSize="10"
+                                         Foreground="{DynamicResource HintTextBrush}"/>
+                                </TextBlock>
+                                <PasswordBox x:Name="AccountPasswordBox"
+                                             Padding="10,8"
+                                             Margin="0,0,0,4"
+                                             PasswordChanged="AccountPasswordBox_PasswordChanged"/>
+                                <TextBlock Text="{Binding PasswordValidationMessage}"
+                                           FontSize="11"
+                                           Foreground="#E57373"
+                                           Margin="0,0,0,8"
+                                           Visibility="{Binding PasswordValidationMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                                <!-- Confirm Password (Create only) -->
+                                <StackPanel Visibility="{Binding IsCreatingAccount, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="Confirm Password"
+                                               FontWeight="Medium"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,0,0,6"/>
+                                    <PasswordBox x:Name="AccountPasswordConfirmBox"
+                                                 Padding="10,8"
+                                                 Margin="0,0,0,4"
+                                                 PasswordChanged="AccountPasswordConfirmBox_PasswordChanged"/>
+                                    <TextBlock Text="{Binding ConfirmPasswordValidationMessage}"
+                                               FontSize="11"
+                                               Foreground="#E57373"
+                                               Margin="0,0,0,8"
+                                               Visibility="{Binding ConfirmPasswordValidationMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                </StackPanel>
+
+                                <!-- Action Buttons -->
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="{Binding AccountActionButtonText}"
+                                            Command="{Binding CreateAccountCommand}"
+                                            Visibility="{Binding IsCreatingAccount, Converter={StaticResource BoolToVisibilityConverter}}"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Padding="24,10"/>
+                                    <Button Content="{Binding AccountActionButtonText}"
+                                            Command="{Binding SignInCommand}"
+                                            Visibility="{Binding IsSigningIn, Converter={StaticResource BoolToVisibilityConverter}}"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Padding="24,10"/>
+                                </StackPanel>
+
+                                <!-- Status Message -->
+                                <TextBlock Text="{Binding AccountStatus}"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,12,0,0"
+                                           Visibility="{Binding AccountStatus, Converter={StaticResource StringToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Account Complete Card -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="20"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding AccountSetupComplete, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <Border Width="48" Height="48" 
+                                            CornerRadius="24"
+                                            Background="{DynamicResource AccentBrush}"
+                                            Margin="0,0,16,0">
+                                        <TextBlock Text="✓" FontSize="24" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" 
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource BackgroundBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding SignedInUserName, FallbackValue='Account Ready'}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                                        <TextBlock Text="{Binding SignedInUserEmail}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   Visibility="{Binding SkipAccountSetup, Converter={StaticResource ReverseBoolToVisConverter}}"/>
+                                        <TextBlock Text="Account setup skipped"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   Visibility="{Binding SkipAccountSetup, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Text="{Binding AccountStatus}"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Skip Account Option -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding AccountSetupComplete, Converter={StaticResource ReverseBoolToVisConverter}}">
+                            <StackPanel>
+                                <Button Content="Skip for now"
+                                        Command="{Binding SkipAccountCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        HorizontalAlignment="Left"
+                                        Padding="16,8"/>
+                                <TextBlock Text="You can create an account later in Settings. Some features may be limited."
+                                           FontSize="11"
+                                           Foreground="{DynamicResource HintTextBrush}"
                                            Margin="0,8,0,0"
                                            TextWrapping="Wrap"/>
                             </StackPanel>
+                        </Border>
+                    </StackPanel>
 
-                            <!-- SQL Server Summary -->
-                            <StackPanel Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                                        Margin="0,12,0,0">
-                                <TextBlock FontSize="14" Foreground="{DynamicResource ForegroundBrush}"
-                                           Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}">
-                                    <Run Text="Server: " FontWeight="SemiBold"/>
-                                    <Run Text="{Binding Server}"/>
-                                </TextBlock>
-                                <TextBlock FontSize="14" Foreground="{DynamicResource ForegroundBrush}"
-                                           Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}">
-                                    <Run Text="Database: " FontWeight="SemiBold"/>
-                                    <Run Text="{Binding Database}"/>
-                                </TextBlock>
-                                <TextBlock FontSize="14" Foreground="{DynamicResource ForegroundBrush}"
-                                           Visibility="{Binding UseOdbc, Converter={StaticResource BoolToVisibilityConverter}}">
-                                    <Run Text="ODBC DSN: " FontWeight="SemiBold"/>
-                                    <Run Text="{Binding OdbcDsn}"/>
-                                </TextBlock>
-                                <TextBlock FontSize="14" Foreground="{DynamicResource ForegroundBrush}">
-                                    <Run Text="Authentication: " FontWeight="SemiBold"/>
-                                    <Run Text="{Binding UseWindowsAuth, Converter={StaticResource BoolToAuthTypeConverter}}"/>
-                                </TextBlock>
+                    <!-- ====== STEP 4: Summary & Options ====== -->
+                    <StackPanel Visibility="{Binding IsStep4, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Ready to Set Up Tracker"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Review your choices and configure additional options"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,0,0,24"/>
 
+                        <!-- Configuration Summary -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="20"
+                                Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="📋 Configuration Summary"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ForegroundBrush}"
+                                           Margin="0,0,0,16"/>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Text="Database Type" FontWeight="Medium" 
+                                               Foreground="{DynamicResource HintTextBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedDatabaseType}" 
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                    
+                                    <!-- Local Info -->
+                                    <TextBlock Grid.Row="1" Text="Location" FontWeight="Medium"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding IsLocalSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                               Text="%LocalAppData%\Tracker\tracker.db"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding IsLocalSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    
+                                    <!-- SQL Server Info -->
+                                    <TextBlock Grid.Row="1" Text="Server" FontWeight="Medium"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                               Text="{Binding Server}"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                               Text="{Binding OdbcDsn, StringFormat='ODBC: {0}'}"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding UseOdbc, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    
+                                    <TextBlock Grid.Row="2" Text="Database" FontWeight="Medium"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" 
+                                               Text="{Binding Database}"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding ShowDirectConnection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </Grid>
+                                
+                                <!-- Create Database Option (SQL Server only) -->
                                 <CheckBox Content="Create database and tables if they don't exist"
                                           IsChecked="{Binding CreateDatabase}"
-                                          Foreground="{DynamicResource ForegroundBrush}"
-                                          Margin="0,16,0,0"/>
+                                          Margin="0,16,0,0"
+                                          Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
+                        </Border>
 
-                    <!-- Sample Data Option -->
-                    <Border Background="{DynamicResource SurfaceBrush}"
-                            CornerRadius="8"
-                            Padding="20"
-                            Margin="0,16,0,0">
-                        <StackPanel>
-                            <CheckBox Content="Include sample data"
-                                      IsChecked="{Binding IncludeSampleData}"
-                                      Foreground="{DynamicResource ForegroundBrush}"
-                                      FontWeight="SemiBold"/>
-                            <TextBlock Text="Populates the database with sample team members, projects, and tasks to help you get started. You can clear this data later from Settings."
-                                       FontSize="12"
-                                       Foreground="{DynamicResource ForegroundBrush}"
-                                       Opacity="0.7"
-                                       Margin="24,8,0,0"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
+                        <!-- Sample Data Option -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="20"
+                                Margin="0,0,0,16">
+                            <StackPanel>
+                                <CheckBox IsChecked="{Binding IncludeSampleData}">
+                                    <StackPanel>
+                                        <TextBlock Text="Include sample data"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                                        <TextBlock Text="Get started with example team members, projects, and tasks"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   Margin="0,4,0,0"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </StackPanel>
+                        </Border>
 
-                    <TextBlock Text="Click 'Finish' to complete setup and start using Tracker."
-                               FontSize="12"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Opacity="0.7"
-                               Margin="0,20,0,0"/>
-                </StackPanel>
-            </Grid>
+                        <!-- Account Summary -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="20"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding AccountSetupComplete, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <Border Width="40" Height="40" 
+                                            CornerRadius="20"
+                                            Background="{DynamicResource AccentBrush}"
+                                            Margin="0,0,12,0">
+                                        <TextBlock Text="✓" FontSize="18" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" 
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource BackgroundBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="👤 Account Connected"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AccentBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Text="Name" FontWeight="Medium" 
+                                               Foreground="{DynamicResource HintTextBrush}"/>
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding AccountSummaryName}" 
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                    
+                                    <TextBlock Grid.Row="1" Text="Email" FontWeight="Medium"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,6,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                               Text="{Binding AccountSummaryEmail}"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,6,0,0"/>
+                                    
+                                    <TextBlock Grid.Row="2" Text="Status" FontWeight="Medium"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,6,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" 
+                                               Text="Ready to use"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               Margin="0,6,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Account Skipped Message -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8"
+                                Padding="20"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding SkipAccountSetup, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                <StackPanel>
+                                    <TextBlock Text="Account Setup Skipped"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                    <TextBlock Text="You can create an account later in Settings"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
 
-            <!-- Footer with Navigation -->
+                        <!-- Ready Message -->
+                        <TextBlock Text="Click 'Finish' to complete setup and start using Tracker"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+
+            <!-- ================================================== -->
+            <!-- FOOTER -->
+            <!-- ================================================== -->
             <Border Grid.Row="2" 
                     Background="{DynamicResource SurfaceBrush}"
-                    CornerRadius="0,0,14,14"
-                    Padding="24,16">
+                    CornerRadius="0,0,10,10"
+                    Padding="28,18">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Step Indicator -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse Width="10" Height="10" 
-                                 Fill="{Binding IsStep1, Converter={StaticResource BoolToAccentFillConverter}}"/>
-                        <Rectangle Width="30" Height="2" Fill="{DynamicResource AccentBrush}" Opacity="0.3" Margin="4,0"/>
-                        <Ellipse Width="10" Height="10" 
-                                 Fill="{Binding IsStep2, Converter={StaticResource BoolToAccentFillConverter}}"
-                                 Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <Rectangle Width="30" Height="2" Fill="{DynamicResource AccentBrush}" Opacity="0.3" Margin="4,0"
-                                   Visibility="{Binding IsSqlServerSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <Ellipse Width="10" Height="10" 
-                                 Fill="{Binding IsStep3, Converter={StaticResource BoolToAccentFillConverter}}"/>
-                    </StackPanel>
+                    <!-- Current Step Label -->
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="{DynamicResource HintTextBrush}">
+                        <Run Text="Step "/>
+                        <Run Text="{Binding CurrentStepNumber, Mode=OneWay}"/>
+                        <Run Text=" of "/>
+                        <Run Text="{Binding TotalSteps, Mode=OneWay}"/>
+                    </TextBlock>
 
                     <!-- Navigation Buttons -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Content="Back"
+                        <Button Content="← Back"
                                 Command="{Binding BackCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
                                 Padding="20,10"
-                                Margin="0,0,8,0"
+                                Margin="0,0,10,0"
                                 Visibility="{Binding IsStep1, Converter={StaticResource ReverseBoolToVisConverter}}"/>
-                        <Button Content="Next"
+                        <Button Content="Next →"
                                 Command="{Binding NextCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
                                 Padding="20,10"
-                                Visibility="{Binding IsStep2, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        <Button Content="Finish"
+                                Visibility="{Binding ShowNextButton, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <Button Content="✓ Finish Setup"
                                 Command="{Binding FinishCommand}"
-                                Padding="20,10"
-                                Background="{DynamicResource AccentBrush}"
-                                Foreground="{DynamicResource BackgroundBrush}"
-                                Visibility="{Binding IsStep3, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="24,10"
+                                FontWeight="SemiBold"
+                                Visibility="{Binding IsStep4, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     </StackPanel>
                 </Grid>
             </Border>
         </Grid>
     </Border>
 </controls:BaseWindow>
-

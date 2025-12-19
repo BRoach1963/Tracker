@@ -1,106 +1,288 @@
-﻿<Window x:Class="Tracker.Views.Dialogs.LoginDialog"
+﻿<controls:BaseWindow x:Class="Tracker.Views.Dialogs.LoginDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Tracker.Controls"
         xmlns:converters="clr-namespace:Tracker.Common.Converters"
-        xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
-        xmlns:languages="clr-namespace:Tracker.Resources.Languages"
         xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
-        xmlns:attachedProperties="clr-namespace:Tracker.AttachedProperties"
+        xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
         mc:Ignorable="d"
-        MouseDown="OnDragHandleMouseDown"
-        WindowStyle="None"
-        ResizeMode="CanResize"
+        Title="Tracker"
+        Height="520"
+        Width="420"
+        MinHeight="480"
+        MinWidth="380"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
         AllowsTransparency="True"
-        SizeToContent="WidthAndHeight"
         Background="Transparent"
-        ShowInTaskbar="False"
-        d:DataContext="{d:DesignInstance Type=dialogViewModels:LoginDialogViewModel}"
-        MinWidth="250">
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-            <SolidColorBrush x:Key="ForegroundBrush"
-                             Color="#FFB612" />
-            <SolidColorBrush x:Key="BackgroundBrush"
-                             Color="#101820" />
-        </ResourceDictionary>
-    </Window.Resources>
-    <Grid>
-        <Border Background="{DynamicResource BackgroundBrush}"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource ForegroundBrush}"
-                CornerRadius="12">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="5" />
-                </Grid.RowDefinitions>
-                <Border Grid.Row="0"
-                        Height="Auto"
-                        Background="{DynamicResource BackgroundBrush}"
-                        CornerRadius="12,12,0,0">
-                    <Grid Margin="10,5,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <Path Grid.Column="0"
-                              Data="M22,5.5A3.5,3.5 0 0,0 18.5,2A3.5,3.5 0 0,0 15,5.5V6A3,3 0 0,1 12,9C10,9 9,6 6,6A4,4 0 0,0 2,10V11H4V10A2,2 0 0,1 6,8C6.86,8 7.42,8.45 8.32,9.24C9.28,10.27 10.6,10.9 12,11A5,5 0 0,0 17,6V5.5A1.5,1.5 0 0,1 18.5,4A1.5,1.5 0 0,1 20,5.5C19.86,6.35 19.58,7.18 19.17,7.94C18.5,9.2 18.11,10.58 18,12C18.09,13.37 18.5,14.71 19.21,15.89C19.6,16.54 19.87,17.25 20,18A2,2 0 0,1 18,20A2,2 0 0,1 16,18A3.75,3.75 0 0,0 12.25,14.25A3.75,3.75 0 0,0 8.5,18V18.5A1.5,1.5 0 0,1 7,20A3,3 0 0,1 4,17V15H6V13H0V15H2V17A5,5 0 0,0 7,22A3.5,3.5 0 0,0 10.5,18.5V18A1.75,1.75 0 0,1 12.25,16.25A1.75,1.75 0 0,1 14,18A4,4 0 0,0 18,22A4,4 0 0,0 22,18C22,16 20,14 20,12C20,10 22,7.5 22,5.5Z"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
+        d:DataContext="{d:DesignInstance Type=dialogViewModels:LoginDialogViewModel}">
+
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderBrush="{DynamicResource AccentBrush}"
+            BorderThickness="2"
+            CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource AccentBrush}"
+                    CornerRadius="10,10,0,0"
+                    Padding="24,20">
+                <StackPanel HorizontalAlignment="Center">
+                    <!-- Logo/Icon -->
+                    <Border Width="56" Height="56" 
+                            CornerRadius="28"
+                            Background="{DynamicResource BackgroundBrush}"
+                            Margin="0,0,0,12">
+                        <Path Data="M22,5.5A3.5,3.5 0 0,0 18.5,2A3.5,3.5 0 0,0 15,5.5V6A3,3 0 0,1 12,9C10,9 9,6 6,6A4,4 0 0,0 2,10V11H4V10A2,2 0 0,1 6,8C6.86,8 7.42,8.45 8.32,9.24C9.28,10.27 10.6,10.9 12,11A5,5 0 0,0 17,6V5.5A1.5,1.5 0 0,1 18.5,4A1.5,1.5 0 0,1 20,5.5C19.86,6.35 19.58,7.18 19.17,7.94C18.5,9.2 18.11,10.58 18,12C18.09,13.37 18.5,14.71 19.21,15.89C19.6,16.54 19.87,17.25 20,18A2,2 0 0,1 18,20A2,2 0 0,1 16,18A3.75,3.75 0 0,0 12.25,14.25A3.75,3.75 0 0,0 8.5,18V18.5A1.5,1.5 0 0,1 7,20A3,3 0 0,1 4,17V15H6V13H0V15H2V17A5,5 0 0,0 7,22A3.5,3.5 0 0,0 10.5,18.5V18A1.75,1.75 0 0,1 12.25,16.25A1.75,1.75 0 0,1 14,18A4,4 0 0,0 18,22A4,4 0 0,0 22,18C22,16 20,14 20,12C20,10 22,7.5 22,5.5Z"
                               Stretch="Uniform"
-                              Height="14"
-                              Margin="0,0,10,0"
-                              Fill="{DynamicResource ForegroundBrush}" />
-                        <Label Content="{x:Static languages:Resources.Main_Title}"
-                               Grid.Column="1"
-                               FontStyle="Normal"
-                               FontSize="14"
-                               Style="{StaticResource LabelStyle}"></Label>
-                    </Grid>
-                </Border>
-                <customControls:TextBoxWithHint x:Name="UserNameTextBox"
-                                                Grid.Row="1"
-                                                Text="{Binding UserName}"
-                                                IsEnabled="{Binding ElementName=UseLocalCreds, Path=IsChecked, Converter={x:Static converters:ReverseBooleanConverter.Instance}}"
-                                                Margin="10"
-                                                HintText="{x:Static languages:Resources.HintText_UserName}" />
-                <PasswordBox Grid.Row="2"
-                             attachedProperties:PasswordBinder.BindPassword="True"
-                             attachedProperties:PasswordBinder.BoundPassword="{Binding Password, Mode=TwoWay}"
-                             IsEnabled="{Binding ElementName=UseLocalCreds, Path=IsChecked, Converter={x:Static converters:ReverseBooleanConverter.Instance}}"
-                             Margin="10,0,10,10" />
-
-                <customControls:CheckBoxWithHelperText x:Name="UseLocalCreds"
-                                                       Grid.Row="3"
-                                                       IsChecked="{Binding UseWindowsAuthentication}"
-                                                       HelperText="Uses your local credentials"
-                                                       Margin="10,0,10,10"
-                                                       Content="Use Windows Login" />
-                <StackPanel Grid.Row="4"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Margin="0,0,10,5"
-                            Style="{StaticResource DialogButtonStyle}"
-                            HorizontalAlignment="Right"
-                            Command="{Binding CancelCommand}"
-                            Content="{x:Static languages:Resources.Button_Cancel}" />
-                    <Button Margin="0,0,10,5"
-                            Style="{StaticResource DialogButtonStyle}"
-                            HorizontalAlignment="Right"
-                            Command="{Binding LoginCommand}"
-                            Content="{x:Static languages:Resources.Button_Login}" />
+                              Width="28" Height="28"
+                              Fill="{DynamicResource AccentBrush}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Tracker"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource BackgroundBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Manager's Performance Toolkit"
+                               FontSize="11"
+                               Foreground="{DynamicResource BackgroundBrush}"
+                               Opacity="0.8"
+                               HorizontalAlignment="Center"
+                               Margin="0,4,0,0"/>
                 </StackPanel>
+            </Border>
 
-            </Grid>
-        </Border>
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="28,24">
 
-    </Grid>
-</Window>
+                    <!-- Mode Toggle (Sign In / Create Account) -->
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <Button x:Name="SignInButton"
+                                Grid.Column="0"
+                                Content="Sign In"
+                                Click="SignInButton_Click"
+                                Padding="16,12"
+                                FontSize="14"
+                                Cursor="Hand"
+                                HorizontalContentAlignment="Center"/>
+                        <Button x:Name="CreateAccountButton"
+                                Grid.Column="1"
+                                Content="Create Account"
+                                Click="CreateAccountButton_Click"
+                                Padding="16,12"
+                                FontSize="14"
+                                Cursor="Hand"
+                                HorizontalContentAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Display Name (Create Account only) -->
+                    <StackPanel Visibility="{Binding IsCreateAccountMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                Margin="0,0,0,12">
+                        <TextBlock Text="Display Name"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,6"/>
+                        <customControls:TextBoxWithHint TextBoxType="Text"
+                                                        HintText="Your display name"
+                                                        Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                                        IsEnabled="{Binding IsNotProcessing}"/>
+                    </StackPanel>
+
+                    <!-- Email -->
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="Email"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,6"/>
+                        <customControls:TextBoxWithHint TextBoxType="Email"
+                                                        HintText="you@example.com"
+                                                        Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                                                        IsEnabled="{Binding IsNotProcessing}"/>
+                    </StackPanel>
+
+                    <!-- Password -->
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="Password"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,6"/>
+                        <Grid>
+                            <PasswordBox x:Name="PasswordBox"
+                                         Padding="12,10"
+                                         FontSize="14"
+                                         IsEnabled="{Binding IsNotProcessing}"
+                                         PasswordChanged="PasswordBox_PasswordChanged"
+                                         KeyDown="PasswordBox_KeyDown"/>
+                            <TextBox x:Name="PasswordTextBox"
+                                     Padding="12,10"
+                                     FontSize="14"
+                                     IsEnabled="{Binding IsNotProcessing}"
+                                     TextChanged="PasswordTextBox_TextChanged"
+                                     Visibility="Collapsed"/>
+                            <Button x:Name="ShowPasswordButton"
+                                    Content="👁"
+                                    Click="ShowPasswordButton_Click"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,8,0"
+                                    Padding="8,4"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="Show/Hide Password"
+                                    FontSize="14"
+                                    Foreground="{DynamicResource HintTextBrush}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Confirm Password (Create Account only) -->
+                    <StackPanel Visibility="{Binding IsCreateAccountMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                Margin="0,0,0,12">
+                        <TextBlock Text="Confirm Password"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,6"/>
+                        <Grid>
+                            <PasswordBox x:Name="ConfirmPasswordBox"
+                                         Padding="12,10"
+                                         FontSize="14"
+                                         IsEnabled="{Binding IsNotProcessing}"
+                                         PasswordChanged="ConfirmPasswordBox_PasswordChanged"
+                                         KeyDown="ConfirmPasswordBox_KeyDown"/>
+                            <TextBox x:Name="ConfirmPasswordTextBox"
+                                     Padding="12,10"
+                                     FontSize="14"
+                                     IsEnabled="{Binding IsNotProcessing}"
+                                     TextChanged="ConfirmPasswordTextBox_TextChanged"
+                                     Visibility="Collapsed"/>
+                            <Button x:Name="ShowConfirmPasswordButton"
+                                    Content="👁"
+                                    Click="ShowConfirmPasswordButton_Click"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,8,0"
+                                    Padding="8,4"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="Show/Hide Password"
+                                    FontSize="14"
+                                    Foreground="{DynamicResource HintTextBrush}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Remember Me -->
+                    <CheckBox IsChecked="{Binding RememberMe}"
+                              Margin="0,4,0,16"
+                              Foreground="{DynamicResource ForegroundBrush}">
+                        <StackPanel>
+                            <TextBlock Text="Remember me"
+                                       Foreground="{DynamicResource ForegroundBrush}"/>
+                            <TextBlock Text="Stay signed in on this device"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </CheckBox>
+
+                    <!-- Status Message -->
+                    <Border Background="{Binding HasError, Converter={StaticResource BoolToErrorBackgroundConverter}}"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            Margin="0,0,0,16"
+                            Visibility="{Binding HasStatus, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{Binding HasError, Converter={StaticResource BoolToErrorForegroundConverter}}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"/>
+                    </Border>
+
+                    <!-- Action Button -->
+                    <Button Content="{Binding ActionButtonText}"
+                            Command="{Binding SignInCommand}"
+                            Visibility="{Binding IsSignInMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="0,14"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            IsEnabled="{Binding IsNotProcessing}"/>
+                    <Button Content="{Binding ActionButtonText}"
+                            Command="{Binding CreateAccountCommand}"
+                            Visibility="{Binding IsCreateAccountMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="0,14"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            IsEnabled="{Binding IsNotProcessing}"/>
+
+                    <!-- Forgot Password (Sign In only) -->
+                    <Button Content="Forgot password?"
+                            Command="{Binding ForgotPasswordCommand}"
+                            Visibility="{Binding IsSignInMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                            Style="{StaticResource LinkButtonStyle}"
+                            HorizontalAlignment="Center"
+                            Margin="0,12,0,0"
+                            FontSize="12"/>
+
+                    <!-- Processing Indicator -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0,16,0,0"
+                                Visibility="{Binding IsProcessing, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                        <TextBlock Text="⏳"
+                                   FontSize="14"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Text="Please wait..."
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- Help Section -->
+                    <Border BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Margin="0,24,0,0"
+                            Padding="0,16,0,0">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Need help?"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       FontSize="12"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="ⓘ Help Center"
+                                        Style="{StaticResource LinkButtonStyle}"
+                                        Command="{Binding OpenHelpCommand}"
+                                        FontSize="12"
+                                        Margin="0,0,16,0"/>
+                                <Button Content="📧 Contact Support"
+                                        Style="{StaticResource LinkButtonStyle}"
+                                        Command="{Binding ContactSupportCommand}"
+                                        FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</controls:BaseWindow>

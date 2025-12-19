@@ -10,7 +10,7 @@ namespace Tracker.Views.Dialogs
     public partial class ManualAuthCodeDialog : BaseWindow
     {
         public string? AuthorizationCode { get; private set; }
-        public bool DialogResult { get; private set; }
+        public new bool DialogResult { get; private set; }
 
         public ManualAuthCodeDialog() : base(DialogType.Settings)
         {
@@ -37,18 +37,7 @@ namespace Tracker.Views.Dialogs
             Close();
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
-        {
-            Cancel_Click(sender, e);
-        }
-
-        private void OnDragHandleMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
-            {
-                DragMove();
-            }
-        }
+        // Use base class OnDragHandleMouseDown and Close_Click
     }
 }
 

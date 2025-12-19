@@ -8,10 +8,14 @@
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
-        Height="90"
-        Width="360"
+        SizeToContent="Height"
+        MinHeight="80"
+        MaxHeight="200"
+        Width="380"
         Opacity="0"
-        Loaded="ToastWindow_Loaded">
+        Loaded="ToastWindow_Loaded"
+        MouseEnter="Toast_MouseEnter"
+        MouseLeave="Toast_MouseLeave">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -80,15 +84,14 @@
                            Foreground="{DynamicResource TextBrush}"
                            FontWeight="SemiBold"
                            FontSize="14"
-                           TextTrimming="CharacterEllipsis"/>
+                           TextWrapping="Wrap"/>
                 <TextBlock x:Name="ToastMessage"
                            Text="This is a toast notification message."
                            Foreground="{DynamicResource HintTextBrush}"
                            FontSize="12"
                            TextWrapping="Wrap"
-                           MaxHeight="36"
-                           Margin="0,2,0,0"
-                           TextTrimming="CharacterEllipsis"/>
+                           MaxHeight="100"
+                           Margin="0,4,0,0"/>
             </StackPanel>
             
             <!-- Close button -->

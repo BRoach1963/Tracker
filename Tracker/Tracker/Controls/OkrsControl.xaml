@@ -4,300 +4,490 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Tracker.Controls"
-             xmlns:commands="clr-namespace:Tracker.Command"
-             xmlns:enums="clr-namespace:Tracker.Common.Enums"
-             xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+             xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels"
+             xmlns:enums="clr-namespace:Tracker.Common.Enums"
              mc:Ignorable="d"
-             Background="{DynamicResource BackgroundBrush}"
-             d:DesignHeight="450"
-             d:DesignWidth="800">
+             d:DesignHeight="800"
+             d:DesignWidth="1400"
+             d:DataContext="{d:DesignInstance Type=viewModels:OkrsViewModel}"
+             AutomationProperties.Name="OKRs - Objectives and Key Results"
+             AutomationProperties.HelpText="Create and track team objectives with measurable key results">
+    
     <UserControl.Resources>
-        <converters:ObjectiveStatusToColorConverter x:Key="ObjectiveStatusToColorConverter" />
-        <converters:KpiStatusToColorConverter x:Key="KpiStatusToColorConverter" />
+        <!-- Stats card style (Clickable) -->
+        <Style x:Key="StatCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource HintTextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+        </Style>
+        
+        <Style x:Key="PanelHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+        
+        <Style x:Key="FilterButton" TargetType="RadioButton" BasedOn="{StaticResource SegmentedButtonStyle}"/>
+        
+        <converters:ObjectiveStatusToColorConverter x:Key="StatusToColorConverter"/>
     </UserControl.Resources>
-    <Grid>
+    
+    <Grid Margin="20,16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0">
+        
+        <!-- ================================================== -->
+        <!-- ROW 0: HEADER -->
+        <!-- ================================================== -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Border HorizontalAlignment="Stretch"
-                    BorderBrush="{DynamicResource ForegroundBrush}"
-                    BorderThickness="1"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="2"
-                    Background="{DynamicResource BackgroundBrush}" />
-            <StackPanel Orientation="Horizontal"
-                        Grid.Column="0">
-                <Button Style="{StaticResource ToolbarButtonStyle}"
-                        Command="{x:Static commands:DialogCommands.LaunchDialogCommand}"
-                        CommandParameter="{x:Static enums:DialogType.AddOKR}">
-                    <Grid>
-                        <Path Data="M11,2V4.07C7.38,4.53 4.53,7.38 4.07,11H2V13H4.07C4.53,16.62 7.38,19.47 11,19.93V22H13V19.93C16.62,19.47 19.47,16.62 19.93,13H22V11H19.93C19.47,7.38 16.62,4.53 13,4.07V2M11,6.08V8H13V6.09C15.5,6.5 17.5,8.5 17.92,11H16V13H17.91C17.5,15.5 15.5,17.5 13,17.92V16H11V17.91C8.5,17.5 6.5,15.5 6.08,13H8V11H6.09C6.5,8.5 8.5,6.5 11,6.08M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11Z"
-                              Fill="{DynamicResource ForegroundBrush}"
-                              HorizontalAlignment="Right"
-                              VerticalAlignment="Center"
-                              Stretch="Uniform"
-                              Margin="0,0,0,0" />
-                    </Grid>
-                    <Button.ToolTip>
-                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                            <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_AddOKR}" />
-                        </ToolTip>
-                    </Button.ToolTip>
-                </Button>
+            
+            <StackPanel>
+                <TextBlock Text="OKRs" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"/>
+                <TextBlock Text="Objectives and Key Results" FontSize="14" Foreground="{DynamicResource HintTextBrush}" Margin="0,4,0,0"/>
             </StackPanel>
-
-            <Button Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{x:Static commands:DialogCommands.LaunchDialogCommand}"
-                    Grid.Column="1"
-                    CommandParameter="{x:Static enums:DialogType.Settings}">
-                <Path Data="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z"
-                      Fill="{DynamicResource ForegroundBrush}"
-                      Stretch="Uniform" />
-                <Button.ToolTip>
-                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                        <local:TrackerToolTip ToolTipText="{x:Static languages:Resources.ToolTip_Settings}" />
-                    </ToolTip>
-                </Button.ToolTip>
+            
+            <Button Grid.Column="1" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Command="{Binding AddOkrCommand}"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Add New OKR"
+                    AutomationProperties.HelpText="Open dialog to create a new Objective and Key Results"
+                    ToolTip="Create a new OKR"
+                    TabIndex="100">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                          Fill="{DynamicResource BackgroundBrush}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0"/>
+                    <TextBlock Text="New OKR"/>
+                </StackPanel>
             </Button>
         </Grid>
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding ObjectiveKeyResults}"
-                  SelectedItem="{Binding SelectedOkr, Mode=TwoWay}"
-                  AutoGenerateColumns="False"
-                  SelectionMode="Single"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Vertical"
-                  HeadersVisibility="Column"
-                  RowDetailsVisibilityMode="Collapsed"
-                  SelectionUnit="FullRow">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn MinWidth="30"
-                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                        MaxWidth="30">
-                    <DataGridTemplateColumn.CellTemplate>
+        
+        <!-- ================================================== -->
+        <!-- ROW 1: STATS BAR (Clickable Filters) -->
+        <!-- ================================================== -->
+        <Grid Grid.Row="1" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <Border Grid.Column="0" Margin="0,0,6,0"
+                    MouseLeftButtonUp="StatCard_OnTrack_Click"
+                    ToolTip="Click to filter by On Track">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource StatCardStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusFilter}" Value="OnTrack">
+                                <Setter Property="BorderBrush" Value="#10B981"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="ON TRACK" Style="{StaticResource SectionHeader}"/>
+                    <TextBlock Text="{Binding OnTrackCount, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="#10B981"/>
+                </StackPanel>
+            </Border>
+            
+            <Border Grid.Column="1" Margin="3,0"
+                    MouseLeftButtonUp="StatCard_AtRisk_Click"
+                    ToolTip="Click to filter by At Risk">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource StatCardStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusFilter}" Value="AtRisk">
+                                <Setter Property="BorderBrush" Value="#F59E0B"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="AT RISK" Style="{StaticResource SectionHeader}"/>
+                    <TextBlock Text="{Binding AtRiskCount, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="#F59E0B"/>
+                </StackPanel>
+            </Border>
+            
+            <Border Grid.Column="2" Margin="3,0"
+                    MouseLeftButtonUp="StatCard_OffTrack_Click"
+                    ToolTip="Click to filter by Off Track">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource StatCardStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusFilter}" Value="OffTrack">
+                                <Setter Property="BorderBrush" Value="#EF4444"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="OFF TRACK" Style="{StaticResource SectionHeader}"/>
+                    <TextBlock Text="{Binding OffTrackCount, FallbackValue='0'}" Style="{StaticResource StatValue}" Foreground="#EF4444"/>
+                </StackPanel>
+            </Border>
+            
+            <Border Grid.Column="3" Margin="6,0,0,0"
+                    MouseLeftButtonUp="StatCard_All_Click"
+                    ToolTip="Click to show all OKRs">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource StatCardStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusFilter}" Value="{x:Null}">
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="TOTAL" Style="{StaticResource SectionHeader}"/>
+                    <TextBlock Text="{Binding TotalCount, FallbackValue='0'}" Style="{StaticResource StatValue}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+        
+        <!-- ================================================== -->
+        <!-- ROW 2: FILTER BAR -->
+        <!-- ================================================== -->
+        <Grid Grid.Row="2" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Search Box -->
+            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="12,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Path Data="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+                          Fill="{DynamicResource HintTextBrush}" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" 
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="{DynamicResource ForegroundBrush}"
+                             VerticalAlignment="Center" Margin="10,0,0,0" FontSize="13">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background">
+                                            <Setter.Value>
+                                                <VisualBrush AlignmentX="Left" AlignmentY="Center" Stretch="None">
+                                                    <VisualBrush.Visual>
+                                                        <TextBlock Text="Search OKRs..." Foreground="{DynamicResource HintTextBrush}" FontSize="13"/>
+                                                    </VisualBrush.Visual>
+                                                </VisualBrush>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                </Grid>
+            </Border>
+            
+            <!-- Filter Buttons -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
+                <RadioButton Content="All" GroupName="OkrFilter" 
+                             Style="{StaticResource SegmentedButtonStyle}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:NullToBoolConverter.Instance}, ConverterParameter=True}"
+                             Click="FilterAll_Click"/>
+                <RadioButton Content="On Track" GroupName="OkrFilter" 
+                             Style="{StaticResource SegmentedButtonStyle}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:ObjectiveStatusEnum.OnTrack}}"
+                             Click="FilterOnTrack_Click"/>
+                <RadioButton Content="At Risk" GroupName="OkrFilter" 
+                             Style="{StaticResource SegmentedButtonStyle}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:ObjectiveStatusEnum.AtRisk}}"
+                             Click="FilterAtRisk_Click"/>
+                <RadioButton Content="Off Track" GroupName="OkrFilter" 
+                             Style="{StaticResource SegmentedButtonStyle}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:ObjectiveStatusEnum.OffTrack}}"
+                             Click="FilterOffTrack_Click"/>
+            </StackPanel>
+            
+            <!-- Clear Filter (when filter is active) -->
+            <Button Grid.Column="2" 
+                    Content="Clear Filter" 
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Visibility="{Binding StatusFilter, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"
+                    Click="FilterAll_Click"
+                    HorizontalAlignment="Right"
+                    Margin="8,0,0,0"/>
+        </Grid>
+        
+        <!-- ================================================== -->
+        <!-- ROW 3: MAIN 3-PANEL LAYOUT -->
+        <!-- ================================================== -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <!-- Left Panel: OKR Cards (larger) -->
+                <ColumnDefinition Width="*" MinWidth="350"/>
+                <!-- Right Panel: KR Details -->
+                <ColumnDefinition Width="420"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- ================================== -->
+            <!-- LEFT PANEL: OKR CARDS -->
+            <!-- ================================== -->
+            <ScrollViewer Grid.Column="0" 
+                          VerticalScrollBarVisibility="Auto" 
+                          Margin="0,0,16,0"
+                          Padding="0,0,4,0">
+                <ItemsControl ItemsSource="{Binding FilteredOkrs}">
+                    <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ToggleButton x:Name="ExpanderButton"
-                                          Click="Expand_Details_Click"
-                                          Style="{StaticResource ExpanderToggleStyle}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTemplateColumn Header="Title"
-                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
-                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                        Width="150">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Title}"
-                                       TextTrimming="CharacterEllipsis"
-                                       MaxWidth="150">
-                                <TextBlock.ToolTip>
-                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <local:TrackerToolTip ToolTipText="{Binding Title}" />
-                                    </ToolTip>
-                                </TextBlock.ToolTip>
-                            </TextBlock>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Description"
-                                        HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
-                                        CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                        Width="150">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Description}"
-                                       TextTrimming="CharacterEllipsis"
-                                       MaxWidth="150">
-                                <TextBlock.ToolTip>
-                                    <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                        <local:TrackerToolTip ToolTipText="{Binding Description}" />
-                                    </ToolTip>
-                                </TextBlock.ToolTip>
-                            </TextBlock>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Owner"
-                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock>
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="{}{0} {1}">
-                                        <Binding Path="Owner.FirstName" />
-                                        <Binding Path="Owner.LastName" />
+                            <customControls:OkrCard Okr="{Binding}"
+                                                    Margin="0,0,0,12"
+                                                    CardClicked="OkrCard_CardClicked"
+                                                    EditRequested="OkrCard_EditRequested"
+                                                    DuplicateRequested="OkrCard_DuplicateRequested"
+                                                    DeleteRequested="OkrCard_DeleteRequested">
+                                <customControls:OkrCard.IsSelected>
+                                    <MultiBinding Converter="{x:Static converters:ObjectEqualityConverter.Instance}">
+                                        <Binding Path="DataContext.SelectedOkr" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                        <Binding/>
                                     </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
+                                </customControls:OkrCard.IsSelected>
+                            </customControls:OkrCard>
                         </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Start Date"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding StartDate, StringFormat={}{0:MM/dd/yy}}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="End Date"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding EndDate, StringFormat={}{0:MM/dd/yy}}"
-                                    Width="Auto" />
-                <DataGridTextColumn Header="%"
-                                    Width="Auto"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding CompletionPercentage, StringFormat={}{0:N0}%}" />
-                <DataGridTextColumn Header="Discussed In"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    Binding="{Binding MeetingCount, StringFormat={}{0} meeting(s)}"
-                                    Width="Auto" />
-                <DataGridTemplateColumn Header="Status"
-                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Grid>
-                                <Path Data="M6,6.9L3.87,4.78L5.28,3.37L7.4,5.5L6,6.9M13,1V4H11V1H13M20.13,4.78L18,6.9L16.6,5.5L18.72,3.37L20.13,4.78M4.5,10.5V12.5H1.5V10.5H4.5M19.5,10.5H22.5V12.5H19.5V10.5M6,20H18A2,2 0 0,1 20,22H4A2,2 0 0,1 6,20M12,5A6,6 0 0,1 18,11V19H6V11A6,6 0 0,1 12,5M12,7A4,4 0 0,0 8,11V17H16V11A4,4 0 0,0 12,7Z"
-                                      Width="20"
-                                      Height="20"
-                                      Fill="{Binding Status, Converter={StaticResource ObjectiveStatusToColorConverter}}"
-                                      Stretch="Uniform"></Path>
-                            </Grid>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <!-- Action column with Edit and Delete buttons -->
-                <DataGridTemplateColumn Header="Action"
-                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                        Width="Auto">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Center">
-                                <!-- Edit Button -->
-                                <Button Style="{StaticResource GridActionButtonStyle}"
-                                        Command="{Binding DataContext.EditOkrCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}">
-                                    <Path Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
-                                          Fill="{DynamicResource ForegroundBrush}"
-                                          Width="14"
-                                          Height="14"
-                                          Stretch="Uniform" />
-                                    <Button.ToolTip>
-                                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                            <local:TrackerToolTip ToolTipText="Edit OKR" />
-                                        </ToolTip>
-                                    </Button.ToolTip>
-                                </Button>
-                                <!-- Delete Button -->
-                                <Button Style="{StaticResource GridActionButtonStyle}"
-                                        Command="{Binding DataContext.DeleteOkrCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        Margin="4,0,0,0">
-                                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
-                                          Fill="{DynamicResource ErrorBrush}"
-                                          Width="14"
-                                          Height="14"
-                                          Stretch="Uniform" />
-                                    <Button.ToolTip>
-                                        <ToolTip Style="{StaticResource CustomInformationToolTip}">
-                                            <local:TrackerToolTip ToolTipText="Delete OKR" />
-                                        </ToolTip>
-                                    </Button.ToolTip>
-                                </Button>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+            
+            <!-- ================================== -->
+            <!-- RIGHT PANEL: KEY RESULTS + DETAILS -->
+            <!-- ================================== -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <!-- Top: Key Results List -->
+                    <RowDefinition Height="*" MinHeight="200"/>
+                    <!-- Bottom: KR Details -->
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- ============ TOP: KEY RESULTS LIST ============ -->
+                <Border Grid.Row="0" 
+                        Background="{DynamicResource SurfaceBrush}" 
+                        CornerRadius="12"
+                        Padding="16"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding HasSelectedOkr, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="KEY RESULTS" Style="{StaticResource PanelHeader}" Margin="0"/>
+                            <TextBlock Grid.Column="1" FontSize="12" Foreground="{DynamicResource HintTextBrush}" VerticalAlignment="Center"
+                                       Text="{Binding SelectedOkr.KeyResultCount, Mode=OneWay, StringFormat='{}{0} items', FallbackValue='0 items'}"/>
+                        </Grid>
+                        
+                        <!-- Key Results List -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding SelectedOkrKeyResults}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <customControls:KeyResultItem KeyResult="{Binding}"
+                                                                      ShowActions="True"
+                                                                      Margin="0,0,0,8"
+                                                                      ItemClicked="KeyResultItem_ItemClicked"
+                                                                      EditRequested="KeyResultItem_EditRequested"
+                                                                      DuplicateRequested="KeyResultItem_DuplicateRequested"
+                                                                      DeleteRequested="KeyResultItem_DeleteRequested">
+                                            <customControls:KeyResultItem.IsSelected>
+                                                <MultiBinding Converter="{x:Static converters:ObjectEqualityConverter.Instance}">
+                                                    <Binding Path="DataContext.SelectedKeyResult" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    <Binding/>
+                                                </MultiBinding>
+                                            </customControls:KeyResultItem.IsSelected>
+                                        </customControls:KeyResultItem>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        
+                        <!-- Add Key Result Button -->
+                        <Button Grid.Row="2" 
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Command="{Binding AddKeyResultCommand}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,12,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                      Fill="{DynamicResource ForegroundBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0"/>
+                                <TextBlock Text="Add Key Result"/>
                             </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <!-- Empty column to fill remaining space -->
-                <DataGridTextColumn Width="*"
-                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                    IsReadOnly="True" />
-
-            </DataGrid.Columns>
-            <DataGrid.RowDetailsTemplate>
-                <DataTemplate>
-                    <Border Background="{DynamicResource BackgroundBrush}"
-                            HorizontalAlignment="Stretch"
-                            BorderBrush="Transparent"> 
-                    <DataGrid AutoGenerateColumns="False"
-                              HorizontalAlignment="Stretch"
-                              HeadersVisibility="Column"
-                              ColumnHeaderStyle="{StaticResource BaseDataGridColumnHeaderStyle}"
-                              Background="{DynamicResource BackgroundBrush}"
-                              ItemsSource="{Binding KeyResults}"
-                              CanUserAddRows="False"
-                              GridLinesVisibility="Vertical"
-                              CanUserDeleteRows="False"
-                              Margin="0,10,0,0">
-                            <!-- KPI Columns -->
-                            <DataGrid.Columns>
-                                <DataGridTemplateColumn MinWidth="30"
-                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                                        MaxWidth="30">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate> 
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Name"
-                                                    CellStyle="{StaticResource LeftAlignedCellStyle}"
-                                                    HeaderStyle="{StaticResource LeftAlignedHeaderStyle}"
-                                                    Binding="{Binding Name}"
-                                                    Width="Auto" />
-                                <DataGridTextColumn Header="Value"
-                                                    Binding="{Binding Value}"
-                                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                                    Width="Auto" />
-                                <DataGridTextColumn Header="TargetValue"
-                                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                                    Binding="{Binding TargetValue}"
-                                                    Width="Auto" />
-                                <DataGridTemplateColumn Header="Owner"
-                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock>
-                                                <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0} {1}">
-                                                        <Binding Path="Owner.FirstName" />
-                                                        <Binding Path="Owner.LastName" />
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Last Updated"
-                                                    HeaderStyle="{StaticResource CenteredHeaderStyle}"
-                                                    Binding="{Binding LastUpdated, StringFormat={}{0:MM/dd/yy}}"
-                                                    Width="Auto" />
-                                <DataGridTemplateColumn Header="Status"
-                                                        HeaderStyle="{StaticResource CenteredHeaderStyle}">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Grid>
-                                                <Path Data="M6,6.9L3.87,4.78L5.28,3.37L7.4,5.5L6,6.9M13,1V4H11V1H13M20.13,4.78L18,6.9L16.6,5.5L18.72,3.37L20.13,4.78M4.5,10.5V12.5H1.5V10.5H4.5M19.5,10.5H22.5V12.5H19.5V10.5M6,20H18A2,2 0 0,1 20,22H4A2,2 0 0,1 6,20M12,5A6,6 0 0,1 18,11V19H6V11A6,6 0 0,1 12,5M12,7A4,4 0 0,0 8,11V17H16V11A4,4 0 0,0 12,7Z"
-                                                      Width="20"
-                                                      Height="20"
-                                                      Fill="{Binding Status, Converter={StaticResource KpiStatusToColorConverter}}"
-                                                      Stretch="Uniform"></Path>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn> 
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Border>
-                </DataTemplate>
-            </DataGrid.RowDetailsTemplate>
-        </DataGrid>
+                        </Button>
+                    </Grid>
+                </Border>
+                
+                <!-- ============ BOTTOM: KR DETAILS ============ -->
+                <Border Grid.Row="1" 
+                        Background="{DynamicResource SurfaceBrush}" 
+                        CornerRadius="12"
+                        Padding="16"
+                        MinHeight="200"
+                        Visibility="{Binding HasSelectedKeyResult, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- KR Title -->
+                        <TextBlock Grid.Row="0" 
+                                   Text="{Binding SelectedKeyResult.Title}"
+                                   FontSize="14" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+                        
+                        <!-- Values Display -->
+                        <Grid Grid.Row="1" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel>
+                                <TextBlock Text="CURRENT" FontSize="9" Foreground="{DynamicResource HintTextBrush}" FontWeight="SemiBold"/>
+                                <TextBlock FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"
+                                           Text="{Binding SelectedKeyResult.CurrentValue, Mode=OneWay, StringFormat='{}{0:F1}'}"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="TARGET" FontSize="9" Foreground="{DynamicResource HintTextBrush}" FontWeight="SemiBold"/>
+                                <TextBlock FontSize="18" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"
+                                           Text="{Binding SelectedKeyResult.TargetValue, Mode=OneWay, StringFormat='{}{0:F1}'}"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="PROGRESS" FontSize="9" Foreground="{DynamicResource HintTextBrush}" FontWeight="SemiBold"/>
+                                <TextBlock FontSize="18" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"
+                                           Text="{Binding SelectedKeyResult.Progress, Mode=OneWay, StringFormat='{}{0:F0}%'}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Linked Measurables Section -->
+                        <StackPanel Grid.Row="2">
+                            <TextBlock Text="LINKED MEASURABLES" 
+                                       FontSize="10" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource HintTextBrush}" 
+                                       Margin="0,0,0,8"/>
+                            
+                            <ItemsControl ItemsSource="{Binding SelectedKeyResult.Measurables}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <customControls:MeasurableItem MeasurableType="{Binding MeasurableType}"
+                                                                       DisplayName="{Binding DisplayName}"
+                                                                       DisplayValue="{Binding CurrentDisplayValue}"
+                                                                       CanRemove="True"
+                                                                       RemoveClicked="MeasurableItem_RemoveClicked"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            
+                            <!-- Empty state for measurables -->
+                            <TextBlock Text="No linked measurables"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       FontStyle="Italic"
+                                       Visibility="{Binding SelectedKeyResult.HasMeasurables, Converter={StaticResource ReverseBoolToVisConverter}}"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                        
+                        <!-- Add Measurable Button -->
+                        <Button Grid.Row="3" 
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Command="{Binding AddMeasurableCommand}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,12,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                      Fill="{DynamicResource ForegroundBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0"/>
+                                <TextBlock Text="Link Measurable"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+                
+                <!-- ============ EMPTY STATE (No OKR Selected) ============ -->
+                <Border Grid.Row="0" Grid.RowSpan="2"
+                        Background="{DynamicResource SurfaceBrush}" 
+                        CornerRadius="12"
+                        Visibility="{Binding HasSelectedOkr, Converter={StaticResource ReverseBoolToVisConverter}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Path Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z"
+                              Fill="{DynamicResource HintTextBrush}" Width="56" Height="56" Stretch="Uniform" Opacity="0.3"/>
+                        <TextBlock Text="Select an OKR" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource HintTextBrush}" 
+                                   HorizontalAlignment="Center" Margin="0,20,0,4"/>
+                        <TextBlock Text="to view Key Results and details" FontSize="12" 
+                                   Foreground="{DynamicResource HintTextBrush}" 
+                                   HorizontalAlignment="Center" Opacity="0.7"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+        
+        <!-- Loading Overlay -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Background="#80000000"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Loading..." FontSize="16" Foreground="White"/>
+            </StackPanel>
+        </Border>
     </Grid>
-
 </UserControl>

@@ -1,0 +1,502 @@
+<UserControl x:Class="Tracker.Controls.AccountInfoControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:textBox="clr-namespace:DeepEndControls.Controls.TextBox;assembly=DeepEndControls"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="400">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            
+            <!-- Profile Section -->
+            <StackPanel HorizontalAlignment="Center" Margin="0,8,0,24">
+                <!-- Avatar with edit overlay -->
+                <Grid Width="80" Height="80" HorizontalAlignment="Center" Margin="0,0,0,12">
+                    <Border x:Name="AvatarBorder"
+                            Background="{DynamicResource AccentBrush}"
+                            CornerRadius="40">
+                        <TextBlock x:Name="AvatarInitials"
+                                   Text="JD"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BackgroundBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <!-- Avatar image (hidden by default) -->
+                    <Border x:Name="AvatarImageBorder"
+                            CornerRadius="40"
+                            Visibility="Collapsed">
+                        <Border.Background>
+                            <ImageBrush x:Name="AvatarImageBrush" Stretch="UniformToFill"/>
+                        </Border.Background>
+                    </Border>
+                    <!-- Edit overlay on hover -->
+                    <Border x:Name="AvatarEditOverlay"
+                            Background="#80000000"
+                            CornerRadius="40"
+                            Opacity="0"
+                            Cursor="Hand"
+                            MouseEnter="AvatarOverlay_MouseEnter"
+                            MouseLeave="AvatarOverlay_MouseLeave"
+                            MouseDown="ChangeAvatar_Click">
+                        <Path Data="M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25ZM20.71,7.04C21.1,6.65 21.1,6.02 20.71,5.63L18.37,3.29C17.98,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04Z"
+                              Width="24" Height="24"
+                              Fill="White"
+                              Stretch="Uniform"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+                
+                <!-- Display Name -->
+                <TextBlock x:Name="DisplayNameText"
+                           Text="John Doe"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           HorizontalAlignment="Center"/>
+                
+                <!-- Email -->
+                <TextBlock x:Name="EmailText"
+                           Text="john.doe@company.com"
+                           FontSize="13"
+                           Foreground="{DynamicResource HintTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+            
+            <!-- Profile Information Section -->
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Header with Edit Button -->
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Profile Information"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   VerticalAlignment="Center"/>
+                        <!-- Edit Button (visible in view mode) -->
+                        <Button x:Name="EditProfileButton"
+                                Grid.Column="1"
+                                Width="28" Height="28"
+                                Cursor="Hand"
+                                ToolTip="Edit Profile"
+                                Click="EditProfile_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                        <Path Data="M20.71,7.04C21.1,6.65 21.1,6.02 20.71,5.63L18.37,3.29C17.98,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z"
+                                              Width="16" Height="16"
+                                              Fill="{DynamicResource ForegroundBrush}"
+                                              Stretch="Uniform"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <!-- Save/Cancel Buttons (visible in edit mode) -->
+                        <StackPanel x:Name="EditModeButtons"
+                                    Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Visibility="Collapsed">
+                            <Button x:Name="SaveProfileButton"
+                                    Width="28" Height="28"
+                                    Cursor="Hand"
+                                    ToolTip="Save Changes"
+                                    Margin="0,0,4,0"
+                                    Click="SaveProfile_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                            <Path Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                                  Width="16" Height="16"
+                                                  Fill="{DynamicResource AccentBrush}"
+                                                  Stretch="Uniform"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Button x:Name="CancelEditButton"
+                                    Width="28" Height="28"
+                                    Cursor="Hand"
+                                    ToolTip="Cancel"
+                                    Click="CancelEdit_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                            <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                  Width="14" Height="14"
+                                                  Fill="{DynamicResource HintTextBrush}"
+                                                  Stretch="Uniform"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- View Mode (read-only display) -->
+                    <StackPanel x:Name="ProfileViewMode" Grid.Row="1">
+                        <TextBlock x:Name="ViewFullName"
+                                   Text="Not set"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock x:Name="ViewJobTitle"
+                                   Text=""
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,0,0,4"/>
+                        <TextBlock x:Name="ViewCompany"
+                                   Text=""
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,0,0,4"/>
+                        <TextBlock x:Name="ViewPhone"
+                                   Text=""
+                                   FontSize="12"
+                                   Foreground="{DynamicResource HintTextBrush}"/>
+                    </StackPanel>
+                    
+                    <!-- Edit Mode (editable fields) -->
+                    <StackPanel x:Name="ProfileEditMode" Grid.Row="1" Visibility="Collapsed">
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <textBox:TextBoxWithHint x:Name="FirstNameTextBox"
+                                                     Grid.Column="0"
+                                                     HintText="First Name"
+                                                     TextBoxType="Text"/>
+                            <textBox:TextBoxWithHint x:Name="LastNameTextBox"
+                                                     Grid.Column="2"
+                                                     HintText="Last Name"
+                                                     TextBoxType="Text"/>
+                        </Grid>
+                        <textBox:TextBoxWithHint x:Name="JobTitleTextBox"
+                                                 HintText="Job Title"
+                                                 TextBoxType="Text"
+                                                 Margin="0,0,0,8"/>
+                        <textBox:TextBoxWithHint x:Name="CompanyTextBox"
+                                                 HintText="Company"
+                                                 TextBoxType="Text"
+                                                 Margin="0,0,0,8"/>
+                        <textBox:TextBoxWithHint x:Name="PhoneTextBox"
+                                                 HintText="Phone"
+                                                 TextBoxType="Phone"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            
+            <!-- Account Actions Section -->
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Account Settings"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,12"/>
+                    
+                    <!-- Change Email -->
+                    <Button x:Name="ChangeEmailButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="12,10"
+                            Margin="0,0,0,8"
+                            Click="ChangeEmail_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd"
+                                        Background="{DynamicResource BackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Grid.Column="0"
+                                              Data="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"
+                                              Width="18" Height="18"
+                                              Fill="{DynamicResource ForegroundBrush}"
+                                              Stretch="Uniform"
+                                              Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Change Email"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <Path Grid.Column="2"
+                                              Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                              Width="12" Height="12"
+                                              Fill="{DynamicResource HintTextBrush}"
+                                              Stretch="Uniform"/>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    
+                    <!-- Change Password -->
+                    <Button x:Name="ChangePasswordButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="12,10"
+                            Click="ChangePassword_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd"
+                                        Background="{DynamicResource BackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Grid.Column="0"
+                                              Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                                              Width="18" Height="18"
+                                              Fill="{DynamicResource ForegroundBrush}"
+                                              Stretch="Uniform"
+                                              Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Change Password"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <Path Grid.Column="2"
+                                              Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                              Width="12" Height="12"
+                                              Fill="{DynamicResource HintTextBrush}"
+                                              Stretch="Uniform"/>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <!-- Subscription Section -->
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Current Plan"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="PlanNameText"
+                                           Text="Free"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AccentBrush}"/>
+                                <Border x:Name="BetaBadge"
+                                        Background="{DynamicResource AccentBrush}"
+                                        CornerRadius="4"
+                                        Padding="6,2"
+                                        Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="Collapsed">
+                                    <TextBlock Text="BETA"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource BackgroundBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <Button x:Name="UpgradeButton"
+                                Grid.Column="1"
+                                Content="Upgrade"
+                                Padding="16,8"
+                                Background="{DynamicResource AccentBrush}"
+                                Foreground="{DynamicResource BackgroundBrush}"
+                                BorderThickness="0"
+                                FontWeight="SemiBold"
+                                Cursor="Hand"
+                                Click="Upgrade_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd"
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.9"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                    
+                    <!-- Plan Features -->
+                    <ItemsControl x:Name="FeaturesItemsControl" Margin="0,16,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,4">
+                                    <Path Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                          Width="14" Height="14"
+                                          Stretch="Uniform"
+                                          Fill="{DynamicResource AccentBrush}"
+                                          Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            
+            <!-- Activation Code Section -->
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Have an activation code?"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <TextBlock Text="Enter a code to unlock Pro features"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+                    
+                    <Button x:Name="ActivationCodeButton"
+                            Grid.Column="1"
+                            Content="Enter Code"
+                            Padding="16,8"
+                            Cursor="Hand"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Click="ActivationCode_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd"
+                                        Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource AccentBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+            
+            <!-- Beta Info Section (visible for Internal tier) -->
+            <Border x:Name="BetaInfoSection"
+                    Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="About Beta Access"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="You have full access to all Tracker features during the beta period. Thank you for helping us test and improve the app!"
+                               TextWrapping="Wrap"
+                               FontSize="12"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               LineHeight="18"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Version Info -->
+            <TextBlock x:Name="VersionText"
+                       Text="Version 1.0.0"
+                       FontSize="11"
+                       Foreground="{DynamicResource HintTextBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,8,0,16"/>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

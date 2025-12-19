@@ -3,7 +3,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                    xmlns:local="clr-namespace:Tracker.Views.Dialogs"
                     xmlns:controls="clr-namespace:Tracker.Controls"
                     xmlns:languages="clr-namespace:Tracker.Resources.Languages"
                     xmlns:commands="clr-namespace:Tracker.Command"
@@ -20,270 +19,228 @@
                     SizeToContent="WidthAndHeight"
                     Background="Transparent"
                     d:DataContext="{d:DesignInstance Type=dialogViewModels:NewProjectViewModel}"
-                    MinWidth="550"
-                    MinHeight="450">
+                    MinWidth="600"
+                    MinHeight="520"
+                    AutomationProperties.Name="Add Project Dialog"
+                    AutomationProperties.HelpText="Create a new project">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"></ResourceDictionary>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </controls:BaseWindow.Resources>
+    
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
                 BorderThickness="1"
-                BorderBrush="{DynamicResource ForegroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="5" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
                 <!-- Title Bar -->
-                <Border Grid.Row="0"
-                        Height="Auto"
-                        Background="{DynamicResource BackgroundBrush}"
-                        CornerRadius="12,12,0,0">
+                <Border Grid.Row="0" CornerRadius="12,12,0,0">
                     <controls:DialogTitleBar x:Name="TitleBar"
                                              DialogTitle="{x:Static languages:Resources.Add_Project}"
-                                             IconData="M12.6,2.86C15.27,4.1 18,5.39 20.66,6.63C20.81,6.7 21,6.75 21,6.95C21,7.15 20.81,7.19 20.66,7.26C18,8.5 15.3,9.77 12.62,11C12.21,11.21 11.79,11.21 11.38,11C8.69,9.76 6,8.5 3.32,7.25C3.18,7.19 3,7.14 3,6.94C3,6.76 3.18,6.71 3.31,6.65C6,5.39 8.74,4.1 11.44,2.85C11.73,2.72 12.3,2.73 12.6,2.86M12,21.15C11.8,21.15 11.66,21.07 11.38,20.97C8.69,19.73 6,18.47 3.33,17.22C3.19,17.15 3,17.11 3,16.9C3,16.7 3.19,16.66 3.34,16.59C3.78,16.38 4.23,16.17 4.67,15.96C5.12,15.76 5.56,15.76 6,15.97C7.79,16.8 9.57,17.63 11.35,18.46C11.79,18.67 12.23,18.66 12.67,18.46C14.45,17.62 16.23,16.79 18,15.96C18.44,15.76 18.87,15.75 19.29,15.95C19.77,16.16 20.24,16.39 20.71,16.61C20.78,16.64 20.85,16.68 20.91,16.73C21.04,16.83 21.04,17 20.91,17.08C20.83,17.14 20.74,17.19 20.65,17.23C18,18.5 15.33,19.72 12.66,20.95C12.46,21.05 12.19,21.15 12,21.15M12,16.17C11.9,16.17 11.55,16.07 11.36,16C8.68,14.74 6,13.5 3.34,12.24C3.2,12.18 3,12.13 3,11.93C3,11.72 3.2,11.68 3.35,11.61C3.8,11.39 4.25,11.18 4.7,10.97C5.13,10.78 5.56,10.78 6,11C7.78,11.82 9.58,12.66 11.38,13.5C11.79,13.69 12.21,13.69 12.63,13.5C14.43,12.65 16.23,11.81 18.04,10.97C18.45,10.78 18.87,10.78 19.29,10.97C19.76,11.19 20.24,11.41 20.71,11.63C20.77,11.66 20.84,11.69 20.9,11.74C21.04,11.85 21.04,12 20.89,12.12C20.84,12.16 20.77,12.19 20.71,12.22C18,13.5 15.31,14.75 12.61,16C12.42,16.09 12.08,16.17 12,16.17Z"
+                                             IconData="M12.6,2.86C15.27,4.1 18,5.39 20.66,6.63C20.81,6.7 21,6.75 21,6.95C21,7.15 20.81,7.19 20.66,7.26C18,8.5 15.3,9.77 12.62,11C12.21,11.21 11.79,11.21 11.38,11C8.69,9.76 6,8.5 3.32,7.25C3.18,7.19 3,7.14 3,6.94C3,6.76 3.18,6.71 3.31,6.65C6,5.39 8.74,4.1 11.44,2.85C11.73,2.72 12.3,2.73 12.6,2.86Z"
                                              CloseClicked="Close_Click"
                                              MinimizeClicked="Minimize_Click"
                                              MaximizeClicked="Maximize_Click"
-                                             RestoreClicked="Restore_Click" />
+                                             RestoreClicked="Restore_Click"/>
                 </Border>
                 
                 <!-- Content Area -->
-                <Grid Grid.Row="1"
-                      Margin="15,10,15,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="15" />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- Left Column -->
-                    <Grid Grid.Column="0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="24,16,24,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
                         
-                        <!-- Project Name -->
-                        <Grid Grid.Row="0" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Project Name *"
-                                   Grid.Row="0" />
-                            <customControls:TextBoxWithHint TextBoxType="Text"
-                                                            HintText="Enter project name"
-                                                            Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                                                            Grid.Row="1" />
-                        </Grid>
-                        
-                        <!-- Owner -->
-                        <Grid Grid.Row="1" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Project Owner *"
-                                   Grid.Row="0" />
-                            <ComboBox Grid.Row="1"
-                                      ItemsSource="{Binding TeamMembers}"
-                                      SelectedItem="{Binding SelectedOwner}"
-                                      HorizontalAlignment="Stretch">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0} {1}">
-                                                    <Binding Path="FirstName" />
-                                                    <Binding Path="LastName" />
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </Grid>
-                        
-                        <!-- Status -->
-                        <Grid Grid.Row="2" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Status"
-                                   Grid.Row="0" />
-                            <ComboBox Grid.Row="1"
-                                      ItemsSource="{Binding StatusOptions}"
-                                      SelectedItem="{Binding SelectedStatus}"
-                                      HorizontalAlignment="Stretch" />
-                        </Grid>
-                        
-                        <!-- Budget -->
-                        <Grid Grid.Row="3" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Budget"
-                                   Grid.Row="0" />
-                            <customControls:TextBoxWithHint TextBoxType="Text"
-                                                            HintText="0.00"
-                                                            Text="{Binding Budget, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                                            Grid.Row="1" />
-                        </Grid>
-                        
-                        <!-- Description -->
-                        <Grid Grid.Row="4" Margin="0,0,0,5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" MinHeight="80" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Description"
-                                   Grid.Row="0" />
-                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                                     AcceptsReturn="True"
-                                     TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto"
-                                     Grid.Row="1" />
-                        </Grid>
-                    </Grid>
-                    
-                    <!-- Right Column -->
-                    <Grid Grid.Column="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        
-                        <!-- Start Date -->
-                        <Grid Grid.Row="0" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Start Date"
-                                   Grid.Row="0" />
-                            <Grid Grid.Row="1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <customControls:TextBoxWithHint TextBoxType="LongDate"
-                                                                HintText="MM/DD/YYYY"
-                                                                Text="{Binding StartDateDisplay, UpdateSourceTrigger=PropertyChanged}"
-                                                                Grid.Column="0" />
-                                <DatePicker SelectedDate="{Binding StartDate, UpdateSourceTrigger=PropertyChanged}"
-                                            Style="{StaticResource DatePickerStyle}"
-                                            Grid.Column="1" />
-                            </Grid>
-                        </Grid>
-                        
-                        <!-- End Date -->
-                        <Grid Grid.Row="1" Margin="0,0,0,10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="End Date"
-                                   Grid.Row="0" />
-                            <Grid Grid.Row="1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <customControls:TextBoxWithHint TextBoxType="LongDate"
-                                                                HintText="MM/DD/YYYY"
-                                                                Text="{Binding EndDateDisplay, UpdateSourceTrigger=PropertyChanged}"
-                                                                Grid.Column="0" />
-                                <DatePicker SelectedDate="{Binding EndDate, UpdateSourceTrigger=PropertyChanged}"
-                                            Style="{StaticResource DatePickerStyle}"
-                                            Grid.Column="1" />
-                            </Grid>
-                        </Grid>
-                        
-                        <!-- Team Members placeholder - could be expanded later -->
-                        <Grid Grid.Row="2" Margin="0,0,0,5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" MinHeight="100" />
-                            </Grid.RowDefinitions>
-                            <Label Style="{StaticResource LabelStyle}"
-                                   Content="Team Members"
-                                   Grid.Row="0" />
-                            <Border Grid.Row="1"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="4">
-                                <ListBox ItemsSource="{Binding TeamMembers}"
-                                         SelectionMode="Multiple"
-                                         Background="Transparent"
-                                         BorderThickness="0">
-                                    <ListBox.ItemTemplate>
+                        <!-- Left Column -->
+                        <StackPanel Grid.Column="0">
+                            
+                            <!-- Project Name -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Project Name" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                                </StackPanel>
+                                <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                HintText="Enter project name"
+                                                                Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            
+                            <!-- Owner -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Project Owner" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                                </StackPanel>
+                                <ComboBox ItemsSource="{Binding TeamMembers}"
+                                          SelectedItem="{Binding SelectedOwner}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <CheckBox Content="{Binding}"
-                                                      Style="{StaticResource CheckBoxStyle}">
-                                                <CheckBox.ContentTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock>
-                                                            <TextBlock.Text>
-                                                                <MultiBinding StringFormat="{}{0} {1}">
-                                                                    <Binding Path="FirstName" />
-                                                                    <Binding Path="LastName" />
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                        </TextBlock>
-                                                    </DataTemplate>
-                                                </CheckBox.ContentTemplate>
-                                            </CheckBox>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Grid Width="24" Height="24" Margin="0,0,8,0">
+                                                    <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                    <TextBlock Text="{Binding Initials}" 
+                                                               FontSize="9" FontWeight="Bold"
+                                                               Foreground="{DynamicResource BackgroundBrush}"
+                                                               HorizontalAlignment="Center" 
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <TextBlock VerticalAlignment="Center">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0} {1}">
+                                                            <Binding Path="FirstName"/>
+                                                            <Binding Path="LastName"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
                                         </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Border>
-                        </Grid>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <!-- Status -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <TextBlock Text="Status" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding StatusOptions}"
+                                          SelectedItem="{Binding SelectedStatus}"
+                                          HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                            
+                            <!-- Budget -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <TextBlock Text="Budget" Style="{StaticResource FieldLabel}"/>
+                                <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                HintText="0.00"
+                                                                Text="{Binding Budget, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"/>
+                            </StackPanel>
+                            
+                            <!-- Description -->
+                            <StackPanel>
+                                <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                HintText="Describe the project goals and scope..."
+                                                                Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                                AcceptsReturn="True"
+                                                                TextWrapping="Wrap"
+                                                                VerticalScrollBarVisibility="Auto"
+                                                                MinHeight="100"/>
+                            </StackPanel>
+                            
+                        </StackPanel>
+                        
+                        <!-- Right Column -->
+                        <StackPanel Grid.Column="2">
+                            
+                            <!-- Start Date -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <TextBlock Text="Start Date" Style="{StaticResource FieldLabel}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <customControls:TextBoxWithHint TextBoxType="LongDate"
+                                                                    HintText="MM/DD/YYYY"
+                                                                    Text="{Binding StartDateDisplay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <customControls:CalendarButton SelectedDate="{Binding StartDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                   Grid.Column="1"
+                                                                   Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                            
+                            <!-- End Date -->
+                            <StackPanel Style="{StaticResource FormFieldGroup}">
+                                <TextBlock Text="End Date" Style="{StaticResource FieldLabel}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <customControls:TextBoxWithHint TextBoxType="LongDate"
+                                                                    HintText="MM/DD/YYYY"
+                                                                    Text="{Binding EndDateDisplay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <customControls:CalendarButton SelectedDate="{Binding EndDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                   Grid.Column="1"
+                                                                   Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                            
+                            <!-- Team Members -->
+                            <StackPanel>
+                                <TextBlock Text="Team Members" Style="{StaticResource FieldLabel}"/>
+                                <Border Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        MinHeight="180"
+                                        MaxHeight="220">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding TeamMembers}" Margin="8">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Style="{StaticResource ModernCheckBoxStyle}" Margin="0,4">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Grid Width="24" Height="24" Margin="0,0,8,0">
+                                                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                                <TextBlock Text="{Binding Initials}" 
+                                                                           FontSize="9" FontWeight="Bold"
+                                                                           Foreground="{DynamicResource BackgroundBrush}"
+                                                                           HorizontalAlignment="Center" 
+                                                                           VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                            <TextBlock VerticalAlignment="Center">
+                                                                <TextBlock.Text>
+                                                                    <MultiBinding StringFormat="{}{0} {1}">
+                                                                        <Binding Path="FirstName"/>
+                                                                        <Binding Path="LastName"/>
+                                                                    </MultiBinding>
+                                                                </TextBlock.Text>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </CheckBox>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                            
+                        </StackPanel>
                     </Grid>
-                </Grid>
+                </ScrollViewer>
                 
-                <!-- Button Bar -->
-                <StackPanel Grid.Row="2"
-                            Margin="0,10,15,10"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Margin="0,0,10,0"
-                            Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Content="Cancel" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Add"
-                            Command="{Binding AddProjectCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Update"
-                            Command="{Binding UpdateProjectCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                </StackPanel>
+                <!-- Footer with Buttons -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Margin="0,0,12,0"
+                                Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                        <Button Content="Create Project"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding AddProjectCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"/>
+                        <Button Content="Save Changes"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding UpdateProjectCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
     </Grid>

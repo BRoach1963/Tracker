@@ -47,8 +47,6 @@ namespace Tracker.Managers
     {
         #region Fields
 
-        private static ThemeManager? _instance;
-        private static readonly object SyncRoot = new();
         private DeepEndTheme _currentTheme = DeepEndTheme.Default;
         private ResourceDictionary? _currentThemeDictionary;
 
@@ -56,20 +54,13 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        public static ThemeManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        _instance ??= new ThemeManager();
-                    }
-                }
-                return _instance;
-            }
-        }
+        private static readonly Lazy<ThemeManager> _lazyInstance = 
+            new(() => new ThemeManager(), LazyThreadSafetyMode.ExecutionAndPublication);
+
+        /// <summary>
+        /// Gets the singleton instance of ThemeManager.
+        /// </summary>
+        public static ThemeManager Instance => _lazyInstance.Value;
 
         #endregion
 
@@ -92,8 +83,8 @@ namespace Tracker.Managers
         /// <summary>
         /// Initializes the theme manager with the specified theme.
         /// </summary>
-        /// <param name="theme">The theme to apply on startup.</param>
-        public void Initialize(DeepEndTheme theme = DeepEndTheme.Default)
+        /// <param name="theme">The theme to apply on startup. Defaults to Tracker theme.</param>
+        public void Initialize(DeepEndTheme theme = DeepEndTheme.Tracker)
         {
             ApplyTheme(theme);
             
@@ -214,19 +205,29 @@ namespace Tracker.Managers
         /// </summary>
         public static string GetThemeDisplayName(DeepEndTheme theme) => theme switch
         {
-            DeepEndTheme.Default => "Default (Black/Gold)",
+            DeepEndTheme.Tracker => "Default",
             DeepEndTheme.Light => "Light",
-            DeepEndTheme.Modern => "Modern",
-            DeepEndTheme.Spicy => "Spicy",
+            DeepEndTheme.Modern => "Modern", 
+            DeepEndTheme.Spicy => "Bold",
+            DeepEndTheme.Default => "Classic",
             _ => theme.ToString()
         };
 
         /// <summary>
-        /// Gets all available themes.
+        /// Gets available themes for Tracker app.
+        /// Filters out themes intended for other applications (Eagles, Capehart, Phillies).
         /// </summary>
         public static IEnumerable<DeepEndTheme> GetAvailableThemes()
         {
-            return Enum.GetValues<DeepEndTheme>();
+            // Only expose themes relevant to Tracker
+            // Eagles, Capehart, Phillies are for CLEZ/CDB
+            return new[]
+            {
+                DeepEndTheme.Tracker,  // Default for Tracker - Gold on Black
+                DeepEndTheme.Light,    // Professional blue on white
+                DeepEndTheme.Modern,   // Contemporary indigo/purple
+                DeepEndTheme.Spicy     // Bold red/coral
+            };
         }
 
         #endregion
@@ -283,12 +284,12 @@ namespace Tracker.Managers
             dictionary["SurfaceAltBrush"] = CreateFrozenBrush(
                 AdjustBrightness(bgColor, isDarkTheme ? 0.1 : -0.05));
 
-            // DataGrid specific brushes - Default theme keeps dark cells, others get white cells
+            // DataGrid specific brushes - Dark themes keep dark cells, light themes get white cells
             var primaryColor = ((SolidColorBrush)palette.PrimaryBrush).Color;
             
-            if (theme == DeepEndTheme.Default)
+            if (theme == DeepEndTheme.Default || theme == DeepEndTheme.Tracker || theme == DeepEndTheme.Spicy)
             {
-                // Default (Black/Gold) - dark cells with gold text
+                // Dark themes - dark cells with accent text
                 dictionary["DataGridCellBackgroundBrush"] = palette.BackgroundBrush;
                 dictionary["DataGridCellForegroundBrush"] = palette.PrimaryBrush;
                 dictionary["DataGridCellBorderBrush"] = palette.PrimaryBrush;
@@ -298,7 +299,7 @@ namespace Tracker.Managers
             }
             else
             {
-                // All other themes - white cells with colored text, colored headers with white text
+                // Light themes - white cells with colored text, colored headers with white text
                 dictionary["DataGridCellBackgroundBrush"] = CreateFrozenBrush(Colors.White);
                 dictionary["DataGridCellForegroundBrush"] = palette.PrimaryBrush;
                 dictionary["DataGridCellBorderBrush"] = palette.PrimaryBrush;

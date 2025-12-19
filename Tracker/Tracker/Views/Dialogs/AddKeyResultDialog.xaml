@@ -1,0 +1,243 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.AddKeyResultDialog"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:controls="clr-namespace:Tracker.Controls"
+                    xmlns:commands="clr-namespace:Tracker.Command"
+                    xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                    xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                    xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                    mc:Ignorable="d"
+                    Title="Key Result"
+                    MouseDown="OnDragHandleMouseDown"
+                    WindowStyle="None"
+                    ResizeMode="CanResize"
+                    Foreground="{DynamicResource ForegroundBrush}"
+                    AllowsTransparency="True"
+                    SizeToContent="WidthAndHeight"
+                    Background="Transparent"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:KeyResultViewModel}"
+                    MinWidth="520"
+                    MinHeight="480"
+                    AutomationProperties.Name="Key Result Dialog"
+                    AutomationProperties.HelpText="Create or edit a Key Result for an OKR">
+    <controls:BaseWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </controls:BaseWindow.Resources>
+    
+    <Grid>
+        <Border Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BorderBrush}"
+                CornerRadius="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Title Bar -->
+                <Border Grid.Row="0" CornerRadius="12,12,0,0">
+                    <controls:DialogTitleBar x:Name="TitleBar"
+                                             DialogTitle="Key Result"
+                                             IconData="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"
+                                             CloseClicked="Close_Click"
+                                             MinimizeClicked="Minimize_Click"
+                                             MaximizeClicked="Maximize_Click"
+                                             RestoreClicked="Restore_Click"/>
+                </Border>
+                
+                <!-- Content Area -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,16,24,16">
+                        
+                        <!-- Title -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Key Result Title" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                            </StackPanel>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="e.g., Increase NPS from 45 to 60"
+                                                            Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                            AutomationProperties.Name="Key Result Title"
+                                                            TabIndex="1"/>
+                        </StackPanel>
+                        
+                        <!-- Description -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Additional details about this key result..."
+                                                            Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                            AcceptsReturn="True"
+                                                            TextWrapping="Wrap"
+                                                            VerticalScrollBarVisibility="Auto"
+                                                            MinHeight="60"
+                                                            AutomationProperties.Name="Description"
+                                                            TabIndex="2"/>
+                        </StackPanel>
+                        
+                        <!-- Values Row -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Starting Value" Style="{StaticResource FieldLabel}"/>
+                                <customControls:TextBoxWithHint TextBoxType="Number"
+                                                                HintText="0"
+                                                                Text="{Binding StartingValue, UpdateSourceTrigger=PropertyChanged}"
+                                                                AutomationProperties.Name="Starting Value"
+                                                                TabIndex="3"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Current Value" Style="{StaticResource FieldLabel}"/>
+                                <customControls:TextBoxWithHint TextBoxType="Number"
+                                                                HintText="0"
+                                                                Text="{Binding CurrentValue, UpdateSourceTrigger=PropertyChanged}"
+                                                                AutomationProperties.Name="Current Value"
+                                                                TabIndex="4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Target Value" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                                </StackPanel>
+                                <customControls:TextBoxWithHint TextBoxType="Number"
+                                                                HintText="100"
+                                                                Text="{Binding TargetValue, UpdateSourceTrigger=PropertyChanged}"
+                                                                AutomationProperties.Name="Target Value"
+                                                                TabIndex="5"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Unit and Weight Row -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Unit" Style="{StaticResource FieldLabel}"/>
+                                <customControls:TextBoxWithHint TextBoxType="Text"
+                                                                HintText="%, points, hours"
+                                                                Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged}"
+                                                                AutomationProperties.Name="Unit"
+                                                                TabIndex="6"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Weight" Style="{StaticResource FieldLabel}"/>
+                                <customControls:TextBoxWithHint TextBoxType="Number"
+                                                                HintText="1.0"
+                                                                Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}"
+                                                                AutomationProperties.Name="Weight"
+                                                                TabIndex="7"/>
+                                <TextBlock Text="Used for weighted averaging" Style="{StaticResource FieldHint}"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="Direction" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding TargetDirections}"
+                                          SelectedItem="{Binding SelectedTargetDirection}"
+                                          DisplayMemberPath="Description"
+                                          HorizontalAlignment="Stretch"
+                                          AutomationProperties.Name="Target Direction"
+                                          TabIndex="8"/>
+                                <TextBlock Text="Higher is better or lower is better" Style="{StaticResource FieldHint}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Status and Progress Card -->
+                        <Border Style="{StaticResource DialogCardStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel>
+                                    <TextBlock Text="STATUS" FontSize="10" FontWeight="Bold" 
+                                               Foreground="{DynamicResource HintTextBrush}" Margin="0,0,0,4"/>
+                                    <Border CornerRadius="6" Padding="10,5">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#64748B"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="OnTarget">
+                                                        <Setter Property="Background" Value="#10B981"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="CloseToTarget">
+                                                        <Setter Property="Background" Value="#F59E0B"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="OffTarget">
+                                                        <Setter Property="Background" Value="#EF4444"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding Status}" Foreground="White" FontWeight="Bold" FontSize="11"/>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="PROGRESS" FontSize="10" FontWeight="Bold" 
+                                               Foreground="{DynamicResource HintTextBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding Progress, StringFormat={}{0:N1}%}"
+                                               FontSize="20" FontWeight="Bold"
+                                               Foreground="{DynamicResource AccentBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- Footer with Buttons -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Margin="0,0,12,0"
+                                Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                AutomationProperties.Name="Cancel"
+                                TabIndex="11"/>
+                        <Button Content="Create Key Result"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding SaveCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"
+                                AutomationProperties.Name="Create Key Result"
+                                TabIndex="12"/>
+                        <Button Content="Save Changes"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding SaveCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                AutomationProperties.Name="Save Changes"
+                                TabIndex="12"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</controls:BaseWindow>

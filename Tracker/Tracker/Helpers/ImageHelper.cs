@@ -62,13 +62,13 @@ namespace Tracker.Helpers
                 bitmap.Freeze(); // Freezes the BitmapImage to make it cross-thread accessible. 
 
                 ImageSource? imageSource = bitmap;
+                await Task.CompletedTask; // Async signature for API consistency
                 return imageSource;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }
-
         }
 
         public static byte[] GetByteArrayFromFile(string filePath)

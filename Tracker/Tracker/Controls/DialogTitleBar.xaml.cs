@@ -101,6 +101,34 @@ namespace Tracker.Controls
                 typeof(DialogTitleBar),
                 new PropertyMetadata(false));
 
+        public static readonly DependencyProperty ShowProfileButtonProperty =
+            DependencyProperty.Register(
+                nameof(ShowProfileButton),
+                typeof(bool),
+                typeof(DialogTitleBar),
+                new PropertyMetadata(false));
+
+        public static readonly DependencyProperty UserInitialsProperty =
+            DependencyProperty.Register(
+                nameof(UserInitials),
+                typeof(string),
+                typeof(DialogTitleBar),
+                new PropertyMetadata("?"));
+
+        public static readonly DependencyProperty HasUserAvatarProperty =
+            DependencyProperty.Register(
+                nameof(HasUserAvatar),
+                typeof(bool),
+                typeof(DialogTitleBar),
+                new PropertyMetadata(false));
+
+        public static readonly DependencyProperty UserAvatarSourceProperty =
+            DependencyProperty.Register(
+                nameof(UserAvatarSource),
+                typeof(ImageSource),
+                typeof(DialogTitleBar),
+                new PropertyMetadata(null));
+
         public ToolBarStyleEnum ToolBarStyle
         {
             get => (ToolBarStyleEnum)GetValue(ToolbarStyleProperty);
@@ -129,6 +157,30 @@ namespace Tracker.Controls
             set => SetValue(ShowThemeSelectorProperty, value);
         }
 
+        public bool ShowProfileButton
+        {
+            get => (bool)GetValue(ShowProfileButtonProperty);
+            set => SetValue(ShowProfileButtonProperty, value);
+        }
+
+        public string UserInitials
+        {
+            get => (string)GetValue(UserInitialsProperty);
+            set => SetValue(UserInitialsProperty, value);
+        }
+
+        public bool HasUserAvatar
+        {
+            get => (bool)GetValue(HasUserAvatarProperty);
+            set => SetValue(HasUserAvatarProperty, value);
+        }
+
+        public ImageSource? UserAvatarSource
+        {
+            get => (ImageSource?)GetValue(UserAvatarSourceProperty);
+            set => SetValue(UserAvatarSourceProperty, value);
+        }
+
         #endregion
 
         #region RoutedEvents
@@ -144,6 +196,9 @@ namespace Tracker.Controls
 
         public static readonly RoutedEvent RestoreClickedEvent = EventManager.RegisterRoutedEvent(
             "RestoreClicked", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(DialogTitleBar));
+
+        public static readonly RoutedEvent ProfileClickedEvent = EventManager.RegisterRoutedEvent(
+            "ProfileClicked", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(DialogTitleBar));
 
         public event RoutedEventHandler CloseClicked
         {
@@ -167,6 +222,12 @@ namespace Tracker.Controls
         {
             add => AddHandler(RestoreClickedEvent, value);
             remove => RemoveHandler(RestoreClickedEvent, value);
+        }
+
+        public event RoutedEventHandler ProfileClicked
+        {
+            add => AddHandler(ProfileClickedEvent, value);
+            remove => RemoveHandler(ProfileClickedEvent, value);
         }
 
         #endregion
@@ -200,5 +261,9 @@ namespace Tracker.Controls
             }
         }
 
+        private void ProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            RaiseEvent(new RoutedEventArgs(ProfileClickedEvent));
+        }
     }
 }

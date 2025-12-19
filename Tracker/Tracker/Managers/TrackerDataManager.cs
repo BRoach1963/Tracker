@@ -25,23 +25,13 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        private static TrackerDataManager? _instance;
-        private static readonly object SyncRoot = new();
+        private static readonly Lazy<TrackerDataManager> _lazyInstance = 
+            new(() => new TrackerDataManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-        public static TrackerDataManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        _instance ??= new TrackerDataManager();
-                    }
-                }
-                return _instance;
-            }
-        }
+        /// <summary>
+        /// Gets the singleton instance of TrackerDataManager.
+        /// </summary>
+        public static TrackerDataManager Instance => _lazyInstance.Value;
 
         public void Initialize()
         {
@@ -163,6 +153,9 @@ namespace Tracker.Managers
                 oneOnOne.Id = id;
                 _oneOnOnes?.Add(oneOnOne);
                 
+                // Create meeting reminder if enabled
+                await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
+                
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.OneOnOnes,
@@ -177,6 +170,9 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.UpdateOneOnOneAsync(oneOnOne);
             if (success)
             {
+                // Update meeting reminder if date/time changed
+                await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
+                
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.OneOnOnes,
@@ -330,6 +326,43 @@ namespace Tracker.Managers
         public async Task<bool> UpdateKPI(KeyPerformanceIndicator kpi)
         {
             return await TrackerDbManager.Instance!.UpdateKPIAsync(kpi);
+        }
+
+        #endregion
+
+        #region TaskCollection Methods
+
+        public async Task<List<TaskCollection>> GetTaskCollections()
+        {
+            return await TrackerDbManager.Instance!.GetTaskCollectionsAsync();
+        }
+
+        #endregion
+
+        #region Feedback Methods
+
+        public async Task<List<Feedback>> GetFeedbacks()
+        {
+            return await TrackerDbManager.Instance!.GetAllFeedbackAsync();
+        }
+
+        public async Task DeleteFeedbackAsync(Feedback feedback)
+        {
+            await TrackerDbManager.Instance!.DeleteFeedbackAsync(feedback.Id);
+        }
+
+        #endregion
+
+        #region Goal Methods
+
+        public async Task<List<IndividualGoal>> GetGoals()
+        {
+            return await TrackerDbManager.Instance!.GetAllGoalsAsync();
+        }
+
+        public async Task DeleteGoalAsync(IndividualGoal goal)
+        {
+            await TrackerDbManager.Instance!.DeleteGoalAsync(goal.Id);
         }
 
         #endregion

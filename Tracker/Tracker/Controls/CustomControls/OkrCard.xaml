@@ -1,0 +1,223 @@
+<UserControl x:Class="Tracker.Controls.CustomControls.OkrCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Tracker.Controls.CustomControls"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="180" d:DesignWidth="400"
+             x:Name="Root">
+    
+    <UserControl.Resources>
+        <converters:ObjectiveStatusToColorConverter x:Key="StatusToColorConverter"/>
+    </UserControl.Resources>
+    
+    <Border x:Name="CardBorder"
+            Background="{DynamicResource SurfaceBrush}"
+            CornerRadius="12"
+            Padding="16"
+            Cursor="Hand"
+            MouseLeftButtonDown="Card_MouseLeftButtonDown">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                    </Trigger>
+                    <DataTrigger Binding="{Binding IsSelected, ElementName=Root}" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- ROW 0: Header with Title + Status + Actions Menu -->
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Objective Icon -->
+                <Path Grid.Column="0" 
+                      Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z"
+                      Fill="{DynamicResource AccentBrush}" 
+                      Width="18" Height="18" 
+                      Stretch="Uniform"
+                      Margin="0,0,10,0"
+                      VerticalAlignment="Top"/>
+                
+                <!-- Title -->
+                <TextBlock Grid.Column="1" 
+                           Text="{Binding Okr.Title, ElementName=Root}" 
+                           FontSize="15" 
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis"
+                           MaxHeight="40"
+                           VerticalAlignment="Top"/>
+                
+                <!-- Status Badge -->
+                <local:StatusBadge Grid.Column="2" 
+                                   Status="{Binding Okr.Status, ElementName=Root}"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Top"/>
+                
+                <!-- Actions Menu Button -->
+                <Button Grid.Column="3" 
+                        x:Name="ActionsButton"
+                        Style="{StaticResource GridActionButtonStyle}"
+                        Click="ActionsButton_Click"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Top"
+                        ToolTip="Actions">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ActionsMenu">
+                            <MenuItem Header="Edit" Click="Edit_Click">
+                                <MenuItem.Icon>
+                                    <Path Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                          Fill="{DynamicResource ForegroundBrush}"
+                                          Width="14" Height="14" Stretch="Uniform"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Duplicate" Click="Duplicate_Click">
+                                <MenuItem.Icon>
+                                    <Path Data="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"
+                                          Fill="{DynamicResource ForegroundBrush}"
+                                          Width="14" Height="14" Stretch="Uniform"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Header="Delete" Click="Delete_Click" Foreground="#EF4444">
+                                <MenuItem.Icon>
+                                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                          Fill="#EF4444"
+                                          Width="14" Height="14" Stretch="Uniform"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                    <Path Data="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"
+                          Fill="{DynamicResource HintTextBrush}"
+                          Width="14" Height="14" Stretch="Uniform"/>
+                </Button>
+            </Grid>
+            
+            <!-- ROW 1: Meta info (Period + Owner) -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                <!-- Time Period -->
+                <TextBlock FontSize="11" Foreground="{DynamicResource HintTextBrush}"
+                           Text="{Binding Okr.TimePeriodDisplay, ElementName=Root, Mode=OneWay, FallbackValue='Q1 2025'}"/>
+                
+                <TextBlock Text="  •  " FontSize="11" Foreground="{DynamicResource HintTextBrush}"/>
+                
+                <!-- Owner -->
+                <TextBlock FontSize="11" Foreground="{DynamicResource HintTextBrush}"
+                           Text="{Binding Okr.Owner.FullName, ElementName=Root, Mode=OneWay, FallbackValue='Unassigned'}"/>
+            </StackPanel>
+            
+            <!-- ROW 2: Progress Bar -->
+            <Grid Grid.Row="2" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <Border CornerRadius="4" Height="8" Background="{DynamicResource BackgroundBrush}">
+                    <Border CornerRadius="4" 
+                            HorizontalAlignment="Left"
+                            Background="{Binding Okr.Status, ElementName=Root, Mode=OneWay, Converter={StaticResource StatusToColorConverter}}">
+                        <Border.Width>
+                            <MultiBinding Converter="{StaticResource ProgressWidthConverter}">
+                                <Binding Path="Okr.CompletionPercentage" ElementName="Root" Mode="OneWay"/>
+                                <Binding Source="100"/>
+                                <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Grid}" Mode="OneWay"/>
+                            </MultiBinding>
+                        </Border.Width>
+                    </Border>
+                </Border>
+                
+                <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold" Margin="12,0,0,0"
+                           Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center"
+                           Text="{Binding Okr.CompletionPercentage, ElementName=Root, Mode=OneWay, StringFormat='{}{0:F0}%', FallbackValue='0%'}"/>
+            </Grid>
+            
+            <!-- ROW 3: Key Results Preview -->
+            <ItemsControl Grid.Row="3" 
+                          ItemsSource="{Binding Okr.KeyResults, ElementName=Root}"
+                          Visibility="{Binding ShowKeyResults, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Status dot -->
+                            <Ellipse Width="6" Height="6" 
+                                     Fill="{DynamicResource AccentBrush}" 
+                                     VerticalAlignment="Center"
+                                     Opacity="0.8"/>
+                            
+                            <!-- KR Title -->
+                            <TextBlock Grid.Column="1" 
+                                       Text="{Binding Title}" 
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       TextTrimming="CharacterEllipsis" 
+                                       Margin="8,0,8,0" 
+                                       VerticalAlignment="Center"/>
+                            
+                            <!-- KR Progress -->
+                            <TextBlock Grid.Column="2" FontSize="11" Foreground="{DynamicResource HintTextBrush}">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0}/{1:F0}">
+                                        <Binding Path="CurrentValue" Mode="OneWay"/>
+                                        <Binding Path="TargetValue" Mode="OneWay"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <!-- Stats Footer (shown when ShowKeyResults=false) -->
+            <StackPanel Grid.Row="3" 
+                        Orientation="Horizontal" 
+                        Visibility="{Binding ShowKeyResults, ElementName=Root, Converter={StaticResource ReverseBoolToVisConverter}}">
+                <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                    <TextBlock FontSize="10" Foreground="{DynamicResource HintTextBrush}"
+                               Text="{Binding Okr.KeyResultCount, ElementName=Root, Mode=OneWay, StringFormat='{}{0} Key Results', FallbackValue='0 Key Results'}"/>
+                </Border>
+                <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="4" Padding="8,4" Margin="0,0,8,0"
+                        Visibility="{Binding Okr.LinkedKpiCount, ElementName=Root, Mode=OneWay, Converter={x:Static converters:IntToVisibilityConverter.Instance}}">
+                    <TextBlock FontSize="10" Foreground="{DynamicResource HintTextBrush}"
+                               Text="{Binding Okr.LinkedKpiCount, ElementName=Root, Mode=OneWay, StringFormat='{}{0} KPIs', FallbackValue='0 KPIs'}"/>
+                </Border>
+                <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="4" Padding="8,4"
+                        Visibility="{Binding Okr.LinkedProjectCount, ElementName=Root, Mode=OneWay, Converter={x:Static converters:IntToVisibilityConverter.Instance}}">
+                    <TextBlock FontSize="10" Foreground="{DynamicResource HintTextBrush}"
+                               Text="{Binding Okr.LinkedProjectCount, ElementName=Root, Mode=OneWay, StringFormat='{}{0} Projects', FallbackValue='0 Projects'}"/>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>
+

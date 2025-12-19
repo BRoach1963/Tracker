@@ -1,11 +1,14 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using DeepEndControls.Theming;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Help.Services;
 using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -34,8 +37,22 @@ namespace Tracker
 
         public App()
         {
-            //TODO: Currently 7-day license key - replace with Community license key when available
-            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1NCaF1cWWhAYVJ2WmFZfVpgcl9GYlZVQmYuP1ZhSXxXdkxjWn9YcHZRQGFYWEM=");
+            // Register Syncfusion license with error handling
+            try
+            {
+                var licenseKey = "Ngo9BigBOggjHTQxAR8/V1NCaF1cWWhAYVJ2WmFZfVpgcl9GYlZVQmYuP1ZhSXxXdkxjWn9YcHZRQGFYWEM=";
+                if (!string.IsNullOrWhiteSpace(licenseKey))
+                {
+                    Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't crash the app
+                // Syncfusion controls will show a license watermark if registration fails
+                System.Diagnostics.Debug.WriteLine($"Syncfusion license registration failed: {ex.Message}");
+            }
+            
             RegisterAppForToastNotifications();
         }
 
@@ -43,9 +60,39 @@ namespace Tracker
         {
             // Load user settings first to get the saved theme preference
             UserSettingsManager.Instance.Initialize();
-            
+
             // Apply the saved theme (or default if none saved)
             ThemeManager.Instance.Initialize(UserSettingsManager.Instance.Settings.Theme);
+        }
+
+        /// <summary>
+        /// Registers the global F1 key handler for context-sensitive help.
+        /// </summary>
+        private void RegisterHelpKeyHandler()
+        {
+            // Register global F1 handler on all UIElements
+            EventManager.RegisterClassHandler(
+                typeof(UIElement),
+                Keyboard.KeyDownEvent,
+                new KeyEventHandler(OnGlobalKeyDown),
+                handledEventsToo: true);
+        }
+
+        /// <summary>
+        /// Global key handler for F1 help.
+        /// </summary>
+        private void OnGlobalKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F1 && !e.Handled)
+            {
+                e.Handled = true;
+                
+                // Get the focused element for context-sensitive help
+                var focusedElement = Keyboard.FocusedElement as DependencyObject;
+                
+                // Show context-sensitive help
+                HelpService.Instance.ShowContextHelp(focusedElement);
+            }
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)
@@ -92,24 +139,35 @@ namespace Tracker
 
         private void ShowSetupWizard()
         {
+            SetupWizard? setupWindow = null;
+            bool setupCompletedSuccessfully = false;
+            
             var setupVm = new SetupWizardViewModel(() =>
             {
-                // Setup completed, continue with normal startup
-                _ = ContinueNormalStartup();
+                // Mark as completed before closing window
+                setupCompletedSuccessfully = true;
+                
+                // Close the setup window
+                setupWindow?.Close();
             });
 
-            var setupWindow = new SetupWizard
+            setupWindow = new SetupWizard
             {
                 DataContext = setupVm,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                ShowInTaskbar = false
+                ShowInTaskbar = true
             };
 
             setupWindow.Closed += (s, e) =>
             {
-                // If setup was cancelled (window closed without completing), shut down
-                if (!UserSettingsManager.Instance.Settings.Database.SetupCompleted)
+                if (setupCompletedSuccessfully)
                 {
+                    // Setup completed successfully, continue with normal startup
+                    _ = ContinueNormalStartup();
+                }
+                else
+                {
+                    // Setup was cancelled (window closed without completing), shut down
                     Shutdown();
                 }
             };
@@ -122,6 +180,9 @@ namespace Tracker
             // Show splash screen
             _splashScreen = new Views.SplashScreen();
             
+            // Wire up login events for integrated login
+            _splashScreen.LoginSuccessful += OnSplashLoginSuccessful;
+            
             await Current.Dispatcher.InvokeAsync(() => _splashScreen.Show());
 
             string? warningMessage = null;
@@ -131,6 +192,7 @@ namespace Tracker
                 // Initialize application components with progress updates
                 var initResult = await InitializeApplicationAsync();
                 warningMessage = initResult.WarningMessage;
+                _startupWarningMessage = warningMessage;
             }
             catch (Exception ex)
             {
@@ -150,18 +212,88 @@ namespace Tracker
                 }
             }
 
-            // Show login dialog BEFORE closing splash to prevent app shutdown
-            await Current.Dispatcher.InvokeAsync(() => ShowLoginDialog());
-            
-            // Now restore normal shutdown mode
+            // Check if already authenticated (e.g., just completed setup with account creation)
+            await Current.Dispatcher.InvokeAsync(() =>
+            {
+                _splashScreen?.CloseSplash(() =>
+                {
+                    if (!string.IsNullOrEmpty(warningMessage))
+                    {
+                        NotificationManager.Instance.ShowWarning("Startup Warning", warningMessage, 10);
+                    }
+                    
+                    // Skip login if already authenticated with Supabase
+                    if (Services.Backend.SupabaseService.Instance.IsSignedIn)
+                    {
+                        LoggingManager.GetComponentLogger("App").Info("User already authenticated, skipping login dialog");
+                        ShutdownMode = ShutdownMode.OnLastWindowClose;
+                        LaunchMainWindow();
+                    }
+                    else
+                    {
+                        ShowLoginDialog();
+                    }
+                });
+            });
+        }
+        
+        private string? _startupWarningMessage;
+        
+        /// <summary>
+        /// Handles successful login from the integrated splash screen.
+        /// </summary>
+        private void OnSplashLoginSuccessful(object? sender, LoginSuccessEventArgs e)
+        {
+            // Login succeeded, launch main window
             ShutdownMode = ShutdownMode.OnLastWindowClose;
-            
-            // Close splash with animation
             _splashScreen?.CloseSplash(() =>
             {
-                if (!string.IsNullOrEmpty(warningMessage))
+                if (!string.IsNullOrEmpty(_startupWarningMessage))
                 {
-                    NotificationManager.Instance.ShowWarning("Startup Warning", warningMessage, 10);
+                    NotificationManager.Instance.ShowWarning("Startup Warning", _startupWarningMessage, 10);
+                }
+                LaunchMainWindow();
+            });
+        }
+        
+        /// <summary>
+        /// Launches the main application window after successful login.
+        /// </summary>
+        private void LaunchMainWindow()
+        {
+            DialogManager.Instance.LaunchDialogByType(DialogType.MainWindow, false, async () =>
+            {
+                // Check if database is empty and prompt user to add sample data
+                if (_emptyDatabaseDetected)
+                {
+                    await Task.Delay(500); // Wait for main window to fully load
+                    var result = MessageBoxHelper.Show(
+                        "Your database is empty. Would you like to add sample data?\n\n" +
+                        "This will populate your database with:\n" +
+                        "• 7 team members (Steelers team)\n" +
+                        "• Sample 1:1 meetings\n" +
+                        "• Sample projects with OKRs and KPIs\n" +
+                        "• Sample tasks\n" +
+                        "• Linked items (Phase 1 features)",
+                        "Empty Database",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        var success = await TrackerDbManager.Instance!.SeedSampleDataAsync(forceReseed: false);
+                        if (success)
+                        {
+                            // Refresh the UI
+                            Messenger.Publish(new PropertyChangedMessage
+                            {
+                                ChangedProperty = PropertyChangedEnum.All,
+                                RefreshData = true
+                            });
+                            NotificationManager.Instance.ShowSuccess("Sample Data Added", "Sample data has been added to your database.");
+                        }
+                    }
+                    _emptyDatabaseDetected = false;
                 }
             });
         }
@@ -226,6 +358,70 @@ namespace Tracker
             }
             await Task.Delay(150);
 
+            // Stage 3.5: Initialize help system
+            _splashScreen?.UpdateStatus("Initializing help system...");
+            _splashScreen?.UpdateProgress(80);
+            try
+            {
+                HelpService.Instance.Initialize();
+                RegisterHelpKeyHandler();
+            }
+            catch (Exception ex)
+            {
+                // Help system failure is non-fatal
+                LoggingManager.GetComponentLogger("App").Warn("Help system initialization failed: {0}", ex.Message);
+            }
+            await Task.Delay(100);
+
+            // Stage 3.6: Initialize cloud services
+            _splashScreen?.UpdateStatus("Connecting to cloud services...");
+            _splashScreen?.UpdateProgress(85);
+            try
+            {
+                // Initialize Supabase for cloud account features
+                await Services.Backend.SupabaseService.Instance.InitializeAsync();
+                
+                // Validate subscription with backend
+                await Services.Subscription.SubscriptionService.Instance.ValidateWithBackendAsync();
+            }
+            catch (Exception ex)
+            {
+                // Cloud service failure is non-fatal - app works offline
+                LoggingManager.GetComponentLogger("App").Warn("Cloud services unavailable: {0}", ex.Message);
+            }
+            await Task.Delay(100);
+
+            // Stage 3.7: Restore integration sessions (silent sign-in)
+            _splashScreen?.UpdateStatus("Restoring integrations...");
+            _splashScreen?.UpdateProgress(95);
+            try
+            {
+                // Try to restore Microsoft 365 session (silent, no browser popup)
+                if (UserSettingsManager.Instance.Settings.Microsoft365.IsEnabled)
+                {
+                    var m365Restored = await Services.Microsoft365.MicrosoftGraphAuthService.Instance.TrySignInSilentlyAsync();
+                    if (m365Restored)
+                    {
+                        LoggingManager.GetComponentLogger("App").Info("Microsoft 365 session restored");
+                    }
+                }
+
+                // Try to restore Google session (silent, no browser popup)
+                if (UserSettingsManager.Instance.Settings.Google.IsConnected)
+                {
+                    var googleRestored = await Services.Google.GoogleAuthService.Instance.TrySilentSignInAsync();
+                    if (googleRestored)
+                    {
+                        LoggingManager.GetComponentLogger("App").Info("Google session restored");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Integration restore failure is non-fatal
+                LoggingManager.GetComponentLogger("App").Warn("Integration restore failed: {0}", ex.Message);
+            }
+
             // Stage 4: Final preparations (100%)
             _splashScreen?.UpdateStatus("Ready!");
             _splashScreen?.UpdateProgress(100);
@@ -236,72 +432,42 @@ namespace Tracker
 
         private void ShowLoginDialog()
         {
-            var loginVm = new LoginDialogViewModel(null)
+            LoginDialog? loginWindow = null;
+            LoginDialogViewModel? loginVm = null;
+            bool loginCompletedSuccessfully = false;
+
+            loginVm = new LoginDialogViewModel(() =>
             {
-                UserName = Environment.UserName
-            };
-
-            var loginWindow = new LoginDialog
-            {
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                ShowInTaskbar = false
-            };
-
-            var callback = new Action(async () =>
-            {
-                if (loginVm.DialogResult.Cancelled)
-                {
-                    loginVm.Dispose();
-                    loginWindow.Close();
-                    return;
-                }
-
-                TrackerDbManager.Instance?.CheckUserAsync();
-
-                Current.Dispatcher.BeginInvoke(async () =>
-                {
-                    DialogManager.Instance.LaunchDialogByType(DialogType.MainWindow, false, async () => 
-                    {
-                        // Check if database is empty and prompt user to add sample data
-                        if (_emptyDatabaseDetected)
-                        {
-                            await Task.Delay(500); // Wait for main window to fully load
-                            var result = MessageBoxHelper.Show(
-                                "Your database is empty. Would you like to add sample data?\n\n" +
-                                "This will populate your database with:\n" +
-                                "• 7 team members (Steelers team)\n" +
-                                "• Sample 1:1 meetings\n" +
-                                "• Sample projects with OKRs and KPIs\n" +
-                                "• Sample tasks\n" +
-                                "• Linked items (Phase 1 features)",
-                                "Empty Database",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Question);
-                            
-                            if (result == MessageBoxResult.Yes)
-                            {
-                                var success = await TrackerDbManager.Instance!.SeedSampleDataAsync(forceReseed: false);
-                                if (success)
-                                {
-                                    // Refresh the UI
-                                    Messenger.Publish(new PropertyChangedMessage
-                                    {
-                                        ChangedProperty = PropertyChangedEnum.All,
-                                        RefreshData = true
-                                    });
-                                    NotificationManager.Instance.ShowSuccess("Sample Data Added", "Sample data has been added to your database.");
-                                }
-                            }
-                            _emptyDatabaseDetected = false;
-                        }
-                    });
-                    loginVm.Dispose();
-                    loginWindow.Close();
-                });
+                // Mark as completed before closing window
+                loginCompletedSuccessfully = loginVm?.Result.Cancelled == false;
+                
+                // Close the login window
+                loginWindow?.Close();
             });
 
-            loginVm.Callback = callback;
-            loginWindow.DataContext = loginVm;
+            loginWindow = new LoginDialog
+            {
+                DataContext = loginVm,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ShowInTaskbar = true
+            };
+
+            loginWindow.Closed += (s, e) =>
+            {
+                if (loginCompletedSuccessfully)
+                {
+                    // Login completed successfully, launch main window
+                    ShutdownMode = ShutdownMode.OnLastWindowClose;
+                    LaunchMainWindow();
+                }
+                else
+                {
+                    // Login was cancelled (window closed without completing), shut down
+                    loginVm?.Dispose();
+                    Shutdown();
+                }
+            };
+
             loginWindow.Show();
         }
     }

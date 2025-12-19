@@ -3,7 +3,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                    xmlns:local="clr-namespace:Tracker.Views.Dialogs"
                     xmlns:controls="clr-namespace:Tracker.Controls"
                     xmlns:languages="clr-namespace:Tracker.Resources.Languages"
                     xmlns:commands="clr-namespace:Tracker.Command"
@@ -20,167 +19,149 @@
                     SizeToContent="WidthAndHeight"
                     Background="Transparent"
                     d:DataContext="{d:DesignInstance Type=dialogViewModels:NewTaskViewModel}"
-                    MinWidth="450"
-                    MinHeight="350">
+                    MinWidth="480"
+                    MinHeight="420"
+                    AutomationProperties.Name="Add Task Dialog"
+                    AutomationProperties.HelpText="Create a new task for a team member">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"></ResourceDictionary>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </controls:BaseWindow.Resources>
+    
     <Grid>
         <Border Background="{DynamicResource BackgroundBrush}"
                 BorderThickness="1"
-                BorderBrush="{DynamicResource ForegroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="5" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
                 <!-- Title Bar -->
-                <Border Grid.Row="0"
-                        Height="Auto"
-                        Background="{DynamicResource BackgroundBrush}"
-                        CornerRadius="12,12,0,0">
+                <Border Grid.Row="0" CornerRadius="12,12,0,0">
                     <controls:DialogTitleBar x:Name="TitleBar"
                                              DialogTitle="{x:Static languages:Resources.Add_Task}"
                                              IconData="M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2,4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
                                              CloseClicked="Close_Click"
                                              MinimizeClicked="Minimize_Click"
                                              MaximizeClicked="Maximize_Click"
-                                             RestoreClicked="Restore_Click" />
+                                             RestoreClicked="Restore_Click"/>
                 </Border>
                 
                 <!-- Content Area -->
-                <Grid Grid.Row="1"
-                      Margin="15,10,15,10"
-                      MinHeight="200">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    
-                    <!-- Description -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Label Style="{StaticResource LabelStyle}"
-                               Content="Description *"
-                               Grid.Row="0" />
-                        <customControls:TextBoxWithHint TextBoxType="Text"
-                                                        HintText="Enter task description"
-                                                        Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                                                        Grid.Row="1" />
-                    </Grid>
-                    
-                    <!-- Owner Selection -->
-                    <Grid Grid.Row="1" Margin="0,0,0,10">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Label Style="{StaticResource LabelStyle}"
-                               Content="Assigned To *"
-                               Grid.Row="0" />
-                        <ComboBox Grid.Row="1"
-                                  ItemsSource="{Binding TeamMembers}"
-                                  SelectedItem="{Binding SelectedOwner}"
-                                  HorizontalAlignment="Stretch">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock>
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0} {1}">
-                                                <Binding Path="FirstName" />
-                                                <Binding Path="LastName" />
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    
-                    <!-- Due Date -->
-                    <Grid Grid.Row="2" Margin="0,0,0,10">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Label Style="{StaticResource LabelStyle}"
-                               Content="Due Date"
-                               Grid.Row="0" />
-                        <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <customControls:TextBoxWithHint TextBoxType="LongDate"
-                                                            HintText="MM/DD/YYYY"
-                                                            Text="{Binding DueDateDisplay, UpdateSourceTrigger=PropertyChanged}"
-                                                            Grid.Column="0" />
-                            <DatePicker SelectedDate="{Binding DueDate, UpdateSourceTrigger=PropertyChanged}"
-                                        Style="{StaticResource DatePickerStyle}"
-                                        Grid.Column="1" />
-                        </Grid>
-                    </Grid>
-                    
-                    <!-- Completed Checkbox -->
-                    <Grid Grid.Row="3" Margin="0,0,0,10">
-                        <CheckBox Content="Mark as Completed"
-                                  IsChecked="{Binding IsCompleted}"
-                                  Style="{StaticResource CheckBoxStyle}"
-                                  VerticalAlignment="Center" />
-                    </Grid>
-                    
-                    <!-- Notes -->
-                    <Grid Grid.Row="4" Margin="0,0,0,5">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" MinHeight="80" />
-                        </Grid.RowDefinitions>
-                        <Label Style="{StaticResource LabelStyle}"
-                               Content="Notes"
-                               Grid.Row="0" />
-                        <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 Grid.Row="1" />
-                    </Grid>
-                </Grid>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,16,24,16">
+                        
+                        <!-- Description -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Task Description" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                            </StackPanel>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="What needs to be done?"
+                                                            Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        
+                        <!-- Owner Selection -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Assign To" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Style="{StaticResource RequiredIndicator}"/>
+                            </StackPanel>
+                            <ComboBox ItemsSource="{Binding TeamMembers}"
+                                      SelectedItem="{Binding SelectedOwner}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Grid Width="24" Height="24" Margin="0,0,8,0">
+                                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                <TextBlock Text="{Binding Initials}" 
+                                                           FontSize="9" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BackgroundBrush}"
+                                                           HorizontalAlignment="Center" 
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <TextBlock VerticalAlignment="Center">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} {1}">
+                                                        <Binding Path="FirstName"/>
+                                                        <Binding Path="LastName"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        
+                        <!-- Due Date -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <TextBlock Text="Due Date" Style="{StaticResource FieldLabel}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <customControls:TextBoxWithHint TextBoxType="LongDate"
+                                                                HintText="MM/DD/YYYY"
+                                                                Text="{Binding DueDateDisplay, UpdateSourceTrigger=PropertyChanged}"/>
+                                <customControls:CalendarButton SelectedDate="{Binding DueDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                               Grid.Column="1"
+                                                               Margin="8,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                        
+                        <!-- Status Checkbox -->
+                        <StackPanel Style="{StaticResource FormFieldGroup}">
+                            <CheckBox Content="Mark as Completed"
+                                      IsChecked="{Binding IsCompleted}"
+                                      Style="{StaticResource ModernCheckBoxStyle}"/>
+                        </StackPanel>
+                        
+                        <!-- Notes -->
+                        <StackPanel Margin="0">
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Add any additional context or instructions..."
+                                                            Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                                                            AcceptsReturn="True"
+                                                            TextWrapping="Wrap"
+                                                            VerticalScrollBarVisibility="Auto"
+                                                            MinHeight="80"
+                                                            MaxHeight="150"/>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                </ScrollViewer>
                 
-                <!-- Button Bar -->
-                <StackPanel Grid.Row="2"
-                            Margin="0,10,15,10"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Margin="0,0,10,0"
-                            Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Content="Cancel" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Add"
-                            Command="{Binding AddTaskCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}" />
-                    <Button Style="{StaticResource DialogButtonStyle}"
-                            Content="Update"
-                            Command="{Binding UpdateTaskCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
-                            Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}" />
-                </StackPanel>
+                <!-- Footer with Buttons -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                Margin="0,0,12,0"
+                                Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"/>
+                        <Button Content="Create Task"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding AddTaskCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"/>
+                        <Button Content="Save Changes"
+                                Style="{StaticResource DialogPrimaryButtonStyle}"
+                                Command="{Binding UpdateTaskCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
     </Grid>

@@ -12,19 +12,17 @@ namespace Tracker.ViewModels.DialogViewModels
     /// <summary>
     /// ViewModel for creating and editing Key Performance Indicators (KPIs).
     /// 
+    /// KPIs are now standalone metrics that can be:
+    /// - Linked to Key Results via IMeasurable interface
+    /// - Linked to other KPIs (composite KPIs)
+    /// - Used for data sources
+    /// 
     /// Key responsibilities:
     /// - Expose KPI properties for data binding
     /// - Provide team member selection for KPI ownership
     /// - Handle target direction configuration (greater/less than)
-    /// - Configure on-target and off-target thresholds
     /// - Handle KPI creation and updates via commands
     /// - Track property changes for edit mode
-    /// 
-    /// Usage:
-    /// <code>
-    /// var vm = new NewKpiViewModel(callback, new KeyPerformanceIndicator());
-    /// var dialog = new AddKPI(vm);
-    /// </code>
     /// </summary>
     public class NewKpiViewModel : BaseDialogViewModel
     {
@@ -38,11 +36,11 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<EnumWrapper<TargetDirectionEnum>> _targetDirections = new();
-        private ObservableCollection<ObjectiveKeyResult> _availableOkrs = new();
+        private ObservableCollection<EnumWrapper<KpiFrequencyEnum>> _frequencies = new();
 
         private TeamMember? _selectedOwner;
         private EnumWrapper<TargetDirectionEnum>? _selectedTargetDirection;
-        private ObjectiveKeyResult? _selectedOkr;
+        private EnumWrapper<KpiFrequencyEnum>? _selectedFrequency;
 
         private readonly Dictionary<string, object> _changedProperties = new();
 
@@ -68,13 +66,11 @@ namespace Tracker.ViewModels.DialogViewModels
                 _data.Value = 0;
                 _data.TargetValue = 100;
                 _data.TargetDirection = TargetDirectionEnum.GreaterOrEqual;
-                _data.OnTargetThresholdPercentage = 5.0;
-                _data.OffTargetThresholdPercentage = 10.0;
+                _data.Frequency = KpiFrequencyEnum.OnDemand;
             }
 
             LoadEnums();
             LoadTeamMembers();
-            LoadOkrs();
         }
 
         /// <summary>
@@ -84,7 +80,7 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             _teamMembers.Clear();
             _targetDirections.Clear();
-            _availableOkrs.Clear();
+            _frequencies.Clear();
             base.Dispose(disposing);
         }
 
@@ -129,9 +125,9 @@ namespace Tracker.ViewModels.DialogViewModels
         public ObservableCollection<EnumWrapper<TargetDirectionEnum>> TargetDirections => _targetDirections;
 
         /// <summary>
-        /// Gets the collection of available OKRs to link this KPI to.
+        /// Gets the collection of available frequencies.
         /// </summary>
-        public ObservableCollection<ObjectiveKeyResult> AvailableOkrs => _availableOkrs;
+        public ObservableCollection<EnumWrapper<KpiFrequencyEnum>> Frequencies => _frequencies;
 
         /// <summary>
         /// Gets or sets the selected owner for the KPI.
@@ -170,16 +166,19 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         /// <summary>
-        /// Gets or sets the selected OKR that this KPI is linked to.
+        /// Gets or sets the selected frequency.
         /// </summary>
-        public ObjectiveKeyResult? SelectedOkr
+        public EnumWrapper<KpiFrequencyEnum>? SelectedFrequency
         {
-            get => _selectedOkr;
+            get => _selectedFrequency;
             set
             {
-                _selectedOkr = value;
-                _data.OkrId = value?.ObjectiveId ?? 0;
-                UpdateChangedValues("@OkrId", _data.OkrId);
+                _selectedFrequency = value;
+                if (value != null)
+                {
+                    _data.Frequency = value.EnumValue;
+                    UpdateChangedValues("@Frequency", value.EnumValue);
+                }
                 RaisePropertyChanged();
             }
         }
@@ -209,6 +208,34 @@ namespace Tracker.ViewModels.DialogViewModels
                 _data.Description = value;
                 RaisePropertyChanged();
                 UpdateChangedValues("@Description", value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the KPI unit (e.g., %, $, count).
+        /// </summary>
+        public string Unit
+        {
+            get => _data.Unit;
+            set
+            {
+                _data.Unit = value;
+                RaisePropertyChanged();
+                UpdateChangedValues("@Unit", value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the KPI category.
+        /// </summary>
+        public string Category
+        {
+            get => _data.Category;
+            set
+            {
+                _data.Category = value;
+                RaisePropertyChanged();
+                UpdateChangedValues("@Category", value);
             }
         }
 
@@ -255,66 +282,9 @@ namespace Tracker.ViewModels.DialogViewModels
         public DateTime LastUpdated => _data.LastUpdated;
 
         /// <summary>
-        /// Gets or sets the on-target threshold percentage.
-        /// Values within this percentage of the target are considered "on target".
+        /// Gets the percentage complete towards target (0-100+).
         /// </summary>
-        public double OnTargetThresholdPercentage
-        {
-            get => _data.OnTargetThresholdPercentage;
-            set
-            {
-                _data.OnTargetThresholdPercentage = value;
-                RaisePropertyChanged();
-                RaisePropertyChanged(nameof(Status));
-                UpdateChangedValues("@OnTargetThresholdPercentage", value);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the off-target threshold percentage.
-        /// Values beyond this percentage from the target are considered "off target".
-        /// </summary>
-        public double OffTargetThresholdPercentage
-        {
-            get => _data.OffTargetThresholdPercentage;
-            set
-            {
-                _data.OffTargetThresholdPercentage = value;
-                RaisePropertyChanged();
-                RaisePropertyChanged(nameof(Status));
-                UpdateChangedValues("@OffTargetThresholdPercentage", value);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the on-target threshold in absolute units.
-        /// </summary>
-        public double OnTargetThresholdAbsolute
-        {
-            get => _data.OnTargetThresholdAbsolute;
-            set
-            {
-                _data.OnTargetThresholdAbsolute = value;
-                RaisePropertyChanged();
-                RaisePropertyChanged(nameof(Status));
-                UpdateChangedValues("@OnTargetThresholdAbsolute", value);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the off-target threshold in absolute units.
-        /// </summary>
-        public double OffTargetThresholdAbsolute
-        {
-            get => _data.OffTargetThresholdAbsolute;
-            set
-            {
-                _data.OffTargetThresholdAbsolute = value;
-                RaisePropertyChanged();
-                RaisePropertyChanged(nameof(Status));
-                UpdateChangedValues("@OffTargetThresholdAbsolute", value);
-            }
-        }
+        public double PercentComplete => _data.PercentComplete;
 
         #endregion
 
@@ -331,8 +301,15 @@ namespace Tracker.ViewModels.DialogViewModels
                 _targetDirections.Add(new EnumWrapper<TargetDirectionEnum>(direction));
             }
 
-            // Set selected target direction
+            _frequencies.Clear();
+            foreach (KpiFrequencyEnum freq in Enum.GetValues(typeof(KpiFrequencyEnum)))
+            {
+                _frequencies.Add(new EnumWrapper<KpiFrequencyEnum>(freq));
+            }
+
+            // Set selected values
             _selectedTargetDirection = _targetDirections.FirstOrDefault(d => d.EnumValue == _data.TargetDirection);
+            _selectedFrequency = _frequencies.FirstOrDefault(f => f.EnumValue == _data.Frequency);
         }
 
         /// <summary>
@@ -354,28 +331,6 @@ namespace Tracker.ViewModels.DialogViewModels
             if (_inEditMode && _data.Owner?.Id > 0)
             {
                 _selectedOwner = _teamMembers.FirstOrDefault(t => t.Id == _data.Owner.Id);
-            }
-        }
-
-        /// <summary>
-        /// Loads available OKRs for linking.
-        /// </summary>
-        private void LoadOkrs()
-        {
-            _availableOkrs.Clear();
-            var okrs = TrackerDataManager.Instance.OKRs;
-            if (okrs != null)
-            {
-                foreach (var okr in okrs)
-                {
-                    _availableOkrs.Add(okr);
-                }
-            }
-
-            // Set selected OKR if editing and linked
-            if (_inEditMode && _data.OkrId > 0)
-            {
-                _selectedOkr = _availableOkrs.FirstOrDefault(o => o.ObjectiveId == _data.OkrId);
             }
         }
 

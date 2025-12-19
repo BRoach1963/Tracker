@@ -4,6 +4,7 @@ using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.DataModels;
+using Tracker.DataWrappers;
 using Tracker.Managers;
 
 namespace Tracker.ViewModels.DialogViewModels
@@ -11,19 +12,15 @@ namespace Tracker.ViewModels.DialogViewModels
     /// <summary>
     /// ViewModel for creating and editing Objectives and Key Results (OKRs).
     /// 
+    /// Key Results are now separate entities (not KPIs) that belong to OKRs.
+    /// Key Results can optionally link to KPIs, Projects, or TaskCollections via IMeasurable.
+    /// 
     /// Key responsibilities:
     /// - Expose OKR properties for data binding
     /// - Provide team member selection for OKR ownership
-    /// - Manage Key Results (KPIs) associated with the OKR
-    /// - Link OKRs to projects
+    /// - Manage Key Results (inline editing within OKR)
     /// - Handle OKR creation and updates via commands
     /// - Track property changes for edit mode
-    /// 
-    /// Usage:
-    /// <code>
-    /// var vm = new NewOkrViewModel(callback, new ObjectiveKeyResult());
-    /// var dialog = new AddOkrDialog(vm);
-    /// </code>
     /// </summary>
     public class NewOkrViewModel : BaseDialogViewModel
     {
@@ -39,15 +36,20 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<Project> _availableProjects = new();
-        private ObservableCollection<KeyPerformanceIndicator> _keyResults = new();
-        private ObservableCollection<KeyPerformanceIndicator> _availableKpis = new();
+        private ObservableCollection<KeyResult> _keyResults = new();
+        private ObservableCollection<EnumWrapper<TimePeriodEnum>> _timePeriods = new();
 
         private TeamMember? _selectedOwner;
         private Project? _selectedProject;
-        private KeyPerformanceIndicator? _selectedKeyResult;
-        private KeyPerformanceIndicator? _selectedAvailableKpi;
+        private KeyResult? _selectedKeyResult;
+        private EnumWrapper<TimePeriodEnum>? _selectedTimePeriod;
 
         private readonly Dictionary<string, object> _changedProperties = new();
+
+        // New Key Result input fields
+        private string _newKrTitle = string.Empty;
+        private decimal _newKrTargetValue = 100;
+        private string _newKrUnit = "%";
 
         #endregion
 
@@ -69,12 +71,14 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.StartDate = DateTime.Now;
                 _data.EndDate = DateTime.Now.AddMonths(3); // Default quarter duration
+                _data.TimePeriod = TimePeriodEnum.Q1;
+                _data.Year = DateTime.Now.Year;
             }
 
+            LoadEnums();
             LoadTeamMembers();
             LoadProjects();
             LoadKeyResults();
-            LoadAvailableKpis();
         }
 
         /// <summary>
@@ -85,7 +89,7 @@ namespace Tracker.ViewModels.DialogViewModels
             _teamMembers.Clear();
             _availableProjects.Clear();
             _keyResults.Clear();
-            _availableKpis.Clear();
+            _timePeriods.Clear();
             base.Dispose(disposing);
         }
 
@@ -106,13 +110,13 @@ namespace Tracker.ViewModels.DialogViewModels
             new TrackerCommand(UpdateOkrExecuted, CanExecuteUpdateOkr);
 
         /// <summary>
-        /// Command to add a Key Result (KPI) to this OKR.
+        /// Command to add a new Key Result to this OKR.
         /// </summary>
         public ICommand AddKeyResultCommand => _addKeyResultCommand ??=
             new TrackerCommand(AddKeyResultExecuted, CanExecuteAddKeyResult);
 
         /// <summary>
-        /// Command to remove a Key Result (KPI) from this OKR.
+        /// Command to remove a Key Result from this OKR.
         /// </summary>
         public ICommand RemoveKeyResultCommand => _removeKeyResultCommand ??=
             new TrackerCommand(RemoveKeyResultExecuted, CanExecuteRemoveKeyResult);
@@ -142,14 +146,14 @@ namespace Tracker.ViewModels.DialogViewModels
         public ObservableCollection<Project> AvailableProjects => _availableProjects;
 
         /// <summary>
-        /// Gets the collection of Key Results (KPIs) linked to this OKR.
+        /// Gets the collection of Key Results for this OKR.
         /// </summary>
-        public ObservableCollection<KeyPerformanceIndicator> KeyResults => _keyResults;
+        public ObservableCollection<KeyResult> KeyResults => _keyResults;
 
         /// <summary>
-        /// Gets the collection of available KPIs that can be added as Key Results.
+        /// Gets the collection of available time periods.
         /// </summary>
-        public ObservableCollection<KeyPerformanceIndicator> AvailableKpis => _availableKpis;
+        public ObservableCollection<EnumWrapper<TimePeriodEnum>> TimePeriods => _timePeriods;
 
         /// <summary>
         /// Gets or sets the selected owner for the OKR.
@@ -178,8 +182,27 @@ namespace Tracker.ViewModels.DialogViewModels
             set
             {
                 _selectedProject = value;
-                _data.ProjectId = value?.ID ?? 0;
+                _data.ProjectId = value?.ID;
                 UpdateChangedValues("@ProjectId", _data.ProjectId);
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the selected time period.
+        /// </summary>
+        public EnumWrapper<TimePeriodEnum>? SelectedTimePeriod
+        {
+            get => _selectedTimePeriod;
+            set
+            {
+                _selectedTimePeriod = value;
+                if (value != null)
+                {
+                    _data.TimePeriod = value.EnumValue;
+                    UpdateChangedValues("@TimePeriod", value.EnumValue);
+                    UpdateDatesFromTimePeriod();
+                }
                 RaisePropertyChanged();
             }
         }
@@ -187,7 +210,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets or sets the currently selected Key Result in the list.
         /// </summary>
-        public KeyPerformanceIndicator? SelectedKeyResult
+        public KeyResult? SelectedKeyResult
         {
             get => _selectedKeyResult;
             set
@@ -198,14 +221,40 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         /// <summary>
-        /// Gets or sets the selected KPI from the available KPIs to add.
+        /// Gets or sets the title for a new Key Result.
         /// </summary>
-        public KeyPerformanceIndicator? SelectedAvailableKpi
+        public string NewKrTitle
         {
-            get => _selectedAvailableKpi;
+            get => _newKrTitle;
             set
             {
-                _selectedAvailableKpi = value;
+                _newKrTitle = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the target value for a new Key Result.
+        /// </summary>
+        public decimal NewKrTargetValue
+        {
+            get => _newKrTargetValue;
+            set
+            {
+                _newKrTargetValue = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the unit for a new Key Result.
+        /// </summary>
+        public string NewKrUnit
+        {
+            get => _newKrUnit;
+            set
+            {
+                _newKrUnit = value;
                 RaisePropertyChanged();
             }
         }
@@ -235,6 +284,21 @@ namespace Tracker.ViewModels.DialogViewModels
                 _data.Description = value;
                 RaisePropertyChanged();
                 UpdateChangedValues("@Description", value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the year for the OKR.
+        /// </summary>
+        public int Year
+        {
+            get => _data.Year;
+            set
+            {
+                _data.Year = value;
+                RaisePropertyChanged();
+                UpdateChangedValues("@Year", value);
+                UpdateDatesFromTimePeriod();
             }
         }
 
@@ -310,13 +374,32 @@ namespace Tracker.ViewModels.DialogViewModels
         public ObjectiveStatusEnum Status => _data.Status;
 
         /// <summary>
-        /// Gets the completion percentage based on Key Results meeting targets - read-only.
+        /// Gets the completion percentage based on Key Results - read-only.
         /// </summary>
         public double CompletionPercentage => _data.CompletionPercentage;
+
+        /// <summary>
+        /// Gets the time period display string.
+        /// </summary>
+        public string TimePeriodDisplay => _data.TimePeriodDisplay;
 
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Loads enum values for dropdown selections.
+        /// </summary>
+        private void LoadEnums()
+        {
+            _timePeriods.Clear();
+            foreach (TimePeriodEnum period in Enum.GetValues(typeof(TimePeriodEnum)))
+            {
+                _timePeriods.Add(new EnumWrapper<TimePeriodEnum>(period));
+            }
+
+            _selectedTimePeriod = _timePeriods.FirstOrDefault(p => p.EnumValue == _data.TimePeriod);
+        }
 
         /// <summary>
         /// Loads available team members for owner selection.
@@ -356,42 +439,58 @@ namespace Tracker.ViewModels.DialogViewModels
             }
 
             // Set selected project if editing and linked
-            if (_inEditMode && _data.ProjectId > 0)
+            if (_inEditMode && _data.ProjectId.HasValue && _data.ProjectId > 0)
             {
                 _selectedProject = _availableProjects.FirstOrDefault(p => p.ID == _data.ProjectId);
             }
         }
 
         /// <summary>
-        /// Loads Key Results (KPIs) already linked to this OKR.
+        /// Loads Key Results already linked to this OKR.
         /// </summary>
         private void LoadKeyResults()
         {
             _keyResults.Clear();
             if (_data.KeyResults != null)
             {
-                foreach (var kpi in _data.KeyResults)
+                foreach (var kr in _data.KeyResults)
                 {
-                    _keyResults.Add(kpi);
+                    _keyResults.Add(kr);
                 }
             }
         }
 
         /// <summary>
-        /// Loads available KPIs that can be added as Key Results.
-        /// Excludes KPIs already linked to this OKR.
+        /// Updates start/end dates based on selected time period.
         /// </summary>
-        private void LoadAvailableKpis()
+        private void UpdateDatesFromTimePeriod()
         {
-            _availableKpis.Clear();
-            var kpis = TrackerDataManager.Instance.KPIs;
-            if (kpis != null)
+            if (_selectedTimePeriod == null) return;
+
+            var year = _data.Year;
+            switch (_selectedTimePeriod.EnumValue)
             {
-                var linkedIds = _keyResults.Select(k => k.KpiId).ToHashSet();
-                foreach (var kpi in kpis.Where(k => !linkedIds.Contains(k.KpiId)))
-                {
-                    _availableKpis.Add(kpi);
-                }
+                case TimePeriodEnum.Q1:
+                    StartDate = new DateTime(year, 1, 1);
+                    EndDate = new DateTime(year, 3, 31);
+                    break;
+                case TimePeriodEnum.Q2:
+                    StartDate = new DateTime(year, 4, 1);
+                    EndDate = new DateTime(year, 6, 30);
+                    break;
+                case TimePeriodEnum.Q3:
+                    StartDate = new DateTime(year, 7, 1);
+                    EndDate = new DateTime(year, 9, 30);
+                    break;
+                case TimePeriodEnum.Q4:
+                    StartDate = new DateTime(year, 10, 1);
+                    EndDate = new DateTime(year, 12, 31);
+                    break;
+                case TimePeriodEnum.Annual:
+                    StartDate = new DateTime(year, 1, 1);
+                    EndDate = new DateTime(year, 12, 31);
+                    break;
+                // Custom keeps whatever dates are set
             }
         }
 
@@ -466,25 +565,33 @@ namespace Tracker.ViewModels.DialogViewModels
 
         /// <summary>
         /// Determines whether a Key Result can be added.
-        /// Requires a KPI to be selected from the available list.
+        /// Requires at least a title.
         /// </summary>
         private bool CanExecuteAddKeyResult(object? obj)
         {
-            return SelectedAvailableKpi != null;
+            return !string.IsNullOrWhiteSpace(NewKrTitle);
         }
 
         /// <summary>
-        /// Adds the selected KPI as a Key Result to this OKR.
+        /// Adds a new Key Result to this OKR.
         /// </summary>
         private void AddKeyResultExecuted(object? parameter)
         {
-            if (SelectedAvailableKpi == null) return;
+            if (string.IsNullOrWhiteSpace(NewKrTitle)) return;
 
-            // Move from available to linked
-            var kpi = SelectedAvailableKpi;
-            kpi.OkrId = _data.ObjectiveId;
-            _keyResults.Add(kpi);
-            _availableKpis.Remove(kpi);
+            var kr = new KeyResult
+            {
+                Title = NewKrTitle,
+                TargetValue = NewKrTargetValue,
+                CurrentValue = 0,
+                StartingValue = 0,
+                Unit = NewKrUnit,
+                Weight = 1.0m,
+                SortOrder = _keyResults.Count,
+                TargetDirection = TargetDirectionEnum.GreaterOrEqual
+            };
+
+            _keyResults.Add(kr);
 
             // Track the change
             UpdateChangedValues("@KeyResults", _keyResults.Count);
@@ -493,12 +600,15 @@ namespace Tracker.ViewModels.DialogViewModels
             RaisePropertyChanged(nameof(Status));
             RaisePropertyChanged(nameof(CompletionPercentage));
 
-            SelectedAvailableKpi = null;
+            // Clear input fields
+            NewKrTitle = string.Empty;
+            NewKrTargetValue = 100;
+            NewKrUnit = "%";
         }
 
         /// <summary>
         /// Determines whether a Key Result can be removed.
-        /// Requires a KPI to be selected from the linked list.
+        /// Requires a Key Result to be selected.
         /// </summary>
         private bool CanExecuteRemoveKeyResult(object? obj)
         {
@@ -512,11 +622,7 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             if (SelectedKeyResult == null) return;
 
-            // Move from linked back to available
-            var kpi = SelectedKeyResult;
-            kpi.OkrId = 0;
-            _availableKpis.Add(kpi);
-            _keyResults.Remove(kpi);
+            _keyResults.Remove(SelectedKeyResult);
 
             // Track the change
             UpdateChangedValues("@KeyResults", _keyResults.Count);

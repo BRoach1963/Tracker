@@ -106,8 +106,8 @@ namespace Tracker.Services
                     : "N/A";
                 worksheet.Cells[row, 4].Value = meeting.Status.ToString();
                 worksheet.Cells[row, 5].Value = meeting.Description;
-                worksheet.Cells[row, 6].Value = meeting.ActionItems?.Count(a => !a.IsDeleted) ?? 0;
-                worksheet.Cells[row, 7].Value = meeting.FollowUpItems?.Count(f => !f.IsDeleted) ?? 0;
+                worksheet.Cells[row, 6].Value = meeting.Tasks?.Count(t => !t.IsDeleted) ?? 0;
+                worksheet.Cells[row, 7].Value = meeting.AgendaItems?.Count(a => !a.IsDeleted) ?? 0;
                 worksheet.Cells[row, 8].Value = meeting.LinkedTasks?.Count(lt => !lt.IsDeleted) ?? 0;
                 worksheet.Cells[row, 9].Value = meeting.LinkedOkrs?.Count(lo => !lo.IsDeleted) ?? 0;
                 worksheet.Cells[row, 10].Value = meeting.LinkedKpis?.Count(lk => !lk.IsDeleted) ?? 0;
@@ -480,8 +480,8 @@ namespace Tracker.Services
                     : "N/A";
                 worksheet.Cells[row, 4].Value = meeting.Status.ToString();
                 worksheet.Cells[row, 5].Value = meeting.Description;
-                worksheet.Cells[row, 6].Value = meeting.ActionItems?.Count(a => !a.IsDeleted) ?? 0;
-                worksheet.Cells[row, 7].Value = meeting.FollowUpItems?.Count(f => !f.IsDeleted) ?? 0;
+                worksheet.Cells[row, 6].Value = meeting.Tasks?.Count(t => !t.IsDeleted) ?? 0;
+                worksheet.Cells[row, 7].Value = meeting.AgendaItems?.Count(a => !a.IsDeleted) ?? 0;
                 worksheet.Cells[row, 8].Value = meeting.LinkedTasks?.Count(lt => !lt.IsDeleted) ?? 0;
                 worksheet.Cells[row, 9].Value = meeting.LinkedOkrs?.Count(lo => !lo.IsDeleted) ?? 0;
                 worksheet.Cells[row, 10].Value = meeting.LinkedKpis?.Count(lk => !lk.IsDeleted) ?? 0;

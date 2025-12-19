@@ -1,11 +1,13 @@
-﻿using Tracker.ViewModels.DialogViewModels;
+﻿using Tracker.Help.Attributes;
+using Tracker.ViewModels.DialogViewModels;
 
 namespace Tracker.Views.Dialogs
 {
     /// <summary>
     /// Interaction logic for AddProjectDialog.xaml
     /// </summary>
-    public partial class AddProjectDialog 
+    [HelpContext("dialogs/add-project")]
+    public partial class AddProjectDialog
     {
         public AddProjectDialog(NewProjectViewModel vm)
         {

@@ -24,24 +24,13 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        private static UserSettingsManager? _instance;
-        private static readonly object SyncRoot = new();
+        private static readonly Lazy<UserSettingsManager> _lazyInstance = 
+            new(() => new UserSettingsManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-        public static UserSettingsManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        _instance ??= new UserSettingsManager();
-                    }
-                }
-
-                return _instance;
-            }
-        }
+        /// <summary>
+        /// Gets the singleton instance of UserSettingsManager.
+        /// </summary>
+        public static UserSettingsManager Instance => _lazyInstance.Value;
 
         #endregion
 
@@ -70,10 +59,29 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Gets or sets the currently logged in user (runtime only, not persisted).
+        /// Gets or sets the currently logged in user username (runtime only, not persisted).
         /// Used for audit tracking in database operations.
         /// </summary>
         public string CurrentUser { get; set; } = Environment.UserName;
+
+        /// <summary>
+        /// Gets or sets the currently logged in user's database ID (runtime only, not persisted).
+        /// This is the User.Id from the Users table.
+        /// </summary>
+        public int? CurrentUserId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the reminder settings.
+        /// </summary>
+        public ReminderSettings ReminderSettings
+        {
+            get => _settings.ReminderSettings ?? new ReminderSettings();
+            set
+            {
+                _settings.ReminderSettings = value;
+                SaveSettings();
+            }
+        }
 
         #endregion
 

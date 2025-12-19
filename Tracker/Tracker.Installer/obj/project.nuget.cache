@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "+K9WbVkHq8c=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker.Installer\\Tracker.Installer.wixproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\vbpro\\.nuget\\packages\\wixtoolset.netfx.wixext\\6.0.2\\wixtoolset.netfx.wixext.6.0.2.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\wixtoolset.ui.wixext\\6.0.2\\wixtoolset.ui.wixext.6.0.2.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\wixtoolset.util.wixext\\6.0.2\\wixtoolset.util.wixext.6.0.2.nupkg.sha512"
+  ],
+  "logs": []
+}

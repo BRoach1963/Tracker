@@ -118,7 +118,11 @@ namespace Tracker.Controls.CustomControls
                 }
                 else
                 {
-                    this.Foreground = Brushes.Black;
+                    // Use themed foreground instead of hardcoded black
+                    if (Application.Current.TryFindResource("ForegroundBrush") is Brush foregroundBrush)
+                    {
+                        this.Foreground = foregroundBrush;
+                    }
                     hintTextBlock.Visibility = Visibility.Collapsed;
                 }
             }

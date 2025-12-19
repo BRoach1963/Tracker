@@ -17,27 +17,13 @@ namespace Tracker.Managers
 
         #region Singleton Instance
 
-        private static DialogManager? _instance;
-        private static readonly object SyncRoot = new object();
+        private static readonly Lazy<DialogManager> _lazyInstance = 
+            new(() => new DialogManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-        public static DialogManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        if (_instance == null)
-                        {
-                            _instance = new DialogManager();
-                        }
-                    }
-                }
-
-                return _instance;
-            }
-        }
+        /// <summary>
+        /// Gets the singleton instance of DialogManager.
+        /// </summary>
+        public static DialogManager Instance => _lazyInstance.Value;
 
         #endregion
 

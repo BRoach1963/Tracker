@@ -6,6 +6,7 @@ using Tracker.Database;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
+using Tracker.Services.Google;
 
 namespace Tracker.Managers
 {
@@ -26,38 +27,45 @@ namespace Tracker.Managers
         /// <summary>
         /// Syncs a 1:1 meeting to Google Calendar if enabled.
         /// </summary>
-        public async Task<bool> SyncToGoogleCalendarAsync(OneOnOne meeting)
+        public async Task<bool> SyncToGoogleCalendarAsync(OneOnOne meeting, bool createGoogleMeet = false)
         {
-            var settings = UserSettingsManager.Instance.Settings.Calendar;
+            var settings = UserSettingsManager.Instance.Settings.Google;
             
-            if (!settings.GoogleCalendarEnabled || string.IsNullOrEmpty(settings.GoogleAccessToken))
+            if (!settings.IsConnected || !settings.CalendarSyncEnabled)
             {
                 return false;
             }
 
             try
             {
-                // Get valid access token (refresh if needed)
-                var accessToken = await GoogleAuthService.Instance.GetValidAccessTokenAsync(settings);
-                if (string.IsNullOrEmpty(accessToken))
+                // Ensure authenticated
+                if (!GoogleAuthService.Instance.IsAuthenticated)
                 {
-                    _logger.Error("Unable to get valid Google access token");
-                    return false;
+                    var success = await GoogleAuthService.Instance.TrySilentSignInAsync();
+                    if (!success)
+                    {
+                        _logger.Error("Unable to authenticate with Google");
+                        return false;
+                    }
                 }
 
-                // Initialize calendar service
-                GoogleCalendarService.Instance.Initialize(accessToken);
-
                 // Create or update event
-                string? eventId;
                 if (string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
                 {
                     // Create new event
-                    eventId = await GoogleCalendarService.Instance.CreateEventAsync(meeting);
-                    if (eventId != null)
+                    var createdEvent = await GoogleCalendarService.Instance.CreateEventAsync(meeting, createGoogleMeet);
+                    if (createdEvent != null)
                     {
-                        meeting.GoogleCalendarEventId = eventId;
+                        meeting.GoogleCalendarEventId = createdEvent.Id;
                         meeting.IsSyncedToGoogle = true;
+                        
+                        // Extract Google Meet URL if created
+                        var meetUrl = GoogleCalendarService.GetGoogleMeetUrl(createdEvent);
+                        if (!string.IsNullOrEmpty(meetUrl))
+                        {
+                            meeting.GoogleMeetUrl = meetUrl;
+                        }
+                        
                         await TrackerDbManager.Instance!.UpdateOneOnOneAsync(meeting);
                         _logger.Info("Synced meeting {0} to Google Calendar", meeting.Id);
                         return true;
@@ -66,8 +74,8 @@ namespace Tracker.Managers
                 else
                 {
                     // Update existing event
-                    var success = await GoogleCalendarService.Instance.UpdateEventAsync(meeting.GoogleCalendarEventId, meeting);
-                    if (success)
+                    var updatedEvent = await GoogleCalendarService.Instance.UpdateEventAsync(meeting.GoogleCalendarEventId, meeting);
+                    if (updatedEvent != null)
                     {
                         meeting.IsSyncedToGoogle = true;
                         await TrackerDbManager.Instance!.UpdateOneOnOneAsync(meeting);
@@ -95,28 +103,32 @@ namespace Tracker.Managers
                 return true; // Nothing to unsync
             }
 
-            var settings = UserSettingsManager.Instance.Settings.Calendar;
-            if (!settings.GoogleCalendarEnabled || string.IsNullOrEmpty(settings.GoogleAccessToken))
+            var settings = UserSettingsManager.Instance.Settings.Google;
+            if (!settings.IsConnected)
             {
                 return false;
             }
 
             try
             {
-                var accessToken = await GoogleAuthService.Instance.GetValidAccessTokenAsync(settings);
-                if (string.IsNullOrEmpty(accessToken))
+                // Ensure authenticated
+                if (!GoogleAuthService.Instance.IsAuthenticated)
                 {
-                    _logger.Error("Unable to get valid Google access token for unsync");
-                    return false;
+                    var authSuccess = await GoogleAuthService.Instance.TrySilentSignInAsync();
+                    if (!authSuccess)
+                    {
+                        _logger.Error("Unable to authenticate with Google for unsync");
+                        return false;
+                    }
                 }
 
-                GoogleCalendarService.Instance.Initialize(accessToken);
                 var success = await GoogleCalendarService.Instance.DeleteEventAsync(meeting.GoogleCalendarEventId);
                 
                 if (success)
                 {
                     meeting.GoogleCalendarEventId = null;
                     meeting.IsSyncedToGoogle = false;
+                    meeting.GoogleMeetUrl = null;
                     await TrackerDbManager.Instance!.UpdateOneOnOneAsync(meeting);
                     _logger.Info("Removed meeting {0} from Google Calendar", meeting.Id);
                 }
@@ -133,11 +145,12 @@ namespace Tracker.Managers
         /// <summary>
         /// Syncs a 1:1 meeting to all enabled calendar providers.
         /// </summary>
-        public async Task SyncToAllCalendarsAsync(OneOnOne meeting)
+        public async Task SyncToAllCalendarsAsync(OneOnOne meeting, bool createMeetingLinks = false)
         {
-            var googleSuccess = await SyncToGoogleCalendarAsync(meeting);
+            var googleSuccess = await SyncToGoogleCalendarAsync(meeting, createMeetingLinks);
             
             // Future: Add Outlook sync here
+            // var outlookSuccess = await SyncToOutlookCalendarAsync(meeting, createMeetingLinks);
             
             if (googleSuccess)
             {
@@ -146,4 +159,3 @@ namespace Tracker.Managers
         }
     }
 }
-

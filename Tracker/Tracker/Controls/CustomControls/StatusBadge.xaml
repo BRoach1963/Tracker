@@ -1,0 +1,36 @@
+<UserControl x:Class="Tracker.Controls.CustomControls.StatusBadge"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="28" d:DesignWidth="100"
+             x:Name="Root">
+    
+    <Border x:Name="BadgeBorder"
+            CornerRadius="{Binding CornerRadius, ElementName=Root}"
+            Padding="{Binding BadgePadding, ElementName=Root}"
+            Background="{Binding StatusBrush, ElementName=Root}"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Left">
+        
+        <StackPanel Orientation="Horizontal">
+            <!-- Status Icon (optional) -->
+            <Ellipse x:Name="StatusDot"
+                     Width="6" Height="6"
+                     Fill="White"
+                     Opacity="0.9"
+                     Margin="0,0,6,0"
+                     VerticalAlignment="Center"
+                     Visibility="{Binding ShowDot, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            
+            <!-- Status Text -->
+            <TextBlock Text="{Binding DisplayText, ElementName=Root}"
+                       FontSize="{Binding BadgeFontSize, ElementName=Root}"
+                       FontWeight="SemiBold"
+                       Foreground="White"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
+    </Border>
+</UserControl>
+
