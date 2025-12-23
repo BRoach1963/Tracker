@@ -346,7 +346,7 @@ namespace Tracker.Database
                 entity.Property(e => e.Notes).HasMaxLength(4000);
                 entity.Property(e => e.Feedback).HasMaxLength(4000);
                 entity.Property(e => e.GoogleCalendarEventId).HasMaxLength(200);
-                entity.Property(e => e.OutlookCalendarEventId).HasMaxLength(200);
+                entity.Property(e => e.CalendarEventId).HasMaxLength(200);
                 
                 // TeamMemberName is computed from TeamMember navigation property
                 entity.Ignore(e => e.TeamMemberName);
@@ -622,10 +622,6 @@ namespace Tracker.Database
                 entity.Ignore(e => e.IsResolved);
                 entity.Ignore(e => e.CategoryDisplay);
                 entity.Ignore(e => e.HasLinkedItems);
-                
-                // Legacy single-link properties - ignore (using LinkedItems collection instead)
-                entity.Ignore(e => e.HasLinkedItem);
-                entity.Ignore(e => e.LinkedItemDisplay);
                 
                 // User ownership: Each AgendaItem belongs to one User (the manager's 1:1)
                 entity.HasOne<User>()

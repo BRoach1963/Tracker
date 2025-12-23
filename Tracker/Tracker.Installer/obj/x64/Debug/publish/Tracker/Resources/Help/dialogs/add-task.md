@@ -1,65 +1,146 @@
-# Add Task Dialog
+# Add/Edit Task Dialog
 
-Create or edit tasks.
+This dialog creates and manages individual tasks.
 
-## Overview
+## Accessing the Dialog
 
-Create actionable tasks for team members to complete.
+### Add New
+- **Pulse** → **Tasks** → **+ Add Task**
+- Within project → **+ Add Task**
+- Keyboard: `Ctrl+N` on Tasks view
 
-## Fields
+### Edit Existing
+- Click task → **Edit**
+- Right-click → **Edit**
+- Double-click task
 
-| Field | Description |
-|-------|-------------|
-| **Description** | What needs to be done |
-| **Owner** | Team member responsible |
-| **Due Date** | When it should be completed |
-| **Status** | Open or Completed |
-| **Notes** | Additional details |
+## Dialog Fields
 
-## Creating a Task
+### Core Fields
 
-1. Enter a clear **Description**
-   - Be specific about what needs to be done
-   - Include acceptance criteria if needed
-2. Select the **Owner**
-   - Who will complete this task?
-3. Set a **Due Date**
-   - When should it be done?
-4. Add **Notes** (optional)
-   - Background information
-   - Links to resources
-5. Click **Save**
+| Field | Required | Description |
+|-------|----------|-------------|
+| **Description** | Yes | What needs to be done |
+| **Due Date** | Recommended | When it should be completed |
+| **Owner** | Recommended | Who is responsible |
+| **Priority** | Optional | Urgency level |
+| **Status** | Auto | Current state |
 
-## Editing a Task
+### Description
+Write clear, actionable task descriptions:
+- Start with a verb
+- Be specific about deliverable
+- Include context if needed
 
-Open an existing task to:
+**Examples**:
+✅ "Review Q4 budget proposal and send feedback to Sarah"
+❌ "Budget"
 
-- Update the description
-- Change the owner
-- Adjust the due date
-- Mark as completed
-- Add notes
+### Due Date
+- Use calendar picker
+- Or type: "tomorrow", "next Friday", "Dec 15"
+- Leave blank for no deadline
 
-## Completing a Task
+### Owner
+- Select from team members
+- Can be yourself
+- Tasks appear in their view
 
-Two ways to mark complete:
+### Priority
 
-1. In the dialog: Change status to **Completed**
-2. In the grid: Click the checkbox
+| Level | Use Case | Visual |
+|-------|----------|--------|
+| **Critical** | Must do immediately | 🔴 |
+| **High** | Important, needs attention | 🟠 |
+| **Medium** | Normal priority | 🟡 |
+| **Low** | Nice to have | 🟢 |
 
-## Tips
+### Status
 
-> 💡 **Be specific** - "Review PR #123" not "Review code"
+| Status | Description |
+|--------|-------------|
+| **Not Started** | Created, work not begun |
+| **In Progress** | Actively working |
+| **On Hold** | Paused/blocked |
+| **Completed** | Done |
 
-> 💡 **Single owner** - One person responsible, not a team
+### Additional Fields
 
-> 💡 **Realistic dates** - Consider workload and dependencies
+#### Notes
+Add context, details, or instructions:
+- Supporting information
+- Links and references
+- Acceptance criteria
 
-> 💡 **Use notes** - Provide context and resources
+#### Project
+Optionally assign to a project:
+1. Toggle "Part of Project"
+2. Select project from dropdown
+3. Task contributes to project progress
 
----
+## Task Linking
 
-*See also:*
-- [Tasks](../features/tasks.md)
-- [One-on-Ones](../features/one-on-ones.md)
+### Link to 1:1 Agenda
+Connect task to meeting discussion:
+1. Click **Link to 1:1**
+2. Select meeting
+3. Task appears in meeting context
 
+### Link to OKR
+Show contribution to objectives:
+1. Click **Link to OKR**
+2. Select Key Result
+3. Task completion updates OKR
+
+## Dialog Actions
+
+| Button | Action |
+|--------|--------|
+| **Save** | Save and close |
+| **Save & New** | Save and create another |
+| **Cancel** | Discard and close |
+| **Delete** | Remove task (edit mode) |
+
+## Quick Entry Tips
+
+### Fastest Path
+1. Open dialog (`Ctrl+N`)
+2. Type description
+3. Tab to set due date
+4. Tab to select owner
+5. Enter to save
+
+### Bulk Creation
+Use **Save & New** to rapidly create multiple tasks.
+
+## Validation
+
+- Description required (cannot be empty)
+- Due date must be valid if set
+- Owner must exist if selected
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+S` | Save |
+| `Escape` | Cancel |
+| `Enter` | Save (in some fields) |
+| `Tab` | Next field |
+
+## Best Practices
+
+### Writing Tasks
+- One action per task
+- Clear completion criteria
+- Appropriate granularity (not too big, not too small)
+
+### Setting Due Dates
+- Be realistic
+- Include buffer for review
+- Consider dependencies
+
+### Assignment
+- Ensure owner has capacity
+- Provide context
+- Set appropriate priority

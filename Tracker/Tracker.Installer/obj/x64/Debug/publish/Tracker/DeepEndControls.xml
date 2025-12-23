@@ -168,6 +168,118 @@
             Ring with gradient.
             </summary>
         </member>
+        <member name="T:DeepEndControls.Controls.Input.AutoSuggestBox">
+            <summary>
+            A text input control with auto-suggest dropdown functionality.
+            Supports filtering items as user types, keyboard navigation, and custom item templates.
+            </summary>
+        </member>
+        <member name="F:DeepEndControls.Controls.Input.AutoSuggestBox.TextChangedEvent">
+            <summary>
+            Raised when text in the search box changes.
+            </summary>
+        </member>
+        <member name="F:DeepEndControls.Controls.Input.AutoSuggestBox.QuerySubmittedEvent">
+            <summary>
+            Raised when the user submits the search (Enter key or button click).
+            </summary>
+        </member>
+        <member name="F:DeepEndControls.Controls.Input.AutoSuggestBox.SuggestionChosenEvent">
+            <summary>
+            Raised when an item is selected from the suggestion list.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.Text">
+            <summary>
+            Gets or sets the text currently displayed in the text box.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.PlaceholderText">
+            <summary>
+            Gets or sets the placeholder text displayed when the text box is empty.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.ItemsSource">
+            <summary>
+            Gets or sets the collection of items to suggest.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.FilteredItems">
+            <summary>
+            Gets or sets the filtered collection of items to display in the dropdown.
+            This should be set by the consuming code when TextChanged fires.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.SelectedItem">
+            <summary>
+            Gets or sets the currently selected item from the suggestion list.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.DisplayMemberPath">
+            <summary>
+            Gets or sets the path to the property used for display text.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.ItemTemplate">
+            <summary>
+            Gets or sets the template used to display each suggestion item.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.IsDropDownOpen">
+            <summary>
+            Gets or sets whether the suggestion dropdown is currently open.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.MinimumSearchLength">
+            <summary>
+            Gets or sets the minimum number of characters required before suggestions appear.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.MaxSuggestions">
+            <summary>
+            Gets or sets the maximum number of suggestions to display.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.SearchDelay">
+            <summary>
+            Gets or sets the delay in milliseconds before triggering search after typing stops.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.CornerRadius">
+            <summary>
+            Gets or sets the corner radius of the control.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.ShowClearButton">
+            <summary>
+            Gets or sets whether to show the clear button when text is present.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.NoResultsText">
+            <summary>
+            Gets or sets the text displayed when no suggestions match the query.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.UpdateTextOnSelect">
+            <summary>
+            Gets or sets whether the text box is updated when an item is selected.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.IsBusy">
+            <summary>
+            Gets or sets whether the control is busy loading suggestions.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.QuerySubmittedCommand">
+            <summary>
+            Command executed when query is submitted.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.AutoSuggestBox.SuggestionChosenCommand">
+            <summary>
+            Command executed when a suggestion is chosen.
+            </summary>
+        </member>
         <member name="T:DeepEndControls.Controls.Input.NumericUpDown">
             <summary>
             A numeric input control with increment/decrement buttons and optional min/max constraints.
@@ -211,6 +323,113 @@
         <member name="T:DeepEndControls.Controls.Input.PasswordStrength">
             <summary>
             Password strength levels.
+            </summary>
+        </member>
+        <member name="T:DeepEndControls.Controls.Input.RichTextEditor">
+            <summary>
+            A rich text editor control with formatting toolbar.
+            Supports Bold, Italic, Underline, font size, font family, and lists.
+            Content is stored as RTF and can be converted to/from Markdown.
+            </summary>
+        </member>
+        <member name="F:DeepEndControls.Controls.Input.RichTextEditor.ContentChangedEvent">
+            <summary>
+            Raised when the content changes.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.RtfContent">
+            <summary>
+            Gets or sets the content in RTF format.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.PlainText">
+            <summary>
+            Gets or sets the content as plain text (read-only for binding purposes).
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.Markdown">
+            <summary>
+            Gets or sets the content in Markdown format.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.PlaceholderText">
+            <summary>
+            Gets or sets the placeholder text when the editor is empty.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.ShowToolbar">
+            <summary>
+            Gets or sets whether the formatting toolbar is visible.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.ShowFontControls">
+            <summary>
+            Gets or sets whether font size and family controls are visible.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.ShowListControls">
+            <summary>
+            Gets or sets whether list (bullet/number) controls are visible.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.IsReadOnly">
+            <summary>
+            Gets or sets whether the editor is read-only.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.CornerRadius">
+            <summary>
+            Gets or sets the corner radius of the control.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.ToolbarForeground">
+            <summary>
+            Gets or sets the foreground brush for toolbar buttons.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.SelectedFontSize">
+            <summary>
+            Gets or sets the currently selected font size.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Controls.Input.RichTextEditor.SelectedFontFamily">
+            <summary>
+            Gets or sets the currently selected font family.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.GetRtf">
+            <summary>
+            Gets the content as RTF string.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.GetPlainText">
+            <summary>
+            Gets the content as plain text.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.GetMarkdown">
+            <summary>
+            Converts the content to a simplified Markdown representation.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.SetRtf(System.String)">
+            <summary>
+            Sets the content from RTF string.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.SetPlainText(System.String)">
+            <summary>
+            Sets the content from plain text.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.SetMarkdown(System.String)">
+            <summary>
+            Sets the content from Markdown.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.Input.RichTextEditor.Clear">
+            <summary>
+            Clears all content.
             </summary>
         </member>
         <member name="T:DeepEndControls.Controls.Input.SearchBox">
@@ -471,6 +690,21 @@
         <member name="P:DeepEndControls.Theming.ThemePalette.ButtonForegroundBrush">
             <summary>
             Foreground color for buttons.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Theming.ThemePalette.HoverBrush">
+            <summary>
+            Background color for hover states.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Theming.ThemePalette.SelectionBrush">
+            <summary>
+            Background color for selected items.
+            </summary>
+        </member>
+        <member name="P:DeepEndControls.Theming.ThemePalette.SurfaceBrush">
+            <summary>
+            Surface color for cards, panels, and secondary backgrounds.
             </summary>
         </member>
         <member name="P:DeepEndControls.Theming.ThemePalette.Default">

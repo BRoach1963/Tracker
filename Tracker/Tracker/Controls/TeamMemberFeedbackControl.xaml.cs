@@ -1,4 +1,6 @@
 using System.Windows.Controls;
+using System.Windows.Input;
+using Tracker.ViewModels.DialogViewModels;
 
 namespace Tracker.Controls
 {
@@ -10,6 +12,15 @@ namespace Tracker.Controls
         public TeamMemberFeedbackControl()
         {
             InitializeComponent();
+        }
+
+        private void ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Double-click to edit feedback
+            if (DataContext is TeamMemberViewModel vm && vm.SelectedFeedback != null)
+            {
+                vm.EditFeedbackCommand?.Execute(null);
+            }
         }
     }
 }

@@ -1,101 +1,195 @@
-# Add 1:1 Meeting Dialog
+# Add/Edit 1:1 Meeting Dialog
 
-Create or edit one-on-one meetings.
+This dialog is used to create and manage one-on-one meetings with team members.
 
-## Overview
+## Accessing the Dialog
 
-This dialog helps you plan, document, and track 1:1 meetings.
+### Add New
+- **Circle** → **1:1s** → **+ Add 1:1**
+- From team member profile → **Schedule 1:1**
 
-## Basic Information
+### Edit Existing
+- Click 1:1 meeting → **Edit**
+- Right-click → **Edit**
+
+## Dialog Layout
+
+The dialog uses a **two-column layout**:
+- **Left Column**: Meeting details and settings
+- **Right Column**: Agenda items and notes
+
+## Left Column: Meeting Details
+
+### Team Member Selection
+Use the autocomplete field:
+1. Start typing name
+2. Select from suggestions
+3. Or scroll dropdown
+
+### Date & Time
 
 | Field | Description |
 |-------|-------------|
-| **Team Member** | Who you're meeting with |
-| **Date** | Meeting date |
-| **Start Time** | When it starts |
-| **Duration** | How long (default 30 min) |
+| **Date** | Meeting date (calendar picker) |
+| **Start Time** | When meeting begins |
+| **End Time** | When meeting ends |
+| **Duration** | Auto-calculated |
+
+### Meeting Settings
+
+| Field | Options |
+|-------|---------|
 | **Status** | Scheduled, Completed, Cancelled |
-| **Description** | Brief meeting summary |
+| **Location** | Free text (office, video link, etc.) |
+| **Recurring** | One-time or repeating |
 
-## Tabs
+### Quick Templates
+Pre-fill with common meeting formats. The dropdown shows "Select a template..." when no template is selected.
 
-### Agenda Tab
+**Available Templates**:
+- **Weekly Check-in**: Standard recurring meeting structure
+- **Career Development**: Focus on growth and goals
+- **Performance Review**: Structured feedback discussion
+- **Project Status**: Deep dive on project work
+- **Custom**: Start from scratch
 
-Plan discussion topics:
+**To Apply**:
+1. Select a template from the dropdown
+2. Click **Apply**
+3. Agenda items are added automatically
+4. Customize as needed
 
-1. Click **Add Agenda Item**
-2. Select category:
-   - Topic - General discussion
-   - Question - Something to ask
-   - Concern - Issue to address
-   - Update - Status to share
-   - Feedback - Recognition or coaching
-3. Enter description
-4. Set priority (High/Medium/Low)
+## Right Column: Agenda & Notes
 
-### Tasks Tab
+### Agenda Items
 
-Create and manage action items:
+#### Adding Items
+1. Click **+ Add Agenda Item**
+2. Enter topic description
+3. Select category (optional)
+4. Set priority (optional)
 
-1. Click **Add Task**
-2. Enter task description
-3. Set due date
-4. Assign owner (you or them)
+#### Item Properties
+- **Description**: What to discuss
+- **Category**: Check-in, Priorities, Feedback, Career, etc.
+- **Priority**: High, Medium, Low
+- **Is Completed**: Check when resolved
+- **Resolution**: What was decided
 
-Tasks created here are automatically linked to the meeting.
+#### Linking Items
+Connect agenda items to other entities for context. **You can link multiple items** to a single agenda topic:
 
-### Linked Items Tab
+1. Click the link icon (🔗) on any agenda item
+2. Browse or search available items
+3. Filter by type: Tasks, OKRs, KPIs, or Projects
+4. Click an item to link it
+5. Linked items appear as tags on the agenda item
+6. **Click the link icon again** to add more links
+7. Each linked item shows its type (e.g., "Task", "OKR")
 
-Connect existing items to discuss:
+**Why link multiple items?**
+- Discuss related tasks together
+- Connect an OKR with its supporting KPIs
+- Review a project alongside its tasks
+- Provide full context for complex topics
 
-- **Tasks** - Review existing tasks
-- **OKRs** - Discuss objectives
-- **KPIs** - Review metrics
-- **Projects** - Project updates
+#### Removing Links
+- Hover over a linked item tag
+- Click the **×** to remove that link
+- Other links remain intact
 
-## Using Templates
+#### Deleting Items
+- Click trash icon on the item
+- Or select and press `Delete`
 
-Speed up meeting creation:
+### Meeting Notes
 
-1. Select a **Template** from the dropdown
-2. Pre-configured agenda items are added
-3. Customize as needed
+#### Rich Text Editor
+Format your notes:
+- **Bold**: `Ctrl+B`
+- **Italic**: `Ctrl+I`
+- **Underline**: `Ctrl+U`
+- Bullet lists
+- Numbered lists
+- Font size/family options
 
-## Rollover from Previous
+#### Auto-Save
+Notes save automatically:
+- Every few seconds
+- On dialog close
+- No manual save needed
 
-Bring forward uncompleted items:
+## Dialog Workflow
 
-1. Click **Load Previous Meeting**
-2. See summary of last meeting
-3. Click **Rollover Tasks** to bring uncompleted tasks forward
+### New Meeting
+1. Select team member
+2. Set date and time
+3. Choose status (usually "Scheduled")
+4. Add agenda items
+5. Save
 
-## Meeting Status
+### Completing a Meeting
+1. Open existing scheduled meeting
+2. Add notes during/after meeting
+3. Mark agenda items as completed
+4. Add resolutions to items
+5. Change status to "Completed"
+6. Save
 
-| Status | Meaning |
-|--------|---------|
-| **Scheduled** | Meeting is planned |
-| **Completed** | Meeting happened |
-| **Cancelled** | Meeting was cancelled |
+### Cancelling a Meeting
+1. Open the meeting
+2. Change status to "Cancelled"
+3. Optionally add reason in notes
+4. Save
 
-## Saving
+## Validation
 
-- All changes auto-save when you close
-- Click **Save** to save and continue editing
-- Use **Cancel** to discard all changes
+### Required Fields
+- Team member must be selected
+- Date must be set
+- Time must be set
+
+### Warnings
+- Meeting in the past (for "Scheduled" status)
+- No agenda items added
+- Overlapping with another meeting
+
+## Dialog Actions
+
+| Button | Action |
+|--------|--------|
+| **Save** | Save changes and close |
+| **Save & New** | Save and open new blank meeting |
+| **Cancel** | Discard changes and close |
+| **Delete** | Remove meeting (edit mode) |
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+S` | Save |
+| `Escape` | Cancel |
+| `Ctrl+Enter` | Save and close |
+| `Tab` | Next field |
 
 ## Tips
 
-> 💡 **Prepare ahead** - Add agenda items throughout the week.
+### Preparation Best Practices
+1. Open dialog day before meeting
+2. Review previous meeting notes
+3. Add 3-5 agenda items
+4. Prioritize most important items first
 
-> 💡 **Use templates** - Save time with recurring formats.
+### During the Meeting
+1. Open dialog or have notes ready
+2. Work through agenda items
+3. Mark completed as you go
+4. Add resolution notes
+5. Capture action items
 
-> 💡 **Rollover tasks** - Ensure nothing falls through cracks.
-
-> 💡 **Link items** - Context makes discussions productive.
-
----
-
-*See also:*
-- [One-on-Ones](../features/one-on-ones.md)
-- [Tasks](../features/tasks.md)
-
+### After the Meeting
+1. Complete any remaining notes
+2. Mark all items as resolved/completed
+3. Change status to "Completed"
+4. Create follow-up tasks
+5. Schedule next meeting if not recurring

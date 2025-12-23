@@ -90,12 +90,23 @@
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
                                                 <Grid Width="24" Height="24" Margin="0,0,8,0">
-                                                    <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                    <!-- Background for initials fallback -->
+                                                    <Ellipse Fill="{DynamicResource AccentBrush}"
+                                                             Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
                                                     <TextBlock Text="{Binding Initials}" 
                                                                FontSize="9" FontWeight="Bold"
                                                                Foreground="{DynamicResource BackgroundBrush}"
                                                                HorizontalAlignment="Center" 
-                                                               VerticalAlignment="Center"/>
+                                                               VerticalAlignment="Center"
+                                                               Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
+                                                    <!-- Profile Image -->
+                                                    <Ellipse Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.Instance}}">
+                                                        <Ellipse.Fill>
+                                                            <ImageBrush ImageSource="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                                        RenderOptions.BitmapScalingMode="HighQuality"
+                                                                        Stretch="UniformToFill"/>
+                                                        </Ellipse.Fill>
+                                                    </Ellipse>
                                                 </Grid>
                                                 <TextBlock VerticalAlignment="Center">
                                                     <TextBlock.Text>
@@ -193,12 +204,23 @@
                                                     <CheckBox Style="{StaticResource ModernCheckBoxStyle}" Margin="0,4">
                                                         <StackPanel Orientation="Horizontal">
                                                             <Grid Width="24" Height="24" Margin="0,0,8,0">
-                                                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                                <!-- Background for initials fallback -->
+                                                                <Ellipse Fill="{DynamicResource AccentBrush}"
+                                                                         Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
                                                                 <TextBlock Text="{Binding Initials}" 
                                                                            FontSize="9" FontWeight="Bold"
                                                                            Foreground="{DynamicResource BackgroundBrush}"
                                                                            HorizontalAlignment="Center" 
-                                                                           VerticalAlignment="Center"/>
+                                                                           VerticalAlignment="Center"
+                                                                           Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
+                                                                <!-- Profile Image -->
+                                                                <Ellipse Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.Instance}}">
+                                                                    <Ellipse.Fill>
+                                                                        <ImageBrush ImageSource="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                                                    RenderOptions.BitmapScalingMode="HighQuality"
+                                                                                    Stretch="UniformToFill"/>
+                                                                    </Ellipse.Fill>
+                                                                </Ellipse>
                                                             </Grid>
                                                             <TextBlock VerticalAlignment="Center">
                                                                 <TextBlock.Text>

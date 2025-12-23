@@ -145,12 +145,19 @@ namespace Tracker.Managers
             return _oneOnOnes;
         }
 
-        public async Task<int> AddOneOnOne(OneOnOne oneOnOne)
+        public async Task<int> AddOneOnOne(OneOnOne oneOnOne, int? teamMemberId = null)
         {
-            var id = await TrackerDbManager.Instance!.AddOneOnOneAsync(oneOnOne);
+            var id = await TrackerDbManager.Instance!.AddOneOnOneAsync(oneOnOne, teamMemberId);
             if (id > 0)
             {
                 oneOnOne.Id = id;
+                
+                // If teamMemberId was provided, populate the TeamMember navigation property from cache
+                if (teamMemberId.HasValue && oneOnOne.TeamMember == null)
+                {
+                    oneOnOne.TeamMember = _teamMembers?.FirstOrDefault(tm => tm.Id == teamMemberId.Value) ?? new TeamMember();
+                }
+                
                 _oneOnOnes?.Add(oneOnOne);
                 
                 // Create meeting reminder if enabled
@@ -346,6 +353,11 @@ namespace Tracker.Managers
             return await TrackerDbManager.Instance!.GetAllFeedbackAsync();
         }
 
+        public async Task<int> AddFeedback(Feedback feedback)
+        {
+            return await TrackerDbManager.Instance!.AddFeedbackAsync(feedback);
+        }
+
         public async Task DeleteFeedbackAsync(Feedback feedback)
         {
             await TrackerDbManager.Instance!.DeleteFeedbackAsync(feedback.Id);
@@ -360,9 +372,28 @@ namespace Tracker.Managers
             return await TrackerDbManager.Instance!.GetAllGoalsAsync();
         }
 
+        public async Task<int> AddGoal(IndividualGoal goal)
+        {
+            return await TrackerDbManager.Instance!.AddGoalAsync(goal);
+        }
+
         public async Task DeleteGoalAsync(IndividualGoal goal)
         {
             await TrackerDbManager.Instance!.DeleteGoalAsync(goal.Id);
+        }
+
+        #endregion
+
+        #region QuickNote Methods
+
+        public async Task<List<QuickNote>> GetQuickNotes()
+        {
+            return await TrackerDbManager.Instance!.GetQuickNotesAsync();
+        }
+
+        public async Task<int> AddQuickNote(QuickNote note)
+        {
+            return await TrackerDbManager.Instance!.AddQuickNoteAsync(note);
         }
 
         #endregion

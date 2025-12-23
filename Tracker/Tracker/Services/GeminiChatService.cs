@@ -212,7 +212,7 @@ namespace Tracker.Services
                         new GeminiFunctionDeclaration
                         {
                             Name = "create_meeting",
-                            Description = "Creates a new 1:1 meeting with a team member",
+                            Description = "Creates a new 1:1 meeting with a team member. Only requires name and date - no phone or other contact info needed.",
                             Parameters = new GeminiSchema
                             {
                                 Type = "object",
@@ -226,7 +226,7 @@ namespace Tracker.Services
                                     ["date"] = new GeminiProperty
                                     {
                                         Type = "string",
-                                        Description = "Date and time of the meeting (e.g., '2025-12-20 2:00 PM' or 'next Monday at 2pm')"
+                                        Description = "Date and time of the meeting in any standard format like '2025-12-24 2:00 PM' or '12/24/2025 14:00'. Parse relative dates yourself: 'next Tuesday' → calculate actual date. Today is " + DateTime.Now.ToString("yyyy-MM-dd (dddd)") + "."
                                     },
                                     ["notes"] = new GeminiProperty
                                     {
@@ -352,6 +352,177 @@ namespace Tracker.Services
                                     {
                                         Type = "integer",
                                         Description = "Number of days ahead to look (defaults to 7)"
+                                    }
+                                },
+                                Required = new List<string>()
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "create_feedback",
+                            Description = "Creates feedback for a team member",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["team_member_name"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Name of the team member receiving feedback"
+                                    },
+                                    ["title"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Brief title/summary of the feedback"
+                                    },
+                                    ["content"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Detailed feedback content"
+                                    },
+                                    ["type"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Type of feedback: 'Positive', 'Constructive', 'Recognition', or 'Development'",
+                                        Enum = new List<string> { "Positive", "Constructive", "Recognition", "Development" }
+                                    }
+                                },
+                                Required = new List<string> { "team_member_name", "title", "content" }
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "create_project",
+                            Description = "Creates a new project",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["name"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Project name"
+                                    },
+                                    ["description"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Project description"
+                                    },
+                                    ["start_date"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional start date"
+                                    },
+                                    ["end_date"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional target end date"
+                                    }
+                                },
+                                Required = new List<string> { "name" }
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "create_goal",
+                            Description = "Creates an individual development goal for a team member",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["team_member_name"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Name of the team member"
+                                    },
+                                    ["title"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Goal title"
+                                    },
+                                    ["description"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Detailed description of the goal"
+                                    },
+                                    ["target_date"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional target completion date"
+                                    },
+                                    ["category"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Goal category: 'SkillDevelopment', 'Certification', 'CareerProgression', 'Leadership', or 'Personal'",
+                                        Enum = new List<string> { "SkillDevelopment", "Certification", "CareerProgression", "Leadership", "Personal" }
+                                    }
+                                },
+                                Required = new List<string> { "team_member_name", "title" }
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "create_note",
+                            Description = "Creates a quick note or journal entry",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["content"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Note content"
+                                    },
+                                    ["title"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional note title"
+                                    },
+                                    ["category"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Category: 'General', 'Meeting', 'Idea', 'Todo', or 'Reminder'",
+                                        Enum = new List<string> { "General", "Meeting", "Idea", "Todo", "Reminder" }
+                                    }
+                                },
+                                Required = new List<string> { "content" }
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "get_projects",
+                            Description = "Gets all projects or searches by name",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["query"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional search query for project name"
+                                    }
+                                },
+                                Required = new List<string>()
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "get_notes",
+                            Description = "Gets recent notes/journal entries",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["limit"] = new GeminiProperty
+                                    {
+                                        Type = "integer",
+                                        Description = "Maximum number of notes to return (defaults to 10)"
                                     }
                                 },
                                 Required = new List<string>()

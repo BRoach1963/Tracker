@@ -46,7 +46,6 @@ C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\xunit.runner.visualstudio.testadapter.dll
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\xunit.runner.reporters.netcoreapp10.dll
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\xunit.runner.utility.netcoreapp10.dll
-C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Images\Tracker.ico
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Tracker.Tests.deps.json
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Tracker.Tests.runtimeconfig.json
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Tracker.Tests.dll

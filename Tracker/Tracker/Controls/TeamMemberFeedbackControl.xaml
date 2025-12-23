@@ -11,6 +11,10 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Icon resources -->
+            <PathGeometry x:Key="EditIcon" Figures="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+            <PathGeometry x:Key="DeleteIcon" Figures="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
         </ResourceDictionary>
     </UserControl.Resources>
     
@@ -80,7 +84,20 @@
                           SelectedItem="{Binding SelectedFeedback}"
                           BorderThickness="0"
                           Background="Transparent"
-                          Visibility="{Binding HasFeedback, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          HorizontalContentAlignment="Stretch"
+                          Visibility="{Binding HasFeedback, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                          MouseDoubleClick="ListView_MouseDoubleClick">
+                    <ListView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Edit Feedback" 
+                                      Command="{Binding EditFeedbackCommand}"
+                                      Icon="{StaticResource EditIcon}"/>
+                            <MenuItem Header="Delete Feedback" 
+                                      Command="{Binding DeleteFeedbackCommand}"
+                                      Icon="{StaticResource DeleteIcon}"/>
+                        </ContextMenu>
+                    </ListView.ContextMenu>
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <Border Padding="10,8" 
@@ -90,38 +107,67 @@
                                     Cursor="Hand">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     
-                                    <!-- Date -->
+                                    <!-- Title (Bold, larger) -->
                                     <TextBlock Grid.Column="0" Grid.Row="0"
-                                               Text="{Binding Date, StringFormat='{}{0:MMM dd, yyyy}'}"
+                                               Text="{Binding Title}"
                                                FontWeight="SemiBold"
-                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                               FontSize="13"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               TextWrapping="Wrap"
+                                               ToolTip="{Binding Title}"/>
                                     
                                     <!-- Type Badge -->
-                                    <Border Grid.Column="2" Grid.Row="0"
+                                    <Border Grid.Column="1" Grid.Row="0"
                                             Background="{Binding Type, Converter={x:Static converters:FeedbackTypeToColorConverter.Instance}}"
                                             CornerRadius="4"
-                                            Padding="6,2">
+                                            Padding="6,2"
+                                            Margin="8,0,0,0">
                                         <TextBlock Text="{Binding Type}"
                                                    FontSize="10"
                                                    Foreground="White"/>
                                     </Border>
                                     
-                                    <!-- Summary -->
-                                    <TextBlock Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1"
-                                               Text="{Binding Summary}"
+                                    <!-- Content Preview -->
+                                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1"
+                                               Text="{Binding Content}"
                                                Foreground="{DynamicResource HintTextBrush}"
-                                               FontSize="12"
+                                               FontSize="11"
                                                TextTrimming="CharacterEllipsis"
-                                               Margin="0,4,0,0"/>
+                                               MaxHeight="32"
+                                               TextWrapping="Wrap"
+                                               ToolTip="{Binding Content}"
+                                               Margin="0,3,0,0"/>
+                                    
+                                    <!-- Date and Context -->
+                                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
+                                                Orientation="Horizontal"
+                                                Margin="0,3,0,0">
+                                        <TextBlock Text="{Binding Date, StringFormat='{}{0:MMM dd, yyyy}'}"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   Opacity="0.7"/>
+                                        <TextBlock Text="•"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   Opacity="0.5"
+                                                   Margin="6,0"
+                                                   Visibility="{Binding Context, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"/>
+                                        <TextBlock Text="{Binding Context}"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource HintTextBrush}"
+                                                   Opacity="0.7"
+                                                   FontStyle="Italic"
+                                                   Visibility="{Binding Context, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"/>
+                                    </StackPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>

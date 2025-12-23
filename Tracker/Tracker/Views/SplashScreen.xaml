@@ -12,6 +12,7 @@
         ShowInTaskbar="True"
         Topmost="False"
         Title="Tracker"
+        Icon="/Images/Tracker.ico"
         Height="520"
         Width="480"
         Loaded="Window_Loaded">

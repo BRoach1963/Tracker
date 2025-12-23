@@ -1,57 +1,211 @@
-[
-  {
-    "id": "getting-started",
-    "title": "Getting Started",
-    "topicId": "getting-started/overview",
-    "children": [
-      { "id": "getting-started-overview", "title": "Overview", "topicId": "getting-started/overview", "children": [] },
-      { "id": "getting-started-quick-start", "title": "Quick Start", "topicId": "getting-started/quick-start", "children": [] }
-    ]
-  },
-  {
-    "id": "features",
-    "title": "Features",
-    "topicId": "features/dashboard",
-    "children": [
-      { "id": "features-dashboard", "title": "Dashboard", "topicId": "features/dashboard", "children": [] },
-      { "id": "features-team-members", "title": "Team Members", "topicId": "features/team-members", "children": [] },
-      { "id": "features-one-on-ones", "title": "One-on-Ones", "topicId": "features/one-on-ones", "children": [] },
-      { "id": "features-tasks", "title": "Tasks", "topicId": "features/tasks", "children": [] },
-      { "id": "features-projects", "title": "Projects", "topicId": "features/projects", "children": [] },
-      { "id": "features-okrs", "title": "OKRs", "topicId": "features/okrs", "children": [] },
-      { "id": "features-kpis", "title": "KPIs", "topicId": "features/kpis", "children": [] },
-      { "id": "features-goals", "title": "Goals", "topicId": "features/goals", "children": [] },
-      { "id": "features-feedback", "title": "Feedback", "topicId": "features/feedback", "children": [] },
-      { "id": "features-notes", "title": "Quick Notes", "topicId": "features/notes", "children": [] },
-      { "id": "features-search", "title": "Search", "topicId": "features/search", "children": [] },
-      { "id": "features-reports", "title": "Reports", "topicId": "features/reports", "children": [] }
-    ]
-  },
-  {
-    "id": "dialogs",
-    "title": "Dialogs",
-    "topicId": "dialogs/settings",
-    "children": [
-      { "id": "dialogs-settings", "title": "Settings", "topicId": "dialogs/settings", "children": [] },
-      { "id": "dialogs-add-team-member", "title": "Add Team Member", "topicId": "dialogs/add-team-member", "children": [] },
-      { "id": "dialogs-add-one-on-one", "title": "Add One-on-One", "topicId": "dialogs/add-one-on-one", "children": [] },
-      { "id": "dialogs-add-task", "title": "Add Task", "topicId": "dialogs/add-task", "children": [] },
-      { "id": "dialogs-add-project", "title": "Add Project", "topicId": "dialogs/add-project", "children": [] },
-      { "id": "dialogs-add-okr", "title": "Add OKR", "topicId": "dialogs/add-okr", "children": [] },
-      { "id": "dialogs-add-kpi", "title": "Add KPI", "topicId": "dialogs/add-kpi", "children": [] },
-      { "id": "dialogs-add-goal", "title": "Add Goal", "topicId": "dialogs/add-goal", "children": [] },
-      { "id": "dialogs-add-feedback", "title": "Add Feedback", "topicId": "dialogs/add-feedback", "children": [] },
-      { "id": "dialogs-add-reminder", "title": "Add Reminder", "topicId": "dialogs/add-reminder", "children": [] }
-    ]
-  },
-  {
-    "id": "reference",
-    "title": "Reference",
-    "topicId": "reference/keyboard-shortcuts",
-    "children": [
-      { "id": "reference-keyboard-shortcuts", "title": "Keyboard Shortcuts", "topicId": "reference/keyboard-shortcuts", "children": [] },
-      { "id": "reference-troubleshooting", "title": "Troubleshooting", "topicId": "reference/troubleshooting", "children": [] }
-    ]
+{
+  "title": "Tracker Help",
+  "version": "2.0",
+  "sections": [
+    {
+      "title": "Account",
+      "folder": "account",
+      "items": [
+        {
+          "title": "Signing In",
+          "file": "login.md",
+          "description": "How to sign in to your Tracker account"
+        },
+        {
+          "title": "Creating an Account",
+          "file": "create-account.md",
+          "description": "Setting up your new Tracker account"
+        },
+        {
+          "title": "Subscription Plans",
+          "file": "subscriptions.md",
+          "description": "Free, Standard, and Pro plan features and pricing"
+        },
+        {
+          "title": "Billing & Payments",
+          "file": "billing.md",
+          "description": "Payment methods, invoices, and billing cycles"
+        },
+        {
+          "title": "Account Settings",
+          "file": "account-settings.md",
+          "description": "Managing your profile and security settings"
+        }
+      ]
+    },
+    {
+      "title": "Getting Started",
+      "folder": "getting-started",
+      "items": [
+        {
+          "title": "Overview",
+          "file": "overview.md",
+          "description": "Introduction to Tracker and its core features"
+        },
+        {
+          "title": "Quick Start",
+          "file": "quick-start.md",
+          "description": "Get up and running in 5 minutes"
+        },
+        {
+          "title": "Navigation",
+          "file": "navigation.md",
+          "description": "How to navigate the application"
+        },
+        {
+          "title": "First Steps",
+          "file": "first-steps.md",
+          "description": "Getting started guide for new users"
+        }
+      ]
+    },
+    {
+      "title": "Features",
+      "folder": "features",
+      "items": [
+        {
+          "title": "Dashboard",
+          "file": "dashboard.md",
+          "description": "Your command center overview"
+        },
+        {
+          "title": "Team Members",
+          "file": "team-members.md",
+          "description": "Managing your team profiles"
+        },
+        {
+          "title": "1:1 Meetings",
+          "file": "one-on-ones.md",
+          "description": "Scheduling and documenting one-on-ones"
+        },
+        {
+          "title": "Tasks",
+          "file": "tasks.md",
+          "description": "Creating and tracking tasks"
+        },
+        {
+          "title": "Projects",
+          "file": "projects.md",
+          "description": "Managing multi-task initiatives"
+        },
+        {
+          "title": "OKRs",
+          "file": "okrs.md",
+          "description": "Objectives and Key Results"
+        },
+        {
+          "title": "KPIs",
+          "file": "kpis.md",
+          "description": "Key Performance Indicators"
+        },
+        {
+          "title": "Goals",
+          "file": "goals.md",
+          "description": "Individual development goals"
+        },
+        {
+          "title": "Feedback",
+          "file": "feedback.md",
+          "description": "Recording and tracking feedback"
+        },
+        {
+          "title": "Quick Notes",
+          "file": "quick-notes.md",
+          "description": "Fast capture for thoughts and ideas"
+        },
+        {
+          "title": "Reports",
+          "file": "reports.md",
+          "description": "Generating and sharing reports"
+        },
+        {
+          "title": "Oracle - AI Assistant",
+          "file": "ai-help-bot.md",
+          "description": "Your intelligent AI assistant with actions and semantic search"
+        },
+        {
+          "title": "Settings",
+          "file": "settings.md",
+          "description": "Configuring the application"
+        },
+        {
+          "title": "Integrations",
+          "file": "integrations.md",
+          "description": "Microsoft 365, Teams, Calendar, and other integrations"
+        }
+      ]
+    },
+    {
+      "title": "Dialogs",
+      "folder": "dialogs",
+      "items": [
+        {
+          "title": "Add Team Member",
+          "file": "add-team-member.md",
+          "description": "Creating and editing team profiles"
+        },
+        {
+          "title": "Add 1:1 Meeting",
+          "file": "add-one-on-one.md",
+          "description": "Scheduling one-on-one meetings"
+        },
+        {
+          "title": "Add Task",
+          "file": "add-task.md",
+          "description": "Creating tasks"
+        },
+        {
+          "title": "Add Project",
+          "file": "add-project.md",
+          "description": "Creating projects"
+        },
+        {
+          "title": "Add OKR",
+          "file": "add-okr.md",
+          "description": "Creating Objectives and Key Results"
+        },
+        {
+          "title": "Add KPI",
+          "file": "add-kpi.md",
+          "description": "Creating Key Performance Indicators"
+        },
+        {
+          "title": "Add Goal",
+          "file": "add-goal.md",
+          "description": "Creating individual goals"
+        },
+        {
+          "title": "Add Feedback",
+          "file": "add-feedback.md",
+          "description": "Recording feedback"
+        },
+        {
+          "title": "Settings",
+          "file": "settings.md",
+          "description": "Application settings dialog"
+        }
+      ]
+    },
+    {
+      "title": "Reference",
+      "folder": "reference",
+      "items": [
+        {
+          "title": "Keyboard Shortcuts",
+          "file": "keyboard-shortcuts.md",
+          "description": "All keyboard shortcuts in Tracker"
+        },
+        {
+          "title": "Troubleshooting",
+          "file": "troubleshooting.md",
+          "description": "Common issues and solutions"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-12-15",
+    "totalArticles": 28,
+    "categories": 5
   }
-]
-
+}

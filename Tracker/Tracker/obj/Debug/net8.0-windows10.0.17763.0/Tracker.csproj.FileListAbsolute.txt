@@ -37,7 +37,6 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\reference\troubleshooting.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\toc.json
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Tracker.exe
-C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Images\Tracker.ico
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Tracker.deps.json
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Tracker.runtimeconfig.json
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Debug\net8.0-windows10.0.17763.0\Tracker.dll
@@ -242,6 +241,7 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Resources\Themes\LightTheme.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Resources\Themes\ModernTheme.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Resources\Themes\SpicyTheme.baml
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\LoadingWindow.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\SplashScreen.baml
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Controls\AccountInfoControl.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Controls\ContactDataDisplayCard.g.cs
@@ -301,6 +301,7 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\Dialogs\TeamMemberDialog.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\Dialogs\UpgradePlanDialog.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\HelpBotWindow.g.cs
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\LoadingWindow.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\SplashScreen.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\Views\Toasts\TrackerToast.g.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Debug\net8.0-windows10.0.17763.0\App.g.cs

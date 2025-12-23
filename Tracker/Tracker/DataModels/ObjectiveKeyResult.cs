@@ -33,7 +33,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Team member who owns this OKR.
         /// </summary>
-        public TeamMember Owner { get; set; } = new();
+        public TeamMember Owner { get; set; } = null!;
         
         /// <summary>
         /// Period start date.

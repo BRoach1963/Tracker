@@ -183,7 +183,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private void ExecuteChangeDatabase(object? parameter)
         {
-            var owner = Application.Current.MainWindow;
+            var owner = Win32UtilHelper.GetMainWindow();
             var result = MessageBoxHelper.Show(
                 "Changing your database connection will require restarting the application.\n\n" +
                 "Your data in the current database will NOT be migrated to the new database.\n\n" +
@@ -211,7 +211,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private async void ExecuteClearData(object? parameter)
         {
-            var owner = Application.Current.MainWindow;
+            var owner = Win32UtilHelper.GetMainWindow();
             var result = MessageBoxHelper.Show(
                 "⚠️ WARNING: This will permanently delete ALL data from your database!\n\n" +
                 "This includes:\n" +

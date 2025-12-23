@@ -118,7 +118,7 @@ Analyze and share:
 - **Export options**: PDF, Excel, PowerPoint (Pro)
 - **Scheduled delivery**: Automated email reports (Pro)
 
-### 🤖 AI Help Bot (Standard+)
+### 🤖 Oracle - AI Assistant (Standard+)
 Get instant assistance:
 - **Feature guidance**: Learn how to use any feature
 - **Best practices**: Get management tips
@@ -175,7 +175,7 @@ Your data, your control:
 
 ### Version 2.0
 - ✨ Subscription plans (Free, Standard, Pro)
-- 🤖 AI Help Bot with data analysis
+- 🤖 Oracle AI assistant with actions and semantic search
 - 🔐 Cloud account system
 - 🎨 8 beautiful themes
 - 📱 Improved 1:1 dialog with rich notes

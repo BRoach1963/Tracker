@@ -68,7 +68,7 @@ Press `Ctrl+K` to open the search overlay:
 - Recent searches remembered
 
 ### Help Assistant
-Press `F1` or `Ctrl+Shift+H` to open the AI Help Bot:
+Press `F1` or `Ctrl+Shift+H` to open Oracle (your AI assistant):
 - Ask questions about features
 - Get help with your data
 - Best practice guidance

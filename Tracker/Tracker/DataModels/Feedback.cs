@@ -14,7 +14,7 @@ namespace Tracker.DataModels
         /// The team member this feedback is for.
         /// </summary>
         public int TeamMemberId { get; set; }
-        public TeamMember TeamMember { get; set; } = new();
+        public TeamMember TeamMember { get; set; } = null!;
 
         /// <summary>
         /// When the feedback was given.

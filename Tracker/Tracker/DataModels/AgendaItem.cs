@@ -16,11 +16,6 @@ namespace Tracker.DataModels
         private Severity _priority = Severity.Medium;
         private bool _isCompleted;
         private ObservableCollection<LinkedItem> _linkedItems = new();
-        
-        // Legacy single-link properties for backwards compatibility
-        private LinkedItemType? _linkedItemType;
-        private int? _linkedItemId;
-        private string? _linkedItemTitle;
 
         public int Id { get; set; }
 
@@ -115,51 +110,6 @@ namespace Tracker.DataModels
             OnPropertyChanged(nameof(HasLinkedItems));
             OnPropertyChanged(nameof(LinkedItems));
         }
-
-        // Legacy single-link properties for backwards compatibility
-        /// <summary>
-        /// Type of linked entity (Task, OKR, KPI, Project, or null for generic topic).
-        /// </summary>
-        [Obsolete("Use LinkedItems collection instead")]
-        public LinkedItemType? LinkedItemType
-        {
-            get => _linkedItemType;
-            set { _linkedItemType = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasLinkedItem)); OnPropertyChanged(nameof(LinkedItemDisplay)); }
-        }
-
-        /// <summary>
-        /// ID of the linked entity.
-        /// </summary>
-        [Obsolete("Use LinkedItems collection instead")]
-        public int? LinkedItemId
-        {
-            get => _linkedItemId;
-            set { _linkedItemId = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasLinkedItem)); }
-        }
-
-        /// <summary>
-        /// Cached title of the linked entity for display.
-        /// </summary>
-        [Obsolete("Use LinkedItems collection instead")]
-        public string? LinkedItemTitle
-        {
-            get => _linkedItemTitle;
-            set { _linkedItemTitle = value; OnPropertyChanged(); OnPropertyChanged(nameof(LinkedItemDisplay)); }
-        }
-
-        /// <summary>
-        /// Whether this agenda item has a linked entity (legacy).
-        /// </summary>
-        [Obsolete("Use HasLinkedItems instead")]
-        public bool HasLinkedItem => LinkedItemType.HasValue && LinkedItemId.HasValue;
-
-        /// <summary>
-        /// Display text for the linked item badge (legacy).
-        /// </summary>
-        [Obsolete("Use LinkedItems collection instead")]
-        public string LinkedItemDisplay => HasLinkedItem 
-            ? LinkedItemTitle ?? LinkedItemType.ToString() ?? ""
-            : "";
 
         /// <summary>
         /// Display text for the category badge.

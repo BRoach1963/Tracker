@@ -12,15 +12,19 @@ Tracker supports keyboard shortcuts for common actions to help you work more eff
 | **Ctrl+F** | Focus search/filter |
 | **Escape** | Close dialog or cancel action |
 
-## Navigation
+## Navigation (Main Pillars)
 
 | Shortcut | Action |
 |----------|--------|
-| **Ctrl+1** | Go to Dashboard |
-| **Ctrl+2** | Go to Team Members |
-| **Ctrl+3** | Go to 1:1s |
-| **Ctrl+4** | Go to Tasks |
-| **Ctrl+5** | Go to Projects |
+| **Ctrl+1** | Go to Home (Dashboard) |
+| **Ctrl+2** | Go to Circle (Team Members, 1:1s, Feedback, Goals) |
+| **Ctrl+3** | Go to Pulse (OKRs, KPIs, Projects, Tasks) |
+| **Ctrl+4** | Go to Chronicle (Notes, Reports) |
+| **Ctrl+5** | Go to Settings |
+| **Ctrl+K** | Open Quick Search |
+| **Ctrl+Shift+H** | Open AI Help Assistant |
+
+> NumPad keys also work: **Ctrl+NumPad1** through **Ctrl+NumPad5**
 
 ## In Dialogs
 

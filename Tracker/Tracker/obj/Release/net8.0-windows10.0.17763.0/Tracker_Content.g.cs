@@ -8,7 +8,6 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("images/tracker.ico")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/account/account-settings.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/account/billing.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/account/create-account.md")]

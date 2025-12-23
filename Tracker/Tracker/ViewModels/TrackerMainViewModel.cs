@@ -1893,7 +1893,7 @@ namespace Tracker.ViewModels
             
             if (teamMember == null) return;
 
-            var owner = Application.Current.MainWindow;
+            var owner = GetMainWindow();
             var result = MessageBoxHelper.Show(
                 $"Are you sure you want to delete {teamMember.FirstName} {teamMember.LastName}?\n\n" +
                 "This will also remove all associated 1:1 meetings and related data.",
@@ -1987,7 +1987,7 @@ namespace Tracker.ViewModels
             var task = parameter as ITask ?? _selectedTask;
             if (task == null) return;
 
-            var owner = Application.Current.MainWindow;
+            var owner = GetMainWindow();
             var result = MessageBoxHelper.Show(
                 $"Are you sure you want to delete this task?\n\n\"{task.Description}\"",
                 "Confirm Delete",
@@ -2040,7 +2040,7 @@ namespace Tracker.ViewModels
             var project = parameter as Project ?? _selectedProject;
             if (project == null) return;
 
-            var owner = Application.Current.MainWindow;
+            var owner = GetMainWindow();
             var result = MessageBoxHelper.Show(
                 $"Are you sure you want to delete the project \"{project.Name}\"?\n\n" +
                 "This will also remove all associated tasks, OKRs, and KPIs.",
@@ -2097,7 +2097,7 @@ namespace Tracker.ViewModels
             var okr = parameter as ObjectiveKeyResult ?? _selectedOkr;
             if (okr == null) return;
 
-            var owner = Application.Current.MainWindow;
+            var owner = GetMainWindow();
             var result = MessageBoxHelper.Show(
                 $"Are you sure you want to delete this OKR?\n\n\"{okr.Title}\"",
                 "Confirm Delete",
@@ -2146,7 +2146,7 @@ namespace Tracker.ViewModels
             var kpi = parameter as KeyPerformanceIndicator ?? _selectedKpi;
             if (kpi == null) return;
 
-            var owner = Application.Current.MainWindow;
+            var owner = GetMainWindow();
             var result = MessageBoxHelper.Show(
                 $"Are you sure you want to delete this KPI?\n\n\"{kpi.Name}\"",
                 "Confirm Delete",
@@ -2196,7 +2196,7 @@ namespace Tracker.ViewModels
             var oneOnOne = parameter as OneOnOne ?? _selectedOneOnOne;
             if (oneOnOne == null) return;
 
-            var owner = Application.Current.MainWindow;
+            var owner = GetMainWindow();
             var result = MessageBoxHelper.Show(
                 $"Are you sure you want to delete this 1:1 meeting?\n\n\"{oneOnOne.Description}\" with {oneOnOne.TeamMemberName}",
                 "Confirm Delete",
@@ -2277,6 +2277,15 @@ namespace Tracker.ViewModels
                     await RefreshAllDataAsync();
                 });
             }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private MainWindow? GetMainWindow()
+        {
+            return Win32UtilHelper.GetMainWindow();
         }
 
         #endregion

@@ -25,6 +25,7 @@ namespace Tracker
     public partial class App : Application
     {
         private Views.SplashScreen? _splashScreen;
+        private Views.LoadingWindow? _loadingWindow;
         private bool _emptyDatabaseDetected = false;
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -215,25 +216,61 @@ namespace Tracker
             // Check if already authenticated (e.g., just completed setup with account creation)
             await Current.Dispatcher.InvokeAsync(() =>
             {
-                _splashScreen?.CloseSplash(() =>
+                var logger = LoggingManager.GetComponentLogger("App");
+                logger.Info(">>> ContinueNormalStartup - checking authentication status");
+                
+                if (!string.IsNullOrEmpty(warningMessage))
                 {
-                    if (!string.IsNullOrEmpty(warningMessage))
+                    NotificationManager.Instance.ShowWarning("Startup Warning", warningMessage, 10);
+                }
+                
+                var isSignedIn = Services.Backend.SupabaseService.Instance.IsSignedIn;
+                logger.Info(">>> IsSignedIn = {0}", isSignedIn);
+                
+                // Skip login if already authenticated with Supabase
+                if (isSignedIn)
+                {
+                    logger.Info(">>> ALREADY AUTHENTICATED - Starting loading window flow");
+                    ShutdownMode = ShutdownMode.OnLastWindowClose;
+                    
+                    // HIDE splash IMMEDIATELY so loading window can show
+                    if (_splashScreen != null)
                     {
-                        NotificationManager.Instance.ShowWarning("Startup Warning", warningMessage, 10);
+                        _splashScreen.Visibility = System.Windows.Visibility.Collapsed;
                     }
                     
-                    // Skip login if already authenticated with Supabase
-                    if (Services.Backend.SupabaseService.Instance.IsSignedIn)
+                    // Show loading window IMMEDIATELY
+                    logger.Info(">>> Creating LoadingWindow");
+                    _loadingWindow = new Views.LoadingWindow();
+                    logger.Info(">>> Showing LoadingWindow");
+                    _loadingWindow.Show();
+                    logger.Info(">>> Activating LoadingWindow");
+                    _loadingWindow.Activate();
+                    _loadingWindow.Topmost = true;
+                    logger.Info(">>> LoadingWindow.IsVisible={0}, IsLoaded={1}, Topmost={2}", _loadingWindow.IsVisible, _loadingWindow.IsLoaded, _loadingWindow.Topmost);
+                    
+                    // Force complete render cycle
+                    Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+                    
+                    // Close splash properly in background
+                    Task.Run(() =>
                     {
-                        LoggingManager.GetComponentLogger("App").Info("User already authenticated, skipping login dialog");
-                        ShutdownMode = ShutdownMode.OnLastWindowClose;
-                        LaunchMainWindow();
-                    }
-                    else
+                        System.Threading.Thread.Sleep(100);
+                        Dispatcher.Invoke(() => _splashScreen?.Close());
+                    });
+                    
+                    // Launch main window after delay
+                    Task.Run(async () =>
                     {
-                        ShowLoginDialog();
-                    }
-                });
+                        await Task.Delay(500);
+                        await Dispatcher.InvokeAsync(() => LaunchMainWindow());
+                    });
+                }
+                else
+                {
+                    // Not authenticated - show login dialog
+                    _splashScreen?.CloseSplash(() => ShowLoginDialog());
+                }
             });
         }
         
@@ -244,15 +281,54 @@ namespace Tracker
         /// </summary>
         private void OnSplashLoginSuccessful(object? sender, LoginSuccessEventArgs e)
         {
-            // Login succeeded, launch main window
+            var logger = LoggingManager.GetComponentLogger("App");
+            logger.Info(">>> LOGIN SUCCESS - Starting loading window flow");
+            
             ShutdownMode = ShutdownMode.OnLastWindowClose;
-            _splashScreen?.CloseSplash(() =>
+            
+            // IMMEDIATELY hide the splash/login window
+            if (_splashScreen != null)
             {
-                if (!string.IsNullOrEmpty(_startupWarningMessage))
+                logger.Info(">>> Collapsing splash window");
+                _splashScreen.Visibility = System.Windows.Visibility.Collapsed;
+            }
+            
+            // NOW show LoadingWindow - splash is completely hidden
+            logger.Info(">>> Creating LoadingWindow");
+            _loadingWindow = new Views.LoadingWindow();
+            logger.Info(">>> Showing LoadingWindow");
+            _loadingWindow.Show();
+            logger.Info(">>> Activating LoadingWindow");
+            _loadingWindow.Activate();
+            _loadingWindow.Topmost = true;
+            logger.Info(">>> LoadingWindow.IsVisible={0}, IsLoaded={1}", _loadingWindow.IsVisible, _loadingWindow.IsLoaded);
+            
+            // Force rendering
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+            
+            // Close the splash window properly in background
+            Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                await Dispatcher.InvokeAsync(() =>
                 {
-                    NotificationManager.Instance.ShowWarning("Startup Warning", _startupWarningMessage, 10);
-                }
-                LaunchMainWindow();
+                    _splashScreen?.Close();
+                });
+            });
+            
+            // Launch main window after loading window is visible
+            Task.Run(async () =>
+            {
+                await Task.Delay(500);
+                
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (!string.IsNullOrEmpty(_startupWarningMessage))
+                    {
+                        NotificationManager.Instance.ShowWarning("Startup Warning", _startupWarningMessage, 10);
+                    }
+                    LaunchMainWindow();
+                });
             });
         }
         
@@ -261,7 +337,22 @@ namespace Tracker
         /// </summary>
         private void LaunchMainWindow()
         {
-            DialogManager.Instance.LaunchDialogByType(DialogType.MainWindow, false, async () =>
+            var logger = LoggingManager.GetComponentLogger("App");
+            logger.Info(">>> LaunchMainWindow called");
+            
+            // CLOSE loading window BEFORE creating MainWindow to avoid taskbar confusion
+            logger.Info(">>> Closing LoadingWindow before MainWindow shows");
+            _loadingWindow?.CloseWithFade();
+            
+            // Brief delay to ensure loading window is gone
+            Task.Delay(100).ContinueWith(_ => Dispatcher.Invoke(() =>
+            {
+                // Create MainWindow directly on UI thread
+                var mainWindow = new MainWindow(new ViewModels.TrackerMainViewModel());
+                logger.Info(">>> MainWindow created");
+                mainWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            
+            mainWindow.Loaded += async (s, e) =>
             {
                 // Check if database is empty and prompt user to add sample data
                 if (_emptyDatabaseDetected)
@@ -295,7 +386,12 @@ namespace Tracker
                     }
                     _emptyDatabaseDetected = false;
                 }
-            });
+            };
+            
+            mainWindow.Show();
+            
+            Application.Current.MainWindow = mainWindow;
+            }));
         }
 
         private record InitializationResult(bool Success, string? WarningMessage = null);
@@ -456,9 +552,31 @@ namespace Tracker
             {
                 if (loginCompletedSuccessfully)
                 {
-                    // Login completed successfully, launch main window
+                    var logger = LoggingManager.GetComponentLogger("App");
+                    logger.Info(">>> LOGIN DIALOG SUCCESS - Starting loading window flow");
+                    
+                    // Login completed successfully, show LoadingWindow then main window
                     ShutdownMode = ShutdownMode.OnLastWindowClose;
-                    LaunchMainWindow();
+                    
+                    // Show LoadingWindow
+                    logger.Info(">>> Creating LoadingWindow");
+                    _loadingWindow = new Views.LoadingWindow();
+                    logger.Info(">>> Showing LoadingWindow");
+                    _loadingWindow.Show();
+                    logger.Info(">>> Activating LoadingWindow");
+                    _loadingWindow.Activate();
+                    _loadingWindow.Topmost = true;
+                    logger.Info(">>> LoadingWindow.IsVisible={0}, IsLoaded={1}", _loadingWindow.IsVisible, _loadingWindow.IsLoaded);
+                    
+                    // Force rendering
+                    Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+                    
+                    // Launch main window after short delay
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(500);
+                        await Dispatcher.InvokeAsync(() => LaunchMainWindow());
+                    });
                 }
                 else
                 {

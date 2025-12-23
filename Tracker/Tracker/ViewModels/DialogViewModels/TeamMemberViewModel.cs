@@ -709,13 +709,21 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Feedback Methods
 
+        private System.Windows.Window? GetOwnerWindow()
+        {
+            // Find the TeamMemberDialog window by searching for window with this DataContext
+            return System.Windows.Application.Current.Windows
+                .OfType<Views.Dialogs.TeamMemberDialog>()
+                .FirstOrDefault(w => w.DataContext == this);
+        }
+
         private void AddFeedbackExecuted(object? parameter)
         {
             var vm = new FeedbackViewModel(OnFeedbackDialogClosed, null, _data.Id, false);
             var dialog = new Views.Dialogs.AddFeedbackDialog
             {
                 DataContext = vm,
-                Owner = System.Windows.Application.Current.MainWindow
+                Owner = GetOwnerWindow()
             };
             dialog.ShowDialog();
         }
@@ -729,7 +737,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 DataContext = vm,
                 Title = "Edit Feedback",
-                Owner = System.Windows.Application.Current.MainWindow
+                Owner = GetOwnerWindow()
             };
             dialog.ShowDialog();
         }

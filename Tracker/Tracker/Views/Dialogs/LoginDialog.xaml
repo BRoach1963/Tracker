@@ -9,7 +9,7 @@
         xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
         mc:Ignorable="d"
         Title="Tracker"
-        Height="520"
+        Height="650"
         Width="420"
         MinHeight="480"
         MinWidth="380"
@@ -255,6 +255,15 @@
                                    Foreground="{DynamicResource HintTextBrush}"
                                    FontSize="12"/>
                     </StackPanel>
+
+                    <!-- Exit Button -->
+                    <Button Content="Exit Application"
+                            Click="ExitButton_Click"
+                            Style="{StaticResource LinkButtonStyle}"
+                            HorizontalAlignment="Center"
+                            Margin="0,16,0,0"
+                            FontSize="12"
+                            Foreground="{DynamicResource HintTextBrush}"/>
 
                     <!-- Help Section -->
                     <Border BorderBrush="{DynamicResource BorderBrush}"

@@ -63,6 +63,9 @@
                           SelectedItem="{Binding SelectedMeeting}"
                           BorderThickness="0"
                           Background="Transparent"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          HorizontalContentAlignment="Stretch"
+                          MouseDoubleClick="ListView_MouseDoubleClick"
                           Visibility="{Binding HasMeetings, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
                     <ListView.ItemTemplate>
                         <DataTemplate>
@@ -103,7 +106,7 @@
                                                Foreground="{DynamicResource ForegroundBrush}"
                                                Opacity="0.7"
                                                FontSize="12"
-                                               TextTrimming="CharacterEllipsis"
+                                               TextWrapping="Wrap"
                                                Margin="0,4,0,0"/>
                                     
                                     <!-- Task Count -->

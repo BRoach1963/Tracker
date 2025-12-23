@@ -35,10 +35,27 @@ Oracle can execute tasks for you using natural language:
 
 > "Add a task to update the quarterly report"
 
+**Create Projects:**
+> "Create a project for the Q1 website redesign"
+
+> "Start a new project to migrate to cloud infrastructure"
+
 **Track Goals:**
 > "Create a KPI for customer satisfaction with a target of 90%"
 
 > "Add an OKR for improving team productivity this quarter"
+
+> "Create a goal for John to complete leadership training"
+
+**Record Feedback:**
+> "Add feedback for Sarah about her excellent presentation"
+
+> "Record positive feedback for the team's quick response"
+
+**Create Notes:**
+> "Create a note about the new onboarding process"
+
+> "Add a quick note to remember the budget deadline"
 
 **Search & Query:**
 > "Show me my meetings this week"
@@ -46,6 +63,10 @@ Oracle can execute tasks for you using natural language:
 > "Who's on my team?"
 
 > "Find tasks assigned to John"
+
+> "What projects are currently active?"
+
+> "Show me notes from last week"
 
 Oracle executes these actions immediately and confirms what was created.
 
@@ -95,6 +116,56 @@ Get management advice:
 
 **Note**: Actions and data analysis require the Pro plan.
 
+## Complete Action Reference (Pro Plan)
+
+Oracle can perform the following actions via natural language:
+
+### 📅 Meetings
+- **create_meeting**: Schedule 1:1 meetings with team members
+  - Example: "Schedule a 1:1 with Sarah next Thursday at 3pm"
+  - Parameters: team member name, date/time, optional notes
+
+### ✅ Tasks
+- **create_task**: Create individual tasks with optional assignments and due dates
+  - Example: "Create a task for John to review the budget by Friday"
+  - Parameters: description, optional owner, optional due date
+
+### 📊 Projects
+- **create_project**: Start new multi-task initiatives
+  - Example: "Create a project for the Q1 website redesign"
+  - Parameters: name, optional description, optional dates
+
+### 🎯 OKRs & KPIs
+- **create_okr**: Create Objectives and Key Results
+  - Example: "Add an OKR for improving team productivity this quarter"
+  - Parameters: title, optional description
+- **create_kpi**: Define Key Performance Indicators with targets
+  - Example: "Create a KPI for customer satisfaction with a target of 90%"
+  - Parameters: name, target value, optional unit, optional current value
+
+### 🌟 Goals
+- **create_goal**: Set individual development goals for team members
+  - Example: "Create a goal for Casey to complete leadership training"
+  - Parameters: description, optional target date
+
+### 💬 Feedback
+- **create_feedback**: Record feedback for team members
+  - Example: "Add feedback for Sarah about her excellent presentation"
+  - Parameters: team member, feedback text, optional type (positive/constructive)
+
+### 📝 Notes
+- **create_note**: Quick capture for thoughts and ideas
+  - Example: "Create a note about the new onboarding process"
+  - Parameters: content, optional tags
+
+### 🔍 Data Queries
+- **search_team_members**: Find team members by name, role, or department
+- **get_upcoming_meetings**: View scheduled meetings in a date range
+- **get_projects**: List active or filtered projects
+- **get_notes**: Search through your quick notes
+
+All actions execute immediately and provide confirmation of what was created.
+
 ## Using Oracle
 
 ### Asking Questions & Giving Commands
@@ -141,7 +212,8 @@ Get management advice:
 **Pro Plan:**
 - ✅ Everything in Standard
 - ✅ **Semantic search** - Intelligently finds information in your data
-- ✅ **Actions** - Creates meetings, tasks, KPIs, OKRs for you
+- ✅ **Actions** - Creates meetings, tasks, projects, KPIs, OKRs, goals, feedback, and notes
+- ✅ **Data queries** - Search team members, meetings, projects, and notes
 - ✅ **Team insights** - Analyzes your team, projects, and goals
 
 ## Common Use Cases
@@ -156,6 +228,14 @@ Get management advice:
 
 > "Create an OKR for increasing customer retention"
 
+> "Start a project for the mobile app launch"
+
+> "Create a goal for Casey to improve public speaking skills"
+
+> "Record feedback for the team about yesterday's release"
+
+> "Add a note about the client meeting insights"
+
 ### Finding Information (Pro)
 
 > "When did Casey join the team?"
@@ -165,6 +245,12 @@ Get management advice:
 > "Show me meetings scheduled for next Monday"
 
 > "Which team members work in engineering?"
+
+> "What projects are in progress?"
+
+> "Show me notes from the last meeting"
+
+> "Find feedback for Sarah from this quarter"
 
 ### About 1:1 Meetings
 
@@ -290,12 +376,13 @@ Oracle uses Google Gemini 2.5 Pro, which has associated costs. Your subscription
 - ✅ Oracle for feature guidance
 - ✅ Best practice recommendations
 - ❌ Data analysis
-- ❌ Actions (create meetings, tasks, etc.)
+- ❌ Actions (create meetings, tasks, projects, etc.)
 
 ### Pro Plan ($12/user/month)
 - ✅ Everything in Standard
 - ✅ **Semantic search** - Intelligent data queries
-- ✅ **Actions** - Create meetings, tasks, KPIs, OKRs
+- ✅ **Actions** - Create meetings, tasks, projects, KPIs, OKRs, goals, feedback, and notes
+- ✅ **Data queries** - Search team members, meetings, projects, and notes
 - ✅ Team insights and analytics
 - ✅ Higher AI budget for heavy usage
 

@@ -48,7 +48,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Team member who owns/leads the project.
         /// </summary>
-        public TeamMember Owner { get; set; } = new();
+        public TeamMember Owner { get; set; } = null!;
         
         /// <summary>
         /// Tasks within this project.

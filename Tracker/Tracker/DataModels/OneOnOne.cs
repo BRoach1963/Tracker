@@ -156,12 +156,6 @@ namespace Tracker.DataModels
         /// </summary>
         public string SyncStatus { get; set; } = "NotSynced";
 
-        /// <summary>
-        /// Legacy: Outlook calendar event ID.
-        /// </summary>
-        [Obsolete("Use CalendarEventId instead")]
-        public string? OutlookCalendarEventId { get; set; }
-
         public bool IsSyncedToGoogle { get; set; }
         
         /// <summary>

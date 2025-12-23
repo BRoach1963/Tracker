@@ -20,8 +20,8 @@ namespace Tracker.Factories
                     window = new TeamMemberDialog(new TeamMemberViewModel(callback, new TeamMember()), type)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
 
@@ -33,8 +33,8 @@ namespace Tracker.Factories
                             window = new TeamMemberDialog(new TeamMemberViewModel(callback, teamMember, true), type)
                             {
                                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                                Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                                ShowInTaskbar = false
+                                Owner = UiHelper.GetOwnerWindow(type),
+                                ShowInTaskbar = true
                             };
                             return true;
                         }
@@ -50,74 +50,91 @@ namespace Tracker.Factories
                     window = new SettingsDialog(new SettingsViewModel(callback))
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.Reports:
                     window = new ReportsDialog(new ReportsViewModel(callback))
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.AddOneOnOne:
-                    var vm = dataObject is TeamMember tm
-                        ? new OneOnOneViewModel(callback, new OneOnOne(), false, tm)
-                        : new OneOnOneViewModel(callback, new OneOnOne(), false);
-
-                    // Initialize with today's date and round to nearest quarter hour
-                    vm.Data.Date = DateTime.Today;
-                    var now = DateTime.Now;
-                    var minutes = now.Minute;
-                    var roundedMinutes = ((minutes / 15) + 1) * 15; // Round UP to next quarter hour
-                    var startHour = now.Hour;
-                    if (roundedMinutes >= 60)
+                    // Check if editing an existing meeting or creating a new one
+                    OneOnOneViewModel vm;
+                    if (dataObject is OneOnOne existingMeeting)
                     {
-                        roundedMinutes = 0;
-                        startHour = (startHour + 1) % 24;
+                        // Edit existing meeting - pass the team member too
+                        vm = new OneOnOneViewModel(callback, existingMeeting, true, existingMeeting.TeamMember);
                     }
-                    vm.Data.StartTime = new TimeSpan(startHour, roundedMinutes, 0);
-                    vm.Data.EndTime = vm.Data.StartTime.Add(TimeSpan.FromMinutes(30)); // Default 30 min meeting
+                    else if (dataObject is TeamMember tm)
+                    {
+                        // New meeting for specific team member
+                        vm = new OneOnOneViewModel(callback, new OneOnOne(), false, tm);
+                    }
+                    else
+                    {
+                        // New meeting
+                        vm = new OneOnOneViewModel(callback, new OneOnOne(), false);
+                    }
+
+                    // Initialize with today's date and round to nearest quarter hour (only for new meetings)
+                    if (dataObject is not OneOnOne)
+                    {
+                        vm.Data.Date = DateTime.Today;
+                        var now = DateTime.Now;
+                        var minutes = now.Minute;
+                        var roundedMinutes = ((minutes / 15) + 1) * 15; // Round UP to next quarter hour
+                        var startHour = now.Hour;
+                        if (roundedMinutes >= 60)
+                        {
+                            roundedMinutes = 0;
+                            startHour = (startHour + 1) % 24;
+                        }
+                        vm.Data.StartTime = new TimeSpan(startHour, roundedMinutes, 0);
+                        vm.Data.EndTime = vm.Data.StartTime.Add(TimeSpan.FromMinutes(30)); // Default 30 min meeting
+                    }
                     
                     window = new AddOneOnOneDialog(vm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.AddTask:
                     window = new AddTaskDialog(new NewTaskViewModel(callback, new IndividualTask()))
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.AddProject:
                     window = new AddProjectDialog(new NewProjectViewModel(callback, new Project()))
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.AddKPI:
                     window = new AddKPI(new NewKpiViewModel(callback, new KeyPerformanceIndicator()))
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.AddOKR:
                     window = new AddOkrDialog(new NewOkrViewModel(callback, new ObjectiveKeyResult()))
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true; 
                 case DialogType.MainWindow:
@@ -133,8 +150,8 @@ namespace Tracker.Factories
                     window = new AddFeedbackDialog(feedbackVm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
                 case DialogType.AddGoal:
@@ -144,8 +161,8 @@ namespace Tracker.Factories
                     window = new AddGoalDialog(goalVm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                        ShowInTaskbar = false
+                        Owner = UiHelper.GetOwnerWindow(type),
+                        ShowInTaskbar = true
                     };
                     return true;
 
@@ -155,8 +172,8 @@ namespace Tracker.Factories
                         window = new AddOkrDialog(new NewOkrViewModel(callback, okrToEdit, edit: true))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -169,8 +186,8 @@ namespace Tracker.Factories
                         window = new AddProjectDialog(new NewProjectViewModel(callback, projectToEdit, edit: true))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -183,8 +200,8 @@ namespace Tracker.Factories
                         window = new AddTaskDialog(new NewTaskViewModel(callback, taskToEdit, edit: true))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -197,8 +214,8 @@ namespace Tracker.Factories
                         window = new AddKPI(new NewKpiViewModel(callback, kpiToEdit, edit: true))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -211,8 +228,8 @@ namespace Tracker.Factories
                         window = new AddKeyResultDialog(new KeyResultViewModel(callback, newKr, okrIdAdd, edit: false))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -221,8 +238,8 @@ namespace Tracker.Factories
                         window = new AddKeyResultDialog(new KeyResultViewModel(callback, new KeyResult(), okrId, edit: false))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -235,8 +252,8 @@ namespace Tracker.Factories
                         window = new AddKeyResultDialog(new KeyResultViewModel(callback, krToEdit, krToEdit.OkrId, edit: true))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }
@@ -249,8 +266,8 @@ namespace Tracker.Factories
                         window = new AddMeasurableDialog(new MeasurableViewModel(callback, krForMeasurable))
                         {
                             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                            Owner = new WeakReference(UiHelper.GetOwnerWindow(type)).Target as Window,
-                            ShowInTaskbar = false
+                            Owner = UiHelper.GetOwnerWindow(type),
+                            ShowInTaskbar = true
                         };
                         return true;
                     }

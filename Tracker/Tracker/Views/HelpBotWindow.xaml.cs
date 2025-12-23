@@ -27,6 +27,14 @@ namespace Tracker.Views
                 {
                     _instance = new HelpBotWindow();
                     _instance.Closed += (s, e) => { lock (_lock) { _instance = null; } };
+                    
+                    // Position window at bottom-right corner of screen
+                    _instance.Loaded += (s, e) =>
+                    {
+                        var workArea = SystemParameters.WorkArea;
+                        _instance.Left = workArea.Right - _instance.ActualWidth - 20;
+                        _instance.Top = workArea.Bottom - _instance.ActualHeight - 20;
+                    };
                 }
 
                 if (_instance.WindowState == WindowState.Minimized)

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Tracker.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bba95324b10e74ae6e4c94804d1c2d90f0b4355e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2b95e5b75e1152ce50046042c56edd58c44d2795")]
 [assembly: System.Reflection.AssemblyProductAttribute("Tracker.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Tracker.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

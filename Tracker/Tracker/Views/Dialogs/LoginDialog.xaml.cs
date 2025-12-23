@@ -213,5 +213,13 @@ namespace Tracker.Views.Dialogs
                 e.Handled = true;
             }
         }
+
+        /// <summary>
+        /// Handle Exit Application button click - shuts down the application.
+        /// </summary>
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
     }
 }

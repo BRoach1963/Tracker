@@ -334,13 +334,24 @@
                                         
                                         <!-- Avatar -->
                                         <Grid Width="40" Height="40">
-                                            <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                            <!-- Background for initials fallback -->
+                                            <Ellipse Fill="{DynamicResource AccentBrush}"
+                                                     Visibility="{Binding TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
                                             <TextBlock Text="{Binding TeamMember.Initials, Mode=OneWay}" 
                                                        FontSize="14" 
                                                        FontWeight="Bold"
                                                        Foreground="{DynamicResource BackgroundBrush}"
                                                        HorizontalAlignment="Center" 
-                                                       VerticalAlignment="Center"/>
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
+                                            <!-- Profile Image -->
+                                            <Ellipse Visibility="{Binding TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.Instance}}">
+                                                <Ellipse.Fill>
+                                                    <ImageBrush ImageSource="{Binding TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                                RenderOptions.BitmapScalingMode="HighQuality"
+                                                                Stretch="UniformToFill"/>
+                                                </Ellipse.Fill>
+                                            </Ellipse>
                                         </Grid>
                                         
                                         <!-- Name -->
@@ -470,13 +481,24 @@
                             </Grid.ColumnDefinitions>
                             
                             <Grid Width="56" Height="56">
-                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                <!-- Background for initials fallback -->
+                                <Ellipse Fill="{DynamicResource AccentBrush}"
+                                         Visibility="{Binding SelectedGoal.TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
                                 <TextBlock Text="{Binding SelectedGoal.TeamMember.Initials, Mode=OneWay}" 
                                            FontSize="20" 
                                            FontWeight="Bold"
                                            Foreground="{DynamicResource BackgroundBrush}"
                                            HorizontalAlignment="Center" 
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding SelectedGoal.TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
+                                <!-- Profile Image -->
+                                <Ellipse Visibility="{Binding SelectedGoal.TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.Instance}}">
+                                    <Ellipse.Fill>
+                                        <ImageBrush ImageSource="{Binding SelectedGoal.TeamMember.ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                    RenderOptions.BitmapScalingMode="HighQuality"
+                                                    Stretch="UniformToFill"/>
+                                    </Ellipse.Fill>
+                                </Ellipse>
                             </Grid>
                             
                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">

@@ -202,7 +202,7 @@ OKRs (Objectives and Key Results) align your team to goals.
 
 ## Getting Help
 
-### AI Help Bot (Standard+ Plans)
+### Oracle - AI Assistant (Standard+ Plans)
 Press **F1** anytime to ask:
 - "How do I create an OKR?"
 - "What's the best way to structure 1:1s?"
@@ -236,7 +236,7 @@ Now that you're set up:
 
 ### Need More Features?
 Compare [subscription plans](../account/subscriptions.md) to unlock:
-- AI Help Bot
+- Oracle (AI assistant)
 - Reports & Export
 - Calendar Sync
 - And more!

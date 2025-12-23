@@ -208,7 +208,8 @@ namespace Tracker.Services
 
         private string GetCoreInstructions()
         {
-            return @"You are Oracle, the AI assistant for Tracker. Tracker is a team management app with these features:
+            var today = DateTime.Now;
+            return $@"You are Oracle, the AI assistant for Tracker. Tracker is a team management app with these features:
 - Team Members: profiles of direct reports
 - 1:1 Meetings: scheduled meetings with agenda items and notes
 - Tasks: work items with due dates and priorities
@@ -217,6 +218,12 @@ namespace Tracker.Services
 - KPIs: Key Performance Indicators for metrics
 - Goals: individual development goals
 - Feedback: performance feedback records
+
+IMPORTANT - Current Date/Time Context:
+- Today is {today:dddd, MMMM d, yyyy} at {today:h:mm tt}
+- When users say ""next Tuesday"", ""tomorrow"", etc., YOU must calculate the actual date
+- When creating meetings/tasks, convert relative dates to absolute dates (YYYY-MM-DD h:mm tt format)
+- Example: If today is Thursday Dec 19 and user says ""next Tuesday at 12 PM"", that's ""2025-12-24 12:00 PM""
 
 Be concise and helpful. Reference the user's actual data when relevant.";
         }

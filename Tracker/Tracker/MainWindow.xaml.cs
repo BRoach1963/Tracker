@@ -113,7 +113,7 @@ namespace Tracker
                 SystemTrayService.Instance.ShowBalloon(
                     "Tracker",
                     "Tracker is still running. Double-click the tray icon to open.",
-                    System.Windows.Forms.ToolTipIcon.Info,
+                    System.Windows.Forms.ToolTipIcon.None,
                     2000
                 );
             }

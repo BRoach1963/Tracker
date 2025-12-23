@@ -125,21 +125,28 @@ namespace Tracker.Services
                 // Create context menu
                 var contextMenu = new WinForms.ContextMenuStrip();
                 
+                // Style the context menu for modern appearance
+                contextMenu.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
+                contextMenu.ForeColor = System.Drawing.Color.White;
+                contextMenu.Renderer = new ModernMenuRenderer();
+                
                 var openItem = new WinForms.ToolStripMenuItem("Open Tracker");
                 openItem.Click += (s, e) => ShowWindowRequested?.Invoke(this, EventArgs.Empty);
-                openItem.Font = new Font(openItem.Font, System.Drawing.FontStyle.Bold);
+                openItem.Font = new Font(openItem.Font.FontFamily, 10f, System.Drawing.FontStyle.Bold);
+                openItem.ForeColor = System.Drawing.Color.White;
                 contextMenu.Items.Add(openItem);
 
                 contextMenu.Items.Add(new WinForms.ToolStripSeparator());
 
                 var remindersItem = new WinForms.ToolStripMenuItem("Reminders Enabled");
+                remindersItem.ForeColor = System.Drawing.Color.White;
+                remindersItem.CheckOnClick = true;
                 remindersItem.Checked = UserSettingsManager.Instance.ReminderSettings.EnableReminders;
-                remindersItem.Click += (s, e) =>
+                remindersItem.CheckedChanged += (s, e) =>
                 {
                     var settings = UserSettingsManager.Instance.ReminderSettings;
-                    settings.EnableReminders = !settings.EnableReminders;
+                    settings.EnableReminders = ((WinForms.ToolStripMenuItem)s!).Checked;
                     UserSettingsManager.Instance.ReminderSettings = settings;
-                    ((WinForms.ToolStripMenuItem)s!).Checked = settings.EnableReminders;
                     
                     if (settings.EnableReminders)
                         ReminderService.Instance.Start();
@@ -151,6 +158,7 @@ namespace Tracker.Services
                 contextMenu.Items.Add(new WinForms.ToolStripSeparator());
 
                 var exitItem = new WinForms.ToolStripMenuItem("Exit");
+                exitItem.ForeColor = System.Drawing.Color.White;
                 exitItem.Click += (s, e) => ExitRequested?.Invoke(this, EventArgs.Empty);
                 contextMenu.Items.Add(exitItem);
 
@@ -248,5 +256,73 @@ namespace Tracker.Services
         }
 
         #endregion
+    }
+    
+    /// <summary>
+    /// Custom renderer for modern dark-themed context menu.
+    /// </summary>
+    internal class ModernMenuRenderer : WinForms.ToolStripProfessionalRenderer
+    {
+        public ModernMenuRenderer() : base(new ModernMenuColorTable()) { }
+        
+        protected override void OnRenderMenuItemBackground(WinForms.ToolStripItemRenderEventArgs e)
+        {
+            if (e.Item.Selected)
+            {
+                using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(62, 62, 66));
+                e.Graphics.FillRectangle(brush, new System.Drawing.Rectangle(System.Drawing.Point.Empty, e.Item.Size));
+            }
+            else
+            {
+                base.OnRenderMenuItemBackground(e);
+            }
+        }
+        
+        protected override void OnRenderItemCheck(WinForms.ToolStripItemImageRenderEventArgs e)
+        {
+            // Custom checkbox rendering
+            if (e.Item is WinForms.ToolStripMenuItem menuItem && menuItem.Checked)
+            {
+                var checkRect = new System.Drawing.Rectangle(4, 4, 16, 16);
+                
+                // Draw checkbox background
+                using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(0, 122, 204)))
+                {
+                    e.Graphics.FillRectangle(brush, checkRect);
+                }
+                
+                // Draw checkmark
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.White, 2))
+                {
+                    e.Graphics.DrawLine(pen, checkRect.Left + 4, checkRect.Top + 8, checkRect.Left + 7, checkRect.Bottom - 5);
+                    e.Graphics.DrawLine(pen, checkRect.Left + 7, checkRect.Bottom - 5, checkRect.Right - 4, checkRect.Top + 4);
+                }
+            }
+        }
+        
+        protected override void OnRenderSeparator(WinForms.ToolStripSeparatorRenderEventArgs e)
+        {
+            using var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(62, 62, 66));
+            var rect = new System.Drawing.Rectangle(25, 3, e.Item.Width - 25, 1);
+            e.Graphics.DrawLine(pen, rect.Left, rect.Top, rect.Right, rect.Top);
+        }
+    }
+    
+    /// <summary>
+    /// Color table for modern dark-themed context menu.
+    /// </summary>
+    internal class ModernMenuColorTable : WinForms.ProfessionalColorTable
+    {
+        public override System.Drawing.Color MenuBorder => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color MenuItemBorder => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color MenuItemSelected => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color MenuItemSelectedGradientBegin => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color MenuItemSelectedGradientEnd => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color MenuItemPressedGradientBegin => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color MenuItemPressedGradientEnd => System.Drawing.Color.FromArgb(62, 62, 66);
+        public override System.Drawing.Color ImageMarginGradientBegin => System.Drawing.Color.FromArgb(45, 45, 48);
+        public override System.Drawing.Color ImageMarginGradientMiddle => System.Drawing.Color.FromArgb(45, 45, 48);
+        public override System.Drawing.Color ImageMarginGradientEnd => System.Drawing.Color.FromArgb(45, 45, 48);
+        public override System.Drawing.Color ToolStripDropDownBackground => System.Drawing.Color.FromArgb(45, 45, 48);
     }
 }

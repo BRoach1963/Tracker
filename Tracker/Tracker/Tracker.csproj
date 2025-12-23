@@ -21,12 +21,11 @@
   <ItemGroup>
     <None Remove="Images\profile.png" />
     <None Remove="Views\TrackerSplash.png" />
+    <None Remove="Images\Tracker.ico" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Images\Tracker.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Images\Tracker.ico" />
   </ItemGroup>
 
   <!-- Help System Files -->

@@ -6,11 +6,7 @@ namespace Tracker.Common.Converters
     {
         public static ReverseBooleanConverter Instance { get; } = new ReverseBooleanConverter();
 
-        /// <summary>
-        /// This constructor is private to prevent new instances from being created. Access the static instance through
-        /// the Instance property instead of creating a new object.
-        /// </summary>
-        private ReverseBooleanConverter()
+        public ReverseBooleanConverter()
         {
         }
 

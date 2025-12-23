@@ -54,7 +54,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Owner responsible for this KPI.
         /// </summary>
-        public TeamMember Owner { get; set; } = new();
+        public TeamMember Owner { get; set; } = null!;
         
         /// <summary>
         /// When the value was last updated.

@@ -1,0 +1,6 @@
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\bin\x64\Debug\en-US\TrackerSetup.msi
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\bin\x64\Debug\en-US\TrackerSetup.wixpdb
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\Tracker.Installer.wixproj.CoreCompileInputs.cache
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\en-US\TrackerSetup.msi
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\en-US\TrackerSetup.wixpdb
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\Tracker.Installer.wixproj.BindTracking-en-US.txt

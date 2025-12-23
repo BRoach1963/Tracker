@@ -826,7 +826,7 @@
                                    RadiusY="1"
                                    Opacity="0">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{DynamicResource ControlMouseOverColor}" />
+                                <SolidColorBrush Color="#FF3F3F46" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <ContentPresenter x:Name="NormalText"

@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\views\\dialogs\\logindialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\views\\dialogs\\logindialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\views\\dialogs\\teammemberdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
       "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\views\\dialogs\\teammemberdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
@@ -71,7 +75,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -79,7 +83,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
+              "Title": "LoginDialog.xaml",
+              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LoginDialog.xaml",
+              "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\LoginDialog.xaml",
+              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LoginDialog.xaml",
+              "RelativeToolTip": "Tracker\\Views\\Dialogs\\LoginDialog.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2025-12-19T18:45:41.36Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "DialogStyles.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Resources\\Styles\\DialogStyles.xaml",
               "RelativeDocumentMoniker": "Tracker\\Resources\\Styles\\DialogStyles.xaml",
@@ -91,7 +107,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "TeamMemberDialog.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\TeamMemberDialog.xaml",
               "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\TeamMemberDialog.xaml",
@@ -103,7 +119,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "DatePickerAutomationPeer.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
@@ -116,7 +132,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "LinkAgendaItemDialog.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LinkAgendaItemDialog.xaml",
               "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\LinkAgendaItemDialog.xaml",
@@ -127,7 +143,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "XamlReader.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\6aa8dfe6dce7647690db27e2d44efd3bdfeed3cfaad2ff4a1195b1c962d31917\\XamlReader.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\6aa8dfe6dce7647690db27e2d44efd3bdfeed3cfaad2ff4a1195b1c962d31917\\XamlReader.cs",
@@ -140,7 +156,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "Application.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\42457897f1285ffc7ed978cbfb3f7b5933f5cb5427295abb3c44871bab3de3a0\\Application.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\42457897f1285ffc7ed978cbfb3f7b5933f5cb5427295abb3c44871bab3de3a0\\Application.cs",
@@ -153,7 +169,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "OneOnOnesControl.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\OneOnOnesControl.xaml",
               "RelativeDocumentMoniker": "Tracker\\Controls\\OneOnOnesControl.xaml",
@@ -164,7 +180,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 13,
               "Title": "TeamMemberWrapper.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\DataWrappers\\TeamMemberWrapper.cs",
               "RelativeDocumentMoniker": "Tracker\\DataWrappers\\TeamMemberWrapper.cs",
@@ -176,7 +192,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 12,
               "Title": "TrackerMainViewModel.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\ViewModels\\TrackerMainViewModel.cs",
               "RelativeDocumentMoniker": "Tracker\\ViewModels\\TrackerMainViewModel.cs",
@@ -188,7 +204,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 14,
               "Title": "EditableContactCard.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\EditableContactCard.xaml",
               "RelativeDocumentMoniker": "Tracker\\Controls\\EditableContactCard.xaml",
@@ -199,7 +215,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "TeamMembersControl.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\TeamMembersControl.xaml",
               "RelativeDocumentMoniker": "Tracker\\Controls\\TeamMembersControl.xaml",
@@ -210,7 +226,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 10,
               "Title": "ImageHelper.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Helpers\\ImageHelper.cs",
               "RelativeDocumentMoniker": "Tracker\\Helpers\\ImageHelper.cs",
@@ -222,7 +238,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "DashboardControl.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\DashboardControl.xaml",
               "RelativeDocumentMoniker": "Tracker\\Controls\\DashboardControl.xaml",
@@ -233,7 +249,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "ContactDataDisplayCard.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\ContactDataDisplayCard.xaml",
               "RelativeDocumentMoniker": "Tracker\\Controls\\ContactDataDisplayCard.xaml",
@@ -244,7 +260,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 16,
               "Title": "AddTeamMemberDialog.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\AddTeamMemberDialog.xaml",
               "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\AddTeamMemberDialog.xaml",
@@ -255,7 +271,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 15,
               "Title": "MainWindow.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\MainWindow.xaml",
               "RelativeDocumentMoniker": "Tracker\\MainWindow.xaml",

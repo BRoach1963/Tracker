@@ -37,7 +37,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Team member who owns/is assigned this task.
         /// </summary>
-        public TeamMember Owner { get; set; } = new();
+        public TeamMember Owner { get; set; } = null!;
 
         /// <summary>
         /// Optional FK to a parent Project. Null for standalone tasks.

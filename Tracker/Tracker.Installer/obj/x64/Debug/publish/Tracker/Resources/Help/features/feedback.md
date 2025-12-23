@@ -1,101 +1,236 @@
 # Feedback
 
-Document feedback, recognition, and coaching moments for team members.
+The Feedback feature helps you document, track, and remember important conversations about performance and behavior.
 
-## Overview
+## Types of Feedback
 
-Feedback in Tracker helps you:
+### Recognition (Positive)
+Acknowledge good work:
+- Successful project delivery
+- Exceptional effort
+- Helpful behaviors
+- Learning and growth
 
-- Record positive recognition
-- Document coaching conversations
-- Track patterns over time
-- Prepare for performance reviews
+### Constructive (Developmental)
+Guide improvement:
+- Skill gaps identified
+- Behavior adjustments needed
+- Process improvements
+- Growth opportunities
 
-## Feedback Types
+### Coaching
+Ongoing development:
+- Career guidance
+- Skill mentoring
+- Strategy discussions
+- Problem-solving support
 
-| Type | When to Use |
-|------|-------------|
-| **Positive** | Celebrate wins and good work |
-| **Constructive** | Areas for improvement |
-| **Recognition** | Public acknowledgment |
-| **Coaching** | Developmental guidance |
-| **Performance Review** | Formal review documentation |
+### Performance
+Formal evaluation:
+- Review period feedback
+- Goal achievement
+- Rating and ranking
+- Compensation discussions
 
-## Adding Feedback
+## Creating Feedback
 
-1. Open a **Team Member** profile
-2. Go to the **Feedback** tab
-3. Click **Add Feedback**
-4. Fill in:
-   - **Type** - Category of feedback
-   - **Title** - Brief summary
-   - **Content** - Detailed feedback
-   - **Date** - When it happened
-   - **Context** - Situation/project (optional)
-5. Click **Save**
+1. Navigate to **Circle** → **Feedback**
+2. Click **+ Add Feedback**
+3. Complete the form:
 
-## Writing Effective Feedback
+| Field | Description |
+|-------|-------------|
+| **Team Member** | Who the feedback is for |
+| **Type** | Recognition, Constructive, Coaching, Performance |
+| **Date** | When the conversation occurred |
+| **Title** | Brief summary |
+| **Description** | Detailed feedback content |
+| **Context** | Situation/project involved |
+| **Follow-up** | Actions or next steps |
+| **Private Notes** | For your eyes only |
 
-### The SBI Model
+## The SBI Framework
 
 Structure feedback using Situation-Behavior-Impact:
 
-- **Situation** - When and where
-- **Behavior** - What you observed
-- **Impact** - Effect on team/project
+### Situation
+*When and where did it happen?*
+"In yesterday's client presentation..."
 
-### Example
+### Behavior
+*What specifically did they do?*
+"...you clearly explained the technical architecture and answered questions confidently..."
 
-> **Situation:** "In yesterday's sprint demo..."
-> 
-> **Behavior:** "...you clearly explained the technical implementation to stakeholders..."
-> 
-> **Impact:** "...which helped them understand the value and approve the next phase."
+### Impact
+*What was the result?*
+"...which built the client's trust and helped close the deal."
+
+### Example: Recognition
+> **Situation**: During last week's production incident
+> **Behavior**: You took ownership, communicated proactively with stakeholders, and coordinated the fix
+> **Impact**: We resolved it 50% faster than average, and the customer praised our response
+
+### Example: Constructive
+> **Situation**: In today's team meeting
+> **Behavior**: You interrupted colleagues multiple times during their updates
+> **Impact**: Others seemed hesitant to share fully, and we missed important context
+
+## Feedback Best Practices
+
+### Timing
+- **Give it soon**: Within 24-48 hours of the event
+- **Not in anger**: Wait if emotions are high
+- **Regular cadence**: Don't save it all for reviews
+- **Private setting**: Constructive feedback deserves discretion
+
+### Delivery
+1. Ask permission: "Can I share some feedback?"
+2. Be specific: Use SBI framework
+3. Be objective: Facts, not judgments
+4. Be balanced: Context matters
+5. Listen: Allow response
+6. Plan together: Agree on next steps
+
+### What NOT to Do
+❌ "You always..." (absolutist)
+❌ "You're bad at..." (personal attack)
+❌ "Everyone thinks..." (hearsay)
+❌ Public criticism
+❌ Vague generalizations
+❌ Feedback sandwiches (fake positives)
+
+## Tracking Feedback Over Time
+
+### Feedback History
+View all feedback for a team member:
+- Timeline view
+- Filter by type
+- Search content
+- Identify patterns
+
+### Pattern Recognition
+Look for:
+- Recurring strengths to leverage
+- Repeated issues to address
+- Progress on past feedback
+- Coaching opportunity areas
 
 ## Feedback in 1:1s
 
-Give feedback in context:
+### Preparing for 1:1s
+1. Review recent feedback entries
+2. Add agenda item for discussion
+3. Link feedback to agenda
+4. Plan the conversation
 
-1. Create a 1:1 meeting
-2. Add feedback as an agenda item
-3. Discuss face-to-face
-4. Document the conversation
-5. Create follow-up actions if needed
+### During the 1:1
+1. Reference specific situations
+2. Use your recorded feedback
+3. Discuss impact and growth
+4. Plan follow-up actions
 
-## Viewing Feedback History
+### After the 1:1
+1. Update feedback with outcomes
+2. Create follow-up tasks
+3. Schedule next check-in
+4. Document commitments
 
-All feedback for a team member is visible in their profile:
+## Feedback Views
 
-- Chronological list
-- Filter by type
-- Search content
-- Export for reviews
+### By Person
+All feedback for one team member:
+- Chronological timeline
+- Type distribution
+- Trend analysis
 
-## Best Practices
+### By Type
+Group by feedback category:
+- All recognition
+- All constructive
+- All coaching notes
 
-> 💡 **Timely feedback** - Record it while it's fresh.
+### Recent Activity
+Latest feedback across team:
+- Quick review
+- Ensure regular cadence
+- Spot gaps
 
-> 💡 **Be specific** - Details make feedback actionable.
+## Privacy & Sensitivity
 
-> 💡 **Balance** - Mix positive and constructive.
+### What to Record
+- Specific, factual observations
+- Professional context
+- Agreed-upon actions
+- Follow-up plans
 
-> 💡 **Regular rhythm** - Don't save it all for reviews.
+### What NOT to Record
+- Personal opinions without basis
+- Hearsay or rumors
+- Medical/personal issues
+- Legally sensitive matters
 
-> 💡 **Private first** - Constructive feedback in private.
+### Access Control
+- Feedback is visible only to you
+- Private notes never shared
+- Export carefully
+- Consider retention policies
 
-## Using for Performance Reviews
+## Feedback for Performance Reviews
 
-At review time:
+### Building the Case
+Throughout the review period:
+1. Record feedback promptly
+2. Be consistent across team
+3. Include positive AND constructive
+4. Document specific examples
 
-1. Filter feedback for review period
-2. Look for patterns and themes
-3. Use specific examples
-4. Show growth over time
+### Review Preparation
+1. Filter feedback by date range
+2. Review all entries for the person
+3. Identify themes
+4. Gather specific examples
+5. Draft review sections
 
----
+### During the Review
+Reference your documented feedback:
+- "On March 15, I noted that..."
+- "Throughout Q2, you consistently..."
+- "We discussed on April 3 that..."
 
-*See also:*
-- [Team Members](team-members.md)
-- [One-on-Ones](one-on-ones.md)
-- [Goals](goals.md)
+## Creating a Feedback Culture
 
+### As a Manager
+1. Give feedback regularly (weekly minimum)
+2. Model receiving feedback well
+3. Ask for feedback on yourself
+4. Celebrate when others give feedback
+5. Follow through on what you promise
+
+### Encouraging Peer Feedback
+- Normalize feedback in meetings
+- Create safe spaces for sharing
+- Recognize good feedback behaviors
+- Remove fear of retaliation
+
+## Reporting & Analytics
+
+### Feedback Metrics
+- Frequency by team member
+- Type distribution
+- Follow-up completion rate
+- Feedback gap analysis
+
+### Export Options
+- Individual feedback history
+- Team summary reports
+- Date range exports
+- Review period bundles
+
+## Integration with Other Features
+
+| Feature | Integration |
+|---------|-------------|
+| **Team Members** | Feedback linked to profiles |
+| **1:1 Meetings** | Discuss feedback in meetings |
+| **Goals** | Feedback supports goal progress |
+| **Reports** | Include in performance reports |

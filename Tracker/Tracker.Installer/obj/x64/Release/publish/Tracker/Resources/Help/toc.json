@@ -119,9 +119,9 @@
           "description": "Generating and sharing reports"
         },
         {
-          "title": "AI Help Bot",
+          "title": "Oracle - AI Assistant",
           "file": "ai-help-bot.md",
-          "description": "Getting help from the AI assistant"
+          "description": "Your intelligent AI assistant with actions and semantic search"
         },
         {
           "title": "Settings",

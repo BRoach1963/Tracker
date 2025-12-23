@@ -668,26 +668,43 @@ namespace Tracker.Database
                 var query = _context.OneOnOnes
                     .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value)
                     .Include(o => o.TeamMember)
-                    .Include(o => o.Tasks.Where(t => !t.IsDeleted))
-                    .Include(o => o.AgendaItems.Where(a => !a.IsDeleted))
+                    .Include(o => o.Tasks)
+                    .Include(o => o.AgendaItems)
                     .AsQueryable();
 
                 // Only include Phase 1 linked tables if they exist
                 try
                 {
                     query = query
-                        .Include(o => o.LinkedTasks.Where(lt => !lt.IsDeleted)).ThenInclude(lt => lt.Task)
-                        .Include(o => o.LinkedOkrs.Where(lo => !lo.IsDeleted)).ThenInclude(lo => lo.Okr)
-                        .Include(o => o.LinkedKpis.Where(lk => !lk.IsDeleted)).ThenInclude(lk => lk.Kpi);
+                        .Include(o => o.LinkedTasks).ThenInclude(lt => lt.Task)
+                        .Include(o => o.LinkedOkrs).ThenInclude(lo => lo.Okr)
+                        .Include(o => o.LinkedKpis).ThenInclude(lk => lk.Kpi);
                 }
                 catch
                 {
                     // Phase 1 tables don't exist yet - skip them
                 }
 
-                return await query
+                var results = await query
                     .OrderByDescending(o => o.Date)
                     .ToListAsync();
+                
+                // Filter deleted items in memory to avoid SQL translation issues
+                foreach (var oneOnOne in results)
+                {
+                    if (oneOnOne.Tasks != null)
+                        oneOnOne.Tasks = oneOnOne.Tasks.Where(t => !t.IsDeleted).ToList();
+                    if (oneOnOne.AgendaItems != null)
+                        oneOnOne.AgendaItems = oneOnOne.AgendaItems.Where(a => !a.IsDeleted).ToList();
+                    if (oneOnOne.LinkedTasks != null)
+                        oneOnOne.LinkedTasks = oneOnOne.LinkedTasks.Where(lt => !lt.IsDeleted).ToList();
+                    if (oneOnOne.LinkedOkrs != null)
+                        oneOnOne.LinkedOkrs = oneOnOne.LinkedOkrs.Where(lo => !lo.IsDeleted).ToList();
+                    if (oneOnOne.LinkedKpis != null)
+                        oneOnOne.LinkedKpis = oneOnOne.LinkedKpis.Where(lk => !lk.IsDeleted).ToList();
+                }
+                
+                return results;
             }
             catch (Exception ex)
             {
@@ -726,9 +743,13 @@ namespace Tracker.Database
             }
         }
 
-        public async Task<int> AddOneOnOneAsync(OneOnOne oneOnOne)
+        public async Task<int> AddOneOnOneAsync(OneOnOne oneOnOne, int? teamMemberId = null)
         {
-            if (_context == null) return 0;
+            if (_context == null)
+            {
+                _logger.Error("AddOneOnOneAsync: _context is null");
+                return 0;
+            }
 
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
@@ -736,19 +757,66 @@ namespace Tracker.Database
                 _logger.Error("AddOneOnOneAsync called but CurrentUserId is not set");
                 return 0;
             }
+            
+            _logger.Info("AddOneOnOneAsync: Starting with CurrentUserId={0}, TeamMemberId={1}", currentUserId.Value, teamMemberId);
+            
+            // Verify the user exists
+            var userExists = await _context.Users.AnyAsync(u => u.Id == currentUserId.Value);
+            _logger.Info("AddOneOnOneAsync: User existence check - UserId={0}, Exists={1}", currentUserId.Value, userExists);
+            if (!userExists)
+            {
+                _logger.Error("AddOneOnOneAsync: UserId={0} does not exist in Users table", currentUserId.Value);
+                return 0;
+            }
 
             try
             {
+                // Detach the TeamMember navigation property to prevent EF from tracking it
+                // The navigation property is initialized to new TeamMember() which has no UserId
+                // This causes FK constraint errors when EF tries to add it
+                oneOnOne.TeamMember = null;
+                
                 _context.OneOnOnes.Add(oneOnOne);
                 // Set UserId shadow property
                 _context.Entry(oneOnOne).Property("UserId").CurrentValue = currentUserId.Value;
+                
+                // Set TeamMemberId shadow property
+                // Priority: explicit parameter > TeamMember.Id > error
+                if (teamMemberId.HasValue)
+                {
+                    // Verify the team member exists and belongs to this user
+                    var teamMember = await _context.TeamMembers
+                        .Where(tm => tm.Id == teamMemberId.Value && EF.Property<int>(tm, "UserId") == currentUserId.Value)
+                        .FirstOrDefaultAsync();
+                    
+                    if (teamMember == null)
+                    {
+                        _logger.Error("AddOneOnOneAsync: TeamMemberId={0} not found or belongs to different user (UserId={1})", teamMemberId.Value, currentUserId.Value);
+                        return 0;
+                    }
+                    
+                    _context.Entry(oneOnOne).Property("TeamMemberId").CurrentValue = teamMemberId.Value;
+                    _logger.Info("AddOneOnOneAsync: Setting TeamMemberId={0}, UserId={1}", teamMemberId.Value, currentUserId.Value);
+                }
+                else if (oneOnOne.TeamMember?.Id > 0)
+                {
+                    _context.Entry(oneOnOne).Property("TeamMemberId").CurrentValue = oneOnOne.TeamMember.Id;
+                    _logger.Info("AddOneOnOneAsync: Setting TeamMemberId={0} from navigation, UserId={1}", oneOnOne.TeamMember.Id, currentUserId.Value);
+                }
+                else
+                {
+                    _logger.Error("AddOneOnOneAsync: TeamMemberId not provided and TeamMember is null or has invalid Id");
+                    return 0;
+                }
+                
                 await _context.SaveChangesAsync();
                 _logger.Info("Added one-on-one ID: {0}", oneOnOne.Id);
                 return oneOnOne.Id;
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error adding one-on-one");
+                var innerMsg = ex.InnerException != null ? $" Inner: {ex.InnerException.Message}" : "";
+                _logger.Exception(ex, "Error adding one-on-one.{0}", innerMsg);
                 return 0;
             }
         }
@@ -858,13 +926,24 @@ namespace Tracker.Database
 
             try
             {
-                return await _context.OneOnOnes
+                var results = await _context.OneOnOnes
                     .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value && o.TeamMember.Id == teamMemberId)
                     .Include(o => o.TeamMember)
-                    .Include(o => o.Tasks.Where(t => !t.IsDeleted))
-                    .Include(o => o.AgendaItems.Where(a => !a.IsDeleted))
+                    .Include(o => o.Tasks)
+                    .Include(o => o.AgendaItems)
                     .OrderByDescending(o => o.Date)
                     .ToListAsync();
+                
+                // Filter deleted items in memory to avoid SQL translation issues
+                foreach (var oneOnOne in results)
+                {
+                    if (oneOnOne.Tasks != null)
+                        oneOnOne.Tasks = oneOnOne.Tasks.Where(t => !t.IsDeleted).ToList();
+                    if (oneOnOne.AgendaItems != null)
+                        oneOnOne.AgendaItems = oneOnOne.AgendaItems.Where(a => !a.IsDeleted).ToList();
+                }
+                
+                return results;
             }
             catch (Exception ex)
             {
@@ -1484,13 +1563,28 @@ namespace Tracker.Database
                 var allOkrsCount = await _context.ObjectiveKeyResults.CountAsync();
                 _logger.Info("GetOKRsAsync: Total OKRs in database (all users) = {0}", allOkrsCount);
                 
+                // Load all data without filters in the Include to avoid SQL translation errors
                 var result = await _context.ObjectiveKeyResults
                     .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value)
                     .Include(o => o.Owner)
-                    .Include(o => o.KeyResults.Where(k => !k.IsDeleted))
-                        .ThenInclude(k => k.Measurables.Where(m => !m.IsDeleted))
+                    .Include(o => o.KeyResults)
+                        .ThenInclude(k => k.Measurables)
                     .OrderBy(o => o.EndDate)
                     .ToListAsync();
+                
+                // Filter in-memory to avoid SQL translation issues with obsolete/unmapped properties
+                foreach (var okr in result)
+                {
+                    if (okr.KeyResults != null)
+                    {
+                        okr.KeyResults = okr.KeyResults.Where(k => !k.IsDeleted).ToList();
+                        foreach (var kr in okr.KeyResults)
+                        {
+                            if (kr.Measurables != null)
+                                kr.Measurables = kr.Measurables.Where(m => !m.IsDeleted).ToList();
+                        }
+                    }
+                }
                     
                 _logger.Info("GetOKRsAsync: Found {0} OKRs for UserId = {1}", result.Count, currentUserId.Value);
                 return result;

@@ -14,7 +14,7 @@ namespace Tracker.DataModels
         /// The team member this goal belongs to.
         /// </summary>
         public int TeamMemberId { get; set; }
-        public TeamMember TeamMember { get; set; } = new();
+        public TeamMember TeamMember { get; set; } = null!;
 
         /// <summary>
         /// Goal title.

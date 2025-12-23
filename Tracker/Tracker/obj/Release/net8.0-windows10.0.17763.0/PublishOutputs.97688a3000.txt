@@ -1,4 +1,3 @@
-C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Release\publish\Tracker\Images\Tracker.ico
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Release\publish\Tracker\Tracker.exe
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Release\publish\Tracker\Resources\Help\account\account-settings.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Release\publish\Tracker\Resources\Help\account\billing.md

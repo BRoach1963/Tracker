@@ -1,7 +1,7 @@
 # Tracker Application Functionality Audit
 
 **Date:** December 16, 2025  
-**Last Updated:** December 16, 2025 (Accessibility Implementation Complete)
+**Last Updated:** December 20, 2025 (Edit Dialogs & AI Features)
 **Purpose:** Document current state, incomplete features, accessibility gaps, and pending work
 
 ---
@@ -29,14 +29,16 @@
 | Dialog Type | Status | Notes |
 |-------------|--------|-------|
 | AddKeyResult | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
-| EditKeyResult | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
+| EditKeyResult | ✅ Implemented | Dialog and ViewModel complete |
 | AddMeasurable | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
-| EditOKR | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
-| EditProject | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
-| EditTask | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
-| EditKPI | ❌ Not Implemented | Enum defined, but no dialog or ViewModel |
+| EditOKR | ✅ Implemented | Dialog and ViewModel complete |
+| EditProject | ✅ Implemented | Dialog and ViewModel complete |
+| EditTask | ✅ Implemented | Dialog and ViewModel complete |
+| EditKPI | ✅ Implemented | Dialog and ViewModel complete |
+| EditTeamMember | ✅ Implemented | Dialog and ViewModel complete |
+| EditGoal | ✅ Implemented | Dialog and ViewModel complete |
 
-**Impact:** Users cannot edit OKRs inline or add Key Results/Measurables from the OKR detail view. Must delete and recreate items.
+**Impact:** Users can now edit most items inline. Only AddKeyResult and AddMeasurable remain unimplemented.
 
 ### 1.3 Calendar Integration
 | Feature | Status | Notes |
@@ -74,6 +76,30 @@
 | Help Documentation | ✅ Complete | Comprehensive markdown files |
 | Two-Factor Authentication | ❌ Documented | Help says "Coming Soon" |
 | Screenshot Placeholders | ⚠️ 29 placeholders | User manual generator has placeholder images |
+
+### 1.7 AI Features (Oracle - Google Gemini 2.5 Pro)
+| Feature | Standard Plan | Pro Plan | Status |
+|---------|:-------------:|:--------:|--------|
+| Feature Guidance | ✅ | ✅ | ✅ Complete |
+| Best Practices | ✅ | ✅ | ✅ Complete |
+| Semantic Search | ❌ | ✅ | ✅ Complete |
+| Data Analysis | ❌ | ✅ | ✅ Complete |
+| Actions (Schedule Meetings) | ❌ | ✅ | ✅ Complete |
+| Actions (Create Tasks) | ❌ | ✅ | ✅ Complete |
+| Actions (Create KPIs/OKRs) | ❌ | ✅ | ✅ Complete |
+| AI Usage Tracking | ✅ | ✅ | ✅ Complete |
+| Budget Management | ✅ | ✅ | ✅ Complete |
+
+**Implementation Status:**
+- ✅ AIFunctionService - Handles all AI-powered actions
+- ✅ DataIndexer - Semantic search with vector embeddings
+- ✅ AIUsageTracker - Tracks token usage and budget limits
+- ✅ HelpBotContextService - Provides context-aware assistance
+- ✅ Integration with Google Gemini 2.5 Pro API
+
+**AI Budget Limits:**
+- Standard: $2/user/month (~245 queries)
+- Pro: $10/user/month (~1,200 queries+actions)
 
 ---
 
@@ -240,7 +266,7 @@
 4. Dialog title bar buttons need tooltips
 
 ### Priority 3: Incomplete Features
-1. Implement Edit dialogs (OKR, Project, Task, KPI)
+1. ✅ ~~Implement Edit dialogs (OKR, Project, Task, KPI)~~ - COMPLETED
 2. Implement AddKeyResult and AddMeasurable dialogs
 3. Complete CalendarSyncService database operations
 4. Implement Excel export for all reports
@@ -263,11 +289,12 @@
 | Category | Status |
 |----------|--------|
 | Reports Implemented | 11/12 (92%) |
-| Dialogs Implemented | 13/20 (65%) |
+| Dialogs Implemented | 18/20 (90%) |
+| AI Features (Oracle) | 9/9 (100%) |
 | Tooltips Coverage | ~44 total (LOW) |
-| AutomationProperties | 0 (CRITICAL) |
-| Keyboard Shortcuts | 3/15 documented (20%) |
-| Tab Order Management | None |
+| AutomationProperties | ✅ Implemented |
+| Keyboard Shortcuts | 8/15 documented (53%) |
+| Tab Order Management | ✅ Implemented |
 | Form Validation | Minimal |
 | Calendar Integrations | 1/4 (25%) |
 
