@@ -379,3 +379,7 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Release\net8.0-windows10
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Release\net8.0-windows10.0.17763.0\Tracker.pdb
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Release\net8.0-windows10.0.17763.0\Tracker.genruntimeconfig.cache
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Release\net8.0-windows10.0.17763.0\ref\Tracker.dll
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Release\net8.0-windows10.0.17763.0\Images\Tracker.ico
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\reference\shared-database-setup.md
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Release\net8.0-windows10.0.17763.0\Views\AdminWindow.baml
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker\obj\Release\net8.0-windows10.0.17763.0\Views\AdminWindow.g.cs

@@ -295,10 +295,20 @@ namespace Tracker.Controls
                     return;
                 }
 
+                // Build display name from first and last name
+                var firstName = FirstNameTextBox.Text.Trim();
+                var lastName = LastNameTextBox.Text.Trim();
+                var displayName = $"{firstName} {lastName}".Trim();
+                if (string.IsNullOrEmpty(displayName))
+                {
+                    displayName = profile.Email?.Split('@')[0] ?? "User";
+                }
+
                 await client.From<Services.Backend.Models.UserProfile>()
                     .Where(p => p.Id == userId)
-                    .Set(p => p.FirstName!, FirstNameTextBox.Text.Trim())
-                    .Set(p => p.LastName!, LastNameTextBox.Text.Trim())
+                    .Set(p => p.FirstName!, firstName)
+                    .Set(p => p.LastName!, lastName)
+                    .Set(p => p.DisplayName!, displayName)
                     .Set(p => p.JobTitle!, JobTitleTextBox.Text.Trim())
                     .Set(p => p.Company!, CompanyTextBox.Text.Trim())
                     .Set(p => p.Phone!, PhoneTextBox.Text.Trim())
@@ -306,8 +316,9 @@ namespace Tracker.Controls
                     .Update();
 
                 // Update local profile copy
-                profile.FirstName = FirstNameTextBox.Text.Trim();
-                profile.LastName = LastNameTextBox.Text.Trim();
+                profile.FirstName = firstName;
+                profile.LastName = lastName;
+                profile.DisplayName = displayName;
                 profile.JobTitle = JobTitleTextBox.Text.Trim();
                 profile.Company = CompanyTextBox.Text.Trim();
                 profile.Phone = PhoneTextBox.Text.Trim();

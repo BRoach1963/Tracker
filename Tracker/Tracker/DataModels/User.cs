@@ -36,6 +36,12 @@ namespace Tracker.DataModels
         /// Inactive users cannot log in but their data is preserved.
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Whether this user has administrator privileges.
+        /// Admins can access admin tools for database management, user cleanup, etc.
+        /// </summary>
+        public bool IsAdmin { get; set; } = false;
     }
 }
 

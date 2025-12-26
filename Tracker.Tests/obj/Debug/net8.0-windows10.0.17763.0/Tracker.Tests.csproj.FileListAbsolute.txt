@@ -3,6 +3,7 @@ C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.1
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\testhost.dll
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Tracker.deps.json
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Tracker.runtimeconfig.json
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Images\Tracker.ico
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\account\account-settings.md
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\account\billing.md
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\account\create-account.md
@@ -39,6 +40,7 @@ C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.1
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\getting-started\overview.md
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\getting-started\quick-start.md
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\reference\keyboard-shortcuts.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\reference\shared-database-setup.md
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\reference\troubleshooting.md
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Resources\Help\toc.json
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Tracker.exe
@@ -46,7 +48,6 @@ C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.1
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\xunit.runner.visualstudio.testadapter.dll
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\xunit.runner.reporters.netcoreapp10.dll
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\xunit.runner.utility.netcoreapp10.dll
-C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Images\Tracker.ico
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.deps.json
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.runtimeconfig.json
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.dll

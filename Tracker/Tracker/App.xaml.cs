@@ -51,7 +51,7 @@ namespace Tracker
             {
                 // Log the error but don't crash the app
                 // Syncfusion controls will show a license watermark if registration fails
-                System.Diagnostics.Debug.WriteLine($"Syncfusion license registration failed: {ex.Message}");
+                LoggingManager.GetComponentLogger("App").Warn("Syncfusion license registration failed: {0}", ex.Message);
             }
             
             RegisterAppForToastNotifications();
@@ -293,6 +293,15 @@ namespace Tracker
                 _splashScreen.Visibility = System.Windows.Visibility.Collapsed;
             }
             
+            // Check if user's settings require setup wizard (e.g., after "Change Database" was clicked)
+            if (!UserSettingsManager.Instance.Settings.Database.SetupCompleted)
+            {
+                logger.Info(">>> User settings indicate setup not completed - showing setup wizard");
+                _splashScreen?.Close();
+                ShowSetupWizardAfterLogin();
+                return;
+            }
+            
             // NOW show LoadingWindow - splash is completely hidden
             logger.Info(">>> Creating LoadingWindow");
             _loadingWindow = new Views.LoadingWindow();
@@ -333,12 +342,94 @@ namespace Tracker
         }
         
         /// <summary>
-        /// Launches the main application window after successful login.
+        /// Shows the setup wizard after login when the user needs to reconfigure their database.
         /// </summary>
-        private void LaunchMainWindow()
+        private void ShowSetupWizardAfterLogin()
         {
             var logger = LoggingManager.GetComponentLogger("App");
-            logger.Info(">>> LaunchMainWindow called");
+            logger.Info(">>> Showing setup wizard after login (user requested database change)");
+            
+            // Prevent app shutdown when setup wizard closes (before loading window shows)
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            
+            SetupWizard? setupWindow = null;
+            bool setupCompletedSuccessfully = false;
+            
+            var setupVm = new SetupWizardViewModel(() =>
+            {
+                setupCompletedSuccessfully = true;
+                setupWindow?.Close();
+            });
+
+            setupWindow = new SetupWizard
+            {
+                DataContext = setupVm,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ShowInTaskbar = true
+            };
+
+            setupWindow.Closed += async (s, e) =>
+            {
+                if (setupCompletedSuccessfully)
+                {
+                    // Re-initialize database with new settings
+                    try
+                    {
+                        var initResult = await InitializeApplicationAsync();
+                        _startupWarningMessage = initResult.WarningMessage;
+                        
+                        // Show loading window briefly then main window
+                        _loadingWindow = new Views.LoadingWindow();
+                        _loadingWindow.Show();
+                        
+                        await Task.Delay(500);
+                        
+                        await Dispatcher.InvokeAsync(() =>
+                        {
+                            // Restore normal shutdown mode now that main window will show
+                            ShutdownMode = ShutdownMode.OnLastWindowClose;
+                            
+                            if (!string.IsNullOrEmpty(_startupWarningMessage))
+                            {
+                                NotificationManager.Instance.ShowWarning("Startup Warning", _startupWarningMessage, 10);
+                            }
+                            LaunchMainWindow();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Exception(ex, "Failed to initialize after setup wizard");
+                        MessageBoxHelper.Show(
+                            $"Failed to initialize database: {ex.Message}\n\nPlease restart the application.",
+                            "Initialization Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        Shutdown();
+                    }
+                }
+                else
+                {
+                    // User cancelled - reset to previous state and go back to login
+                    logger.Info(">>> Setup wizard cancelled - user should restart");
+                    MessageBoxHelper.Show(
+                        "Database setup was cancelled. Please restart Tracker to try again.",
+                        "Setup Cancelled",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    Shutdown();
+                }
+            };
+
+            setupWindow.Show();
+        }
+
+        /// <summary>
+        /// Launches the main application window after successful login.
+        /// </summary>
+        private void LaunchMainWindow(bool isAdminLogin = false)
+        {
+            var logger = LoggingManager.GetComponentLogger("App");
+            logger.Info(">>> LaunchMainWindow called (isAdminLogin={0})", isAdminLogin);
             
             // CLOSE loading window BEFORE creating MainWindow to avoid taskbar confusion
             logger.Info(">>> Closing LoadingWindow before MainWindow shows");
@@ -347,10 +438,21 @@ namespace Tracker
             // Brief delay to ensure loading window is gone
             Task.Delay(100).ContinueWith(_ => Dispatcher.Invoke(() =>
             {
-                // Create MainWindow directly on UI thread
-                var mainWindow = new MainWindow(new ViewModels.TrackerMainViewModel());
-                logger.Info(">>> MainWindow created");
-                mainWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                if (isAdminLogin)
+                {
+                    // Launch Admin Window for database management
+                    var adminWindow = new Views.AdminWindow();
+                    logger.Info(">>> AdminWindow created");
+                    adminWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                    adminWindow.Show();
+                    Application.Current.MainWindow = adminWindow;
+                }
+                else
+                {
+                    // Create MainWindow directly on UI thread
+                    var mainWindow = new MainWindow(new ViewModels.TrackerMainViewModel());
+                    logger.Info(">>> MainWindow created");
+                    mainWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             
             mainWindow.Loaded += async (s, e) =>
             {
@@ -391,6 +493,7 @@ namespace Tracker
             mainWindow.Show();
             
             Application.Current.MainWindow = mainWindow;
+                }
             }));
         }
 
@@ -555,8 +658,17 @@ namespace Tracker
                     var logger = LoggingManager.GetComponentLogger("App");
                     logger.Info(">>> LOGIN DIALOG SUCCESS - Starting loading window flow");
                     
-                    // Login completed successfully, show LoadingWindow then main window
                     ShutdownMode = ShutdownMode.OnLastWindowClose;
+                    
+                    // Check if user's settings require setup wizard (e.g., after "Change Database" was clicked)
+                    if (!UserSettingsManager.Instance.Settings.Database.SetupCompleted)
+                    {
+                        logger.Info(">>> User settings indicate setup not completed - showing setup wizard");
+                        ShowSetupWizardAfterLogin();
+                        return;
+                    }
+                    
+                    // Login completed successfully, show LoadingWindow then main window
                     
                     // Show LoadingWindow
                     logger.Info(">>> Creating LoadingWindow");
@@ -575,7 +687,7 @@ namespace Tracker
                     Task.Run(async () =>
                     {
                         await Task.Delay(500);
-                        await Dispatcher.InvokeAsync(() => LaunchMainWindow());
+                        await Dispatcher.InvokeAsync(() => LaunchMainWindow(loginVm.Result.IsAdminLogin));
                     });
                 }
                 else

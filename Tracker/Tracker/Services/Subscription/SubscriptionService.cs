@@ -6,11 +6,48 @@ using Tracker.Services.Backend;
 namespace Tracker.Services.Subscription
 {
     /// <summary>
+    /// Constants for feature names used in subscription checks.
+    /// Use these instead of magic strings when calling HasFeature().
+    /// </summary>
+    public static class FeatureNames
+    {
+        public const string AI = "ai";
+        public const string AIAssistant = "aiassistant";
+        public const string HelpBot = "helpbot";
+        public const string AIDataAnalysis = "aidataanalysis";
+        public const string DataAnalysis = "dataanalysis";
+        public const string Calendar = "calendar";
+        public const string CalendarSync = "calendarsync";
+        public const string BasicReports = "basicreports";
+        public const string Reports = "reports";
+        public const string AdvancedReports = "advancedreports";
+        public const string EmailSupport = "emailsupport";
+        public const string Support = "support";
+        public const string PrioritySupport = "prioritysupport";
+        public const string NetworkDb = "networkdb";
+        public const string EnterpriseDb = "enterprisedb";
+    }
+
+    /// <summary>
+    /// Constants for resource types used in limit checks.
+    /// Use these instead of magic strings when calling CheckLimit().
+    /// </summary>
+    public static class ResourceTypes
+    {
+        public const string TeamMembers = "team_members";
+        public const string Tasks = "tasks";
+        public const string Projects = "projects";
+        public const string OKRs = "okrs";
+        public const string KPIs = "kpis";
+        public const string Goals = "goals";
+    }
+
+    /// <summary>
     /// Manages subscription state and feature access.
     /// Currently defaults to Internal tier for testing.
     /// Will integrate with backend service for production.
     /// </summary>
-    public class SubscriptionService
+    public class SubscriptionService : ISubscriptionService
     {
         #region Singleton
 

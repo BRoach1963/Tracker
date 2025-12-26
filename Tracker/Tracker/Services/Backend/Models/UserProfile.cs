@@ -57,6 +57,9 @@ namespace Tracker.Services.Backend.Models
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
+        [Column("is_admin")]
+        public bool IsAdmin { get; set; } = false;
+
         [Column("deactivated_at")]
         public DateTime? DeactivatedAt { get; set; }
 

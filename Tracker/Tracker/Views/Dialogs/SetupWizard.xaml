@@ -161,10 +161,17 @@
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource ForegroundBrush}"
                                    Margin="0,0,0,8"/>
-                        <TextBlock Text="Choose a storage option that fits your needs"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource HintTextBrush}"
-                                   Margin="0,0,0,24"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                            <TextBlock Text="👆"
+                                       FontSize="14"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="Click a card below to select your storage option"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -271,6 +278,78 @@
                                 </StackPanel>
                             </Border>
                         </Grid>
+
+                        <!-- Custom Database Location (for SQLite) -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,24,0,0"
+                                Visibility="{Binding IsLocalSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <CheckBox Content="Use custom database location"
+                                          IsChecked="{Binding UseCustomSqlitePath}"
+                                          FontWeight="SemiBold"
+                                          Foreground="{DynamicResource ForegroundBrush}"
+                                          Margin="0,0,0,12"/>
+                                
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource HintTextBrush}"
+                                           Margin="0,0,0,12">
+                                    <Run Text="By default, your database is stored in"/>
+                                    <Run Text="%LocalAppData%\Tracker\tracker.db" FontFamily="Consolas"/>
+                                    <LineBreak/>
+                                    <Run Text="Check this option to store it on a network share (e.g., \\server\share\TrackerData\tracker.db) so multiple users can share the same database."/>
+                                </TextBlock>
+                                
+                                <Grid Visibility="{Binding ShowCustomSqlitePath, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding CustomSqlitePath, UpdateSourceTrigger=PropertyChanged}"
+                                             FontFamily="Consolas"
+                                             FontSize="11"
+                                             Padding="8"
+                                             VerticalContentAlignment="Center"
+                                             Margin="0,0,8,0"
+                                             ToolTip="Full path to database file (e.g., \\server\share\TrackerData\tracker.db)"/>
+                                    
+                                    <Button Grid.Column="1"
+                                            Content="Browse..."
+                                            Command="{Binding BrowseSqlitePathCommand}"
+                                            Padding="12,6"
+                                            Style="{StaticResource SecondaryButtonStyle}"/>
+                                </Grid>
+                                
+                                <Border Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="12"
+                                        Margin="0,12,0,0"
+                                        Visibility="{Binding ShowCustomSqlitePath, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <StackPanel>
+                                        <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" FontSize="12">
+                                            📁 Shared Database Notes
+                                        </TextBlock>
+                                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource HintTextBrush}" Margin="0,8,0,0" LineHeight="20">
+                                            • Best for small teams (2-4 users)
+                                            <LineBreak/>
+                                            • All users need read/write access to the folder
+                                            <LineBreak/>
+                                            • For larger teams, consider the SQL Server option
+                                            <LineBreak/>
+                                            • Network speed may affect performance
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
 
                     <!-- ====== STEP 2: SQL Server Configuration ====== -->
@@ -652,9 +731,10 @@
                                                Margin="0,8,0,0"
                                                Visibility="{Binding IsLocalSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" 
-                                               Text="%LocalAppData%\Tracker\tracker.db"
+                                               Text="{Binding SummaryDatabaseLocation}"
                                                Foreground="{DynamicResource ForegroundBrush}"
                                                Margin="0,8,0,0"
+                                               TextWrapping="Wrap"
                                                Visibility="{Binding IsLocalSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                     
                                     <!-- SQL Server Info -->

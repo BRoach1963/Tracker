@@ -10,6 +10,7 @@ using Tracker.Database;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Helpers;
+using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Views.Dialogs;
 
@@ -19,6 +20,8 @@ namespace Tracker.ViewModels.DialogViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("SettingsVM");
+        
         private ThemeItem? _selectedTheme;
         private ICommand? _changeDatabaseCommand;
         private ICommand? _clearDataCommand;
@@ -123,6 +126,11 @@ namespace Tracker.ViewModels.DialogViewModels
                 var settings = UserSettingsManager.Instance.Settings.Database;
                 if (settings.Type == DatabaseType.SQLite)
                 {
+                    // Show custom path if set, otherwise default path
+                    if (!string.IsNullOrWhiteSpace(settings.CustomSqlitePath))
+                    {
+                        return settings.CustomSqlitePath;
+                    }
                     return DatabaseSettings.GetSqlitePath();
                 }
                 
@@ -186,11 +194,11 @@ namespace Tracker.ViewModels.DialogViewModels
             var owner = Win32UtilHelper.GetMainWindow();
             var result = MessageBoxHelper.Show(
                 "Changing your database connection will require restarting the application.\n\n" +
-                "Your data in the current database will NOT be migrated to the new database.\n\n" +
+                "If you have an existing database, you'll be asked if you want to copy it to the new location.\n\n" +
                 "Do you want to continue?",
                 "Change Database Connection",
                 MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
+                MessageBoxImage.Question,
                 owner);
 
             if (result != MessageBoxResult.Yes)
@@ -200,13 +208,48 @@ namespace Tracker.ViewModels.DialogViewModels
             UserSettingsManager.Instance.Settings.Database.SetupCompleted = false;
             UserSettingsManager.Instance.SaveSettings();
 
-            // Inform user to restart
-            MessageBoxHelper.Show(
-                "Please restart Tracker to configure your new database connection.",
+            // Ask if they want to restart now
+            var restartResult = MessageBoxHelper.Show(
+                "Settings saved. The database setup wizard will appear next time you log in.\n\n" +
+                "Would you like to restart Tracker now?",
                 "Restart Required",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question,
                 owner);
+
+            if (restartResult == MessageBoxResult.Yes)
+            {
+                // Restart the application
+                RestartApplication();
+            }
+        }
+
+        /// <summary>
+        /// Restarts the application.
+        /// </summary>
+        private void RestartApplication()
+        {
+            try
+            {
+                var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath))
+                {
+                    System.Diagnostics.Process.Start(exePath);
+                    System.Windows.Application.Current.Shutdown();
+                }
+            }
+            catch (Exception ex)
+            {
+                var logger = Logging.LoggingManager.GetComponentLogger("SettingsVM");
+                logger.Exception(ex, "Failed to restart application");
+                var owner = Win32UtilHelper.GetMainWindow();
+                MessageBoxHelper.Show(
+                    "Unable to restart automatically. Please close and reopen Tracker manually.",
+                    "Restart Failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning,
+                    owner);
+            }
         }
 
         private async void ExecuteClearData(object? parameter)
@@ -249,6 +292,9 @@ namespace Tracker.ViewModels.DialogViewModels
                     ChangedProperty = PropertyChangedEnum.All,
                     RefreshData = true
                 });
+
+                // Also send through the new DataMessenger system for ViewModels using it
+                DataMessenger.SendRefreshAll();
 
                 NotificationManager.Instance.ShowSuccess("Data Cleared", "All data has been removed from the database.");
             }
@@ -317,12 +363,19 @@ namespace Tracker.ViewModels.DialogViewModels
                 
                 if (success)
                 {
+                    _logger.Info("Sample data seeded successfully. Sending refresh messages...");
+                    
                     // Publish a message to refresh all data in the main ViewModel
                     Messenger.Publish(new PropertyChangedMessage
                     {
                         ChangedProperty = PropertyChangedEnum.All,
                         RefreshData = true
                     });
+
+                    // Also send through the new DataMessenger system for ViewModels using it
+                    _logger.Debug("Calling DataMessenger.SendRefreshAll()");
+                    DataMessenger.SendRefreshAll();
+                    _logger.Debug("DataMessenger.SendRefreshAll() completed");
 
                     NotificationManager.Instance.ShowSuccess(
                         "Sample Data Added", 

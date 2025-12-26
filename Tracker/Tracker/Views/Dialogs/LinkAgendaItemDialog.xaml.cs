@@ -70,7 +70,7 @@ namespace Tracker.Views.Dialogs
             Close();
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
+        private new void Close_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
             Close();

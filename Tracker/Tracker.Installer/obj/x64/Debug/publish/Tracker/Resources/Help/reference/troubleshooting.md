@@ -10,7 +10,9 @@ Common issues and their solutions.
 
 **Solutions:**
 1. Check Windows Event Viewer for error details
-2. Delete the settings file: `%LOCALAPPDATA%\Tracker\TrackerSettings.json`
+2. Delete the settings file:
+   - Anonymous/pre-login: `%LOCALAPPDATA%\Tracker\TrackerSettings.json`
+   - Per-user settings: `%LOCALAPPDATA%\Tracker\Users\{user-id}\TrackerSettings.json`
 3. Ensure .NET 8 runtime is installed
 4. Try running as Administrator
 
@@ -51,9 +53,10 @@ Common issues and their solutions.
 **Symptoms:** Data seems to have disappeared.
 
 **Solutions:**
-1. Check if you're logged in with the correct user
-2. Data is user-specific - each Windows user has their own data
-3. Check for backup files in the Tracker folder
+1. Check if you're logged in with the correct Tracker account
+2. Data and settings are account-specific - each Tracker account has its own isolated data
+3. Settings are stored per-account in `%LOCALAPPDATA%\Tracker\Users\{user-id}\`
+4. Check for backup files in the Tracker folder
 
 ## Calendar Integration
 

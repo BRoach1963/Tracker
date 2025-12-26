@@ -3,65 +3,13 @@
   "WorkspaceRootPath": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\views\\dialogs\\logindialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\views\\dialogs\\logindialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\views\\dialogs\\teammemberdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\views\\dialogs\\teammemberdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\resources\\styles\\dialogstyles.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\resources\\styles\\dialogstyles.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\views\\dialogs\\linkagendaitemdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\views\\dialogs\\linkagendaitemdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\6aa8dfe6dce7647690db27e2d44efd3bdfeed3cfaad2ff4a1195b1c962d31917\\XamlReader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\42457897f1285ffc7ed978cbfb3f7b5933f5cb5427295abb3c44871bab3de3a0\\Application.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\controls\\teammemberscontrol.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\controls\\teammemberscontrol.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\controls\\oneononescontrol.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\controls\\oneononescontrol.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\controls\\dashboardcontrol.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\controls\\dashboardcontrol.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\helpers\\imagehelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\helpers\\imagehelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\controls\\contactdatadisplaycard.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\controls\\contactdatadisplaycard.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\viewmodels\\trackermainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\viewmodels\\trackermainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\datawrappers\\teammemberwrapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\datawrappers\\teammemberwrapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\controls\\editablecontactcard.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\controls\\editablecontactcard.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|c:\\users\\vbpro\\source\\repos\\tracker\\tracker\\tracker\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{F93A5545-32E4-41E2-9E11-1BB153EF5001}|Tracker\\Tracker.csproj|solutionrelative:tracker\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\AddTeamMemberDialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
@@ -84,66 +32,19 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "LoginDialog.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LoginDialog.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\LoginDialog.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LoginDialog.xaml",
-              "RelativeToolTip": "Tracker\\Views\\Dialogs\\LoginDialog.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-19T18:45:41.36Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "DialogStyles.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Resources\\Styles\\DialogStyles.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Resources\\Styles\\DialogStyles.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Resources\\Styles\\DialogStyles.xaml",
-              "RelativeToolTip": "Tracker\\Resources\\Styles\\DialogStyles.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-19T12:06:01.245Z",
+              "Title": "DatePickerAutomationPeer.cs",
+              "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
+              "ToolTip": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
+              "RelativeToolTip": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
+              "ViewState": "AgIAADQAAAAAAAAAAAAmwEoAAAAmAAAAAQAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-18T22:00:01.202Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "TeamMemberDialog.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\TeamMemberDialog.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\TeamMemberDialog.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\TeamMemberDialog.xaml",
-              "RelativeToolTip": "Tracker\\Views\\Dialogs\\TeamMemberDialog.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-19T03:16:07.272Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "DatePickerAutomationPeer.cs",
-              "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
-              "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs",
-              "ToolTip": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs [Read Only]",
-              "RelativeToolTip": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\0d8a6c6b89b21cfc35fe6bc8f3cd6e5f4f760e446295dd7b50454bccda7f5ce0\\DatePickerAutomationPeer.cs [Read Only]",
-              "ViewState": "AgIAADQAAAAAAAAAAAAmwFIAAAADAAAAAQAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-18T22:00:01.202Z",
-              "EditorCaption": " [Read Only]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "LinkAgendaItemDialog.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LinkAgendaItemDialog.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\LinkAgendaItemDialog.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\LinkAgendaItemDialog.xaml",
-              "RelativeToolTip": "Tracker\\Views\\Dialogs\\LinkAgendaItemDialog.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-18T12:31:32.347Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
               "Title": "XamlReader.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\6aa8dfe6dce7647690db27e2d44efd3bdfeed3cfaad2ff4a1195b1c962d31917\\XamlReader.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\6aa8dfe6dce7647690db27e2d44efd3bdfeed3cfaad2ff4a1195b1c962d31917\\XamlReader.cs",
@@ -156,7 +57,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 2,
               "Title": "Application.cs",
               "DocumentMoniker": "C:\\Users\\vbpro\\AppData\\Local\\Temp\\.vsdbgsrc\\42457897f1285ffc7ed978cbfb3f7b5933f5cb5427295abb3c44871bab3de3a0\\Application.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\AppData\\Local\\Temp\\.vsdbgsrc\\42457897f1285ffc7ed978cbfb3f7b5933f5cb5427295abb3c44871bab3de3a0\\Application.cs",
@@ -169,98 +70,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "OneOnOnesControl.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\OneOnOnesControl.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Controls\\OneOnOnesControl.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\OneOnOnesControl.xaml",
-              "RelativeToolTip": "Tracker\\Controls\\OneOnOnesControl.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-12T18:57:14.831Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 13,
-              "Title": "TeamMemberWrapper.cs",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\DataWrappers\\TeamMemberWrapper.cs",
-              "RelativeDocumentMoniker": "Tracker\\DataWrappers\\TeamMemberWrapper.cs",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\DataWrappers\\TeamMemberWrapper.cs",
-              "RelativeToolTip": "Tracker\\DataWrappers\\TeamMemberWrapper.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-31T12:59:42.632Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
-              "Title": "TrackerMainViewModel.cs",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\ViewModels\\TrackerMainViewModel.cs",
-              "RelativeDocumentMoniker": "Tracker\\ViewModels\\TrackerMainViewModel.cs",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\ViewModels\\TrackerMainViewModel.cs",
-              "RelativeToolTip": "Tracker\\ViewModels\\TrackerMainViewModel.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAlAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-31T12:29:56.322Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 14,
-              "Title": "EditableContactCard.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\EditableContactCard.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Controls\\EditableContactCard.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\EditableContactCard.xaml",
-              "RelativeToolTip": "Tracker\\Controls\\EditableContactCard.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2024-08-31T12:19:59.444Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "TeamMembersControl.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\TeamMembersControl.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Controls\\TeamMembersControl.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\TeamMembersControl.xaml",
-              "RelativeToolTip": "Tracker\\Controls\\TeamMembersControl.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2024-08-31T12:17:48.32Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "ImageHelper.cs",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Helpers\\ImageHelper.cs",
-              "RelativeDocumentMoniker": "Tracker\\Helpers\\ImageHelper.cs",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Helpers\\ImageHelper.cs",
-              "RelativeToolTip": "Tracker\\Helpers\\ImageHelper.cs",
-              "ViewState": "AgIAABEAAAAAAAAAAAAjwCwAAAAJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-31T13:29:00.024Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "DashboardControl.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\DashboardControl.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Controls\\DashboardControl.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\DashboardControl.xaml",
-              "RelativeToolTip": "Tracker\\Controls\\DashboardControl.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-12T17:24:33.215Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "ContactDataDisplayCard.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\ContactDataDisplayCard.xaml",
-              "RelativeDocumentMoniker": "Tracker\\Controls\\ContactDataDisplayCard.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Controls\\ContactDataDisplayCard.xaml",
-              "RelativeToolTip": "Tracker\\Controls\\ContactDataDisplayCard.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2024-08-31T12:19:49.102Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 3,
               "Title": "AddTeamMemberDialog.xaml",
               "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Views\\Dialogs\\AddTeamMemberDialog.xaml",
               "RelativeDocumentMoniker": "Tracker\\Views\\Dialogs\\AddTeamMemberDialog.xaml",
@@ -268,17 +78,6 @@
               "RelativeToolTip": "Tracker\\Views\\Dialogs\\AddTeamMemberDialog.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2024-08-30T14:30:02.033Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 15,
-              "Title": "MainWindow.xaml",
-              "DocumentMoniker": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\MainWindow.xaml",
-              "RelativeDocumentMoniker": "Tracker\\MainWindow.xaml",
-              "ToolTip": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\MainWindow.xaml",
-              "RelativeToolTip": "Tracker\\MainWindow.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2024-08-30T14:29:58.686Z"
             }
           ]
         }

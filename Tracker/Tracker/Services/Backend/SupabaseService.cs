@@ -7,6 +7,7 @@ using Supabase.Gotrue.Exceptions;
 using Supabase.Gotrue.Interfaces;
 using Tracker.Helpers;
 using Tracker.Logging;
+using Tracker.Managers;
 using Tracker.Services.Backend.Models;
 
 using AuthState = Supabase.Gotrue.Constants.AuthState;
@@ -154,6 +155,8 @@ namespace Tracker.Services.Backend
 
         /// <summary>
         /// Signs up a new user with email and password.
+        /// Note: Caller must call UserSettingsManager.Instance.SwitchToUser() after successful signup
+        /// to initialize user-specific settings.
         /// </summary>
         public async Task<(bool Success, string? Error)> SignUpAsync(
             string email, 
@@ -177,8 +180,20 @@ namespace Tracker.Services.Backend
                 if (session?.User != null)
                 {
                     _logger.Info("User signed up successfully: {0}", session.User.Id);
+                    
+                    // Clear any previous user's data to ensure fresh state
+                    CurrentProfile = null;
+                    CurrentSubscription = null;
+                    
                     await SaveSessionAsync();
                     await LoadUserDataAsync();
+                    
+                    // If no subscription exists for new user, create a fresh free subscription
+                    if (CurrentSubscription == null)
+                    {
+                        await CreateFreeSubscriptionAsync(session.User.Id);
+                    }
+                    
                     return (true, null);
                 }
 
@@ -198,6 +213,8 @@ namespace Tracker.Services.Backend
 
         /// <summary>
         /// Signs in a user with email and password.
+        /// Note: Caller must call UserSettingsManager.Instance.SwitchToUser() after successful sign-in
+        /// to load user-specific settings.
         /// </summary>
         public async Task<(bool Success, string? Error)> SignInAsync(string email, string password)
         {
@@ -212,6 +229,7 @@ namespace Tracker.Services.Backend
                 if (session?.User != null)
                 {
                     _logger.Info("User signed in successfully: {0}", session.User.Id);
+                    
                     await SaveSessionAsync();
                     await LoadUserDataAsync();
                     await UpdateLastLoginAsync();
@@ -235,6 +253,8 @@ namespace Tracker.Services.Backend
 
         /// <summary>
         /// Signs out the current user.
+        /// Note: Caller must call UserSettingsManager.Instance.ResetToAnonymous() after sign out
+        /// to reset settings to anonymous mode.
         /// </summary>
         public async Task SignOutAsync()
         {
@@ -507,6 +527,10 @@ namespace Tracker.Services.Backend
                 if (session?.User != null)
                 {
                     _logger.Info("Session restored for: {0}", session.User.Email);
+                    
+                    // Switch to user-specific settings
+                    UserSettingsManager.Instance.SwitchToUser(session.User.Id, isNewAccount: false);
+                    
                     await LoadUserDataAsync();
                     await RegisterInstallationAsync();
                 }
@@ -713,6 +737,44 @@ namespace Tracker.Services.Backend
         /// Fired when subscription is updated.
         /// </summary>
         public event EventHandler<UserSubscription?>? SubscriptionChanged;
+
+        /// <summary>
+        /// Creates a fresh free subscription for a new user.
+        /// </summary>
+        private async Task CreateFreeSubscriptionAsync(string userId)
+        {
+            try
+            {
+                _logger.Info("Creating free subscription for new user: {0}", userId);
+
+                var now = DateTime.UtcNow;
+                var newSubscription = new UserSubscription
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserId = userId,
+                    TierString = "free",
+                    StatusString = "active",
+                    BillingCadence = "monthly",
+                    PriceCents = 0,
+                    OriginalPriceCents = 0,
+                    DiscountPercent = 0,
+                    AiRequestsThisMonth = 0,
+                    AiBudgetUsedCents = 0,
+                    UsageResetAt = now.AddMonths(1),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                await _client!.From<UserSubscription>().Insert(newSubscription);
+                CurrentSubscription = newSubscription;
+
+                _logger.Info("Free subscription created successfully for user: {0}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Failed to create free subscription for new user");
+            }
+        }
 
         #endregion
 

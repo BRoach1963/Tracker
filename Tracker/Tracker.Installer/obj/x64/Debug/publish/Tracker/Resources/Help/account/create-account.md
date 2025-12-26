@@ -55,7 +55,8 @@ Create a strong password:
 - Request a new link if it expires
 
 ### Your Subscription
-- New accounts start on the **Free** tier
+- New accounts start on the **Free** tier with a fresh subscription
+- Each account has its own independent subscription
 - Upgrade anytime from Account Settings
 - See [Subscription Plans](subscriptions.md) for details
 
@@ -114,7 +115,8 @@ You can create separate accounts for:
 ### Switching Accounts
 1. Sign out from current account
 2. Sign in with different credentials
-3. Each account has its own data
+3. Each account has completely isolated data and settings
+4. Database preferences are stored per-account
 
 ## Data Privacy
 

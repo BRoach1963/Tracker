@@ -80,157 +80,176 @@ namespace Tracker.Database
             {
                 var logger = Tracker.Logging.LoggingManager.GetComponentLogger("DatabaseSeeder");
                 
-                // STEP 1: Create or get the current User (manager)
-                var username = Tracker.Managers.UserSettingsManager.Instance.CurrentUser;
-                logger.Info("Seeder: CurrentUser from UserSettingsManager = '{0}'", username ?? "(null)");
+                // Disable query filters during seeding (we're setting UserId manually)
+                context.CurrentUserId = null;
                 
-                if (string.IsNullOrEmpty(username))
-                    username = Environment.UserName;
+                // Use a transaction for atomicity - all or nothing
+                using var transaction = await context.Database.BeginTransactionAsync();
                 
-                logger.Info("Seeder: Using username = '{0}'", username);
-                
-                var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
-                User currentUser;
-                
-                if (existingUser == null)
+                try
                 {
-                    logger.Info("Seeder: No existing user found, creating new user");
-                    currentUser = new User
+                    // STEP 1: Create or get the current User (manager)
+                    var username = Tracker.Managers.UserSettingsManager.Instance.CurrentUser;
+                    logger.Info("Seeder: CurrentUser from UserSettingsManager = '{0}'", username ?? "(null)");
+                    
+                    if (string.IsNullOrEmpty(username))
+                        username = Environment.UserName;
+                    
+                    logger.Info("Seeder: Using username = '{0}'", username);
+                    
+                    var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                    User currentUser;
+                    
+                    if (existingUser == null)
                     {
-                        Username = username,
-                        Email = $"{username}@techcorp.com",
-                        DisplayName = username,
-                        IsActive = true
-                    };
-                    context.Users.Add(currentUser);
-                    await context.SaveChangesAsync();
-                    currentUser = await context.Users.FirstAsync(u => u.Username == username);
-                    logger.Info("Seeder: Created new user with Id = {0}", currentUser.Id);
-                }
-                else
-                {
-                    currentUser = existingUser;
-                    logger.Info("Seeder: Found existing user with Id = {0}", currentUser.Id);
-                }
-                
-                Tracker.Managers.UserSettingsManager.Instance.CurrentUserId = currentUser.Id;
-                logger.Info("Seeder: Set CurrentUserId to {0}", currentUser.Id);
-                
-                // STEP 2: Create team members with consistent, meaningful assignments
-                var teamMembers = GetSampleTeamMembers();
-                context.TeamMembers.AddRange(teamMembers);
-                foreach (var teamMember in teamMembers)
-                {
-                    context.Entry(teamMember).Property("UserId").CurrentValue = currentUser.Id;
-                }
-                await context.SaveChangesAsync();
-                var savedTeamMembers = await context.TeamMembers.ToListAsync();
-
-                // STEP 3: Create Projects FIRST (needed for task/OKR links)
-                var projects = GetSampleProjects(savedTeamMembers);
-                context.Projects.AddRange(projects);
-                foreach (var project in projects)
-                {
-                    context.Entry(project).Property("UserId").CurrentValue = currentUser.Id;
-                    context.Entry(project).Property("OwnerId").CurrentValue = project.Owner.Id;
-                    foreach (var milestone in project.Milestones ?? new List<Milestone>())
-                        context.Entry(milestone).Property("UserId").CurrentValue = currentUser.Id;
-                    foreach (var risk in project.Risks ?? new List<Risk>())
-                        context.Entry(risk).Property("UserId").CurrentValue = currentUser.Id;
-                }
-                await context.SaveChangesAsync();
-                var savedProjects = await context.Projects.Include(p => p.Tasks).ToListAsync();
-
-                // STEP 4: Create Tasks linked to Projects
-                var tasks = GetSampleTasks(savedTeamMembers, savedProjects);
-                context.Tasks.AddRange(tasks);
-                foreach (var task in tasks)
-                {
-                    context.Entry(task).Property("UserId").CurrentValue = currentUser.Id;
-                    context.Entry(task).Property("OwnerId").CurrentValue = task.Owner.Id;
-                }
-                await context.SaveChangesAsync();
-                var savedTasks = await context.Tasks.Include(t => t.Owner).ToListAsync();
-
-                // Reload projects with tasks
-                savedProjects = await context.Projects.Include(p => p.Tasks).ToListAsync();
-
-                // STEP 5: Create standalone KPIs (these will be linked to Key Results)
-                var kpis = GetSampleKPIs(savedTeamMembers);
-                context.KeyPerformanceIndicators.AddRange(kpis);
-                foreach (var kpi in kpis)
-                {
-                    context.Entry(kpi).Property("UserId").CurrentValue = currentUser.Id;
-                    context.Entry(kpi).Property("OwnerId").CurrentValue = kpi.Owner.Id;
-                }
-                await context.SaveChangesAsync();
-                var savedKpis = await context.KeyPerformanceIndicators.ToListAsync();
-
-                // STEP 6: Create Task Collections (for grouped task tracking)
-                var taskCollections = GetSampleTaskCollections(savedTasks);
-                context.TaskCollections.AddRange(taskCollections);
-                foreach (var tc in taskCollections)
-                {
-                    context.Entry(tc).Property("UserId").CurrentValue = currentUser.Id;
-                    foreach (var item in tc.Items)
-                        context.Entry(item).Property("UserId").CurrentValue = currentUser.Id;
-                }
-                await context.SaveChangesAsync();
-                var savedTaskCollections = await context.TaskCollections.Include(tc => tc.Items).ThenInclude(i => i.Task).ToListAsync();
-
-                // STEP 7: Create OKRs with Key Results
-                var okrs = GetSampleOKRs(savedTeamMembers);
-                context.ObjectiveKeyResults.AddRange(okrs);
-                foreach (var okr in okrs)
-                {
-                    context.Entry(okr).Property("UserId").CurrentValue = currentUser.Id;
-                    context.Entry(okr).Property("OwnerId").CurrentValue = okr.Owner.Id;
-                    if (okr.KeyResults != null)
-                    {
-                        foreach (var kr in okr.KeyResults)
-                            context.Entry(kr).Property("UserId").CurrentValue = currentUser.Id;
+                        logger.Info("Seeder: No existing user found, creating new user");
+                        currentUser = new User
+                        {
+                            Username = username,
+                            Email = $"{username}@techcorp.com",
+                            DisplayName = username,
+                            IsActive = true
+                        };
+                        context.Users.Add(currentUser);
+                        await context.SaveChangesAsync();
+                        currentUser = await context.Users.FirstAsync(u => u.Username == username);
+                        logger.Info("Seeder: Created new user with Id = {0}", currentUser.Id);
                     }
-                }
-                await context.SaveChangesAsync();
-                var savedOkrs = await context.ObjectiveKeyResults.Include(o => o.KeyResults).ToListAsync();
+                    else
+                    {
+                        currentUser = existingUser;
+                        logger.Info("Seeder: Found existing user with Id = {0}", currentUser.Id);
+                    }
+                    
+                    Tracker.Managers.UserSettingsManager.Instance.CurrentUserId = currentUser.Id;
+                    logger.Info("Seeder: Set CurrentUserId to {0}", currentUser.Id);
+                    
+                    // STEP 2: Create team members with consistent, meaningful assignments
+                    var teamMembers = GetSampleTeamMembers();
+                    context.TeamMembers.AddRange(teamMembers);
+                    foreach (var teamMember in teamMembers)
+                    {
+                        context.Entry(teamMember).Property("UserId").CurrentValue = currentUser.Id;
+                    }
+                    await context.SaveChangesAsync();
+                    var savedTeamMembers = await context.TeamMembers.IgnoreQueryFilters().ToListAsync();
 
-                // STEP 8: Link Key Results to Measurables (KPIs, Projects, TaskCollections)
-                await LinkKeyResultsToMeasurablesAsync(context, savedOkrs, savedKpis, savedProjects, savedTaskCollections, currentUser);
+                    // STEP 3: Create Projects FIRST (needed for task/OKR links)
+                    var projects = GetSampleProjects(savedTeamMembers);
+                    context.Projects.AddRange(projects);
+                    foreach (var project in projects)
+                    {
+                        context.Entry(project).Property("UserId").CurrentValue = currentUser.Id;
+                        context.Entry(project).Property("OwnerId").CurrentValue = project.Owner.Id;
+                        foreach (var milestone in project.Milestones ?? new List<Milestone>())
+                            context.Entry(milestone).Property("UserId").CurrentValue = currentUser.Id;
+                        foreach (var risk in project.Risks ?? new List<Risk>())
+                            context.Entry(risk).Property("UserId").CurrentValue = currentUser.Id;
+                    }
+                    await context.SaveChangesAsync();
+                    var savedProjects = await context.Projects.IgnoreQueryFilters().Include(p => p.Tasks).ToListAsync();
 
-                // STEP 9: Create 1:1s with linked items
-                var oneOnOnes = GetSampleOneOnOnes(savedTeamMembers);
-                context.OneOnOnes.AddRange(oneOnOnes);
-                foreach (var oneOnOne in oneOnOnes)
-                {
-                    context.Entry(oneOnOne).Property("UserId").CurrentValue = currentUser.Id;
-                    context.Entry(oneOnOne).Property("TeamMemberId").CurrentValue = oneOnOne.TeamMember.Id;
-                    foreach (var agendaItem in oneOnOne.AgendaItems ?? new List<AgendaItem>())
-                        context.Entry(agendaItem).Property("UserId").CurrentValue = currentUser.Id;
-                    foreach (var task in oneOnOne.Tasks ?? new List<MeetingTask>())
+                    // STEP 4: Create Tasks linked to Projects
+                    var tasks = GetSampleTasks(savedTeamMembers, savedProjects);
+                    context.Tasks.AddRange(tasks);
+                    foreach (var task in tasks)
                     {
                         context.Entry(task).Property("UserId").CurrentValue = currentUser.Id;
                         context.Entry(task).Property("OwnerId").CurrentValue = task.Owner.Id;
                     }
-                }
-                await context.SaveChangesAsync();
-                var savedOneOnOnes = await context.OneOnOnes.Include(o => o.TeamMember).ToListAsync();
+                    await context.SaveChangesAsync();
+                    var savedTasks = await context.Tasks.IgnoreQueryFilters().Include(t => t.Owner).ToListAsync();
 
-                // STEP 10: Link items to meetings
-                await LinkItemsToMeetingsAsync(context, savedOneOnOnes, savedTasks, savedOkrs, savedKpis);
-                
-                // STEP 11: Generate feedback and goals
-                await GenerateFeedbackAndGoalsAsync(context, savedTeamMembers, currentUser);
-                
-                // STEP 12: Create Quick Notes
-                await GenerateQuickNotesAsync(context, savedTeamMembers, savedOkrs, savedKpis, savedProjects, currentUser);
-                
-                // STEP 13: Create Meeting Templates
-                await GenerateMeetingTemplatesAsync(context, currentUser);
-                
-                // STEP 14: Create Reminders
-                await GenerateRemindersAsync(context, savedTeamMembers, savedOneOnOnes, currentUser);
-                
-                return true;
+                    // Reload projects with tasks
+                    savedProjects = await context.Projects.IgnoreQueryFilters().Include(p => p.Tasks).ToListAsync();
+
+                    // STEP 5: Create standalone KPIs (these will be linked to Key Results)
+                    var kpis = GetSampleKPIs(savedTeamMembers);
+                    context.KeyPerformanceIndicators.AddRange(kpis);
+                    foreach (var kpi in kpis)
+                    {
+                        context.Entry(kpi).Property("UserId").CurrentValue = currentUser.Id;
+                        context.Entry(kpi).Property("OwnerId").CurrentValue = kpi.Owner.Id;
+                    }
+                    await context.SaveChangesAsync();
+                    var savedKpis = await context.KeyPerformanceIndicators.IgnoreQueryFilters().ToListAsync();
+
+                    // STEP 6: Create Task Collections (for grouped task tracking)
+                    var taskCollections = GetSampleTaskCollections(savedTasks);
+                    context.TaskCollections.AddRange(taskCollections);
+                    foreach (var tc in taskCollections)
+                    {
+                        context.Entry(tc).Property("UserId").CurrentValue = currentUser.Id;
+                        foreach (var item in tc.Items)
+                            context.Entry(item).Property("UserId").CurrentValue = currentUser.Id;
+                    }
+                    await context.SaveChangesAsync();
+                    var savedTaskCollections = await context.TaskCollections.IgnoreQueryFilters().Include(tc => tc.Items).ThenInclude(i => i.Task).ToListAsync();
+
+                    // STEP 7: Create OKRs with Key Results
+                    var okrs = GetSampleOKRs(savedTeamMembers);
+                    context.ObjectiveKeyResults.AddRange(okrs);
+                    foreach (var okr in okrs)
+                    {
+                        context.Entry(okr).Property("UserId").CurrentValue = currentUser.Id;
+                        context.Entry(okr).Property("OwnerId").CurrentValue = okr.Owner.Id;
+                        if (okr.KeyResults != null)
+                        {
+                            foreach (var kr in okr.KeyResults)
+                                context.Entry(kr).Property("UserId").CurrentValue = currentUser.Id;
+                        }
+                    }
+                    await context.SaveChangesAsync();
+                    var savedOkrs = await context.ObjectiveKeyResults.IgnoreQueryFilters().Include(o => o.KeyResults).ToListAsync();
+
+                    // STEP 8: Link Key Results to Measurables (KPIs, Projects, TaskCollections)
+                    await LinkKeyResultsToMeasurablesAsync(context, savedOkrs, savedKpis, savedProjects, savedTaskCollections, currentUser);
+
+                    // STEP 9: Create 1:1s with linked items
+                    var oneOnOnes = GetSampleOneOnOnes(savedTeamMembers);
+                    context.OneOnOnes.AddRange(oneOnOnes);
+                    foreach (var oneOnOne in oneOnOnes)
+                    {
+                        context.Entry(oneOnOne).Property("UserId").CurrentValue = currentUser.Id;
+                        context.Entry(oneOnOne).Property("TeamMemberId").CurrentValue = oneOnOne.TeamMember.Id;
+                        foreach (var agendaItem in oneOnOne.AgendaItems ?? new List<AgendaItem>())
+                            context.Entry(agendaItem).Property("UserId").CurrentValue = currentUser.Id;
+                        foreach (var task in oneOnOne.Tasks ?? new List<MeetingTask>())
+                        {
+                            context.Entry(task).Property("UserId").CurrentValue = currentUser.Id;
+                            context.Entry(task).Property("OwnerId").CurrentValue = task.Owner.Id;
+                        }
+                    }
+                    await context.SaveChangesAsync();
+                    var savedOneOnOnes = await context.OneOnOnes.IgnoreQueryFilters().Include(o => o.TeamMember).ToListAsync();
+
+                    // STEP 10: Link items to meetings
+                    await LinkItemsToMeetingsAsync(context, savedOneOnOnes, savedTasks, savedOkrs, savedKpis);
+                    
+                    // STEP 11: Generate feedback and goals
+                    await GenerateFeedbackAndGoalsAsync(context, savedTeamMembers, currentUser);
+                    
+                    // STEP 12: Create Quick Notes
+                    await GenerateQuickNotesAsync(context, savedTeamMembers, savedOkrs, savedKpis, savedProjects, currentUser);
+                    
+                    // STEP 13: Create Meeting Templates
+                    await GenerateMeetingTemplatesAsync(context, currentUser);
+                    
+                    // STEP 14: Create Reminders
+                    await GenerateRemindersAsync(context, savedTeamMembers, savedOneOnOnes, currentUser);
+                    
+                    // Commit the transaction - all changes are now permanent
+                    await transaction.CommitAsync();
+                    logger.Info("Seeder: Transaction committed successfully");
+                    
+                    return true;
+                }
+                catch
+                {
+                    // Rollback on any error - database stays clean
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {

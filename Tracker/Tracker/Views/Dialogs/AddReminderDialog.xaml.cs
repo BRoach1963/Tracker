@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Tracker.Help.Attributes;
+using Tracker.Helpers;
 using Tracker.Services;
 
 namespace Tracker.Views.Dialogs
@@ -83,14 +84,14 @@ namespace Tracker.Views.Dialogs
             // Validation
             if (string.IsNullOrWhiteSpace(TitleTextBox.Text))
             {
-                MessageBox.Show("Please enter a title.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBoxHelper.Show("Please enter a title.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 TitleTextBox.Focus();
                 return;
             }
 
             if (ReminderDateTime <= DateTime.Now)
             {
-                MessageBox.Show("Please select a future date and time.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBoxHelper.Show("Please select a future date and time.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -111,7 +112,7 @@ namespace Tracker.Views.Dialogs
             }
             else
             {
-                MessageBox.Show("Failed to create reminder. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBoxHelper.Show("Failed to create reminder. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

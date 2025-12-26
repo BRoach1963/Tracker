@@ -385,7 +385,7 @@ namespace Tracker.ViewModels
 
         #region IDisposable
 
-        public void Dispose()
+        public new void Dispose()
         {
             if (!_disposed)
             {

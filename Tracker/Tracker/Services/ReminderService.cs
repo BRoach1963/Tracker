@@ -12,7 +12,7 @@ namespace Tracker.Services
     /// Background service that monitors and triggers reminders.
     /// Runs on a timer and shows toast notifications for due reminders.
     /// </summary>
-    public class ReminderService : IDisposable
+    public class ReminderService : IReminderService
     {
         #region Singleton
 

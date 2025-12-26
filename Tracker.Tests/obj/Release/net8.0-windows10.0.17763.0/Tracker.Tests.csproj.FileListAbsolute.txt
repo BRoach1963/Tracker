@@ -269,3 +269,4 @@ C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0.17763.0\Tracker.Tests.pdb
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0.17763.0\Tracker.Tests.genruntimeconfig.cache
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0.17763.0\ref\Tracker.Tests.dll
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Images\Tracker.ico

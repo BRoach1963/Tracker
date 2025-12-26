@@ -21,7 +21,7 @@ namespace Tracker.Services
     /// <summary>
     /// Provides global search functionality across all entities.
     /// </summary>
-    public class SearchService
+    public class SearchService : ISearchService
     {
         #region Singleton
 

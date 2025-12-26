@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "BUVSzmKZkIo=",
+  "dgSpecHash": "7/f02bmwfUY=",
   "success": true,
   "projectFilePath": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker.Tests\\Tracker.Tests.csproj",
   "expectedPackageFiles": [
@@ -143,36 +143,5 @@
     "C:\\Users\\vbpro\\.nuget\\packages\\xunit.runner.visualstudio\\2.8.2\\xunit.runner.visualstudio.2.8.2.nupkg.sha512",
     "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.17763.57\\microsoft.windows.sdk.net.ref.10.0.17763.57.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1603",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Tracker depends on Google.Apis.Calendar.v3 (>= 1.68.0.3520) but Google.Apis.Calendar.v3 1.68.0.3520 was not found. Google.Apis.Calendar.v3 1.68.0.3536 was resolved instead.",
-      "libraryId": "Google.Apis.Calendar.v3",
-      "targetGraphs": [
-        "net8.0-windows10.0.17763"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'LiveCharts 0.9.7' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0-windows10.0.17763'. This package may not be fully compatible with your project.",
-      "libraryId": "LiveCharts",
-      "targetGraphs": [
-        "net8.0-windows10.0.17763"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'LiveCharts.Wpf 0.9.7' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0-windows10.0.17763'. This package may not be fully compatible with your project.",
-      "libraryId": "LiveCharts.Wpf",
-      "targetGraphs": [
-        "net8.0-windows10.0.17763"
-      ]
-    }
-  ]
+  "logs": []
 }

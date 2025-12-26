@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Tracker.Command;
+using Tracker.Logging;
 using Tracker.Services;
 
 namespace Tracker.ViewModels
@@ -12,6 +13,7 @@ namespace Tracker.ViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("SearchVM");
         private string _searchQuery = string.Empty;
         private ObservableCollection<SearchResult> _results = new();
         private ObservableCollection<SearchResult> _recentItems = new();

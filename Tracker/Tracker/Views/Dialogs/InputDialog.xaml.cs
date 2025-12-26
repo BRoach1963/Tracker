@@ -176,7 +176,7 @@ namespace Tracker.Views.Dialogs
             Cancel();
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
+        private new void Close_Click(object sender, RoutedEventArgs e)
         {
             Cancel();
         }

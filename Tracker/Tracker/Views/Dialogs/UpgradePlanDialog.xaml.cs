@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using Tracker.Controls;
+using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Services.Backend;
 using Tracker.Services.Square;
@@ -144,7 +145,7 @@ namespace Tracker.Views.Dialogs
         {
             if (string.IsNullOrEmpty(_selectedPlan))
             {
-                MessageBox.Show("Please select a plan.", "Select Plan", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBoxHelper.Show("Please select a plan.", "Select Plan", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -155,7 +156,7 @@ namespace Tracker.Views.Dialogs
 
             // For now, show a message about checkout
             // In full implementation, this would open a browser to Square checkout
-            var result = MessageBox.Show(
+            var result = MessageBoxHelper.Show(
                 $"You selected: {_selectedPlan.ToUpper()} ({cadence})\n\n" +
                 $"Price: {(_isAnnual ? (_selectedPlan == "pro" ? "$199.99/year" : "$99.99/year") : (_selectedPlan == "pro" ? "$19.99/month" : "$9.99/month"))}\n\n" +
                 "Continue to payment?",
@@ -173,7 +174,7 @@ namespace Tracker.Views.Dialogs
                 catch (Exception ex)
                 {
                     _logger.Exception(ex, "Failed to open checkout");
-                    MessageBox.Show(
+                    MessageBoxHelper.Show(
                         "Unable to open checkout. Please try again later.",
                         "Checkout Error",
                         MessageBoxButton.OK,
@@ -188,7 +189,7 @@ namespace Tracker.Views.Dialogs
             
             if (!supabase.IsSignedIn || supabase.CurrentUser == null)
             {
-                MessageBox.Show("Please sign in to upgrade your plan.", "Sign In Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBoxHelper.Show("Please sign in to upgrade your plan.", "Sign In Required", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -220,7 +221,7 @@ namespace Tracker.Views.Dialogs
                     // Parse response and handle
                     // For Square subscriptions created via API, the subscription is created directly
                     // Show success message
-                    MessageBox.Show(
+                    MessageBoxHelper.Show(
                         "Your subscription has been set up!\n\n" +
                         "Your account will be upgraded shortly. You may need to restart Tracker to see the changes.",
                         "Subscription Created",
@@ -241,7 +242,7 @@ namespace Tracker.Views.Dialogs
                     _logger.Warn($"Checkout failed: {responseBody}");
                     
                     // For sandbox/testing, show helpful message
-                    MessageBox.Show(
+                    MessageBoxHelper.Show(
                         "Payment processing is not fully configured yet.\n\n" +
                         "This feature will be available soon!\n\n" +
                         "(Sandbox testing in progress)",
@@ -257,7 +258,7 @@ namespace Tracker.Views.Dialogs
             }
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
+        private new void Close_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
             Close();

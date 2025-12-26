@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows.Input;
 using Tracker.Classes;
@@ -6,6 +7,7 @@ using Tracker.Command;
 using Tracker.Database;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Helpers;
 using Tracker.Managers;
 using Tracker.Services.Backend;
 
@@ -52,6 +54,10 @@ namespace Tracker.ViewModels.DialogViewModels
         private int _currentStep = 1;
         private DatabaseType _selectedDatabaseType = DatabaseType.SQLite;
         
+        // SQLite fields
+        private string _customSqlitePath = string.Empty;
+        private bool _useCustomSqlitePath = false;
+        
         // SQL Server fields
         private string _server = string.Empty;
         private string _database = "TrackerDB";
@@ -91,6 +97,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _signInCommand;
         private ICommand? _skipAccountCommand;
         private ICommand? _toggleAccountModeCommand;
+        private ICommand? _browseSqlitePathCommand;
 
         #endregion
 
@@ -98,6 +105,33 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public SetupWizardViewModel(Action? callback) : base(callback)
         {
+            // Pre-populate from existing settings if this is a "Change Database" operation
+            // (i.e., user already has settings but SetupCompleted was reset)
+            var existingSettings = UserSettingsManager.Instance.Settings.Database;
+            if (existingSettings != null)
+            {
+                SelectedDatabaseType = existingSettings.Type;
+                
+                // Pre-populate custom SQLite path if previously set
+                if (!string.IsNullOrEmpty(existingSettings.CustomSqlitePath))
+                {
+                    _useCustomSqlitePath = true;
+                    _customSqlitePath = existingSettings.CustomSqlitePath;
+                }
+                
+                // Pre-populate SQL Server settings
+                if (existingSettings.Type == DatabaseType.SqlServer)
+                {
+                    Server = existingSettings.Server;
+                    Database = existingSettings.Database;
+                    UseWindowsAuth = existingSettings.UseWindowsAuth;
+                    Username = existingSettings.Username;
+                    Password = existingSettings.Password;
+                    UseOdbc = existingSettings.UseOdbc;
+                    OdbcDsn = existingSettings.OdbcDsn;
+                    TrustServerCertificate = existingSettings.TrustServerCertificate;
+                }
+            }
         }
 
         #endregion
@@ -114,6 +148,7 @@ namespace Tracker.ViewModels.DialogViewModels
         public ICommand SignInCommand => _signInCommand ??= new TrackerCommand(ExecuteSignIn, CanExecuteAccountAction);
         public ICommand SkipAccountCommand => _skipAccountCommand ??= new TrackerCommand(ExecuteSkipAccount);
         public ICommand ToggleAccountModeCommand => _toggleAccountModeCommand ??= new TrackerCommand(ExecuteToggleAccountMode);
+        public ICommand BrowseSqlitePathCommand => _browseSqlitePathCommand ??= new TrackerCommand(ExecuteBrowseSqlitePath);
 
         #endregion
 
@@ -172,7 +207,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets whether to show the Next button.
         /// </summary>
-        public bool ShowNextButton => (IsStep2 && IsSqlServerSelected) || IsStep3;
+        public bool ShowNextButton => IsStep1 || (IsStep2 && IsSqlServerSelected) || IsStep3;
 
         public DatabaseType SelectedDatabaseType
         {
@@ -191,6 +226,50 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public bool IsLocalSelected => SelectedDatabaseType == DatabaseType.SQLite;
         public bool IsSqlServerSelected => SelectedDatabaseType == DatabaseType.SqlServer;
+
+        public bool UseCustomSqlitePath
+        {
+            get => _useCustomSqlitePath;
+            set
+            {
+                _useCustomSqlitePath = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(ShowCustomSqlitePath));
+                RaisePropertyChanged(nameof(SummaryDatabaseLocation));
+                // Re-evaluate Next button when custom path option changes
+                (_nextCommand as TrackerCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+
+        public bool ShowCustomSqlitePath => UseCustomSqlitePath;
+
+        public string CustomSqlitePath
+        {
+            get => _customSqlitePath;
+            set
+            {
+                _customSqlitePath = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(CustomSqlitePathDisplay));
+                RaisePropertyChanged(nameof(SummaryDatabaseLocation));
+                // Re-evaluate Next button when path changes
+                (_nextCommand as TrackerCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+
+        public string CustomSqlitePathDisplay => 
+            string.IsNullOrWhiteSpace(CustomSqlitePath) 
+                ? "No custom path set" 
+                : CustomSqlitePath;
+
+        /// <summary>
+        /// Gets the database location to display in the summary step.
+        /// Shows custom path if selected, otherwise the default location.
+        /// </summary>
+        public string SummaryDatabaseLocation =>
+            UseCustomSqlitePath && !string.IsNullOrWhiteSpace(CustomSqlitePath)
+                ? CustomSqlitePath
+                : "%LocalAppData%\\Tracker\\tracker.db";
 
         public string Server
         {
@@ -701,6 +780,64 @@ namespace Tracker.ViewModels.DialogViewModels
             RaiseAccountCommandsCanExecuteChanged();
         }
 
+        private void ExecuteBrowseSqlitePath(object? parameter)
+        {            
+            // Use folder browser - we're picking WHERE to store the database, not an existing file
+            var dialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "Select folder for Tracker database",
+                UseDescriptionForTitle = true,
+                ShowNewFolderButton = true
+            };
+
+            // Set initial directory if we have an existing path
+            if (!string.IsNullOrWhiteSpace(CustomSqlitePath))
+            {
+                var existingDir = Path.GetDirectoryName(CustomSqlitePath);
+                if (!string.IsNullOrEmpty(existingDir) && Directory.Exists(existingDir))
+                {
+                    dialog.InitialDirectory = existingDir;
+                }
+            }
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var selectedFolder = dialog.SelectedPath;
+                var dbFilePath = Path.Combine(selectedFolder, "tracker.db");
+                
+                // Check if a database already exists in this folder
+                if (File.Exists(dbFilePath))
+                {
+                    var result = MessageBoxHelper.Show(
+                        $"A database already exists at:\n{dbFilePath}\n\nDo you want to use this existing database?\n\n" +
+                        "• Yes - Connect to the existing database\n" +
+                        "• No - Create a new database (existing will be backed up)",
+                        "Existing Database Found",
+                        System.Windows.MessageBoxButton.YesNoCancel,
+                        System.Windows.MessageBoxImage.Question);
+                    
+                    if (result == System.Windows.MessageBoxResult.Cancel)
+                    {
+                        return; // User cancelled, don't change anything
+                    }
+                    
+                    if (result == System.Windows.MessageBoxResult.No)
+                    {
+                        // User wants a fresh database - we'll back up the existing one during initialization
+                        // The backup will be handled by TrackerDbManager when CreateDatabase is true
+                        CreateDatabase = true;
+                    }
+                    else
+                    {
+                        // User wants to use existing database
+                        CreateDatabase = false;
+                    }
+                }
+                
+                CustomSqlitePath = dbFilePath;
+            }
+        }
+
         /// <summary>
         /// Notifies account-related commands to re-evaluate their CanExecute state.
         /// </summary>
@@ -758,10 +895,22 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanExecuteNext(object? parameter)
         {
-            // Can go next from Step 2 (SQL config) or Step 3 (Account)
+            // Step 1: Database type selection
+            if (CurrentStep == 1)
+            {
+                // If custom SQLite path is checked, must have a valid path
+                if (IsLocalSelected && UseCustomSqlitePath)
+                {
+                    return !string.IsNullOrWhiteSpace(CustomSqlitePath);
+                }
+                return true;
+            }
+            
+            // Step 2: SQL Server config - must test connection
             if (CurrentStep == 2 && IsSqlServerSelected)
                 return ConnectionTestSucceeded;
             
+            // Step 3: Account setup
             if (CurrentStep == 3)
                 return AccountSetupComplete || SkipAccountSetup;
 
@@ -816,13 +965,26 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private async void ExecuteFinish(object? parameter)
         {
+            var logger = Logging.LoggingManager.GetComponentLogger("SetupWizard");
+            
             try
             {
                 var settings = BuildDatabaseSettings();
                 settings.SetupCompleted = true;
 
+                logger.Info("ExecuteFinish - UseCustomSqlitePath: {0}, CustomSqlitePath: '{1}'", 
+                    UseCustomSqlitePath, CustomSqlitePath);
+                logger.Info("ExecuteFinish - BuildDatabaseSettings returned CustomSqlitePath: '{0}'", 
+                    settings.CustomSqlitePath);
+
+                // Check if we need to migrate existing database to new location
+                await MigrateExistingDatabaseIfNeeded(settings);
+
                 // Save database settings
                 UserSettingsManager.Instance.Settings.Database = settings;
+                
+                logger.Info("ExecuteFinish - Saving to user settings. Current Supabase user ID: '{0}'", 
+                    SupabaseService.Instance.CurrentUser?.Id ?? "(none)");
                 
                 // Save authentication settings
                 var authSettings = UserSettingsManager.Instance.Settings.Authentication;
@@ -836,6 +998,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 }
                 
                 UserSettingsManager.Instance.SaveSettings();
+                logger.Info("ExecuteFinish - Settings saved successfully");
 
                 // Initialize database
                 await TrackerDbManager.Instance!.InitializeAsync(settings, CreateDatabase, IncludeSampleData);
@@ -885,6 +1048,7 @@ namespace Tracker.ViewModels.DialogViewModels
             return new DatabaseSettings
             {
                 Type = SelectedDatabaseType,
+                CustomSqlitePath = UseCustomSqlitePath ? CustomSqlitePath : string.Empty,
                 Server = Server,
                 Database = Database,
                 UseWindowsAuth = UseWindowsAuth,
@@ -894,6 +1058,103 @@ namespace Tracker.ViewModels.DialogViewModels
                 OdbcDsn = OdbcDsn,
                 TrustServerCertificate = TrustServerCertificate
             };
+        }
+
+        /// <summary>
+        /// Migrates existing database to new location if needed.
+        /// </summary>
+        private async Task MigrateExistingDatabaseIfNeeded(DatabaseSettings newSettings)
+        {
+            // Only handle SQLite migrations (SQL Server doesn't need file copying)
+            if (newSettings.Type != DatabaseType.SQLite)
+                return;
+
+            var oldSettings = UserSettingsManager.Instance.Settings.Database;
+            
+            // Skip if this is first-time setup (no old settings)
+            if (oldSettings == null || !oldSettings.SetupCompleted)
+                return;
+
+            // Get old and new database paths
+            string oldPath = string.IsNullOrWhiteSpace(oldSettings.CustomSqlitePath)
+                ? DatabaseSettings.GetSqlitePath()
+                : oldSettings.CustomSqlitePath;
+
+            string newPath = string.IsNullOrWhiteSpace(newSettings.CustomSqlitePath)
+                ? DatabaseSettings.GetSqlitePath()
+                : newSettings.CustomSqlitePath;
+
+            // If paths are the same, no migration needed
+            if (string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            // Check if old database exists
+            if (!File.Exists(oldPath))
+                return;
+
+            // Ask user if they want to copy existing database
+            var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var messageResult = MessageBoxHelper.Show(
+                    $"An existing database was found at:\n{oldPath}\n\n" +
+                    $"Would you like to copy it to the new location?\n{newPath}\n\n" +
+                    "YES - Copy existing database (recommended)\n" +
+                    "NO - Start with empty database at new location",
+                    "Migrate Existing Database?",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+                return messageResult;
+            });
+
+            if (result == System.Windows.MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // Ensure target directory exists
+                    var targetDir = Path.GetDirectoryName(newPath);
+                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+                    {
+                        Directory.CreateDirectory(targetDir);
+                    }
+
+                    // Copy database file
+                    File.Copy(oldPath, newPath, overwrite: true);
+
+                    // Also copy the vector store if it exists
+                    var oldVectorPath = Path.Combine(
+                        Path.GetDirectoryName(oldPath) ?? string.Empty,
+                        "vector_store.db");
+                    var newVectorPath = Path.Combine(
+                        Path.GetDirectoryName(newPath) ?? string.Empty,
+                        "vector_store.db");
+
+                    if (File.Exists(oldVectorPath))
+                    {
+                        File.Copy(oldVectorPath, newVectorPath, overwrite: true);
+                    }
+
+                    ConnectionStatus = $"✓ Database migrated successfully to {newPath}";
+                }
+                catch (Exception ex)
+                {
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        MessageBoxHelper.Show(
+                            $"Failed to copy database:\n{ex.Message}\n\n" +
+                            $"You may need to manually copy:\n{oldPath}\nto\n{newPath}",
+                            "Migration Failed",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                    });
+                    throw;
+                }
+            }
+            else
+            {
+                // User chose to start fresh - set CreateDatabase to true
+                CreateDatabase = true;
+                IncludeSampleData = false; // Don't auto-add sample data when migrating locations
+            }
         }
 
         #endregion

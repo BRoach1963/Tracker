@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Messaging;
 using Tracker.Eventing.Messages;
+using Tracker.Logging;
 
 namespace Tracker.Eventing
 {
@@ -9,12 +10,16 @@ namespace Tracker.Eventing
     /// </summary>
     public static class DataMessenger
     {
+        private static readonly ILogger _logger = LoggingManager.GetComponentLogger("DataMessenger");
+        
         /// <summary>
         /// Sends a message to refresh all data.
         /// </summary>
         public static void SendRefreshAll()
         {
+            _logger.Info("SendRefreshAll called - broadcasting to all registered recipients");
             WeakReferenceMessenger.Default.Send(DataChangedMessage.All());
+            _logger.Debug("SendRefreshAll message sent");
         }
 
         /// <summary>
@@ -40,6 +45,7 @@ namespace Tracker.Eventing
         public static void Register<TRecipient>(TRecipient recipient, Action<DataChangeInfo> handler)
             where TRecipient : class
         {
+            _logger.Debug("Registering {0} for DataChangedMessage", typeof(TRecipient).Name);
             WeakReferenceMessenger.Default.Register<TRecipient, DataChangedMessage>(
                 recipient,
                 (r, m) => handler(m.Value));

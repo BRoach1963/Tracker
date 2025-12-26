@@ -94,5 +94,43 @@ namespace Tracker.Common
         public const string IdField = "Id";
 
         #endregion
+
+        #region UI Messages
+
+        // Validation Messages
+        public const string PleaseSelectUserFirst = "Please select a user first.";
+        public const string PleaseSelectTeamMember = "Please select a team member";
+        public const string PleaseSelectFutureDateTime = "Please select a future date and time.";
+        public const string PleaseSelectPlan = "Please select a plan.";
+
+        // Feature Preview Messages
+        public const string FeatureComingSoon = "Coming Soon";
+        public const string FeaturePreview = "Feature Preview";
+        public const string MergeUsersComingSoon = "Merge Users functionality coming soon!";
+        public const string DeleteUserComingSoon = "Delete User functionality coming soon!";
+        public const string RestoreDbComingSoon = "Restore Database functionality coming soon!";
+        public const string OptimizeDbComingSoon = "Optimize Database functionality coming soon!";
+        public const string ExportDataComingSoon = "Export Data functionality coming soon!";
+        public const string ImportDataComingSoon = "Import Data functionality coming soon!";
+        public const string ClearDataComingSoon = "Clear Data functionality coming soon!";
+        public const string OutlookCalendarComingSoon = "Outlook Calendar integration will be available in Phase 2.";
+        public const string ExportNotAvailable = "Export for this report is not yet available.";
+
+        // Dialog Titles
+        public const string NoUserSelected = "No User Selected";
+        public const string ConfirmDelete = "Confirm Delete";
+        public const string ChangeDatabaseConnection = "Change Database Connection";
+        public const string NewAgendaItem = "New Agenda Item";
+
+        // Success Messages
+        public const string Deleted = "Deleted";
+        public const string Saved = "Saved";
+        public const string Updated = "Updated";
+
+        // Error Messages
+        public const string ErrorOccurred = "An error occurred";
+        public const string OperationFailed = "Operation failed";
+
+        #endregion
     }
 }

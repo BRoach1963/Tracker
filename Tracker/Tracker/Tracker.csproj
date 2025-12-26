@@ -10,6 +10,17 @@
     <ApplicationIcon>Images\Tracker.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     
+    <!-- Suppress NuGet warnings for packages that work fine despite framework differences -->
+    <NoWarn>$(NoWarn);NU1603;NU1701</NoWarn>
+    <!-- Suppress nullable reference warnings - mostly false positives in WPF data binding -->
+    <NoWarn>$(NoWarn);CS8602;CS8603;CS8604;CS8625</NoWarn>
+    <!-- Suppress obsolete API warnings for Google Calendar (using recommended DateTimeOffset alternatives causes issues) -->
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
+    <!-- Suppress async warnings that are intentional -->
+    <NoWarn>$(NoWarn);CS1998;CS4014</NoWarn>
+    <!-- Suppress non-nullable field warnings for fields initialized in OnApplyTemplate -->
+    <NoWarn>$(NoWarn);CS8618</NoWarn>
+    
     <!-- Company Info -->
     <Company>Prickly Cactus Software</Company>
     <Authors>Prickly Cactus Software</Authors>
@@ -26,6 +37,9 @@
 
   <ItemGroup>
     <Resource Include="Images\Tracker.ico" />
+    <Content Include="Images\Tracker.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Help System Files -->

@@ -11,6 +11,7 @@ using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Helpers;
 using Tracker.Interfaces;
+using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.MockData;
 
@@ -24,6 +25,8 @@ namespace Tracker.ViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("MainVM");
+        
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<OneOnOne> _oneOnOnes = new();
         private ObservableCollection<ITask> _tasks = new();
@@ -134,7 +137,8 @@ namespace Tracker.ViewModels
             try
             {
                 var profile = Services.Backend.SupabaseService.Instance.CurrentProfile;
-                System.Diagnostics.Debug.WriteLine($"[Avatar] LoadUserAvatar called. Profile: {(profile != null ? "exists" : "null")}, AvatarUrl: '{profile?.AvatarUrl ?? "null"}'");
+                _logger.Debug("LoadUserAvatar called. Profile: {0}, AvatarUrl: '{1}'", 
+                    profile != null ? "exists" : "null", profile?.AvatarUrl ?? "null");
                 
                 if (profile?.AvatarUrl != null && !string.IsNullOrEmpty(profile.AvatarUrl))
                 {
@@ -146,7 +150,7 @@ namespace Tracker.ViewModels
                         avatarUrl = $"{Services.Backend.SupabaseConfig.ProjectUrl}/storage/v1/object/public/{Services.Backend.SupabaseConfig.AvatarBucket}/{profile.AvatarUrl}?t={timestamp}";
                     }
                     
-                    System.Diagnostics.Debug.WriteLine($"[Avatar] Loading from URL: {avatarUrl}");
+                    _logger.Debug("Loading avatar from URL: {0}", avatarUrl);
 
                     var bitmap = new System.Windows.Media.Imaging.BitmapImage();
                     bitmap.BeginInit();
@@ -156,11 +160,11 @@ namespace Tracker.ViewModels
 
                     UserAvatarSource = bitmap;
                     HasUserAvatar = true;
-                    System.Diagnostics.Debug.WriteLine($"[Avatar] Successfully loaded avatar");
+                    _logger.Debug("Successfully loaded avatar");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Avatar] No avatar URL, showing initials");
+                    _logger.Debug("No avatar URL, showing initials");
                     HasUserAvatar = false;
                     UserAvatarSource = null;
                 }
@@ -168,7 +172,7 @@ namespace Tracker.ViewModels
             catch (Exception ex)
             {
                 // If image fails to load, don't show avatar
-                System.Diagnostics.Debug.WriteLine($"[Avatar] Failed to load: {ex.Message}");
+                _logger.Warn("Failed to load avatar: {0}", ex.Message);
                 HasUserAvatar = false;
                 UserAvatarSource = null;
             }
@@ -1753,7 +1757,7 @@ namespace Tracker.ViewModels
             catch (Exception ex)
             {
                 // Don't crash on M365 errors - just log and continue
-                System.Diagnostics.Debug.WriteLine($"M365 enrichment failed: {ex.Message}");
+                _logger.Warn("M365 enrichment failed: {0}", ex.Message);
             }
         }
 

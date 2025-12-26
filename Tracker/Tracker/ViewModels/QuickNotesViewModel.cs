@@ -6,6 +6,7 @@ using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Logging;
 using Tracker.Managers;
 
 namespace Tracker.ViewModels
@@ -17,6 +18,8 @@ namespace Tracker.ViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("QuickNotesVM");
+        
         private ObservableCollection<QuickNote> _notes = new();
         private ObservableCollection<QuickNote> _filteredNotes = new();
         private ObservableCollection<TeamMember> _teamMembers = new();
@@ -59,7 +62,7 @@ namespace Tracker.ViewModels
 
         #region IDisposable
 
-        public void Dispose()
+        public new void Dispose()
         {
             DataMessenger.Unregister(this);
         }
@@ -70,8 +73,12 @@ namespace Tracker.ViewModels
 
         private void OnDataChanged(DataChangeInfo info)
         {
+            _logger.Debug("OnDataChanged received. RefreshAll={0}, Types={1}", 
+                info.RefreshAll, string.Join(",", info.ChangedTypes));
+            
             if (info.RefreshAll || info.Includes(DataChangeType.QuickNotes))
             {
+                _logger.Info("Refreshing notes due to data change");
                 System.Windows.Application.Current?.Dispatcher.InvokeAsync(async () =>
                 {
                     await LoadDataAsync();

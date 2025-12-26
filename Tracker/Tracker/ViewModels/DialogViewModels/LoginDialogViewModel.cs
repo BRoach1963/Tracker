@@ -1,7 +1,10 @@
-﻿using System.Windows.Input;
+﻿using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Input;
 using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Database;
+using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services.Backend;
@@ -27,6 +30,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private string _email = string.Empty;
         private string _password = string.Empty;
         private bool _rememberMe;
+        private bool _isAdminLogin;
 
         // Create Account fields
         private string _displayName = string.Empty;
@@ -177,6 +181,34 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         /// <summary>
+        /// Whether to log in as admin (launches admin window instead of main app).
+        /// Only functional if the user account has IsAdmin = true.
+        /// </summary>
+        public bool IsAdminLogin
+        {
+            get => _isAdminLogin;
+            set
+            {
+                _isAdminLogin = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Whether the admin checkbox can be selected.
+        /// Checks if the current user has admin privileges from Supabase.
+        /// </summary>
+        public bool CanSelectAdmin
+        {
+            get
+            {
+                // After successful login, check Supabase profile for admin status
+                var profile = SupabaseService.Instance.CurrentProfile;
+                return profile?.IsAdmin ?? false;
+            }
+        }
+
+        /// <summary>
         /// Whether to show password in plain text.
         /// </summary>
         public bool ShowPassword
@@ -266,10 +298,20 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Command Implementations
 
+        /// <summary>
+        /// Simple email format validation regex.
+        /// </summary>
+        private static readonly Regex EmailRegex = new(
+            @"^[^@\s]+@[^@\s]+\.[^@\s]+$", 
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static bool IsValidEmail(string email) => 
+            !string.IsNullOrWhiteSpace(email) && EmailRegex.IsMatch(email);
+
         private bool CanExecuteSignIn(object? parameter)
         {
             if (IsProcessing) return false;
-            if (string.IsNullOrWhiteSpace(Email)) return false;
+            if (!IsValidEmail(Email)) return false;
             if (string.IsNullOrWhiteSpace(Password)) return false;
             return true;
         }
@@ -281,6 +323,13 @@ namespace Tracker.ViewModels.DialogViewModels
 
             try
             {
+                // Validate email format
+                if (!IsValidEmail(Email))
+                {
+                    SetStatus("Please enter a valid email address", true);
+                    return;
+                }
+
                 _logger.Info("Attempting sign in for: {0}", Email);
 
                 // Initialize Supabase if needed
@@ -298,24 +347,15 @@ namespace Tracker.ViewModels.DialogViewModels
                 {
                     _logger.Info("Sign in successful");
 
-                    // Update auth settings
-                    var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-                    authSettings.CloudAccountLinked = true;
-                    authSettings.CloudUserId = SupabaseService.Instance.CurrentUser?.Id;
-                    authSettings.CloudUserEmail = Email;
-                    authSettings.RememberMe = RememberMe;
+                    // Switch to user-specific settings
+                    var userId = SupabaseService.Instance.CurrentUser?.Id;
+                    if (!string.IsNullOrEmpty(userId))
+                    {
+                        UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: false);
+                    }
 
-                    // Save or clear credentials based on Remember Me
-                    if (RememberMe)
-                    {
-                        authSettings.SavedEmail = Email;
-                        SecureTokenStorage.SavePassword(Password);
-                    }
-                    else
-                    {
-                        authSettings.SavedEmail = null;
-                        SecureTokenStorage.ClearPassword();
-                    }
+                    // Save auth settings (extracted to avoid DRY violation)
+                    SaveAuthenticationSettings(isNewAccount: false);
 
                     // Update subscription from cloud
                     if (SupabaseService.Instance.CurrentSubscription != null)
@@ -333,6 +373,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     await Task.Delay(500);
 
                     Result.Cancelled = false;
+                    Result.IsAdminLogin = IsAdminLogin;
                     Callback?.Invoke();
                 }
                 else
@@ -354,7 +395,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private bool CanExecuteCreateAccount(object? parameter)
         {
             if (IsProcessing) return false;
-            if (string.IsNullOrWhiteSpace(Email)) return false;
+            if (!IsValidEmail(Email)) return false;
             if (string.IsNullOrWhiteSpace(Password)) return false;
             if (Password.Length < 6) return false;
             if (Password != ConfirmPassword) return false;
@@ -368,7 +409,14 @@ namespace Tracker.ViewModels.DialogViewModels
 
             try
             {
-                // Validate
+                // Validate email format
+                if (!IsValidEmail(Email))
+                {
+                    SetStatus("Please enter a valid email address", true);
+                    return;
+                }
+
+                // Validate passwords
                 if (Password != ConfirmPassword)
                 {
                     SetStatus("Passwords do not match", true);
@@ -403,19 +451,15 @@ namespace Tracker.ViewModels.DialogViewModels
                 {
                     _logger.Info("Account created successfully");
 
-                    // Update auth settings
-                    var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-                    authSettings.CloudAccountLinked = true;
-                    authSettings.CloudUserId = SupabaseService.Instance.CurrentUser?.Id;
-                    authSettings.CloudUserEmail = Email;
-                    authSettings.RememberMe = RememberMe;
-
-                    // Save credentials if Remember Me is checked
-                    if (RememberMe)
+                    // Switch to user-specific settings (new account = fresh defaults)
+                    var userId = SupabaseService.Instance.CurrentUser?.Id;
+                    if (!string.IsNullOrEmpty(userId))
                     {
-                        authSettings.SavedEmail = Email;
-                        SecureTokenStorage.SavePassword(Password);
+                        UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: true);
                     }
+
+                    // Save auth settings (extracted to avoid DRY violation)
+                    SaveAuthenticationSettings(isNewAccount: true);
 
                     // Create local user record
                     await CreateLocalUserAsync();
@@ -426,6 +470,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     await Task.Delay(1500);
 
                     Result.Cancelled = false;
+                    Result.IsAdminLogin = IsAdminLogin;
                     Callback?.Invoke();
                 }
                 else
@@ -528,6 +573,32 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Private Methods
 
+        /// <summary>
+        /// Saves authentication settings after successful sign-in or account creation.
+        /// Extracted to eliminate DRY violation between ExecuteSignIn and ExecuteCreateAccount.
+        /// </summary>
+        /// <param name="isNewAccount">True if this is a new account (don't clear credentials on non-remember)</param>
+        private void SaveAuthenticationSettings(bool isNewAccount)
+        {
+            var authSettings = UserSettingsManager.Instance.Settings.Authentication;
+            authSettings.CloudAccountLinked = true;
+            authSettings.CloudUserId = SupabaseService.Instance.CurrentUser?.Id;
+            authSettings.CloudUserEmail = Email;
+            authSettings.RememberMe = RememberMe;
+
+            if (RememberMe)
+            {
+                authSettings.SavedEmail = Email;
+                SecureTokenStorage.SavePassword(Password);
+            }
+            else if (!isNewAccount)
+            {
+                // Only clear on sign-in, not on new account creation
+                authSettings.SavedEmail = null;
+                SecureTokenStorage.ClearPassword();
+            }
+        }
+
         private async Task CreateLocalUserAsync()
         {
             try
@@ -546,6 +617,16 @@ namespace Tracker.ViewModels.DialogViewModels
                         var authSettings = UserSettingsManager.Instance.Settings.Authentication;
                         authSettings.StoredUserId = user.Id;
                         authSettings.AccountSetupCompleted = true;
+                        
+                        // Log admin status from Supabase (will be checked from profile at runtime)
+                        var profile = SupabaseService.Instance.CurrentProfile;
+                        if (profile != null)
+                        {
+                            _logger.Info("User admin status from Supabase: IsAdmin={0}", profile.IsAdmin);
+                        }
+                        
+                        // Refresh CanSelectAdmin binding to enable/disable checkbox
+                        RaisePropertyChanged(nameof(CanSelectAdmin));
                     }
                 }
             }

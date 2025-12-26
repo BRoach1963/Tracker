@@ -31,6 +31,13 @@ Perfect for trying Tracker or managing a small team.
 - **8 beautiful themes**
 - **Local database** storage
 - **Community support** via forums
+- **Fresh subscription** with each new account
+
+### New Account Benefits
+When you create a new account:
+- You automatically start with a **fresh Free subscription**
+- Your settings and preferences are completely independent
+- No data or settings are shared with other accounts
 
 ### Limitations
 - No AI Help Bot

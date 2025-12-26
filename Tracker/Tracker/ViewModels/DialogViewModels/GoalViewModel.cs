@@ -5,6 +5,7 @@ using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.Database;
 using Tracker.DataModels;
+using Tracker.Logging;
 using Tracker.Managers;
 
 namespace Tracker.ViewModels.DialogViewModels
@@ -16,6 +17,7 @@ namespace Tracker.ViewModels.DialogViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("GoalVM");
         private readonly IndividualGoal _data;
         private readonly bool _inEditMode;
         private readonly int _teamMemberId;

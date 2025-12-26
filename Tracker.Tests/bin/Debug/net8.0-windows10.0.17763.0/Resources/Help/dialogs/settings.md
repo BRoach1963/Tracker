@@ -57,27 +57,106 @@ Once disabled, you'll see the login screen on each startup.
 
 ## Database Settings {#database-settings}
 
-Configure your database connection:
+Configure your database connection and location.
 
-### Local Database (SQLite)
+### Database Types
 
-- Default for single-user installations
-- Data stored on your local machine
+#### Local Database (SQLite)
+- **Default** for single-user installations
+- Data stored on your local machine (`%LocalAppData%\Tracker\`)
 - No network required
+- Fast and simple
 
-### Remote Database (SQL Server)
+#### Custom Location (Shared SQLite)
+- **For small teams** (2-10 users)
+- SQLite database stored on a network share
+- All team members point to the same file
+- Example: `\\fileserver\TrackerData\tracker.db`
+- Requires network share with read/write permissions
 
-- For team/enterprise installations
-- Shared data across multiple users
-- Requires network access
+**When to use Custom Location**:
+- Small team wants to share data
+- No SQL Server available
+- Simple setup preferred
+- 2-10 concurrent users
+
+**Limitations**:
+- 2-4 users work great, 5-10 may see occasional "database locked" errors
+- Network latency affects performance
+- All users need network access to the share
+
+#### Remote Database (SQL Server)
+- **For enterprise teams** (10+ users)
+- Shared data across many users
+- Better concurrency and performance
+- Requires SQL Server installation
+- Pro plan required
+
+### Changing Database Location
+
+#### Moving to Network Share (Team Sharing)
+
+1. Click **Change Database Connection**
+2. Select **Local Database**
+3. ✅ Check **"Use custom database location"**
+4. Click **Browse...** 
+5. Navigate to network share: `\\fileserver\TrackerData\`
+6. Enter filename: `tracker.db`
+7. Click **Save**
+8. When prompted: **"Copy existing database to new location?"**
+   - Click **YES** to migrate your data automatically ✅
+   - Click **NO** to start fresh at new location
+9. Click **Finish**
+10. Restart Tracker
+
+**Automatic Migration**: Tracker will detect your existing database and offer to copy it to the new location - no manual file copying needed!
+
+#### Reverting to Local Database
+
+1. Click **Change Database Connection**
+2. Select **Local Database**
+3. ⬜ **Uncheck** "Use custom database location"
+4. When prompted, click **YES** to copy network database back to local
+5. Click **Finish**
+6. Restart Tracker
+
+### Database Path Display
+
+The current database location is shown in Settings:
+
+- **Local**: `C:\Users\YourName\AppData\Local\Tracker\tracker.db`
+- **Custom**: `\\fileserver\TrackerData\tracker.db`
+- **SQL Server**: `ServerName/DatabaseName`
 
 ### Database Management
 
-- **Change Database Connection** - Switch between SQLite and SQL Server
-- **Clear All Data** - Removes all data permanently (use with caution!)
-- **Add Sample Data** - Populates with example data for testing
+#### Clear All Data
+Removes **all data permanently** from the current database:
+- All team members
+- All 1:1 meetings
+- All tasks, projects, OKRs, KPIs
+- All notes and reminders
 
-> **Warning:** Changing database connections does NOT migrate your data. Your data remains in the previous database.
+⚠️ **Warning**: This cannot be undone! Back up first.
+
+#### Add Sample Data
+Populates the database with example data for testing:
+- Sample team members
+- Example 1:1 meetings
+- Test tasks and projects
+- Demo OKRs and KPIs
+
+Useful for trying out features or training.
+
+### Shared Database Quick Start
+
+For detailed step-by-step instructions on setting up a shared database for your team, see:
+- [Shared Database Setup Guide](../../SHARED_DATABASE_QUICK_START.md)
+
+**Quick summary**:
+1. First user: Set custom location to `\\server\share\tracker.db`
+2. Other users: Enter the EXACT same path
+3. All users share the same data automatically
 
 ## Calendar Settings {#calendar-settings}
 

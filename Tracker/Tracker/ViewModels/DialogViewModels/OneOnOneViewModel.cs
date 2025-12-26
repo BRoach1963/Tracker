@@ -10,6 +10,7 @@ using Tracker.DataModels;
 using Tracker.Database;
 using Tracker.Eventing.Messages;
 using Tracker.Eventing;
+using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
 using Tracker.Services.Google;
@@ -24,6 +25,8 @@ namespace Tracker.ViewModels.DialogViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("OneOnOneVM");
+        
         private OneOnOne? _data;
         private ObservableCollection<AgendaItem> _agendaItems = new();
         private ObservableCollection<MeetingTask> _tasks = new();
@@ -868,7 +871,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading team members: {ex.Message}");
+                _logger.Warn("Error loading team members: {0}", ex.Message);
             }
         }
 
@@ -887,7 +890,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading previous meeting: {ex.Message}");
+                _logger.Warn("Error loading previous meeting: {0}", ex.Message);
             }
         }
 
@@ -909,7 +912,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading available items: {ex.Message}");
+                _logger.Warn("Error loading available items: {0}", ex.Message);
             }
         }
 

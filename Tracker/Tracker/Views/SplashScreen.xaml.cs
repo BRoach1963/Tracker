@@ -271,11 +271,13 @@ namespace Tracker.Views
     {
         public string Username { get; }
         public int UserId { get; }
+        public bool IsAdminLogin { get; }
 
-        public LoginSuccessEventArgs(string username, int userId)
+        public LoginSuccessEventArgs(string username, int userId, bool isAdminLogin = false)
         {
             Username = username;
             UserId = userId;
+            IsAdminLogin = isAdminLogin;
         }
     }
 }

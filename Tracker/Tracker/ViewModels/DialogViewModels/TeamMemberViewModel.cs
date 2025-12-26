@@ -15,6 +15,7 @@ using Tracker.Controls;
 using Tracker.Database;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Logging;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
@@ -22,6 +23,8 @@ namespace Tracker.ViewModels.DialogViewModels
     {
         #region Fields 
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("TeamMemberVM");
+        
         private TeamMember _data;
         private bool _inEditMode; 
 
@@ -611,7 +614,7 @@ namespace Tracker.ViewModels.DialogViewModels
             catch (Exception ex)
             {
                 // Log but don't crash - default image is already set
-                System.Diagnostics.Debug.WriteLine($"Error loading profile image: {ex.Message}");
+                _logger.Warn("Error loading profile image: {0}", ex.Message);
             }
         }
 
@@ -632,7 +635,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading meeting history: {ex.Message}");
+                _logger.Warn("Error loading meeting history: {0}", ex.Message);
             }
         }
 
@@ -653,7 +656,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading feedback history: {ex.Message}");
+                _logger.Warn("Error loading feedback history: {0}", ex.Message);
             }
         }
 
@@ -675,7 +678,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading goals: {ex.Message}");
+                _logger.Warn("Error loading goals: {0}", ex.Message);
             }
         }
 

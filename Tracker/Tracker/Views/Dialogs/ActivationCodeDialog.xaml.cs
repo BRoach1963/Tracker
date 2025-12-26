@@ -200,7 +200,7 @@ namespace Tracker.Views.Dialogs
             MessageText.Visibility = Visibility.Visible;
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
+        private new void Close_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
             Close();

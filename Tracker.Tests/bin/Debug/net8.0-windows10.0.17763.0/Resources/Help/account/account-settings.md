@@ -234,12 +234,26 @@ From Account Settings:
 1. Click profile icon
 2. Select **Sign Out**
 3. You're returned to sign-in screen
+4. Your settings and database preferences are preserved for next sign-in
 
 ### Sign Out All Devices
 1. Go to **Account** → **Security**
 2. Click **Sign Out All Sessions**
 3. All devices signed out
 4. You remain signed in on current device
+
+## Account Isolation
+
+Each Tracker account has completely isolated settings and data:
+
+- **Settings**: Stored per-account in `%LocalAppData%\Tracker\Users\{accountId}\`
+- **Database preferences**: Each account can have different database locations
+- **Multiple accounts**: You can use multiple accounts on the same computer without conflicts
+
+When you switch accounts:
+1. Sign out from current account
+2. Sign in with different credentials
+3. Tracker loads that account's settings and database preferences automatically
 
 ## Related Topics
 - [Signing In](login.md)

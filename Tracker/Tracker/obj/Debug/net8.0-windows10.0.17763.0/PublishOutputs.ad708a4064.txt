@@ -1,4 +1,5 @@
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Tracker.exe
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Images\Tracker.ico
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\account\account-settings.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\account\billing.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\account\create-account.md
@@ -35,6 +36,7 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publ
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\getting-started\overview.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\getting-started\quick-start.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\reference\keyboard-shortcuts.md
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\reference\shared-database-setup.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\reference\troubleshooting.md
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Resources\Help\toc.json
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Installer\obj\x64\Debug\publish\Tracker\Tracker.dll

@@ -102,9 +102,12 @@ namespace Tracker.Classes
         /// </summary>
         public bool IsOfflineMode { get; set; } = false;
 
-        /// <summary>
-        /// Builds the appropriate connection string based on current settings.
-        /// </summary>
+    /// <summary>
+    /// Custom path for SQLite database file.
+    /// If empty, uses default %LocalAppData%\Tracker\tracker.db
+    /// Can be set to a network share (e.g., \\server\share\TrackerData\tracker.db) for team sharing.
+    /// </summary>
+    public string CustomSqlitePath { get; set; } = string.Empty;
         /// <returns>
         /// A connection string suitable for the configured database provider:
         /// - SQLite: "Data Source=path\to\tracker.db"
@@ -116,6 +119,19 @@ namespace Tracker.Classes
             // SQLite uses a simple file-based connection string
             if (Type == DatabaseType.SQLite)
             {
+                // Use custom path if specified, otherwise use default
+                if (!string.IsNullOrWhiteSpace(CustomSqlitePath))
+                {
+                    // Ensure the directory exists
+                    var directory = Path.GetDirectoryName(CustomSqlitePath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+                    return $"Data Source={CustomSqlitePath}";
+                }
+                
+                // Default path: %LocalAppData%\Tracker\tracker.db
                 var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 var trackerFolder = Path.Combine(appDataPath, "Tracker");
                 return $"Data Source={Path.Combine(trackerFolder, "tracker.db")}";

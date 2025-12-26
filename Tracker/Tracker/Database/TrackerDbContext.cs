@@ -2,6 +2,7 @@ using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Tracker.Classes;
 using Tracker.DataModels;
+using Tracker.Managers;
 
 namespace Tracker.Database
 {
@@ -16,6 +17,7 @@ namespace Tracker.Database
     /// - Automatic audit field population (CreatedAt, ModifiedAt, etc.)
     /// - Soft delete support (IsDeleted flag instead of hard deletes)
     /// - Optimistic concurrency via RowVersion (SQL Server only)
+    /// - Global query filters for UserId and IsDeleted (automatic data isolation)
     /// - Change tracking table for future offline sync capabilities
     /// 
     /// Usage:
@@ -28,6 +30,13 @@ namespace Tracker.Database
     public class TrackerDbContext : DbContext
     {
         private readonly DatabaseSettings _settings;
+        
+        /// <summary>
+        /// Gets or sets the current user ID for query filtering.
+        /// When set, global query filters will automatically filter data by this user.
+        /// Set to null to disable user filtering (for admin/seeding operations).
+        /// </summary>
+        public int? CurrentUserId { get; set; }
 
         #region Constructors
 
@@ -38,6 +47,8 @@ namespace Tracker.Database
         public TrackerDbContext(DatabaseSettings settings)
         {
             _settings = settings;
+            // Initialize CurrentUserId from UserSettingsManager for automatic query filtering
+            CurrentUserId = UserSettingsManager.Instance?.CurrentUserId;
         }
 
         /// <summary>
@@ -163,7 +174,18 @@ namespace Tracker.Database
             {
                 case DatabaseType.SQLite:
                     // SQLite stores data in a local file - great for single-user scenarios
-                    var sqlitePath = DatabaseSettings.GetSqlitePath();
+                    // Use custom path if specified, otherwise use default
+                    var sqlitePath = !string.IsNullOrWhiteSpace(_settings.CustomSqlitePath) 
+                        ? _settings.CustomSqlitePath 
+                        : DatabaseSettings.GetSqlitePath();
+                    
+                    // Ensure directory exists for custom paths
+                    var directory = Path.GetDirectoryName(sqlitePath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+                    
                     // Enable foreign keys via connection string (SQLite has them disabled by default)
                     optionsBuilder.UseSqlite($"Data Source={sqlitePath};Foreign Keys=True");
                     break;
@@ -187,6 +209,10 @@ namespace Tracker.Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            
+            // Apply global query filters for automatic data isolation
+            // These filters are applied at the SQL level for maximum performance
+            ConfigureGlobalQueryFilters(modelBuilder);
 
             // Apply common audit configuration to all auditable entities
             ConfigureAuditableEntities(modelBuilder);
@@ -220,6 +246,120 @@ namespace Tracker.Database
             ConfigureLinkedItem(modelBuilder);
         }
 
+        #endregion
+        
+        #region Global Query Filters
+        
+        /// <summary>
+        /// Configures global query filters for automatic data isolation.
+        /// These filters are applied at the SQL level for maximum performance.
+        /// 
+        /// Filters applied:
+        /// - UserId: Only returns data belonging to CurrentUserId (when set)
+        /// - IsDeleted: Automatically excludes soft-deleted records
+        /// 
+        /// To bypass filters, use .IgnoreQueryFilters() on the query.
+        /// </summary>
+        private void ConfigureGlobalQueryFilters(ModelBuilder modelBuilder)
+        {
+            // TeamMember: Filter by UserId and IsDeleted
+            modelBuilder.Entity<TeamMember>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // OneOnOne: Filter by UserId and IsDeleted
+            modelBuilder.Entity<OneOnOne>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // Project: Filter by UserId and IsDeleted
+            modelBuilder.Entity<Project>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // IndividualTask: Filter by UserId and IsDeleted
+            modelBuilder.Entity<IndividualTask>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // MeetingTask: Filter by UserId and IsDeleted
+            modelBuilder.Entity<MeetingTask>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // AgendaItem: Filter by UserId and IsDeleted
+            modelBuilder.Entity<AgendaItem>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // ObjectiveKeyResult (OKR): Filter by UserId and IsDeleted
+            modelBuilder.Entity<ObjectiveKeyResult>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // KeyResult: Filter by UserId and IsDeleted
+            modelBuilder.Entity<KeyResult>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // KeyPerformanceIndicator (KPI): Filter by UserId and IsDeleted
+            modelBuilder.Entity<KeyPerformanceIndicator>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // KeyResultMeasurable: Filter by UserId and IsDeleted
+            modelBuilder.Entity<KeyResultMeasurable>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // KpiDataSource: Filter by IsDeleted only (no UserId on this entity)
+            modelBuilder.Entity<KpiDataSource>().HasQueryFilter(e => !e.IsDeleted);
+            
+            // TaskCollection: Filter by UserId and IsDeleted
+            modelBuilder.Entity<TaskCollection>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // TaskCollectionItem: Filter by UserId and IsDeleted
+            modelBuilder.Entity<TaskCollectionItem>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // Milestone: Filter by UserId and IsDeleted
+            modelBuilder.Entity<Milestone>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // Risk: Filter by UserId and IsDeleted
+            modelBuilder.Entity<Risk>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // Feedback: Filter by UserId and IsDeleted
+            modelBuilder.Entity<Feedback>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // IndividualGoal: Filter by UserId and IsDeleted
+            modelBuilder.Entity<IndividualGoal>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // GoalMilestone: Filter by UserId and IsDeleted
+            modelBuilder.Entity<GoalMilestone>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // Reminder: Filter by UserId and IsDeleted
+            modelBuilder.Entity<Reminder>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // MeetingTemplate: Filter by UserId and IsDeleted
+            modelBuilder.Entity<MeetingTemplate>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // MeetingTemplateItem: Filter by UserId and IsDeleted
+            modelBuilder.Entity<MeetingTemplateItem>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // QuickNote: Filter by UserId and IsDeleted
+            modelBuilder.Entity<QuickNote>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // LinkedItem: No filter (simple entity without audit fields, filtered via parent AgendaItem)
+            
+            // OneOnOneLinkedTask/Okr/Kpi: Filter by IsDeleted only (userId filtering via parent OneOnOne)
+            modelBuilder.Entity<OneOnOneLinkedTask>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<OneOnOneLinkedOkr>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<OneOnOneLinkedKpi>().HasQueryFilter(e => !e.IsDeleted);
+            
+            // ProjectDependency: Filter by IsDeleted only (userId filtering via parent Project)
+            modelBuilder.Entity<ProjectDependency>().HasQueryFilter(e => !e.IsDeleted);
+        }
+        
         #endregion
 
         #region Entity Configurations
@@ -1077,7 +1217,9 @@ namespace Tracker.Database
         /// Useful for displaying connection info to users.
         /// </summary>
         public string? DatabasePath => _settings.Type == DatabaseType.SQLite 
-            ? DatabaseSettings.GetSqlitePath() 
+            ? (!string.IsNullOrWhiteSpace(_settings.CustomSqlitePath) 
+                ? _settings.CustomSqlitePath 
+                : DatabaseSettings.GetSqlitePath())
             : null;
 
         /// <summary>

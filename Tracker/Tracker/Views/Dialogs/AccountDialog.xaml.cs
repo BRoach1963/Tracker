@@ -14,7 +14,7 @@ namespace Tracker.Views.Dialogs
             InitializeComponent();
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
+        private new void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }

@@ -18,48 +18,17 @@ namespace Tracker.Services.AI
         {
         }
 
-        /// <summary>
-        /// Indexes all team members as searchable vectors (incremental if sinceTime provided)
-        /// </summary>
-        /// <param name="sinceTime">Only index members created/modified after this time (null = all)</param>
-        public async Task<int> IndexAllAsync(DateTime? sinceTime = null)
+        protected override string EntityTypeName => "team members";
+
+        protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
         {
-            ResetCount();
-            if (sinceTime == null)
-                _logger.Info("Starting full team member indexing...");
-            else
-                _logger.Info("Starting incremental team member indexing since {0}...", sinceTime.Value.ToString("g"));
-
-            try
-            {
-                var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
-                var activeMembers = members.Where(m => !m.IsDeleted).ToList();
-
-                // Filter by modification time for incremental indexing
-                if (sinceTime != null)
-                {
-                    activeMembers = activeMembers
-                        .Where(m => m.CreatedAt > sinceTime.Value || m.LastModifiedAt > sinceTime.Value)
-                        .ToList();
-                }
-
-                foreach (var member in activeMembers)
-                {
-                    await IndexTeamMemberAsync(member);
-                }
-
-                _logger.Info("Indexed {0} team members", _indexedCount);
-                return _indexedCount;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error indexing team members");
-                return _indexedCount;
-            }
+            var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
+            return members.Where(m => !m.IsDeleted).Cast<object>();
         }
 
-        private async Task IndexTeamMemberAsync(DataModels.TeamMember member)
+        protected override async Task IndexSingleEntityAsync(object entity)
         {
+            var member = (DataModels.TeamMember)entity;
             try
             {
                 // Create rich text representation

@@ -151,9 +151,16 @@ namespace Tracker.Database
                 }
 
                 _isInitialized = true;
+                
+                // Determine actual SQLite path for logging
+                var actualPath = settings.Type == DatabaseType.SQLite 
+                    ? (!string.IsNullOrWhiteSpace(settings.CustomSqlitePath) 
+                        ? settings.CustomSqlitePath 
+                        : DatabaseSettings.GetSqlitePath())
+                    : settings.Server;
+                    
                 _logger.Info("Database initialized: Type={0}, Path={1}", 
-                    settings.Type, 
-                    settings.Type == DatabaseType.SQLite ? DatabaseSettings.GetSqlitePath() : settings.Server);
+                    settings.Type, actualPath);
             }
             catch (Exception ex)
             {
@@ -330,7 +337,10 @@ namespace Tracker.Database
                 {
                     // SQLite always succeeds - file will be created
                     result.Success = true;
-                    result.DatabaseExists = File.Exists(DatabaseSettings.GetSqlitePath());
+                    var sqlitePath = !string.IsNullOrWhiteSpace(settings.CustomSqlitePath) 
+                        ? settings.CustomSqlitePath 
+                        : DatabaseSettings.GetSqlitePath();
+                    result.DatabaseExists = File.Exists(sqlitePath);
                     return result;
                 }
 
@@ -410,46 +420,74 @@ namespace Tracker.Database
             return UserSettingsManager.Instance.CurrentUserId;
         }
 
+        /// <summary>
+        /// Executes an async operation with context and user validation.
+        /// Returns the default value if context is null or user is not set.
+        /// </summary>
+        /// <typeparam name="T">Return type</typeparam>
+        /// <param name="operation">The async operation to execute</param>
+        /// <param name="defaultValue">Value to return if validation fails</param>
+        /// <param name="operationName">Name for logging</param>
+        /// <param name="requireUserId">Whether to require CurrentUserId to be set</param>
+        private async Task<T> ExecuteWithContextAsync<T>(
+            Func<Task<T>> operation,
+            T defaultValue,
+            string operationName,
+            bool requireUserId = true)
+        {
+            if (_context == null)
+            {
+                _logger.Warn("{0} called but context is null", operationName);
+                return defaultValue;
+            }
+
+            if (requireUserId && !GetCurrentUserId().HasValue)
+            {
+                _logger.Warn("{0} called but CurrentUserId is not set", operationName);
+                return defaultValue;
+            }
+
+            try
+            {
+                return await operation().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error in {0}", operationName);
+                return defaultValue;
+            }
+        }
+
         #endregion
 
         #region TeamMember Operations
 
         public async Task<List<TeamMember>> GetTeamMembersAsync()
         {
-            if (_context == null) return new List<TeamMember>();
+            return await ExecuteWithContextAsync(
+                async () =>
+                {
+                    // Global query filters handle UserId and IsDeleted filtering automatically
+                    var teamMembers = await _context!.TeamMembers
+                        .AsNoTracking()
+                        .OrderBy(tm => tm.Role)
+                        .ThenBy(tm => tm.LastName)
+                        .ThenBy(tm => tm.FirstName)
+                        .ToListAsync()
+                        .ConfigureAwait(false);
 
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue)
-            {
-                _logger.Warn("GetTeamMembersAsync called but CurrentUserId is not set");
-                return new List<TeamMember>();
-            }
+                    // Populate runtime properties for display
+                    await PopulateTeamMemberStatsAsync(teamMembers, GetCurrentUserId()!.Value).ConfigureAwait(false);
 
-            try
-            {
-                var teamMembers = await _context.TeamMembers
-                    .AsNoTracking()
-                    .Where(t => !t.IsDeleted && EF.Property<int>(t, "UserId") == currentUserId.Value)
-                    .OrderBy(tm => tm.Role)
-                    .ThenBy(tm => tm.LastName)
-                    .ThenBy(tm => tm.FirstName)
-                    .ToListAsync()
-                    .ConfigureAwait(false);
-
-                // Populate runtime properties for display
-                await PopulateTeamMemberStatsAsync(teamMembers, currentUserId.Value).ConfigureAwait(false);
-
-                return teamMembers;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error retrieving team members from database");
-                return new List<TeamMember>();
-            }
+                    return teamMembers;
+                },
+                new List<TeamMember>(),
+                nameof(GetTeamMembersAsync));
         }
 
         /// <summary>
         /// Populates runtime statistics for team members (last 1:1, next 1:1, task/goal counts).
+        /// Uses global query filters for automatic UserId/IsDeleted filtering.
         /// </summary>
         private async Task PopulateTeamMemberStatsAsync(List<TeamMember> teamMembers, int userId)
         {
@@ -461,21 +499,17 @@ namespace Tracker.Database
                 var today = DateTime.Now.Date;
 
                 // Execute all stat queries in parallel for better performance
+                // Global filters handle UserId/IsDeleted - we only add business logic filters
                 var lastOneOnOnesTask = _context.OneOnOnes
                     .AsNoTracking()
-                    .Where(o => !o.IsDeleted &&
-                                EF.Property<int>(o, "UserId") == userId &&
-                                teamMemberIds.Contains(o.TeamMember.Id) &&
-                                o.Date <= today)
+                    .Where(o => teamMemberIds.Contains(o.TeamMember.Id) && o.Date <= today)
                     .GroupBy(o => o.TeamMember.Id)
                     .Select(g => new { TeamMemberId = g.Key, LastDate = g.Max(o => o.Date) })
                     .ToListAsync();
 
                 var nextOneOnOnesTask = _context.OneOnOnes
                     .AsNoTracking()
-                    .Where(o => !o.IsDeleted &&
-                                EF.Property<int>(o, "UserId") == userId &&
-                                teamMemberIds.Contains(o.TeamMember.Id) &&
+                    .Where(o => teamMemberIds.Contains(o.TeamMember.Id) &&
                                 o.Date >= today &&
                                 o.Status == Common.Enums.MeetingStatusEnum.Scheduled)
                     .GroupBy(o => o.TeamMember.Id)
@@ -485,9 +519,7 @@ namespace Tracker.Database
                 var taskCountsTask = _context.Tasks
                     .AsNoTracking()
                     .Include(t => t.Owner)
-                    .Where(t => !t.IsDeleted &&
-                                EF.Property<int>(t, "UserId") == userId &&
-                                t.Owner != null &&
+                    .Where(t => t.Owner != null &&
                                 teamMemberIds.Contains(t.Owner.Id) &&
                                 !t.IsCompleted)
                     .GroupBy(t => t.Owner.Id)
@@ -496,9 +528,7 @@ namespace Tracker.Database
 
                 var goalCountsTask = _context.IndividualGoals
                     .AsNoTracking()
-                    .Where(g => !g.IsDeleted &&
-                                EF.Property<int>(g, "UserId") == userId &&
-                                teamMemberIds.Contains(g.TeamMemberId) &&
+                    .Where(g => teamMemberIds.Contains(g.TeamMemberId) &&
                                 g.Status != GoalStatus.Completed &&
                                 g.Status != GoalStatus.Cancelled)
                     .GroupBy(g => g.TeamMemberId)
@@ -550,8 +580,8 @@ namespace Tracker.Database
 
             try
             {
+                // Global query filters handle UserId and IsDeleted automatically
                 return await _context.TeamMembers
-                    .Where(t => !t.IsDeleted && EF.Property<int>(t, "UserId") == currentUserId.Value)
                     .FirstOrDefaultAsync(t => t.Id == id);
             }
             catch (Exception ex)

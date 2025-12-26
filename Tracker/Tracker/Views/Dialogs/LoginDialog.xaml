@@ -192,12 +192,30 @@
 
                     <!-- Remember Me -->
                     <CheckBox IsChecked="{Binding RememberMe}"
-                              Margin="0,4,0,16"
+                              Margin="0,4,0,12"
                               Foreground="{DynamicResource ForegroundBrush}">
                         <StackPanel>
                             <TextBlock Text="Remember me"
                                        Foreground="{DynamicResource ForegroundBrush}"/>
                             <TextBlock Text="Stay signed in on this device"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource HintTextBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </CheckBox>
+
+                    <!-- Admin Login -->
+                    <CheckBox IsChecked="{Binding IsAdminLogin}"
+                              Margin="0,0,0,16"
+                              Foreground="{DynamicResource ForegroundBrush}">
+                        <StackPanel>
+                            <TextBlock Foreground="{DynamicResource ForegroundBrush}">
+                                <Run Text="🔒 Admin Mode"/>
+                                <Run Text="(requires admin privileges)" 
+                                     FontSize="10" 
+                                     Foreground="{DynamicResource HintTextBrush}"/>
+                            </TextBlock>
+                            <TextBlock Text="Access admin tools instead of main application"
                                        FontSize="11"
                                        Foreground="{DynamicResource HintTextBrush}"
                                        Margin="0,2,0,0"/>
@@ -256,14 +274,22 @@
                                    FontSize="12"/>
                     </StackPanel>
 
-                    <!-- Exit Button -->
-                    <Button Content="Exit Application"
-                            Click="ExitButton_Click"
-                            Style="{StaticResource LinkButtonStyle}"
-                            HorizontalAlignment="Center"
-                            Margin="0,16,0,0"
-                            FontSize="12"
-                            Foreground="{DynamicResource HintTextBrush}"/>
+                    <!-- Cancel and Exit Buttons -->
+                    <StackPanel Orientation="Horizontal" 
+                                HorizontalAlignment="Center" 
+                                Margin="0,16,0,0">
+                        <Button Content="Cancel"
+                                Command="{Binding CancelCommand}"
+                                Style="{StaticResource LinkButtonStyle}"
+                                FontSize="12"
+                                Margin="0,0,16,0"
+                                Foreground="{DynamicResource ForegroundBrush}"/>
+                        <Button Content="Exit Application"
+                                Click="ExitButton_Click"
+                                Style="{StaticResource LinkButtonStyle}"
+                                FontSize="12"
+                                Foreground="{DynamicResource HintTextBrush}"/>
+                    </StackPanel>
 
                     <!-- Help Section -->
                     <Border BorderBrush="{DynamicResource BorderBrush}"

@@ -6,6 +6,7 @@ using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Helpers;
 using Tracker.Interfaces;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -67,7 +68,7 @@ namespace Tracker.ViewModels
 
         #region IDisposable
 
-        public void Dispose()
+        public new void Dispose()
         {
             DataMessenger.Unregister(this);
         }
@@ -78,8 +79,12 @@ namespace Tracker.ViewModels
 
         private void OnDataChanged(DataChangeInfo info)
         {
+            _logger.Debug("OnDataChanged received. RefreshAll={0}, Types={1}", 
+                info.RefreshAll, string.Join(",", info.ChangedTypes));
+            
             if (info.RefreshAll || info.Includes(DataChangeType.OKRs))
             {
+                _logger.Info("Refreshing OKRs due to data change");
                 System.Windows.Application.Current?.Dispatcher.InvokeAsync(async () =>
                 {
                     await LoadDataAsync();
@@ -317,13 +322,8 @@ namespace Tracker.ViewModels
             var okr = parameter as ObjectiveKeyResult ?? SelectedOkr;
             if (okr == null) return;
 
-            var result = System.Windows.MessageBox.Show(
-                $"Are you sure you want to delete '{okr.Title}'?\n\nThis will also delete all associated Key Results.",
-                "Delete OKR",
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Warning);
-
-            if (result != System.Windows.MessageBoxResult.Yes) return;
+            if (!MessageBoxHelper.ConfirmDelete(okr.Title, "OKR", "This will also delete all associated Key Results."))
+                return;
 
             try
             {
@@ -408,13 +408,8 @@ namespace Tracker.ViewModels
             var kr = parameter as KeyResult ?? SelectedKeyResult;
             if (kr == null) return;
 
-            var result = System.Windows.MessageBox.Show(
-                $"Are you sure you want to delete '{kr.Title}'?",
-                "Delete Key Result",
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Warning);
-
-            if (result != System.Windows.MessageBoxResult.Yes) return;
+            if (!MessageBoxHelper.ConfirmDelete(kr.Title, "Key Result"))
+                return;
 
             try
             {
@@ -490,10 +485,12 @@ namespace Tracker.ViewModels
         /// </summary>
         public async Task LoadDataAsync()
         {
+            _logger.Debug("LoadDataAsync started");
             IsLoading = true;
             try
             {
                 var okrs = await TrackerDataManager.Instance.GetOKRs();
+                _logger.Info("Loaded {0} OKRs from database", okrs.Count);
                 
                 // Resolve measurable display properties for each Key Result
                 await ResolveMeasurableDisplayPropertiesAsync(okrs);
@@ -506,6 +503,8 @@ namespace Tracker.ViewModels
                     .ToList();
 
                 Okrs = new ObservableCollection<ObjectiveKeyResult>(sortedOkrs);
+                _logger.Debug("Okrs property set with {0} items, FilteredOkrs has {1} items", 
+                    _okrs.Count, _filteredOkrs.Count);
                 
                 // Restore selection if possible
                 if (SelectedOkr != null)
@@ -522,6 +521,7 @@ namespace Tracker.ViewModels
             finally
             {
                 IsLoading = false;
+                _logger.Debug("LoadDataAsync completed");
             }
         }
         

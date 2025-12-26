@@ -8,6 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("images/tracker.ico")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/account/account-settings.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/account/billing.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/account/create-account.md")]
@@ -44,6 +45,7 @@
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/getting-started/overview.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/getting-started/quick-start.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/reference/keyboard-shortcuts.md")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/reference/shared-database-setup.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/reference/troubleshooting.md")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/help/toc.json")]
 

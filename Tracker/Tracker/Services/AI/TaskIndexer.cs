@@ -18,48 +18,17 @@ namespace Tracker.Services.AI
         {
         }
 
-        /// <summary>
-        /// Indexes all tasks as searchable vectors (incremental if sinceTime provided)
-        /// </summary>
-        /// <param name="sinceTime">Only index tasks created/modified after this time (null = all)</param>
-        public async Task<int> IndexAllAsync(DateTime? sinceTime = null)
+        protected override string EntityTypeName => "tasks";
+
+        protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
         {
-            ResetCount();
-            if (sinceTime == null)
-                _logger.Info("Starting full task indexing...");
-            else
-                _logger.Info("Starting incremental task indexing since {0}...", sinceTime.Value.ToString("g"));
-
-            try
-            {
-                var tasks = await TrackerDataManager.Instance.GetTasks();
-                var activeTasks = tasks.Where(t => !t.IsDeleted).ToList();
-
-                // Filter by modification time for incremental indexing
-                if (sinceTime != null)
-                {
-                    activeTasks = activeTasks
-                        .Where(t => t.CreatedAt > sinceTime.Value || t.LastModifiedAt > sinceTime.Value)
-                        .ToList();
-                }
-
-                foreach (var task in activeTasks)
-                {
-                    await IndexTaskAsync(task);
-                }
-
-                _logger.Info("Indexed {0} tasks", _indexedCount);
-                return _indexedCount;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error indexing tasks");
-                return _indexedCount;
-            }
+            var tasks = await TrackerDataManager.Instance.GetTasks();
+            return tasks.Where(t => !t.IsDeleted).Cast<object>();
         }
 
-        private async Task IndexTaskAsync(DataModels.IndividualTask task)
+        protected override async Task IndexSingleEntityAsync(object entity)
         {
+            var task = (DataModels.IndividualTask)entity;
             try
             {
                 // Create rich text representation

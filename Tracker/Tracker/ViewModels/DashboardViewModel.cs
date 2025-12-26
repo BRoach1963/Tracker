@@ -13,6 +13,7 @@ using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Logging;
 using Tracker.Managers;
 
 namespace Tracker.ViewModels
@@ -25,6 +26,8 @@ namespace Tracker.ViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("DashboardVM");
+        
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<OneOnOne> _oneOnOnes = new();
         private ObservableCollection<IndividualTask> _tasks = new();
@@ -97,7 +100,7 @@ namespace Tracker.ViewModels
 
         #region IDisposable
 
-        public void Dispose()
+        public new void Dispose()
         {
             DataMessenger.Unregister(this);
         }
@@ -108,6 +111,9 @@ namespace Tracker.ViewModels
 
         private void OnDataChanged(DataChangeInfo info)
         {
+            _logger.Debug("OnDataChanged received. RefreshAll={0}, Types={1}", 
+                info.RefreshAll, string.Join(",", info.ChangedTypes));
+            
             // Refresh if any relevant data type changed
             if (info.RefreshAll ||
                 info.Includes(DataChangeType.TeamMembers) ||
@@ -119,6 +125,7 @@ namespace Tracker.ViewModels
                 info.Includes(DataChangeType.Goals) ||
                 info.Includes(DataChangeType.Feedback))
             {
+                _logger.Info("Refreshing dashboard data due to data change");
                 // Refresh on UI thread
                 System.Windows.Application.Current?.Dispatcher.InvokeAsync(async () =>
                 {
@@ -384,6 +391,7 @@ namespace Tracker.ViewModels
 
         public async Task RefreshDataAsync()
         {
+            _logger.Debug("RefreshDataAsync started");
             try
             {
                 _teamMembers = new ObservableCollection<TeamMember>(await TrackerDataManager.Instance.GetTeamData());
@@ -404,12 +412,18 @@ namespace Tracker.ViewModels
                     _goals = new ObservableCollection<IndividualGoal>();
                 }
 
+                _logger.Info("Dashboard data refreshed: {0} team members, {1} tasks, {2} OKRs", 
+                    _teamMembers.Count, _tasks.Count, _okrs.Count);
+
                 UpdateManagerMetrics();
                 UpdateTeamHealthTable();
                 UpdateCharts();
+                
+                _logger.Debug("RefreshDataAsync completed");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.Exception(ex, "Error in RefreshDataAsync");
                 // Handle gracefully - dashboard can work with partial data
             }
         }

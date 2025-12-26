@@ -26,10 +26,11 @@ Make sure you have:
 
 ### Choosing Your Plan
 
-After verification, you're on the **Free** plan:
+After verification, you're on the **Free** plan with a fresh subscription:
 - 10 team members
 - Unlimited 1:1s, tasks, projects, OKRs, KPIs
 - Local database storage
+- Your own isolated settings and data
 
 [Compare all plans](../account/subscriptions.md) to see if Standard ($7/mo) or Pro ($12/mo) fits your needs.
 
@@ -44,10 +45,40 @@ Choose where your data lives:
 | Option | Best For |
 |--------|----------|
 | **Local (Default)** | Most users - fast, private, on your machine |
-| **Custom Location** | If you want data on a specific drive/folder |
-| **Network Database** | Enterprise users with shared SQL Server (Pro only) |
+| **Custom Location** | Teams (2-10 users) sharing a network folder |
+| **Network Database** | Enterprise teams (10+) with SQL Server (Pro only) |
 
-**Recommendation**: Start with Local. You can migrate later.
+#### Local Database (Recommended for Beginners)
+- Data stored in `%LocalAppData%\Tracker\Users\{your-account-id}\`
+- Each account has isolated settings and database preferences
+- No setup required
+- Perfect for individual users
+- Click **Next** to continue
+
+#### Custom Location (Team Sharing)
+For small teams sharing a network folder:
+
+1. Select **Local Database**
+2. ✅ Check **"Use custom database location"**
+3. Click **Browse...** and navigate to your network share
+4. Example path: `\\fileserver\TrackerData\tracker.db`
+5. All team members use the SAME path to share data
+
+**When to use**:
+- Small team (2-10 people) without SQL Server
+- Shared network drive available to all
+- Everyone needs read/write permissions to the folder
+
+**See**: [Shared Database Setup Guide](../../SHARED_DATABASE_QUICK_START.md) for detailed instructions
+
+#### Network Database (SQL Server)
+For enterprise teams requiring advanced features - see [SQL Server Setup](../reference/sql-server-setup.md)
+
+**Recommendation**: 
+- **New users**: Start with Local
+- **Small teams**: Use Custom Location with network share
+- **Large teams (10+)**: Use SQL Server
+- You can migrate later if needs change
 
 ### Step 3: Sample Data
 - **Include sample data**: Great for learning how things work

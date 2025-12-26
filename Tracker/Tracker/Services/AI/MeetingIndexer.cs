@@ -18,48 +18,17 @@ namespace Tracker.Services.AI
         {
         }
 
-        /// <summary>
-        /// Indexes all 1:1 meetings as searchable vectors (incremental if sinceTime provided)
-        /// </summary>
-        /// <param name="sinceTime">Only index meetings created/modified after this time (null = all)</param>
-        public async Task<int> IndexAllAsync(DateTime? sinceTime = null)
+        protected override string EntityTypeName => "meetings";
+
+        protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
         {
-            ResetCount();
-            if (sinceTime == null)
-                _logger.Info("Starting full meeting indexing...");
-            else
-                _logger.Info("Starting incremental meeting indexing since {0}...", sinceTime.Value.ToString("g"));
-
-            try
-            {
-                var meetings = await TrackerDbManager.Instance.GetOneOnOnesAsync();
-                var activeMeetings = meetings.Where(m => !m.IsDeleted).ToList();
-
-                // Filter by modification time for incremental indexing
-                if (sinceTime != null)
-                {
-                    activeMeetings = activeMeetings
-                        .Where(m => m.CreatedAt > sinceTime.Value || m.LastModifiedAt > sinceTime.Value)
-                        .ToList();
-                }
-
-                foreach (var meeting in activeMeetings)
-                {
-                    await IndexMeetingAsync(meeting);
-                }
-
-                _logger.Info("Indexed {0} meetings", _indexedCount);
-                return _indexedCount;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error indexing meetings");
-                return _indexedCount;
-            }
+            var meetings = await TrackerDbManager.Instance.GetOneOnOnesAsync();
+            return meetings.Where(m => !m.IsDeleted).Cast<object>();
         }
 
-        private async Task IndexMeetingAsync(DataModels.OneOnOne meeting)
+        protected override async Task IndexSingleEntityAsync(object entity)
         {
+            var meeting = (DataModels.OneOnOne)entity;
             try
             {
                 // Create rich text representation

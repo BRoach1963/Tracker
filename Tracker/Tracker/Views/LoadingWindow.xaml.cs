@@ -25,9 +25,19 @@ namespace Tracker.Views
             
             // Set welcome message with username if available
             var currentUser = SupabaseService.Instance.CurrentUser;
+            var profile = SupabaseService.Instance.CurrentProfile;
             var userName = "User";
             
-            if (currentUser?.Email != null)
+            // Priority: DisplayName > FirstName > Email prefix
+            if (!string.IsNullOrEmpty(profile?.DisplayName))
+            {
+                userName = profile.DisplayName;
+            }
+            else if (!string.IsNullOrEmpty(profile?.FirstName))
+            {
+                userName = profile.FirstName;
+            }
+            else if (currentUser?.Email != null)
             {
                 userName = currentUser.Email;
                 if (userName.Contains("@"))
@@ -40,10 +50,6 @@ namespace Tracker.Views
                         userName = char.ToUpper(userName[0]) + userName.Substring(1);
                     }
                 }
-            }
-            else if (SupabaseService.Instance.CurrentProfile?.DisplayName != null)
-            {
-                userName = SupabaseService.Instance.CurrentProfile.DisplayName;
             }
             
             WelcomeText.Text = $"Welcome, {userName}!";

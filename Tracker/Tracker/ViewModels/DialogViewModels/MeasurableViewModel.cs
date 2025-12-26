@@ -6,6 +6,7 @@ using Tracker.Controls;
 using Tracker.DataModels;
 using Tracker.DataWrappers;
 using Tracker.Interfaces;
+using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
 
@@ -18,6 +19,7 @@ namespace Tracker.ViewModels.DialogViewModels
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger("MeasurableVM");
         private readonly KeyResult _keyResult;
         
         private ICommand? _addCommand;
@@ -192,7 +194,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading measurables: {ex.Message}");
+                _logger.Warn("Error loading measurables: {0}", ex.Message);
             }
         }
 
