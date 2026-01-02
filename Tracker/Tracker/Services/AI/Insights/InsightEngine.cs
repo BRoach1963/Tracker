@@ -156,6 +156,21 @@ namespace Tracker.Services.AI.Insights
                     }
                 }
 
+                // Also run AI-powered insight generation if enabled
+                try
+                {
+                    var aiInsights = await GenerateAIInsightsAsync(cancellationToken);
+                    if (aiInsights.Any())
+                    {
+                        _logger.Info("AI generated {0} additional insights", aiInsights.Count);
+                        allInsights.AddRange(aiInsights);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Exception(ex, "AI insight generation failed");
+                }
+
                 // Save all insights (deduplication handled by store)
                 var newCount = await _store.SaveInsightsAsync(allInsights);
                 
@@ -281,6 +296,83 @@ namespace Tracker.Services.AI.Insights
         /// Marks an insight as acted upon.
         /// </summary>
         public Task MarkAsActedOnAsync(int insightId) => _store.MarkAsActedOnAsync(insightId);
+
+        /// <summary>
+        /// Generates AI-powered insights by gathering team data and calling AIInsightGenerator.
+        /// </summary>
+        private async Task<List<Insight>> GenerateAIInsightsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var dbManager = Database.TrackerDbManager.Instance;
+                if (dbManager == null || !dbManager.IsInitialized)
+                {
+                    return new List<Insight>();
+                }
+
+                // Check if AI is enabled
+                var settings = UserSettingsManager.Instance?.Settings?.AI;
+                if (settings == null || !settings.IsEnabled)
+                {
+                    _logger.Debug("AI insights disabled in settings");
+                    return new List<Insight>();
+                }
+
+                // Gather data for AI analysis
+                var teamMembers = await dbManager.GetTeamMembersAsync();
+                var allTasks = await dbManager.GetTasksAsync();
+                var overdueTasks = allTasks?.Where(t => 
+                    !t.IsCompleted && 
+                    t.DueDate.HasValue && 
+                    t.DueDate.Value < DateTime.Now).ToList();
+                var atRiskOkrs = await GetAtRiskOkrsAsync(dbManager);
+
+                var context = new TeamDataContext
+                {
+                    TeamMembers = teamMembers,
+                    OverdueTasks = overdueTasks,
+                    AtRiskOkrs = atRiskOkrs
+                };
+
+                // Generate AI insights
+                return await AIInsightGenerator.Instance.GenerateInsightsAsync(context, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Failed to generate AI insights");
+                return new List<Insight>();
+            }
+        }
+
+        /// <summary>
+        /// Gets OKRs that are at risk of missing their targets.
+        /// </summary>
+        private async Task<List<DataModels.ObjectiveKeyResult>> GetAtRiskOkrsAsync(Database.TrackerDbManager dbManager)
+        {
+            try
+            {
+                var okrs = await dbManager.GetOkrsAsync();
+                if (okrs == null) return new List<DataModels.ObjectiveKeyResult>();
+
+                var today = DateTime.Now;
+                return okrs.Where(o => 
+                {
+                    // OKR is at risk if progress is significantly behind where it should be
+                    if (o.EndDate < today) return false;
+                    
+                    var totalDays = (o.EndDate - o.StartDate).TotalDays;
+                    var elapsedDays = (today - o.StartDate).TotalDays;
+                    if (totalDays <= 0) return false;
+                    
+                    var expectedProgress = (elapsedDays / totalDays) * 100;
+                    return o.CompletionPercentage < (expectedProgress - 15); // More than 15% behind expected
+                }).ToList();
+            }
+            catch
+            {
+                return new List<DataModels.ObjectiveKeyResult>();
+            }
+        }
 
         private static string GetCurrentUserName()
         {
