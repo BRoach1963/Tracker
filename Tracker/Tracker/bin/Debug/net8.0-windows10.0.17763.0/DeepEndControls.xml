@@ -493,6 +493,15 @@
             Gets or sets whether to validate the URL format.
             </summary>
         </member>
+        <member name="M:DeepEndControls.Controls.TextBox.SocialMediaLinkTextBox.IsSecureUrlForLaunch(System.String,System.String@)">
+            <summary>
+            Validates that a URL is safe to launch (http/https only).
+            Prevents file://, SMB paths, and other potentially dangerous schemes.
+            </summary>
+            <param name="url">The URL to validate</param>
+            <param name="safeUrl">The validated and normalized URL if safe</param>
+            <returns>True if URL is safe to launch, false otherwise</returns>
+        </member>
         <member name="T:DeepEndControls.Controls.TextBox.TextBoxWithHint">
             <summary>
             A TextBox control with placeholder hint text, clear button, and built-in validation support.
@@ -541,6 +550,17 @@
         <member name="P:DeepEndControls.Controls.TextBox.TextBoxWithHint.CharacterCountText">
             <summary>
             Gets the current character count text (e.g., "25/100").
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.TextBox.TextBoxWithHint.OnPreviewMouseLeftButtonDown(System.Object,System.Windows.Input.MouseButtonEventArgs)">
+            <summary>
+            Handles mouse down to implement select-all-on-first-click behavior.
+            When clicking into an unfocused textbox, we select all text.
+            </summary>
+        </member>
+        <member name="M:DeepEndControls.Controls.TextBox.TextBoxWithHint.OnPreviewMouseLeftButtonUp(System.Object,System.Windows.Input.MouseButtonEventArgs)">
+            <summary>
+            Handles mouse up to complete the select-all-on-first-click behavior.
             </summary>
         </member>
         <member name="T:DeepEndControls.Controls.TextBox.InverseBoolToVisibilityConverter">
@@ -752,6 +772,36 @@
         <member name="M:DeepEndControls.Theming.ThemePalette.GetPalette(DeepEndControls.Theming.DeepEndTheme)">
             <summary>
             Gets the palette for the specified theme.
+            </summary>
+        </member>
+        <member name="T:XamlGeneratedNamespace.GeneratedInternalTypeHelper">
+            <summary>
+            GeneratedInternalTypeHelper
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.CreateInstance(System.Type,System.Globalization.CultureInfo)">
+            <summary>
+            CreateInstance
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.GetPropertyValue(System.Reflection.PropertyInfo,System.Object,System.Globalization.CultureInfo)">
+            <summary>
+            GetPropertyValue
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.SetPropertyValue(System.Reflection.PropertyInfo,System.Object,System.Object,System.Globalization.CultureInfo)">
+            <summary>
+            SetPropertyValue
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.CreateDelegate(System.Type,System.Object,System.String)">
+            <summary>
+            CreateDelegate
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.AddEventHandler(System.Reflection.EventInfo,System.Object,System.Delegate)">
+            <summary>
+            AddEventHandler
             </summary>
         </member>
     </members>

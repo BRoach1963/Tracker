@@ -1,0 +1,181 @@
+<UserControl x:Class="Tracker.Controls.Settings.AboutSettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="450"
+             AutomationProperties.Name="About Tracker"
+             AutomationProperties.HelpText="View application version, company information, and legal links">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="20,0,0,0">
+        <StackPanel MaxWidth="450" HorizontalAlignment="Left">
+            
+            <!-- App Info Section -->
+            <Label Style="{StaticResource LabelStyle}" Content="Application" Margin="0,0,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="16"
+                    Margin="0,5,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <Image Source="/Images/Tracker.ico" 
+                           Width="64" Height="64" 
+                           Margin="0,0,16,0"
+                           VerticalAlignment="Top"/>
+                    
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Tracker"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <TextBlock x:Name="VersionText"
+                                   Text="Version 1.0.0"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource HintTextBrush}"
+                                   Margin="0,4,0,8"/>
+                        <TextBlock Text="Professional relationship management for engineering leaders."
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            
+            <!-- Company Info Section -->
+            <Label Style="{StaticResource LabelStyle}" Content="Company" Margin="0,0,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="16"
+                    Margin="0,5,0,16">
+                <StackPanel>
+                    <TextBlock Text="Prickly Cactus Software LLC"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundBrush}"/>
+                    <TextBlock Text="© 2024-2026 All rights reserved."
+                               FontSize="12"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Legal Section -->
+            <Label Style="{StaticResource LabelStyle}" Content="Legal" Margin="0,0,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="16"
+                    Margin="0,5,0,16">
+                <StackPanel>
+                    <Button Content="📄  Terms of Service"
+                            Click="TermsOfService_Click"
+                            HorizontalAlignment="Left"
+                            Cursor="Hand"
+                            Margin="0,0,0,8"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"/>
+                    <Button Content="🔒  Privacy Policy"
+                            Click="PrivacyPolicy_Click"
+                            HorizontalAlignment="Left"
+                            Cursor="Hand"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"/>
+                    <TextBlock Text="By using Tracker, you agree to our Terms of Service."
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Support Section -->
+            <Label Style="{StaticResource LabelStyle}" Content="Support" Margin="0,0,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="16"
+                    Margin="0,5,0,16">
+                <StackPanel>
+                    <Button Content="📧  Contact Support"
+                            Click="Support_Click"
+                            HorizontalAlignment="Left"
+                            Cursor="Hand"
+                            Margin="0,0,0,8"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"/>
+                    <Button Content="🌐  Visit Website"
+                            Click="Website_Click"
+                            HorizontalAlignment="Left"
+                            Cursor="Hand"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"/>
+                    <TextBlock Text="support@pricklycactus.com"
+                               FontSize="11"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Technical Info Section -->
+            <Label Style="{StaticResource LabelStyle}" Content="Technical Information" Margin="0,0,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="16"
+                    Margin="0,5,0,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                               Text="Platform:" 
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,16,4"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" 
+                               x:Name="PlatformText"
+                               Text=".NET 8.0 / Windows"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               Margin="0,0,0,4"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                               Text="Framework:" 
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,16,4"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                               Text="WPF with MVVM"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               Margin="0,0,0,4"/>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" 
+                               Text="Data Storage:" 
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,16,0"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" 
+                               x:Name="DatabaseText"
+                               Text="SQLite / SQL Server"
+                               Foreground="{DynamicResource HintTextBrush}"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

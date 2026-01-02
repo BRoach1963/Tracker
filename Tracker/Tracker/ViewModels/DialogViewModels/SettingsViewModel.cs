@@ -12,6 +12,7 @@ using Tracker.Eventing.Messages;
 using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services;
 using Tracker.Views.Dialogs;
 
 namespace Tracker.ViewModels.DialogViewModels
@@ -32,6 +33,12 @@ namespace Tracker.ViewModels.DialogViewModels
         private CalendarSettingsViewModel? _calendarSettings;
         private bool _isRefreshingAi;
         private string _aiRefreshStatus = string.Empty;
+        
+        // AI Provider fields
+        private AIProviderType _selectedAIProvider;
+        private int _creditsUsed;
+        private int _monthlyCredits = 1000;
+        private int _additionalCredits;
 
         #endregion
 
@@ -56,6 +63,16 @@ namespace Tracker.ViewModels.DialogViewModels
             
             // Initialize Calendar Settings ViewModel
             _calendarSettings = new CalendarSettingsViewModel(null);
+            
+            // Initialize AI Provider selection
+            _selectedAIProvider = ChatProviderFactory.Instance.SelectedProvider;
+            
+            // Populate available AI providers
+            AvailableAIProviders = new ObservableCollection<AIProviderType>(
+                ChatProviderFactory.Instance.AvailableProviders);
+            
+            // Load credit information (async fire-and-forget, UI will update)
+            _ = LoadCreditInfoAsync();
         }
 
         #endregion
@@ -185,9 +202,140 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public bool HasAiRefreshStatus => !string.IsNullOrEmpty(_aiRefreshStatus);
 
+        #region AI Provider Properties
+
+        /// <summary>
+        /// Collection of available AI providers for the ComboBox.
+        /// </summary>
+        public ObservableCollection<AIProviderType> AvailableAIProviders { get; }
+
+        /// <summary>
+        /// The currently selected AI provider.
+        /// </summary>
+        public AIProviderType SelectedAIProvider
+        {
+            get => _selectedAIProvider;
+            set
+            {
+                if (_selectedAIProvider != value)
+                {
+                    _selectedAIProvider = value;
+                    ChatProviderFactory.Instance.SelectedProvider = value;
+                    RaisePropertyChanged();
+                    RaisePropertyChanged(nameof(AIProviderDescription));
+                    _logger.Info("AI Provider changed to: {0}", value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a description of the currently selected AI provider.
+        /// </summary>
+        public string AIProviderDescription => ChatProviderFactory.GetProviderDescription(_selectedAIProvider);
+
+        /// <summary>
+        /// Summary of credit usage for display.
+        /// </summary>
+        public string CreditUsageSummary
+        {
+            get
+            {
+                if (HasUnlimitedCredits)
+                    return "Unlimited credits with your subscription";
+                
+                var remaining = MonthlyCredits + AdditionalCredits - _creditsUsed;
+                return $"{remaining:N0} credits remaining this month";
+            }
+        }
+
+        /// <summary>
+        /// Percentage of credits used (0-100).
+        /// </summary>
+        public double CreditsUsedPercent
+        {
+            get
+            {
+                var total = MonthlyCredits + AdditionalCredits;
+                if (total <= 0) return 0;
+                return Math.Min(100, (_creditsUsed * 100.0) / total);
+            }
+        }
+
+        /// <summary>
+        /// Monthly credit allowance based on subscription tier.
+        /// </summary>
+        public int MonthlyCredits
+        {
+            get => _monthlyCredits;
+            private set
+            {
+                _monthlyCredits = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(CreditUsageSummary));
+                RaisePropertyChanged(nameof(CreditsUsedPercent));
+            }
+        }
+
+        /// <summary>
+        /// Additional purchased credits.
+        /// </summary>
+        public int AdditionalCredits
+        {
+            get => _additionalCredits;
+            private set
+            {
+                _additionalCredits = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(CreditUsageSummary));
+                RaisePropertyChanged(nameof(CreditsUsedPercent));
+            }
+        }
+
+        /// <summary>
+        /// Whether the user has unlimited credits (e.g., Enterprise tier).
+        /// </summary>
+        public bool HasUnlimitedCredits => false; // TODO: Check subscription tier
+
+        /// <summary>
+        /// Whether credits are exhausted.
+        /// </summary>
+        public bool IsCreditsExhausted => !HasUnlimitedCredits && _creditsUsed >= (MonthlyCredits + AdditionalCredits);
+
+        #endregion
+
         #endregion
 
         #region Private Methods
+
+        private async Task LoadCreditInfoAsync()
+        {
+            try
+            {
+                // Load subscription/credit info from Supabase
+                var subscription = Services.Backend.SupabaseService.Instance.CurrentSubscription;
+                if (subscription != null)
+                {
+                    _creditsUsed = subscription.AiRequestsThisMonth;
+                    // Credits vary by tier - for now hardcode, should come from subscription_plans
+                    MonthlyCredits = subscription.Tier switch
+                    {
+                        Common.Enums.SubscriptionTier.Pro => 5000,
+                        Common.Enums.SubscriptionTier.Internal => int.MaxValue, // Unlimited
+                        _ => 1000 // Free tier
+                    };
+                }
+                
+                RaisePropertyChanged(nameof(CreditUsageSummary));
+                RaisePropertyChanged(nameof(CreditsUsedPercent));
+                RaisePropertyChanged(nameof(IsCreditsExhausted));
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Failed to load credit info");
+            }
+            
+            await Task.CompletedTask;
+        }
 
         private void ExecuteChangeDatabase(object? parameter)
         {

@@ -87,9 +87,24 @@
                                 <input:AutoSuggestBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="4">
-                                            <Ellipse Width="32" Height="32" 
-                                                     Fill="{DynamicResource AccentBrush}" 
-                                                     Margin="0,0,10,0"/>
+                                            <!-- Avatar with image or initials fallback -->
+                                            <Grid Width="32" Height="32" Margin="0,0,10,0">
+                                                <!-- Background circle with initials (always shown as fallback) -->
+                                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                <TextBlock Text="{Binding Initials}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BackgroundBrush}"/>
+                                                <!-- Profile image overlays initials when present -->
+                                                <Ellipse>
+                                                    <Ellipse.Fill>
+                                                        <ImageBrush ImageSource="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                                    Stretch="UniformToFill"/>
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                            </Grid>
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding FullName}" 
                                                            FontWeight="SemiBold"
@@ -145,8 +160,8 @@
                                                                  PopupBorderBrush="{DynamicResource BorderBrush}"
                                                                  RepeatButtonBackground="{DynamicResource SurfaceBrush}"
                                                                  RepeatButtonForeground="{DynamicResource ForegroundBrush}"
-                                                                 DropDownButtonBackground="{DynamicResource AccentBrush}"
-                                                                 DropDownButtonForeground="{DynamicResource BackgroundBrush}"/>
+                                                                 DropDownButtonBackground="{DynamicResource SurfaceBrush}"
+                                                                 DropDownButtonForeground="{DynamicResource ForegroundBrush}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="End" Style="{StaticResource FieldLabel}"/>
@@ -161,8 +176,8 @@
                                                                  PopupBorderBrush="{DynamicResource BorderBrush}"
                                                                  RepeatButtonBackground="{DynamicResource SurfaceBrush}"
                                                                  RepeatButtonForeground="{DynamicResource ForegroundBrush}"
-                                                                 DropDownButtonBackground="{DynamicResource AccentBrush}"
-                                                                 DropDownButtonForeground="{DynamicResource BackgroundBrush}"/>
+                                                                 DropDownButtonBackground="{DynamicResource SurfaceBrush}"
+                                                                 DropDownButtonForeground="{DynamicResource ForegroundBrush}"/>
                                 </StackPanel>
                             </Grid>
                             
@@ -306,9 +321,30 @@
                             Background="{DynamicResource SurfaceBrush}"
                             CornerRadius="10"
                             Padding="16">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
+                        <Grid>
+                            <!-- Main Content -->
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          Visibility="{Binding IsPrepPanelVisible, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}">
                             <StackPanel>
+                                <!-- View Prep Button Header -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding ViewPrepCommand}"
+                                            Style="{StaticResource DialogSecondaryButtonStyle}"
+                                            Padding="12,6"
+                                            ToolTip="Generate AI-powered meeting prep suggestions">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📋" FontSize="14" Margin="0,0,6,0"/>
+                                            <TextBlock Text="View Prep"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                
                                 <!-- Previous Meeting Summary -->
                                 <Border Visibility="{Binding HasPreviousMeeting, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
                                         Background="{DynamicResource BackgroundBrush}"
@@ -537,6 +573,12 @@
                                                       Foreground="{DynamicResource ForegroundBrush}"/>
                             </StackPanel>
                         </ScrollViewer>
+                            
+                            <!-- Meeting Prep Panel Overlay -->
+                            <controls:MeetingPrepPanel 
+                                DataContext="{Binding MeetingPrepViewModel}"
+                                Visibility="{Binding DataContext.IsPrepPanelVisible, RelativeSource={RelativeSource AncestorType=controls:BaseWindow}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                        </Grid>
                     </Border>
                 </Grid>
                 

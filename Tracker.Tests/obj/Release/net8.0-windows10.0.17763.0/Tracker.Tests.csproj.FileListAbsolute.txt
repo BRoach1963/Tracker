@@ -270,3 +270,15 @@ C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0.17763.0\Tracker.Tests.genruntimeconfig.cache
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\obj\Release\net8.0-windows10.0.17763.0\ref\Tracker.Tests.dll
 C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Images\Tracker.ico
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\giving-feedback.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\goal-setting.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\key-results-explained.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\kpis-explained.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\okrs-explained.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\one-on-ones-guide.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\reference\shared-database-setup.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\features\kudos.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\features\pulse-surveys.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\concepts\proactive-management.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\dialogs\daily-briefing.md
+C:\Users\vbpro\source\repos\Tracker\Tracker.Tests\bin\Release\net8.0-windows10.0.17763.0\Resources\Help\features\insights.md

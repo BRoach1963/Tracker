@@ -57,9 +57,13 @@
                     <Button Grid.Column="1"
                             Content="✕"
                             Command="{Binding CancelCommand}"
-                            Style="{StaticResource CloseButtonStyle}"
                             Width="28" Height="28"
-                            FontSize="14"/>
+                            FontSize="14"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource BackgroundBrush}"
+                            Cursor="Hand"
+                            ToolTip="Close"/>
                 </Grid>
             </Border>
 

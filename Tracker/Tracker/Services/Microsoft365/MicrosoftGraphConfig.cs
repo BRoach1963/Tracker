@@ -56,6 +56,24 @@ namespace Tracker.Services.Microsoft365
         /// Stored in %LOCALAPPDATA%\Tracker\auth\
         /// </summary>
         internal const string TokenCacheFileName = "msal_cache.dat";
+
+        /// <summary>
+        /// Generates the Admin Consent URL for organization-wide consent.
+        /// IT admins can use this to grant consent for all users at once.
+        /// </summary>
+        /// <param name="redirectUri">Optional redirect URI after consent (defaults to localhost)</param>
+        /// <returns>URL that an admin can visit to grant tenant-wide consent</returns>
+        internal static string GetAdminConsentUrl(string? redirectUri = null)
+        {
+            var redirect = Uri.EscapeDataString(redirectUri ?? "http://localhost");
+            var scopes = Uri.EscapeDataString(string.Join(" ", Scopes));
+            
+            // Using /adminconsent endpoint for organization-wide consent
+            return $"https://login.microsoftonline.com/common/adminconsent?" +
+                   $"client_id={ClientId}&" +
+                   $"redirect_uri={redirect}&" +
+                   $"scope={scopes}";
+        }
     }
 }
 

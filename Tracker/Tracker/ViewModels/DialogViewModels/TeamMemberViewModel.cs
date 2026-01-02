@@ -50,6 +50,9 @@ namespace Tracker.ViewModels.DialogViewModels
         // Quick Message command
         private ICommand? _sendMessageCommand;
 
+        // Send Kudos command
+        private ICommand? _sendKudosCommand;
+
         private ImageSource? _profileImage;
 
         private ObservableCollection<EnumWrapper<RoleEnum>> _roles = new ();
@@ -175,6 +178,16 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             if (_data == null) return;
             Views.Dialogs.QuickMessageDialog.ShowDialog(_data);
+        }
+
+        // Send Kudos Command
+        public ICommand SendKudosCommand => _sendKudosCommand ??=
+            new TrackerCommand(SendKudosExecuted);
+
+        private void SendKudosExecuted(object? parameter)
+        {
+            // Pass the current team member to pre-select them in the kudos dialog
+            Views.Dialogs.SendKudosDialog.Show(_data);
         }
 
         #endregion

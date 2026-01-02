@@ -244,6 +244,19 @@ namespace Tracker.Services.AI
             }
         }
 
+        /// <summary>
+        /// Adds purchased credits to the account.
+        /// </summary>
+        public void AddPurchasedCredits(int credits)
+        {
+            lock (_lock)
+            {
+                _usage.PurchasedTokens = (_usage.PurchasedTokens ?? 0) + credits;
+                SaveUsage();
+                _logger.Info("Added {0} purchased credits", credits);
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -316,6 +329,7 @@ namespace Tracker.Services.AI
             public long TotalOutputChars { get; set; }
             public decimal EstimatedCost { get; set; }
             public DateTime? LastRequestTime { get; set; }
+            public int? PurchasedTokens { get; set; }
         }
 
         #endregion

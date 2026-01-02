@@ -580,6 +580,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <param name="isNewAccount">True if this is a new account (don't clear credentials on non-remember)</param>
         private void SaveAuthenticationSettings(bool isNewAccount)
         {
+            // Save to user-specific settings (after SwitchToUser has been called)
             var authSettings = UserSettingsManager.Instance.Settings.Authentication;
             authSettings.CloudAccountLinked = true;
             authSettings.CloudUserId = SupabaseService.Instance.CurrentUser?.Id;
@@ -597,6 +598,10 @@ namespace Tracker.ViewModels.DialogViewModels
                 authSettings.SavedEmail = null;
                 SecureTokenStorage.ClearPassword();
             }
+
+            // CRITICAL: Also save RememberMe to anonymous settings so it's available
+            // before login on next app startup
+            UserSettingsManager.Instance.SaveRememberMeToAnonymousSettings(RememberMe, RememberMe ? Email : null);
         }
 
         private async Task CreateLocalUserAsync()

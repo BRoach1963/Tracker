@@ -321,16 +321,39 @@
                                                         <ColumnDefinition Width="80"/>
                                                     </Grid.ColumnDefinitions>
                                                     
-                                                    <!-- Name with presence -->
-                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,8">
-                                                        <TextBlock Text="{Binding PresenceEmoji}" 
-                                                                   FontSize="10" 
-                                                                   VerticalAlignment="Center"
-                                                                   Margin="0,0,6,0"
-                                                                   ToolTip="{Binding PresenceDisplay}"/>
+                                                    <!-- Name with avatar -->
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,6">
+                                                        <!-- Avatar with presence indicator -->
+                                                        <Grid Width="28" Height="28" Margin="0,0,8,0">
+                                                            <!-- Initials fallback (shown when no image) -->
+                                                            <Ellipse Fill="{DynamicResource AccentBrush}"
+                                                                     Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
+                                                            <TextBlock Text="{Binding Initials}"
+                                                                       FontSize="10"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="White"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.InverseInstance}}"/>
+                                                            <!-- Profile image (shown when available) -->
+                                                            <Ellipse Visibility="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToVisibilityConverter.Instance}}">
+                                                                <Ellipse.Fill>
+                                                                    <ImageBrush ImageSource="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                                                Stretch="UniformToFill"/>
+                                                                </Ellipse.Fill>
+                                                            </Ellipse>
+                                                            <!-- Presence indicator -->
+                                                            <TextBlock Text="{Binding PresenceEmoji}" 
+                                                                       FontSize="8" 
+                                                                       HorizontalAlignment="Right"
+                                                                       VerticalAlignment="Bottom"
+                                                                       Margin="0,0,-2,-2"
+                                                                       ToolTip="{Binding PresenceDisplay}"/>
+                                                        </Grid>
                                                         <TextBlock Text="{Binding FullName}" 
                                                                    Style="{StaticResource TableCell}" 
                                                                    Padding="0"
+                                                                   VerticalAlignment="Center"
                                                                    FontWeight="Medium"/>
                                                     </StackPanel>
                                                     
@@ -378,13 +401,73 @@
                 <!-- ============================================== -->
                 <Grid Grid.Column="1" Margin="8,0">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" MaxHeight="120"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <!-- Overdue 1:1s -->
+                    <!-- Trajectory Insights (At-Risk Items) -->
                     <Border Grid.Row="0" Style="{StaticResource CompactCard}" Margin="0,0,0,6"
+                            AutomationProperties.Name="Trajectory Insights"
+                            AutomationProperties.HelpText="OKRs and KPIs that may need attention based on progress trends"
+                            Visibility="{Binding HasAtRiskItems, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="📊" FontSize="12" Margin="0,0,6,0"/>
+                                <TextBlock Text="TRAJECTORY ALERTS" Style="{StaticResource SectionHeader}" Margin="0"/>
+                            </StackPanel>
+                            
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="70">
+                                <ItemsControl ItemsSource="{Binding AtRiskTrajectoryItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource BackgroundBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="8,4"
+                                                    Margin="0,0,0,4">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <!-- Risk indicator -->
+                                                    <Ellipse Width="8" Height="8" 
+                                                             Fill="{Binding RiskColor}" 
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0"/>
+                                                    
+                                                    <TextBlock Grid.Column="1" 
+                                                               Text="{Binding Title}" 
+                                                               FontSize="11"
+                                                               Foreground="{DynamicResource ForegroundBrush}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    
+                                                    <TextBlock Grid.Column="2" 
+                                                               Text="{Binding TrendText}" 
+                                                               FontSize="9"
+                                                               Foreground="{DynamicResource HintTextBrush}"
+                                                               VerticalAlignment="Center"
+                                                               Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Overdue 1:1s -->
+                    <Border Grid.Row="1" Style="{StaticResource CompactCard}" Margin="0,0,0,6"
                             AutomationProperties.Name="Overdue 1:1 Meetings"
                             AutomationProperties.HelpText="List of team members who are overdue for their 1:1 meetings"
                             AutomationProperties.LiveSetting="Polite">
@@ -430,7 +513,7 @@
                     </Border>
                     
                     <!-- Open Action Items -->
-                    <Border Grid.Row="1" Style="{StaticResource CompactCard}" Margin="0,6"
+                    <Border Grid.Row="2" Style="{StaticResource CompactCard}" Margin="0,6"
                             AutomationProperties.Name="Open Action Items"
                             AutomationProperties.HelpText="List of action items from 1:1 meetings that are not yet completed"
                             AutomationProperties.LiveSetting="Polite">
@@ -473,7 +556,7 @@
                     </Border>
                     
                     <!-- Unresolved Concerns -->
-                    <Border Grid.Row="2" Style="{StaticResource CompactCard}" Margin="0,6,0,0"
+                    <Border Grid.Row="3" Style="{StaticResource CompactCard}" Margin="0,6,0,0"
                             AutomationProperties.Name="Unresolved Concerns"
                             AutomationProperties.HelpText="List of concerns raised in 1:1 meetings that need attention"
                             AutomationProperties.LiveSetting="Polite">

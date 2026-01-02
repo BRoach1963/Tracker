@@ -14,6 +14,7 @@ using Tracker.Interfaces;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.MockData;
+using Tracker.Services.Analytics;
 
 namespace Tracker.ViewModels
 {
@@ -44,6 +45,7 @@ namespace Tracker.ViewModels
         private Project? _selectedProject;
         private ObjectiveKeyResult? _selectedOkr;
         private KeyPerformanceIndicator? _selectedKpi;
+        private PredictiveAnalyticsViewModel? _selectedKpiAnalytics;
         private OneOnOne? _selectedOneOnOne;
         private Feedback? _selectedFeedback;
         private IndividualGoal? _selectedGoal;
@@ -94,6 +96,10 @@ namespace Tracker.ViewModels
         private string _userInitials = "?";
         private bool _hasUserAvatar;
         private System.Windows.Media.ImageSource? _userAvatarSource;
+
+        // Insight tracking
+        private int _unreadInsightCount;
+        private ICommand? _showInsightsCommand;
 
         #endregion
 
@@ -481,6 +487,37 @@ namespace Tracker.ViewModels
         {
             get => _userAvatarSource;
             set { _userAvatarSource = value; RaisePropertyChanged(); }
+        }
+
+        /// <summary>
+        /// Number of unread insights to show on the notification badge.
+        /// </summary>
+        public int UnreadInsightCount
+        {
+            get => _unreadInsightCount;
+            set 
+            { 
+                _unreadInsightCount = value; 
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(HasUnreadInsights));
+            }
+        }
+
+        /// <summary>
+        /// Whether there are unread insights to display.
+        /// </summary>
+        public bool HasUnreadInsights => _unreadInsightCount > 0;
+
+        /// <summary>
+        /// Command to show the insights panel.
+        /// </summary>
+        public ICommand ShowInsightsCommand => _showInsightsCommand ??=
+            new TrackerCommand(ExecuteShowInsights);
+
+        private void ExecuteShowInsights(object? parameter)
+        {
+            // Show the insights dialog
+            Views.Dialogs.InsightsDialog.ShowInsights(App.Current?.MainWindow);
         }
 
         #endregion
@@ -1494,6 +1531,22 @@ namespace Tracker.ViewModels
             {
                 _selectedKpi = value;
                 RaisePropertyChanged();
+                
+                // Load predictive analytics for the selected KPI
+                _ = LoadSelectedKpiAnalyticsAsync();
+            }
+        }
+
+        /// <summary>
+        /// Predictive analytics for the selected KPI.
+        /// </summary>
+        public PredictiveAnalyticsViewModel? SelectedKpiAnalytics
+        {
+            get => _selectedKpiAnalytics;
+            private set
+            {
+                _selectedKpiAnalytics = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -1600,99 +1653,85 @@ namespace Tracker.ViewModels
         /// </summary>
         public async Task RefreshAllDataAsync()
         {
-            // Load data from database
-            var team = await TrackerDataManager.Instance.GetTeamData();
-            var oneOnOnes = await TrackerDataManager.Instance.GetOneOnOnes();
-            var tasks = await TrackerDataManager.Instance.GetTasks();
-            var kpis = await TrackerDataManager.Instance.GetKPIs();
-            var okrs = await TrackerDataManager.Instance.GetOKRs();
-            var projects = await TrackerDataManager.Instance.GetProjects();
-            var feedbacks = await TrackerDataManager.Instance.GetFeedbacks();
-            var goals = await TrackerDataManager.Instance.GetGoals();
+            // Load data from database in parallel
+            var teamTask = TrackerDataManager.Instance.GetTeamData();
+            var oneOnOnesTask = TrackerDataManager.Instance.GetOneOnOnes();
+            var tasksTask = TrackerDataManager.Instance.GetTasks();
+            var kpisTask = TrackerDataManager.Instance.GetKPIs();
+            var okrsTask = TrackerDataManager.Instance.GetOKRs();
+            var projectsTask = TrackerDataManager.Instance.GetProjects();
+            var feedbacksTask = TrackerDataManager.Instance.GetFeedbacks();
+            var goalsTask = TrackerDataManager.Instance.GetGoals();
 
-            // Update collections on UI thread - use same approach as DashboardViewModel
-            if (App.Current.Dispatcher.CheckAccess())
+            await Task.WhenAll(teamTask, oneOnOnesTask, tasksTask, kpisTask, okrsTask, projectsTask, feedbacksTask, goalsTask).ConfigureAwait(false);
+
+            var team = await teamTask.ConfigureAwait(false);
+            var oneOnOnes = await oneOnOnesTask.ConfigureAwait(false);
+            var tasks = await tasksTask.ConfigureAwait(false);
+            var kpis = await kpisTask.ConfigureAwait(false);
+            var okrs = await okrsTask.ConfigureAwait(false);
+            var projects = await projectsTask.ConfigureAwait(false);
+            var feedbacks = await feedbacksTask.ConfigureAwait(false);
+            var goals = await goalsTask.ConfigureAwait(false);
+
+            // Update collections on UI thread
+            await App.Current.Dispatcher.InvokeAsync(() =>
             {
-                // Already on UI thread
-                _teamMembers = new ObservableCollection<TeamMember>(team);
-                _oneOnOnes = new ObservableCollection<OneOnOne>(oneOnOnes);
-                _tasks = new ObservableCollection<ITask>(tasks.Cast<ITask>());
-                _kpis = new ObservableCollection<KeyPerformanceIndicator>(kpis);
-                _okrs = new ObservableCollection<ObjectiveKeyResult>(okrs);
-                _projects = new ObservableCollection<Project>(projects);
-                _feedbacks = new ObservableCollection<Feedback>(feedbacks);
-                _goals = new ObservableCollection<IndividualGoal>(goals);
-                
-                RaisePropertyChanged(nameof(TeamMembers));
-                RaisePropertyChanged(nameof(OneOnOnes));
-                RaisePropertyChanged(nameof(Tasks));
-                RaisePropertyChanged(nameof(KeyPerformanceIndicators));
-                RaisePropertyChanged(nameof(ObjectiveKeyResults));
-                RaisePropertyChanged(nameof(Projects));
-                RaisePropertyChanged(nameof(Feedbacks));
-                RaisePropertyChanged(nameof(Goals));
-                
-                // Apply filters
-                ApplyKpiFilters();
-                ApplyProjectFilters();
-                ApplyTaskFilters();
-                ApplyFeedbackFilters();
-                ApplyGoalFilters();
-                
-                // Refresh team statistics
-                RefreshTeamStatistics();
-                
-                // Refresh selected team member's 1:1 collection if one is selected
-                if (_selectedTeamMemberWrapper != null)
-                {
-                    SetTeamMemberOneOnOneCollection();
-                }
-                
-                // Load presence and photos from Microsoft 365 (fire and forget)
-                _ = EnrichTeamMembersWithM365DataAsync();
-            }
-            else
+                UpdateAllCollections(team, oneOnOnes, tasks, kpis, okrs, projects, feedbacks, goals);
+            });
+
+            // Load presence and photos from Microsoft 365 (fire and forget)
+            _ = EnrichTeamMembersWithM365DataAsync();
+        }
+
+        /// <summary>
+        /// Updates all collections with new data and raises property changed notifications.
+        /// Must be called on the UI thread.
+        /// </summary>
+        private void UpdateAllCollections(
+            IEnumerable<TeamMember> team,
+            IEnumerable<OneOnOne> oneOnOnes,
+            IEnumerable<ITask> tasks,
+            IEnumerable<KeyPerformanceIndicator> kpis,
+            IEnumerable<ObjectiveKeyResult> okrs,
+            IEnumerable<Project> projects,
+            IEnumerable<Feedback> feedbacks,
+            IEnumerable<IndividualGoal> goals)
+        {
+            // Update collections
+            _teamMembers = new ObservableCollection<TeamMember>(team);
+            _oneOnOnes = new ObservableCollection<OneOnOne>(oneOnOnes);
+            _tasks = new ObservableCollection<ITask>(tasks);
+            _kpis = new ObservableCollection<KeyPerformanceIndicator>(kpis);
+            _okrs = new ObservableCollection<ObjectiveKeyResult>(okrs);
+            _projects = new ObservableCollection<Project>(projects);
+            _feedbacks = new ObservableCollection<Feedback>(feedbacks);
+            _goals = new ObservableCollection<IndividualGoal>(goals);
+
+            // Raise property changed notifications
+            RaisePropertyChanged(nameof(TeamMembers));
+            RaisePropertyChanged(nameof(OneOnOnes));
+            RaisePropertyChanged(nameof(Tasks));
+            RaisePropertyChanged(nameof(KeyPerformanceIndicators));
+            RaisePropertyChanged(nameof(ObjectiveKeyResults));
+            RaisePropertyChanged(nameof(Projects));
+            RaisePropertyChanged(nameof(Feedbacks));
+            RaisePropertyChanged(nameof(Goals));
+
+            // Apply filters
+            ApplyKpiFilters();
+            ApplyProjectFilters();
+            ApplyTaskFilters();
+            ApplyFeedbackFilters();
+            ApplyGoalFilters();
+
+            // Refresh team statistics
+            RefreshTeamStatistics();
+
+            // Refresh selected team member's 1:1 collection if one is selected
+            if (_selectedTeamMemberWrapper != null)
             {
-                // Need to dispatch to UI thread
-                await App.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    _teamMembers = new ObservableCollection<TeamMember>(team);
-                    _oneOnOnes = new ObservableCollection<OneOnOne>(oneOnOnes);
-                    _tasks = new ObservableCollection<ITask>(tasks.Cast<ITask>());
-                    _kpis = new ObservableCollection<KeyPerformanceIndicator>(kpis);
-                    _okrs = new ObservableCollection<ObjectiveKeyResult>(okrs);
-                    _projects = new ObservableCollection<Project>(projects);
-                    _feedbacks = new ObservableCollection<Feedback>(feedbacks);
-                    _goals = new ObservableCollection<IndividualGoal>(goals);
-                    
-                    RaisePropertyChanged(nameof(TeamMembers));
-                    RaisePropertyChanged(nameof(OneOnOnes));
-                    RaisePropertyChanged(nameof(Tasks));
-                    RaisePropertyChanged(nameof(KeyPerformanceIndicators));
-                    RaisePropertyChanged(nameof(ObjectiveKeyResults));
-                    RaisePropertyChanged(nameof(Projects));
-                    RaisePropertyChanged(nameof(Feedbacks));
-                    RaisePropertyChanged(nameof(Goals));
-                    
-                    // Apply filters
-                    ApplyKpiFilters();
-                    ApplyProjectFilters();
-                    ApplyTaskFilters();
-                    ApplyFeedbackFilters();
-                    ApplyGoalFilters();
-                    
-                    // Refresh team statistics
-                    RefreshTeamStatistics();
-                    
-                    // Refresh selected team member's 1:1 collection if one is selected
-                    if (_selectedTeamMemberWrapper != null)
-                    {
-                        SetTeamMemberOneOnOneCollection();
-                    }
-                    
-                    // Load presence and photos from Microsoft 365 (fire and forget)
-                    _ = EnrichTeamMembersWithM365DataAsync();
-                });
+                SetTeamMemberOneOnOneCollection();
             }
         }
 
@@ -1716,17 +1755,17 @@ namespace Tracker.ViewModels
 
                 // Fetch presence in batch
                 var presenceTask = Services.Microsoft365.Microsoft365EnhancedService.Instance.GetPresenceBatchAsync(emails);
-                
+
                 // Fetch photos in parallel
                 var photoTasks = teamMembersWithEmail.Select(async t =>
                 {
-                    var photo = await Services.Microsoft365.Microsoft365EnhancedService.Instance.GetProfilePhotoAsync(t.Email);
+                    var photo = await Services.Microsoft365.Microsoft365EnhancedService.Instance.GetProfilePhotoAsync(t.Email).ConfigureAwait(false);
                     return (t, photo);
                 });
 
                 // Wait for both
-                var presenceResults = await presenceTask;
-                var photoResults = await Task.WhenAll(photoTasks);
+                var presenceResults = await presenceTask.ConfigureAwait(false);
+                var photoResults = await Task.WhenAll(photoTasks).ConfigureAwait(false);
 
                 // Update on UI thread
                 await App.Current.Dispatcher.InvokeAsync(() =>
@@ -2237,12 +2276,69 @@ namespace Tracker.ViewModels
             
             // New CommunityToolkit.Mvvm messenger
             DataMessenger.Register(this, OnDataChanged);
+            
+            // Subscribe to insight updates
+            SubscribeToInsightUpdates();
+        }
+
+        private void SubscribeToInsightUpdates()
+        {
+            try
+            {
+                var engine = Services.AI.Insights.InsightEngine.Instance;
+                if (engine != null)
+                {
+                    engine.InsightsUpdated += OnInsightsUpdated;
+                    
+                    // Load initial count
+                    _ = LoadUnreadInsightCountAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug("InsightEngine not available yet: {0}", ex.Message);
+            }
+        }
+
+        private async Task LoadUnreadInsightCountAsync()
+        {
+            try
+            {
+                var engine = Services.AI.Insights.InsightEngine.Instance;
+                var insights = await engine.GetActiveInsightsAsync().ConfigureAwait(false);
+                var unreadCount = insights.Count(i => !i.IsRead);
+
+                App.Current?.Dispatcher.Invoke(() =>
+                {
+                    UnreadInsightCount = unreadCount;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug("Failed to load insight count: {0}", ex.Message);
+            }
+        }
+
+        private void OnInsightsUpdated(object? sender, int newCount)
+        {
+            _ = LoadUnreadInsightCountAsync();
         }
 
         private void UnsubscribeToMessages()
         {
             Messenger.Unsubscribe<PropertyChangedMessage>(HandlePropertyChangedMessage);
             DataMessenger.Unregister(this);
+            
+            // Unsubscribe from insight updates
+            try
+            {
+                var engine = Services.AI.Insights.InsightEngine.Instance;
+                if (engine != null)
+                {
+                    engine.InsightsUpdated -= OnInsightsUpdated;
+                }
+            }
+            catch { /* Engine may not be initialized */ }
         }
 
         private async void HandlePropertyChangedMessage(PropertyChangedMessage message)
@@ -2280,6 +2376,36 @@ namespace Tracker.ViewModels
                 {
                     await RefreshAllDataAsync();
                 });
+            }
+        }
+
+        #endregion
+
+        #region Predictive Analytics
+
+        /// <summary>
+        /// Loads predictive analytics for the currently selected KPI.
+        /// </summary>
+        private async Task LoadSelectedKpiAnalyticsAsync()
+        {
+            if (SelectedKpi == null)
+            {
+                SelectedKpiAnalytics = null;
+                return;
+            }
+
+            try
+            {
+                var analytics = new PredictiveAnalyticsViewModel();
+                await analytics.LoadForKpiAsync(
+                    SelectedKpi.KpiId,
+                    SelectedKpi.Name);
+                SelectedKpiAnalytics = analytics;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Warn("Failed to load KPI analytics: {0}", ex.Message);
+                SelectedKpiAnalytics = null;
             }
         }
 

@@ -1,0 +1,383 @@
+<UserControl x:Class="Tracker.Controls.PulseSurveysControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:enums="clr-namespace:Tracker.Common.Enums"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1200"
+             d:DataContext="{d:DesignInstance Type=viewModels:PulseSurveysViewModel}"
+             AutomationProperties.Name="Pulse Surveys"
+             AutomationProperties.HelpText="Create and manage engagement pulse surveys">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="SurveyCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="LinkItemStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+            </Style>
+
+            <Style x:Key="ResponseCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+                <Setter Property="Cursor" Value="Hand"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock Text="Pulse Surveys" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"/>
+                <TextBlock Text="Quick check-ins to measure team engagement and satisfaction" FontSize="14" Foreground="{DynamicResource HintTextBrush}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Command="{Binding NewSurveyCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    VerticalAlignment="Center"
+                    ToolTip="Create a new survey">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                          Fill="{DynamicResource BackgroundBrush}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0"/>
+                    <TextBlock Text="New Survey"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- MAIN CONTENT -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: SURVEY LIST -->
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="12" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="SURVEYS" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource HintTextBrush}" Margin="0,0,0,12"/>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Surveys}"
+                             SelectedItem="{Binding SelectedSurvey}"
+                             Background="Transparent"
+                             BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SurveyCardStyle}" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <Border CornerRadius="4" Padding="6,2" Background="{DynamicResource SurfaceAltBrush}">
+                                                <TextBlock Text="{Binding StatusDisplay}" FontSize="11" Foreground="{DynamicResource HintTextBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding ResponseCount, StringFormat='{}{0} responses'}" FontSize="11" Foreground="{DynamicResource HintTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT: SURVEY DETAIL -->
+            <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Empty State -->
+                    <TextBlock Grid.RowSpan="5"
+                              Text="Select a survey or create a new one"
+                              Foreground="{DynamicResource HintTextBrush}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Visibility="{Binding HasSelectedSurvey, Converter={x:Static converters:ReverseBoolToVisibilityConverter.Instance}}"/>
+
+                    <!-- Survey Title & Actions -->
+                    <Grid Grid.Row="0" Visibility="{Binding HasSelectedSurvey, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBox Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}"
+                                    FontSize="24" FontWeight="Bold"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    Background="Transparent" BorderThickness="0"
+                                    Foreground="{DynamicResource ForegroundBrush}"/>
+                            <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"
+                                    FontSize="14" TextWrapping="Wrap" MaxHeight="60"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    Background="Transparent" BorderThickness="0"
+                                    Foreground="{DynamicResource HintTextBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button Command="{Binding EditSurveyCommand}" Content="Edit" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Command="{Binding SendSurveyCommand}" Content="Send" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0" ToolTip="Make survey active and upload to cloud"/>
+                            <Button Command="{Binding CloseSurveyCommand}" Content="Close" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Command="{Binding SyncResponsesCommand}" Content="Sync" Style="{StaticResource SecondaryButtonStyle}" ToolTip="Sync responses from cloud"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Survey Settings -->
+                    <StackPanel Grid.Row="1" Margin="0,16,0,0" Visibility="{Binding HasSelectedSurvey, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox Content="Anonymous Responses" IsChecked="{Binding EditIsAnonymous}" IsEnabled="{Binding IsEditing}" Margin="0,0,20,0"/>
+                            <TextBlock Text="Due Date:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <DatePicker SelectedDate="{Binding EditDueDate}" IsEnabled="{Binding IsEditing}" Width="150" Style="{StaticResource DatePickerStyle}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Tab Buttons -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0" Visibility="{Binding HasSelectedSurvey, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Button Command="{Binding ViewQuestionsCommand}" Content="Questions" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                        <Button Command="{Binding ViewLinksCommand}" Content="Survey Links" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                        <Button Command="{Binding ViewResultsCommand}" Content="Results" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                        
+                        <!-- Cloud status indicator -->
+                        <TextBlock Text="{Binding CloudResponseCount, StringFormat='Cloud: {0} responses'}" 
+                                  Foreground="{DynamicResource HintTextBrush}" FontSize="12" VerticalAlignment="Center" Margin="16,0,0,0"
+                                  Visibility="{Binding CanSyncResponses, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </StackPanel>
+
+                    <!-- QUESTIONS VIEW -->
+                    <Grid Grid.Row="3" Margin="0,16,0,0" Visibility="{Binding ShowQuestionsView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="QUESTIONS" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource HintTextBrush}" VerticalAlignment="Center"/>
+                            <Button Command="{Binding AddQuestionCommand}" Content="+ Add" Style="{StaticResource LinkButtonStyle}" Margin="12,0,0,0"/>
+                        </StackPanel>
+
+                        <ListBox Grid.Row="1"
+                                ItemsSource="{Binding SelectedSurveyQuestions}"
+                                SelectedItem="{Binding SelectedQuestion}"
+                                Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceAltBrush}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding SortOrder, StringFormat='Q{0}'}" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Width="30"/>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Text}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding QuestionType}" FontSize="11" Foreground="{DynamicResource HintTextBrush}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Command="{Binding DataContext.RemoveQuestionCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" Content="×" Style="{StaticResource IconButtonStyle}" VerticalAlignment="Top"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <!-- LINKS VIEW -->
+                    <Grid Grid.Row="3" Margin="0,16,0,0" Visibility="{Binding ShowLinksView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="SURVEY LINKS" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource HintTextBrush}" VerticalAlignment="Center"/>
+                            <Button Command="{Binding GenerateLinksCommand}" Content="Generate Links" Style="{StaticResource PrimaryButtonStyle}" Margin="12,0,0,0" Padding="12,4"/>
+                            <Button Command="{Binding CopyAllLinksCommand}" Content="Copy All" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" Padding="12,4"/>
+                        </StackPanel>
+
+                        <ListBox Grid.Row="1"
+                                ItemsSource="{Binding GeneratedTokens}"
+                                SelectedItem="{Binding SelectedToken}"
+                                Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource LinkItemStyle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TeamMember.FullName}" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}"/>
+                                                <TextBlock Text="{Binding Url}" FontSize="11" Foreground="{DynamicResource HintTextBrush}" TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{Binding ExpiresAt, StringFormat='Expires: {0:MMM d, yyyy}'}" FontSize="10" Foreground="{DynamicResource HintTextBrush}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+
+                                            <Button Grid.Column="1" 
+                                                    Command="{Binding DataContext.CopyLinkCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="Copy" 
+                                                    Style="{StaticResource SecondaryButtonStyle}" 
+                                                    Padding="12,4"
+                                                    VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <!-- RESULTS VIEW -->
+                    <Grid Grid.Row="3" Margin="0,16,0,0" Visibility="{Binding ShowResultsView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="RESPONSES" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource HintTextBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding SurveyResponses.Count, StringFormat=' ({0} total)'}" FontSize="11" Foreground="{DynamicResource HintTextBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Response List -->
+                            <ListBox ItemsSource="{Binding SurveyResponses}"
+                                    SelectedItem="{Binding SelectedResponse}"
+                                    Background="Transparent" BorderThickness="0" Margin="0,0,8,0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource ResponseCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TeamMember.FullName, TargetNullValue='Anonymous'}" 
+                                                          FontWeight="SemiBold" 
+                                                          Foreground="{DynamicResource ForegroundBrush}"/>
+                                                <TextBlock Text="{Binding SubmittedAt, StringFormat='Submitted: {0:g}'}" 
+                                                          FontSize="11" 
+                                                          Foreground="{DynamicResource HintTextBrush}" 
+                                                          Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Response Details -->
+                            <Border Grid.Column="1" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="8" Padding="12">
+                                <Grid>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                  Visibility="{Binding HasSelectedResponse, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <ItemsControl ItemsSource="{Binding SelectedResponseAnswers}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8" Margin="0,0,0,8">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding PulseSurveyQuestion.Text}" 
+                                                                      FontWeight="SemiBold" 
+                                                                      Foreground="{DynamicResource ForegroundBrush}" 
+                                                                      TextWrapping="Wrap"/>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                                <TextBlock Text="{Binding RatingValue, StringFormat='Rating: {0}/5'}" 
+                                                                          Foreground="{DynamicResource AccentBrush}"
+                                                                          Visibility="{Binding RatingValue, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                                <TextBlock Text="{Binding TextValue}" 
+                                                                          Foreground="{DynamicResource ForegroundBrush}" 
+                                                                          TextWrapping="Wrap"
+                                                                          Visibility="{Binding TextValue, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                                <TextBlock Text="{Binding BoolValue, Converter={StaticResource BoolToYesNoConverter}}" 
+                                                                          Foreground="{DynamicResource ForegroundBrush}"
+                                                                          Visibility="{Binding BoolValue, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+
+                                    <TextBlock Text="Select a response to view answers"
+                                              Foreground="{DynamicResource HintTextBrush}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Visibility="{Binding HasSelectedResponse, Converter={x:Static converters:ReverseBoolToVisibilityConverter.Instance}}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"
+                              Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Button Command="{Binding CancelCommand}" Content="Cancel" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,12,0"/>
+                        <Button Command="{Binding SaveCommand}" Content="Save Changes" Style="{StaticResource PrimaryButtonStyle}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Margin="0,8,0,0" Visibility="{Binding StatusMessage, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource HintTextBrush}" FontSize="12"/>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Border Grid.RowSpan="3" Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200"/>
+                <TextBlock Text="{Binding StatusMessage, FallbackValue='Loading...'}" Foreground="White" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

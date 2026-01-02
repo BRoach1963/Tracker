@@ -60,6 +60,8 @@ namespace Tracker.Services.AI
                     "get_upcoming_meetings" => await GetUpcomingMeetingsAsync(arguments),
                     "get_projects" => await GetProjectsAsync(arguments),
                     "get_notes" => await GetNotesAsync(arguments),
+                    "get_insights" => await GetInsightsAsync(arguments),
+                    "dismiss_insight" => await DismissInsightAsync(arguments),
                     _ => $"Unknown function: {functionName}"
                 };
             }
@@ -561,6 +563,123 @@ namespace Tracker.Services.AI
             });
 
             return string.Join("\n", results);
+        }
+
+        private async Task<string> GetInsightsAsync(JsonElement args)
+        {
+            try
+            {
+                var severityFilter = args.TryGetProperty("severity", out var s) ? s.GetString()?.ToLower() : "all";
+                var typeFilter = args.TryGetProperty("type", out var t) ? t.GetString()?.ToLower() : null;
+
+                var engine = Insights.InsightEngine.Instance;
+                var insights = await engine.GetActiveInsightsAsync();
+
+                // Apply severity filter
+                if (severityFilter != "all" && !string.IsNullOrEmpty(severityFilter))
+                {
+                    insights = severityFilter switch
+                    {
+                        "critical" => insights.Where(i => i.Severity == InsightSeverity.Critical).ToList(),
+                        "warning" => insights.Where(i => i.Severity == InsightSeverity.Warning).ToList(),
+                        "info" => insights.Where(i => i.Severity == InsightSeverity.Info).ToList(),
+                        _ => insights
+                    };
+                }
+
+                // Apply type filter
+                if (!string.IsNullOrEmpty(typeFilter))
+                {
+                    insights = typeFilter switch
+                    {
+                        "meeting_gap" => insights.Where(i => i.Type == InsightType.MeetingGap).ToList(),
+                        "birthday" => insights.Where(i => i.Type == InsightType.UpcomingBirthday).ToList(),
+                        "anniversary" => insights.Where(i => i.Type == InsightType.UpcomingAnniversary).ToList(),
+                        "stale_task" => insights.Where(i => i.Type == InsightType.StaleActionItem).ToList(),
+                        "okr_at_risk" => insights.Where(i => i.Type == InsightType.OkrAtRisk).ToList(),
+                        "okr_ending" => insights.Where(i => i.Type == InsightType.OkrEndingSoon).ToList(),
+                        "kpi_off_target" => insights.Where(i => i.Type == InsightType.KpiOffTarget).ToList(),
+                        "survey_alert" => insights.Where(i => i.Type == InsightType.SurveyAlert).ToList(),
+                        _ => insights
+                    };
+                }
+
+                if (!insights.Any())
+                {
+                    return severityFilter == "all" && typeFilter == null
+                        ? "🎉 All clear! No active insights - you're on top of everything."
+                        : "No insights matching that filter.";
+                }
+
+                // Group by severity for organized output
+                var critical = insights.Where(i => i.Severity == InsightSeverity.Critical).ToList();
+                var warnings = insights.Where(i => i.Severity == InsightSeverity.Warning).ToList();
+                var info = insights.Where(i => i.Severity == InsightSeverity.Info).ToList();
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"📊 You have {insights.Count} active insight(s):");
+                sb.AppendLine();
+
+                if (critical.Any())
+                {
+                    sb.AppendLine("🔴 **CRITICAL** (needs immediate attention):");
+                    foreach (var insight in critical)
+                    {
+                        sb.AppendLine($"  [ID:{insight.Id}] {insight.Title}");
+                        sb.AppendLine($"      {insight.Description}");
+                    }
+                    sb.AppendLine();
+                }
+
+                if (warnings.Any())
+                {
+                    sb.AppendLine("🟠 **WARNINGS** (should address soon):");
+                    foreach (var insight in warnings)
+                    {
+                        sb.AppendLine($"  [ID:{insight.Id}] {insight.Title}");
+                        sb.AppendLine($"      {insight.Description}");
+                    }
+                    sb.AppendLine();
+                }
+
+                if (info.Any())
+                {
+                    sb.AppendLine("🔵 **INFO** (good to know):");
+                    foreach (var insight in info)
+                    {
+                        sb.AppendLine($"  [ID:{insight.Id}] {insight.Title}");
+                        sb.AppendLine($"      {insight.Description}");
+                    }
+                }
+
+                return sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error getting insights");
+                return "Unable to retrieve insights at this time.";
+            }
+        }
+
+        private async Task<string> DismissInsightAsync(JsonElement args)
+        {
+            try
+            {
+                if (!args.TryGetProperty("insight_id", out var idProp))
+                    return "Error: insight_id is required";
+
+                var insightId = idProp.GetInt32();
+
+                var engine = Insights.InsightEngine.Instance;
+                await engine.DismissInsightAsync(insightId);
+
+                return $"✓ Insight #{insightId} has been dismissed.";
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error dismissing insight");
+                return $"Error dismissing insight: {ex.Message}";
+            }
         }
 
         #endregion

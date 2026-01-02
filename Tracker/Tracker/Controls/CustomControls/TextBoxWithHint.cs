@@ -8,8 +8,15 @@ using System.Windows.Media;
 
 namespace Tracker.Controls.CustomControls
 {
-    public class TextBoxWithHint : TextBox
+    public class TextBoxWithHint : TextBox, IDisposable
     {
+        #region Fields
+
+        private bool _selectAllOnMouseUp;
+        private bool _disposed = false;
+
+        #endregion
+
         #region Dependency Properties
 
         public static readonly DependencyProperty HintTextProperty =
@@ -59,6 +66,45 @@ namespace Tracker.Controls.CustomControls
         private void OnGotFocus(object sender, RoutedEventArgs e)
         {
             UpdateHintVisibility();
+            
+            // Select all text when receiving focus via keyboard (Tab)
+            // Mouse click selection is handled in PreviewMouseLeftButtonDown/Up
+            if (Mouse.LeftButton != MouseButtonState.Pressed)
+            {
+                SelectAll();
+            }
+        }
+
+        /// <summary>
+        /// Handles mouse down to implement select-all-on-first-click behavior.
+        /// When clicking into an unfocused textbox, we select all text.
+        /// </summary>
+        private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // If we're not focused, we want to select all when we get focus
+            if (!IsFocused)
+            {
+                // Focus the control
+                Focus();
+                
+                // Mark that we should select all on mouse up
+                _selectAllOnMouseUp = true;
+                
+                // Handle the event to prevent default caret placement
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Handles mouse up to complete the select-all-on-first-click behavior.
+        /// </summary>
+        private void OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_selectAllOnMouseUp)
+            {
+                _selectAllOnMouseUp = false;
+                SelectAll();
+            }
         }
 
         private void OnLostFocus(object sender, RoutedEventArgs e)
@@ -136,6 +182,8 @@ namespace Tracker.Controls.CustomControls
             this.GotFocus += OnGotFocus;
             this.LostFocus += OnLostFocus;
             this.TextChanged += OnTextChangedCallback;
+            this.PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
+            this.PreviewMouseLeftButtonUp += OnPreviewMouseLeftButtonUp;
         }
 
         private void UnsubscribeToControlEvents()
@@ -146,6 +194,8 @@ namespace Tracker.Controls.CustomControls
             this.GotFocus -= OnGotFocus;
             this.LostFocus -= OnLostFocus;
             this.TextChanged -= OnTextChangedCallback;
+            this.PreviewMouseLeftButtonDown -= OnPreviewMouseLeftButtonDown;
+            this.PreviewMouseLeftButtonUp -= OnPreviewMouseLeftButtonUp;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -299,6 +349,43 @@ namespace Tracker.Controls.CustomControls
         {
             base.OnApplyTemplate();
             UpdateHintVisibility();
+        }
+
+        #endregion
+
+        #region IDisposable Implementation
+
+        /// <summary>
+        /// Disposes the control and unsubscribes from all events.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected dispose method for proper cleanup.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Unsubscribe from all events to prevent memory leaks
+                    UnsubscribeToControlEvents();
+                }
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Finalizer to ensure cleanup if Dispose is not called.
+        /// </summary>
+        ~TextBoxWithHint()
+        {
+            Dispose(false);
         }
 
         #endregion

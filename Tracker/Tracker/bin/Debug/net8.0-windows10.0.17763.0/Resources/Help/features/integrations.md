@@ -20,11 +20,12 @@ Connect Tracker with your existing tools for seamless workflow management.
 
 ### Connecting to Microsoft 365
 
-1. Go to **Settings** → **Integrations**
-2. Click **Connect Microsoft 365**
-3. Sign in with your Microsoft account
-4. Grant the requested permissions
-5. Connection status shows "Connected"
+1. Click the **gear icon** (⚙️) to open Settings
+2. Select the **Integrations** tab
+3. Under "Microsoft 365 (Outlook & Teams)", click **Connect Microsoft 365**
+4. Sign in with your Microsoft account
+5. Grant the requested permissions
+6. Connection status shows "Connected"
 
 ### Permissions Explained
 
@@ -132,6 +133,37 @@ After completing a 1:1:
 
 ---
 
+## Kudos & Recognition
+
+Send recognition to team members directly through Teams or Slack.
+
+### Sending Kudos
+
+1. Open a **Team Member** dialog
+2. Click the **🌟 Send Kudos** button
+3. Choose a category (Team Work, Innovation, Leadership, etc.)
+4. Write your recognition message
+5. Select delivery: **Teams**, **Slack**, or **Internal Only**
+6. Click **Send Kudos**
+
+### Delivery Methods
+
+| Method | How It Works | Setup Required |
+|--------|--------------|----------------|
+| **Teams** | Direct 1:1 message via Microsoft Graph | Connect to Microsoft 365 |
+| **Slack** | Direct message via Slack Bot | Connect Slack integration |
+| **Internal** | Logged in Tracker only | None |
+
+### Why Use Kudos?
+
+- Recognize great work immediately
+- Build a recognition history for performance reviews
+- Delivered directly to team members - they actually see it!
+
+For full details, see [Kudos & Recognition](kudos.md).
+
+---
+
 ## Profile Photos
 
 ### Automatic Photo Sync
@@ -205,10 +237,11 @@ Presence shows your team members' real-time availability status from Microsoft T
 
 ### Connecting to Slack
 
-1. Go to **Settings** → **Integrations**
-2. Click **Connect Slack**
-3. Tracker validates the pre-configured bot token
-4. Connection status shows "Connected" with your workspace name
+1. Click the **gear icon** (⚙️) to open Settings
+2. Select the **Integrations** tab
+3. Under "Slack", click **Connect Slack**
+4. Tracker validates the pre-configured bot token
+5. Connection status shows "Connected" with your workspace name
 
 ### Permissions Explained
 
@@ -267,11 +300,12 @@ Slack profile photos are automatically fetched and used if:
 
 ### Connecting to Google
 
-1. Go to **Settings** → **Integrations**
-2. Click **Connect Google**
-3. Sign in with your Google account
-4. Grant the requested permissions
-5. Connection status shows "Connected"
+1. Click the **gear icon** (⚙️) to open Settings
+2. Select the **Integrations** tab
+3. Under "Google Calendar", click **Connect Google Calendar**
+4. Sign in with your Google account
+5. Grant the requested permissions
+6. Connection status shows "Connected"
 
 ### Permissions Explained
 
@@ -322,8 +356,8 @@ Works identically to Outlook sync:
 ### Revoking Access
 
 **To disconnect Microsoft 365**:
-1. Go to **Settings** → **Integrations**
-2. Click **Disconnect** next to Microsoft 365
+1. Go to **Settings** → **Integrations** tab
+2. Under "Microsoft 365", click **Disconnect**
 3. Confirm disconnection
 
 **To remove from Microsoft side**:
@@ -332,8 +366,8 @@ Works identically to Outlook sync:
 3. Click "Remove access"
 
 **To disconnect Slack**:
-1. Go to **Settings** → **Integrations**
-2. Click **Disconnect** next to Slack
+1. Go to **Settings** → **Integrations** tab
+2. Under "Slack", click **Disconnect**
 3. Confirm disconnection
 
 **To remove from Slack side**:
@@ -369,6 +403,7 @@ Some organizations require admin approval for app permissions. Contact your IT a
 
 ## Related Topics
 
+- [Kudos & Recognition](kudos.md)
 - [Settings](settings.md)
 - [1:1 Meetings](one-on-ones.md)
 - [Team Members](team-members.md)

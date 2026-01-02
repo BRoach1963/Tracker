@@ -10,22 +10,23 @@
         AddOKR = 5,
         Settings = 6,
         AddOneOnOne = 7,
-        EditTeamMember = 8,
-        Login = 9,
-        Reports = 10,
-        Search = 11,
-        AddFeedback = 12,
-        AddGoal = 13,
+        AddMeeting = 8,
+        EditTeamMember = 9,
+        Login = 10,
+        Reports = 11,
+        Search = 12,
+        AddFeedback = 13,
+        AddGoal = 14,
         
         // OKR-related dialogs
-        EditOKR = 14,
-        AddKeyResult = 15,
-        EditKeyResult = 16,
-        AddMeasurable = 17,
+        EditOKR = 15,
+        AddKeyResult = 16,
+        EditKeyResult = 17,
+        AddMeasurable = 18,
         
         // Project/Task dialogs
-        EditProject = 18,
-        EditTask = 19,
-        EditKPI = 20,
+        EditProject = 19,
+        EditTask = 20,
+        EditKPI = 21,
     }
 }

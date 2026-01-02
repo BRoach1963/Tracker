@@ -8,8 +8,8 @@
         Height="700" Width="1000"
         MinHeight="500" MinWidth="700"
         WindowStartupLocation="CenterScreen"
-        Background="#1E1E1E"
-        Foreground="White"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource ForegroundBrush}"
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="CanResizeWithGrip">

@@ -16,7 +16,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright © 2024-2025 Prickly Cactus Software. All rights reserved.")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Team management and 1:1 meeting tracker for engineering leaders")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6de61f4ad054cf3bdf990ed3c5f2ff9544db80e1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8fd05034b9d5e9a2640f12a5d2f400ec98643910")]
 [assembly: System.Reflection.AssemblyProductAttribute("Team Tracker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Tracker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

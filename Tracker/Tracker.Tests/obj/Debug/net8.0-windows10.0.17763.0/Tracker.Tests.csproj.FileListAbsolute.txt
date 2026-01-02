@@ -4,3 +4,8 @@ C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windo
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.AssemblyInfo.cs
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.csproj.CoreCompileInputs.cache
 C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.sourcelink.json
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\.msCoverageSourceRootsMapping_Tracker.Tests
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\bin\Debug\net8.0-windows10.0.17763.0\CoverletSourceRootsMapping_Tracker.Tests
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.dll
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\refint\Tracker.Tests.dll
+C:\Users\vbpro\source\repos\Tracker\Tracker\Tracker.Tests\obj\Debug\net8.0-windows10.0.17763.0\Tracker.Tests.pdb

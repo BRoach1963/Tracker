@@ -178,12 +178,10 @@ namespace Tracker.ViewModels
         {
             try
             {
-                var recent = await SearchService.Instance.GetRecentItemsAsync(10);
-                _recentItems.Clear();
-                foreach (var item in recent)
-                {
-                    _recentItems.Add(item);
-                }
+                var recent = await SearchService.Instance.GetRecentItemsAsync(10).ConfigureAwait(false);
+                // Replace entire collection at once instead of Clear() + Add() loop
+                _recentItems = new ObservableCollection<SearchResult>(recent);
+                RaisePropertyChanged(nameof(RecentItems));
                 RaisePropertyChanged(nameof(ShowRecentItems));
             }
             catch

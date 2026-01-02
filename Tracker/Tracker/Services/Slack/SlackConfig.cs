@@ -1,7 +1,10 @@
+using Tracker.Managers;
+
 namespace Tracker.Services.Slack
 {
     /// <summary>
     /// Configuration for Slack API integration.
+    /// Bot tokens are now obtained per-workspace via OAuth, not hardcoded.
     /// </summary>
     internal static class SlackConfig
     {
@@ -21,10 +24,15 @@ namespace Tracker.Services.Slack
         internal const string SigningSecret = "e268c17a9c8f3df97bd95782beeeb92e";
 
         /// <summary>
-        /// Bot User OAuth Token (for API calls).
-        /// This token is workspace-specific and allows the bot to act in the workspace.
+        /// Gets the bot token for the current user's connected workspace.
+        /// Returns null if not connected.
         /// </summary>
-        internal const string BotToken = "xoxb-10131370740996-10156144519904-uDUz4r0wmLSoSxIvv5ZbfErl";
+        internal static string? BotToken => UserSettingsManager.Instance?.Settings?.Slack?.BotToken;
+
+        /// <summary>
+        /// Whether a bot token is available (user has connected their workspace).
+        /// </summary>
+        internal static bool HasBotToken => !string.IsNullOrEmpty(BotToken);
 
         /// <summary>
         /// Local redirect URI for OAuth flow.
@@ -32,16 +40,7 @@ namespace Tracker.Services.Slack
         internal const string RedirectUri = "http://localhost:8891/slack/callback";
 
         /// <summary>
-        /// OAuth scopes requested for user tokens.
-        /// </summary>
-        internal static readonly string[] UserScopes = new[]
-        {
-            "users:read",
-            "dnd:read"
-        };
-
-        /// <summary>
-        /// OAuth scopes for bot tokens (already configured in Slack app).
+        /// OAuth scopes for bot tokens - requested during "Add to Slack" flow.
         /// </summary>
         internal static readonly string[] BotScopes = new[]
         {

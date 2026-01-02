@@ -1,0 +1,92 @@
+<UserControl x:Class="Tracker.Controls.CustomControls.StarRating"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="32" d:DesignWidth="200"
+             x:Name="Root">
+    
+    <UserControl.Resources>
+        <!-- Material Design Star Icons -->
+        <Geometry x:Key="StarFilledGeometry">M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z</Geometry>
+        <Geometry x:Key="StarOutlineGeometry">M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z</Geometry>
+        
+        <Style x:Key="StarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="1.15" ScaleY="1.15"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <!-- Star 1 -->
+        <Button Style="{StaticResource StarButtonStyle}" Click="Star_Click" Tag="1" 
+                RenderTransformOrigin="0.5,0.5" ToolTip="1 - Needs Improvement">
+            <Path x:Name="Star1" Width="20" Height="20" Stretch="Uniform"
+                  Data="{StaticResource StarOutlineGeometry}"
+                  Fill="{DynamicResource HintTextBrush}"/>
+        </Button>
+        
+        <!-- Star 2 -->
+        <Button Style="{StaticResource StarButtonStyle}" Click="Star_Click" Tag="2"
+                RenderTransformOrigin="0.5,0.5" ToolTip="2 - Developing">
+            <Path x:Name="Star2" Width="20" Height="20" Stretch="Uniform"
+                  Data="{StaticResource StarOutlineGeometry}"
+                  Fill="{DynamicResource HintTextBrush}"/>
+        </Button>
+        
+        <!-- Star 3 -->
+        <Button Style="{StaticResource StarButtonStyle}" Click="Star_Click" Tag="3"
+                RenderTransformOrigin="0.5,0.5" ToolTip="3 - Meets Expectations">
+            <Path x:Name="Star3" Width="20" Height="20" Stretch="Uniform"
+                  Data="{StaticResource StarOutlineGeometry}"
+                  Fill="{DynamicResource HintTextBrush}"/>
+        </Button>
+        
+        <!-- Star 4 -->
+        <Button Style="{StaticResource StarButtonStyle}" Click="Star_Click" Tag="4"
+                RenderTransformOrigin="0.5,0.5" ToolTip="4 - Exceeds Expectations">
+            <Path x:Name="Star4" Width="20" Height="20" Stretch="Uniform"
+                  Data="{StaticResource StarOutlineGeometry}"
+                  Fill="{DynamicResource HintTextBrush}"/>
+        </Button>
+        
+        <!-- Star 5 -->
+        <Button Style="{StaticResource StarButtonStyle}" Click="Star_Click" Tag="5"
+                RenderTransformOrigin="0.5,0.5" ToolTip="5 - Outstanding">
+            <Path x:Name="Star5" Width="20" Height="20" Stretch="Uniform"
+                  Data="{StaticResource StarOutlineGeometry}"
+                  Fill="{DynamicResource HintTextBrush}"/>
+        </Button>
+        
+        <!-- Rating Label -->
+        <TextBlock x:Name="RatingLabel" 
+                   VerticalAlignment="Center" 
+                   Margin="12,0,0,0" 
+                   FontSize="13"
+                   Foreground="{DynamicResource HintTextBrush}"
+                   Text="Not rated"/>
+    </StackPanel>
+</UserControl>

@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Tracker.Controls"
              xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+             xmlns:analytics="clr-namespace:Tracker.Controls.Analytics"
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
              xmlns:viewModels="clr-namespace:Tracker.ViewModels"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
@@ -299,7 +300,9 @@
                 <Grid.RowDefinitions>
                     <!-- Top: Key Results List -->
                     <RowDefinition Height="*" MinHeight="200"/>
-                    <!-- Bottom: KR Details -->
+                    <!-- Middle: KR Details -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Bottom: Advanced Analytics (What-If + Recommendations) -->
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
@@ -378,25 +381,37 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <!-- KR Title -->
-                        <TextBlock Grid.Row="0" 
-                                   Text="{Binding SelectedKeyResult.Title}"
-                                   FontSize="14" 
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource ForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,12"/>
+                        <!-- KR Title with Trend Indicator -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding SelectedKeyResult.Title}"
+                                       FontSize="14" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}"
+                                       TextWrapping="Wrap"/>
+                            <!-- Trend Indicator -->
+                            <customControls:TrendIndicator Grid.Column="1"
+                                                           Direction="{Binding SelectedKrAnalytics.TrendDirection}"
+                                                           Visibility="{Binding SelectedKrAnalytics.HasSufficientData, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"
+                                                           ToolTip="{Binding SelectedKrAnalytics.TrendDisplayText}"
+                                                           Margin="8,0,0,0"/>
+                        </Grid>
                         
-                        <!-- Values Display -->
+                        <!-- Values Display with Prediction -->
                         <Grid Grid.Row="1" Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             
                             <StackPanel>
@@ -416,10 +431,59 @@
                                 <TextBlock FontSize="18" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}"
                                            Text="{Binding SelectedKeyResult.Progress, Mode=OneWay, StringFormat='{}{0:F0}%'}"/>
                             </StackPanel>
+                            
+                            <!-- Confidence Display -->
+                            <customControls:ConfidenceDisplay Grid.Column="3"
+                                                              Level="{Binding SelectedKrAnalytics.ConfidenceLevel}"
+                                                              Score="{Binding SelectedKrAnalytics.ConfidenceScore}"
+                                                              Visibility="{Binding SelectedKrAnalytics.HasSufficientData, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"
+                                                              VerticalAlignment="Center"
+                                                              Margin="12,0,0,0"/>
                         </Grid>
                         
+                        <!-- Prediction Row (when available) -->
+                        <Border Grid.Row="2" 
+                                Background="{DynamicResource BackgroundBrush}" 
+                                CornerRadius="6" 
+                                Padding="10,8"
+                                Margin="0,0,0,12"
+                                Visibility="{Binding SelectedKrAnalytics.HasPredictedDate, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Sparkline -->
+                                <customControls:SparklineControl 
+                                    DataPoints="{Binding SelectedKrAnalytics.SparklineData}"
+                                    TrendDirection="{Binding SelectedKrAnalytics.TrendDirection}"
+                                    ChartWidth="60"
+                                    ChartHeight="24"
+                                    ShowEndPoint="True"
+                                    Margin="0,0,12,0"/>
+                                
+                                <!-- Risk Badge -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding SelectedKrAnalytics.RiskDisplayText}"
+                                               FontSize="11" 
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"/>
+                                    <TextBlock Text="trajectory projection"
+                                               FontSize="9"
+                                               Foreground="{DynamicResource HintTextBrush}"/>
+                                </StackPanel>
+                                
+                                <!-- Predicted Date Badge -->
+                                <customControls:PredictedDateBadge Grid.Column="2"
+                                    PredictedDate="{Binding SelectedKrAnalytics.PredictedCompletionDate}"
+                                    TargetDate="{Binding SelectedOkr.EndDate}"/>
+                            </Grid>
+                        </Border>
+                        
                         <!-- Linked Measurables Section -->
-                        <StackPanel Grid.Row="2">
+                        <StackPanel Grid.Row="3">
                             <TextBlock Text="LINKED MEASURABLES" 
                                        FontSize="10" 
                                        FontWeight="SemiBold" 
@@ -448,7 +512,7 @@
                         </StackPanel>
                         
                         <!-- Add Measurable Button -->
-                        <Button Grid.Row="3" 
+                        <Button Grid.Row="4" 
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 Command="{Binding AddMeasurableCommand}"
                                 HorizontalAlignment="Stretch"
@@ -462,8 +526,53 @@
                     </Grid>
                 </Border>
                 
+                <!-- ============ BOTTOM: ADVANCED ANALYTICS ============ -->
+                <Border Grid.Row="2" 
+                        Background="{DynamicResource SurfaceBrush}" 
+                        CornerRadius="12"
+                        Padding="16"
+                        Margin="0,12,0,0"
+                        Visibility="{Binding HasSelectedOkr, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Header -->
+                        <TextBlock Grid.Row="0" 
+                                   Text="PREDICTIVE INSIGHTS" 
+                                   FontSize="10" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource HintTextBrush}" 
+                                   Margin="0,0,0,12"/>
+                        
+                        <!-- What-If Simulator (Expander) -->
+                        <Expander Grid.Row="1" 
+                                  Header="What-If Scenarios" 
+                                  IsExpanded="False"
+                                  Margin="0,0,0,8">
+                            <analytics:WhatIfSimulatorControl 
+                                Prediction="{Binding SelectedKrAnalytics.Prediction}"
+                                Margin="0,8,0,0"/>
+                        </Expander>
+                        
+                        <!-- Recommendations Panel (Expander) -->
+                        <Expander Grid.Row="2" 
+                                  Header="Recommendations" 
+                                  IsExpanded="True">
+                            <analytics:RecommendationsPanel 
+                                Prediction="{Binding SelectedKrAnalytics.Prediction}"
+                                MaxRecommendations="3"
+                                ShowActionSteps="True"
+                                Margin="0,8,0,0"/>
+                        </Expander>
+                    </Grid>
+                </Border>
+                
                 <!-- ============ EMPTY STATE (No OKR Selected) ============ -->
-                <Border Grid.Row="0" Grid.RowSpan="2"
+                <Border Grid.Row="0" Grid.RowSpan="3"
                         Background="{DynamicResource SurfaceBrush}" 
                         CornerRadius="12"
                         Visibility="{Binding HasSelectedOkr, Converter={StaticResource ReverseBoolToVisConverter}}">

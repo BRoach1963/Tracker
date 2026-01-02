@@ -44,7 +44,7 @@
                 <!-- Sparkle Avatar -->
                 <Border Grid.Column="0" 
                         Width="32" Height="32"
-                        Background="#1A1A2E"
+                        Background="{DynamicResource SelectionBrush}"
                         CornerRadius="16"
                         VerticalAlignment="Top"
                         Margin="0,0,8,0">

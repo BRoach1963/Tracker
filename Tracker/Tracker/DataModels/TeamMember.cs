@@ -57,6 +57,11 @@ namespace Tracker.DataModels
         public string FullName => $"{FirstName} {LastName}".Trim();
 
         /// <summary>
+        /// Alias for FullName for backwards compatibility.
+        /// </summary>
+        public string Name => FullName;
+
+        /// <summary>
         /// Initials for avatar display.
         /// </summary>
         public string Initials => $"{(FirstName.Length > 0 ? FirstName[0] : ' ')}{(LastName.Length > 0 ? LastName[0] : ' ')}".ToUpper();

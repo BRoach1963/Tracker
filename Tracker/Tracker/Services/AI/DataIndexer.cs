@@ -93,7 +93,11 @@ namespace Tracker.Services.AI
                 RaiseProgress("Indexing goals and projects...");
                 stats.Goals = await GoalIndexer.Instance.IndexAllAsync(sinceTime);
 
-                stats.TotalIndexed = stats.TeamMembers + stats.Meetings + stats.Tasks + stats.Goals;
+                // Index Pulse Surveys (incremental)
+                RaiseProgress("Indexing pulse surveys...");
+                stats.PulseSurveys = await PulseSurveyIndexer.Instance.IndexAllAsync(sinceTime);
+
+                stats.TotalIndexed = stats.TeamMembers + stats.Meetings + stats.Tasks + stats.Goals + stats.PulseSurveys;
                 stats.Duration = DateTime.Now - startTime;
                 _lastIndexed = DateTime.Now;
                 SaveLastIndexedTime();
@@ -209,6 +213,7 @@ namespace Tracker.Services.AI
         public int Meetings { get; set; }
         public int Tasks { get; set; }
         public int Goals { get; set; }
+        public int PulseSurveys { get; set; }
         public int TotalIndexed { get; set; }
         public TimeSpan Duration { get; set; }
     }

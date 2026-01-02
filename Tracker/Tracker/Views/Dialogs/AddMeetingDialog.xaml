@@ -1,0 +1,653 @@
+﻿<controls:BaseWindow x:Class="Tracker.Views.Dialogs.AddMeetingDialog"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                     xmlns:controls="clr-namespace:Tracker.Controls"
+                     xmlns:languages="clr-namespace:Tracker.Resources.Languages"
+                     xmlns:commands="clr-namespace:Tracker.Command"
+                     xmlns:dialogViewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+                     xmlns:converters="clr-namespace:Tracker.Common.Converters"
+                     xmlns:dateTimeControls="clr-namespace:DeepEndControls.Controls.DateTimeControls;assembly=DeepEndControls"
+                     xmlns:input="clr-namespace:DeepEndControls.Controls.Input;assembly=DeepEndControls"
+                     xmlns:customControls="clr-namespace:Tracker.Controls.CustomControls"
+                     xmlns:help="clr-namespace:Tracker.Help.Attributes"
+                     mc:Ignorable="d"
+                     MouseDown="OnDragHandleMouseDown"
+                     WindowStyle="None"
+                     ResizeMode="CanResize"
+                     Foreground="{DynamicResource ForegroundBrush}"
+                     AllowsTransparency="True"
+                     Background="Transparent"
+                     d:DataContext="{d:DesignInstance Type=dialogViewModels:OneOnOneViewModel}"
+                     MinWidth="950"
+                     MinHeight="700"
+                     Width="1000"
+                     Height="750"
+                     help:HelpProperties.TopicId="dialogs/add-one-on-one"
+                     AutomationProperties.Name="Add One-on-One Meeting Dialog"
+                     AutomationProperties.HelpText="Schedule a new 1:1 meeting with a team member">
+    <controls:BaseWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles/DialogStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </controls:BaseWindow.Resources>
+    
+    <Grid>
+        <Border Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BorderBrush}"
+                CornerRadius="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Title Bar -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource BackgroundBrush}"
+                        CornerRadius="12,12,0,0">
+                    <controls:DialogTitleBar x:Name="TitleBar"
+                                             DialogTitle="{x:Static languages:Resources.Add_OneOnOne}"
+                                             IconData="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"
+                                             CloseClicked="Close_Click"
+                                             MinimizeClicked="Minimize_Click"
+                                             MaximizeClicked="Maximize_Click"
+                                             RestoreClicked="Restore_Click"/>
+                </Border>
+                
+                <!-- Main Content - Two Column Layout -->
+                <Grid Grid.Row="1" Margin="20,10,20,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- LEFT PANEL: Meeting Details -->
+                    <ScrollViewer Grid.Column="0" 
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="0,0,15,0">
+                        <StackPanel>
+                            <!-- Team Member Picker -->
+                            <TextBlock Text="TEAM MEMBER" Style="{StaticResource FormSectionHeader}" Margin="0,0,0,8"/>
+                            <input:AutoSuggestBox PlaceholderText="Search team members..."
+                                                  Text="{Binding TeamMemberSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  FilteredItems="{Binding FilteredTeamMembers}"
+                                                  SelectedItem="{Binding SelectedTeamMember, Mode=TwoWay}"
+                                                  DisplayMemberPath="FullName"
+                                                  MinimumSearchLength="1"
+                                                  SearchDelay="150"
+                                                  CornerRadius="8"
+                                                  MinHeight="40">
+                                <input:AutoSuggestBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="4">
+                                            <!-- Avatar with image or initials fallback -->
+                                            <Grid Width="32" Height="32" Margin="0,0,10,0">
+                                                <!-- Background circle with initials (always shown as fallback) -->
+                                                <Ellipse Fill="{DynamicResource AccentBrush}"/>
+                                                <TextBlock Text="{Binding Initials}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BackgroundBrush}"/>
+                                                <!-- Profile image overlays initials when present -->
+                                                <Ellipse>
+                                                    <Ellipse.Fill>
+                                                        <ImageBrush ImageSource="{Binding ProfileImage, Converter={x:Static converters:ByteArrayToImageSourceConverter.Instance}}"
+                                                                    Stretch="UniformToFill"/>
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                            </Grid>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FullName}" 
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ForegroundBrush}"/>
+                                                <TextBlock Text="{Binding JobTitle}" 
+                                                           FontSize="11" 
+                                                           Foreground="{DynamicResource HintTextBrush}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </input:AutoSuggestBox.ItemTemplate>
+                            </input:AutoSuggestBox>
+                            
+                            <!-- Meeting Title -->
+                            <TextBlock Text="TITLE" Style="{StaticResource FormSectionHeader}"/>
+                            <customControls:TextBoxWithHint TextBoxType="Text"
+                                                            HintText="Brief description of this 1:1"
+                                                            Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"/>
+                            
+                            <!-- Date & Time -->
+                            <TextBlock Text="DATE &amp; TIME" Style="{StaticResource FormSectionHeader}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <customControls:TextBoxWithHint Grid.Column="0"
+                                                   TextBoxType="Text"
+                                                   HintText="Select a date"
+                                                   Text="{Binding DateDisplay, UpdateSourceTrigger=PropertyChanged}"
+                                                   Margin="0,0,8,0"
+                                                   IsReadOnly="True"/>
+                                <customControls:CalendarButton Grid.Column="1"
+                                                               SelectedDate="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+                            
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Start" Style="{StaticResource FieldLabel}"/>
+                                    <dateTimeControls:TimePicker Height="36"
+                                                                 SelectedTime="{Binding StartTimeDateTime, Mode=TwoWay}"
+                                                                 Background="{DynamicResource SurfaceBrush}"
+                                                                 Foreground="{DynamicResource ForegroundBrush}"
+                                                                 BorderBrush="{DynamicResource BorderBrush}"
+                                                                 ComboBoxBorderBrush="{DynamicResource BorderBrush}"
+                                                                 ComboBoxBackground="{DynamicResource SurfaceBrush}"
+                                                                 PopupBackground="{DynamicResource SurfaceBrush}"
+                                                                 PopupBorderBrush="{DynamicResource BorderBrush}"
+                                                                 RepeatButtonBackground="{DynamicResource SurfaceBrush}"
+                                                                 RepeatButtonForeground="{DynamicResource ForegroundBrush}"
+                                                                 DropDownButtonBackground="{DynamicResource SurfaceBrush}"
+                                                                 DropDownButtonForeground="{DynamicResource ForegroundBrush}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="End" Style="{StaticResource FieldLabel}"/>
+                                    <dateTimeControls:TimePicker Height="36"
+                                                                 SelectedTime="{Binding EndTimeDateTime, Mode=TwoWay}"
+                                                                 Background="{DynamicResource SurfaceBrush}"
+                                                                 Foreground="{DynamicResource ForegroundBrush}"
+                                                                 BorderBrush="{DynamicResource BorderBrush}"
+                                                                 ComboBoxBorderBrush="{DynamicResource BorderBrush}"
+                                                                 ComboBoxBackground="{DynamicResource SurfaceBrush}"
+                                                                 PopupBackground="{DynamicResource SurfaceBrush}"
+                                                                 PopupBorderBrush="{DynamicResource BorderBrush}"
+                                                                 RepeatButtonBackground="{DynamicResource SurfaceBrush}"
+                                                                 RepeatButtonForeground="{DynamicResource ForegroundBrush}"
+                                                                 DropDownButtonBackground="{DynamicResource SurfaceBrush}"
+                                                                 DropDownButtonForeground="{DynamicResource ForegroundBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Status -->
+                            <TextBlock Text="STATUS" Style="{StaticResource FormSectionHeader}"/>
+                            <ComboBox ItemsSource="{Binding Statuses}"
+                                      SelectedItem="{Binding Status}"
+                                      Style="{StaticResource ModernComboBoxStyle}"
+                                      ItemContainerStyle="{StaticResource ModernComboBoxItemStyle}"
+                                      Tag="Select status..."/>
+                            
+                            <!-- Calendar & Meeting -->
+                            <TextBlock Text="CALENDAR &amp; MEETING" Style="{StaticResource FormSectionHeader}"/>
+                            <StackPanel Margin="0,0,0,8">
+                                <!-- Calendar Sync Options -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <CheckBox Style="{StaticResource GoogleCalendarCheckboxStyle}"
+                                              Height="24" Width="24" Margin="0,0,12,0"
+                                              ToolTip="Sync to Google Calendar"/>
+                                    <CheckBox Style="{StaticResource OutlookCalendarCheckboxStyle}"
+                                              Height="24" Width="24"
+                                              IsChecked="{Binding SyncToOutlook}"
+                                              ToolTip="Sync to Outlook Calendar"/>
+                                </StackPanel>
+                                
+                                <!-- Teams Meeting Link (only when M365 connected) -->
+                                <CheckBox IsChecked="{Binding CreateTeamsMeeting}"
+                                          Visibility="{Binding CanCreateTeamsMeeting, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                          Margin="0,4,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📹" FontSize="14" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Create Teams Meeting Link" 
+                                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </CheckBox>
+                                
+                                <!-- Google Meet Link (only when Google connected) -->
+                                <CheckBox IsChecked="{Binding CreateGoogleMeet}"
+                                          Visibility="{Binding CanCreateGoogleMeet, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                          Margin="0,4,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🎥" FontSize="14" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Create Google Meet Link" 
+                                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </CheckBox>
+                                
+                                <!-- Teams Meeting URL (if exists, edit mode) -->
+                                <Border Background="{DynamicResource BackgroundBrush}"
+                                        CornerRadius="6"
+                                        Padding="10,8"
+                                        Margin="0,8,0,0"
+                                        Visibility="{Binding HasTeamsMeetingUrl, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Teams Meeting" 
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource HintTextBrush}"/>
+                                            <TextBlock Text="{Binding TeamsMeetingUrlPreview}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="📋"
+                                                ToolTip="Copy meeting link"
+                                                Command="{Binding CopyTeamsMeetingLinkCommand}"
+                                                Style="{StaticResource QuickActionButton}"
+                                                FontSize="14"
+                                                Padding="6"/>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Google Meet URL (if exists, edit mode) -->
+                                <Border Background="{DynamicResource BackgroundBrush}"
+                                        CornerRadius="6"
+                                        Padding="10,8"
+                                        Margin="0,8,0,0"
+                                        Visibility="{Binding HasGoogleMeetUrl, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Google Meet" 
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource HintTextBrush}"/>
+                                            <TextBlock Text="{Binding GoogleMeetUrlPreview}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="📋"
+                                                ToolTip="Copy meeting link"
+                                                Command="{Binding CopyGoogleMeetLinkCommand}"
+                                                Style="{StaticResource QuickActionButton}"
+                                                FontSize="14"
+                                                Padding="6"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                            
+                            <!-- Quick Template (only for new meetings) -->
+                            <StackPanel Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}">
+                                <TextBlock Text="QUICK TEMPLATE" Style="{StaticResource FormSectionHeader}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0"
+                                              ItemsSource="{Binding Templates}"
+                                              SelectedItem="{Binding SelectedTemplate}"
+                                              DisplayMemberPath="Name"
+                                              Style="{StaticResource ModernComboBoxStyle}"
+                                              ItemContainerStyle="{StaticResource ModernComboBoxItemStyle}"
+                                              Tag="Select a template..."
+                                              Margin="0,0,8,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="Apply"
+                                            Command="{Binding ApplyTemplateCommand}"
+                                            Style="{StaticResource DialogSecondaryButtonStyle}"
+                                            Padding="12,8"
+                                            MinWidth="60"/>
+                                </Grid>
+                                <TextBlock Text="{Binding SelectedTemplate.Description}"
+                                           Style="{StaticResource FieldHint}"
+                                           Visibility="{Binding SelectedTemplate, Converter={x:Static converters:NullToVisibilityConverter.Instance}}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    
+                    <!-- RIGHT PANEL: Content (Agenda, Notes) -->
+                    <Border Grid.Column="1"
+                            Background="{DynamicResource SurfaceBrush}"
+                            CornerRadius="10"
+                            Padding="16">
+                        <Grid>
+                            <!-- Main Content -->
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          Visibility="{Binding IsPrepPanelVisible, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}">
+                            <StackPanel>
+                                <!-- View Prep Button Header -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding ViewPrepCommand}"
+                                            Style="{StaticResource DialogSecondaryButtonStyle}"
+                                            Padding="12,6"
+                                            ToolTip="Generate AI-powered meeting prep suggestions">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📋" FontSize="14" Margin="0,0,6,0"/>
+                                            <TextBlock Text="View Prep"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                
+                                <!-- Previous Meeting Summary -->
+                                <Border Visibility="{Binding HasPreviousMeeting, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                        Background="{DynamicResource BackgroundBrush}"
+                                        BorderBrush="{DynamicResource AccentBrush}"
+                                        BorderThickness="0,0,0,2"
+                                        CornerRadius="8"
+                                        Padding="12"
+                                        Margin="0,0,0,16">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="📋 PREVIOUS MEETING" 
+                                                       FontWeight="Bold" 
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       Margin="0,0,0,6"/>
+                                            <TextBlock Text="{Binding PreviousMeetingSummary}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="12"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="Rollover Tasks"
+                                                Command="{Binding RolloverUncompletedTasksCommand}"
+                                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                                Padding="12,6"
+                                                VerticalAlignment="Center"
+                                                FontSize="11"/>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Agenda Items Section -->
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- Header with Add button -->
+                                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="📝 AGENDA ITEMS" 
+                                                   Style="{StaticResource FormSectionHeader}"
+                                                   Margin="0"/>
+                                        <Button Grid.Column="1"
+                                                Command="{Binding AddAgendaItemCommand}"
+                                                Style="{StaticResource DialogSecondaryButtonStyle}"
+                                                Padding="8,4"
+                                                ToolTip="Add agenda item">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                                      Width="14" Height="14"
+                                                      Stretch="Uniform"
+                                                      Fill="{DynamicResource ForegroundBrush}"
+                                                      Margin="0,0,6,0"/>
+                                                <TextBlock Text="Add"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    
+                                    <!-- Agenda Items List -->
+                                    <ItemsControl x:Name="AgendaItemsControl"
+                                                  Grid.Row="1" 
+                                                  ItemsSource="{Binding AgendaItems}"
+                                                  Margin="0,0,0,8">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource BackgroundBrush}"
+                                                        BorderBrush="{DynamicResource BorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="8"
+                                                        Padding="12,10"
+                                                        Margin="0,0,0,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+                                                        
+                                                        <!-- Checkbox for completion -->
+                                                        <CheckBox Grid.Column="0" Grid.Row="0"
+                                                                  IsChecked="{Binding IsCompleted, Mode=TwoWay}"
+                                                                  VerticalAlignment="Top"
+                                                                  Margin="0,4,10,0"
+                                                                  ToolTip="Mark as completed"/>
+                                                        
+                                                        <!-- Editable Description -->
+                                                        <TextBox Grid.Column="1" Grid.Row="0"
+                                                                 Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 FontSize="13"
+                                                                 Background="Transparent"
+                                                                 BorderThickness="0"
+                                                                 Foreground="{DynamicResource ForegroundBrush}"
+                                                                 CaretBrush="{DynamicResource ForegroundBrush}"
+                                                                 TextWrapping="Wrap"
+                                                                 AcceptsReturn="False"
+                                                                 VerticalAlignment="Center"
+                                                                 Padding="0,2"/>
+                                                        
+                                                        <!-- Delete button -->
+                                                        <Button Grid.Column="2" Grid.Row="0"
+                                                                Width="24" Height="24"
+                                                                Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Cursor="Hand"
+                                                                Command="{Binding DataContext.DeleteAgendaItemCommand, ElementName=AgendaItemsControl}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip="Remove agenda item">
+                                                            <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                                  Width="12" Height="12"
+                                                                  Stretch="Uniform"
+                                                                  Fill="{DynamicResource HintTextBrush}"/>
+                                                        </Button>
+                                                        
+                                                        <!-- Category & Linked Item Tags -->
+                                                        <StackPanel Grid.Column="1" Grid.Row="1" 
+                                                                    Orientation="Horizontal"
+                                                                    Margin="0,6,0,0">
+                                                            <!-- Category Tag -->
+                                                            <Border Background="{DynamicResource AccentBrush}"
+                                                                    CornerRadius="4"
+                                                                    Padding="6,2"
+                                                                    Margin="0,0,6,0">
+                                                                <TextBlock Text="{Binding CategoryDisplay}"
+                                                                           FontSize="10"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource BackgroundBrush}"/>
+                                                            </Border>
+                                                            <!-- Multiple Linked Item Tags -->
+                                                            <ItemsControl ItemsSource="{Binding LinkedItems}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <StackPanel Orientation="Horizontal"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Background="{DynamicResource SurfaceAltBrush}"
+                                                                                BorderBrush="{DynamicResource AccentBrush}"
+                                                                                BorderThickness="1"
+                                                                                CornerRadius="4"
+                                                                                Padding="6,2"
+                                                                                Margin="0,0,4,0">
+                                                                            <StackPanel Orientation="Horizontal">
+                                                                                <TextBlock Text="{Binding Title}"
+                                                                                           FontSize="10"
+                                                                                           FontWeight="SemiBold"
+                                                                                           Foreground="{DynamicResource AccentBrush}"
+                                                                                           MaxWidth="100"
+                                                                                           TextTrimming="CharacterEllipsis"/>
+                                                                                <TextBlock Text="{Binding TypeDisplay, StringFormat=' ({0})'}"
+                                                                                           FontSize="9"
+                                                                                           Foreground="{DynamicResource HintTextBrush}"/>
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <!-- Link Button (always visible to add more links) -->
+                                                            <Button Width="20" Height="20"
+                                                                    Background="Transparent"
+                                                                    BorderThickness="0"
+                                                                    Cursor="Hand"
+                                                                    ToolTip="Link to Task, OKR, KPI, or Project"
+                                                                    Command="{Binding DataContext.LinkAgendaItemCommand, ElementName=AgendaItemsControl}"
+                                                                    CommandParameter="{Binding}">
+                                                                <Path Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z"
+                                                                      Width="14" Height="14"
+                                                                      Stretch="Uniform"
+                                                                      Fill="{DynamicResource HintTextBrush}"/>
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    
+                                    <!-- Empty state -->
+                                    <TextBlock Grid.Row="2"
+                                               Text="No agenda items yet. Click + Add to create one."
+                                               FontStyle="Italic"
+                                               Foreground="{DynamicResource HintTextBrush}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,8">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding AgendaItems.Count}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                
+                                <!-- Separator -->
+                                <Separator Background="{DynamicResource BorderBrush}" 
+                                           Margin="0,8,0,16"/>
+                                
+                                <!-- Meeting Notes -->
+                                <TextBlock Text="💬 MEETING NOTES" 
+                                           Style="{StaticResource FormSectionHeader}"
+                                           Margin="0,0,0,8"/>
+                                <input:RichTextEditor Markdown="{Binding NotesMarkdown, Mode=TwoWay}"
+                                                      PlaceholderText="Add meeting notes, discussion points, decisions made..."
+                                                      MinHeight="200"
+                                                      ShowFontControls="False"
+                                                      CornerRadius="8"
+                                                      Background="{DynamicResource BackgroundBrush}"
+                                                      BorderBrush="{DynamicResource BorderBrush}"
+                                                      Foreground="{DynamicResource ForegroundBrush}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                            
+                            <!-- Meeting Prep Panel Overlay -->
+                            <controls:MeetingPrepPanel 
+                                DataContext="{Binding MeetingPrepViewModel}"
+                                Visibility="{Binding DataContext.IsPrepPanelVisible, RelativeSource={RelativeSource AncestorType=controls:BaseWindow}, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+                
+                <!-- Footer -->
+                <Border Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Left: Delete button (edit mode only) -->
+                        <Button Grid.Column="0"
+                                Style="{StaticResource DialogDestructiveButtonStyle}"
+                                Content="Delete Meeting"
+                                Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                Margin="0,0,12,0"/>
+                        
+                        <!-- Center-Left: Quick Message buttons (when M365 connected) -->
+                        <StackPanel Grid.Column="1" 
+                                    Orientation="Horizontal"
+                                    Visibility="{Binding CanShowMessaging, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}">
+                            <Button Style="{StaticResource DialogSecondaryButtonStyle}"
+                                    Command="{Binding SendMessageCommand}"
+                                    ToolTip="Send a quick Teams message or email"
+                                    Margin="0,0,8,0"
+                                    Padding="12,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="💬" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Message"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource DialogSecondaryButtonStyle}"
+                                    Command="{Binding SendSummaryCommand}"
+                                    ToolTip="Email meeting summary to team member"
+                                    Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                    Padding="12,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📧" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Send Summary"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        
+                        <!-- Right: Action buttons -->
+                        <StackPanel Grid.Column="3" 
+                                    Orientation="Horizontal" 
+                                    HorizontalAlignment="Right">
+                            <Button Style="{StaticResource DialogSecondaryButtonStyle}"
+                                    Margin="0,0,12,0"
+                                    Command="{x:Static commands:DialogCommands.CloseDialogCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                    Content="Cancel"/>
+                            <Button Style="{StaticResource DialogPrimaryButtonStyle}"
+                                    Content="Save Changes"
+                                    Command="{Binding UpdateOneOnOneCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                    Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+                            <Button Style="{StaticResource DialogPrimaryButtonStyle}"
+                                    Content="Schedule Meeting"
+                                    Command="{Binding AddOneOnOneCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:BaseWindow}}}"
+                                    Visibility="{Binding InEditMode, Converter={x:Static converters:ReverseBoolToVisConverter.Instance}}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</controls:BaseWindow>

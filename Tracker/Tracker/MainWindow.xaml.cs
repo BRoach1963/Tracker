@@ -58,6 +58,13 @@ namespace Tracker
                 {
                     await vm.RefreshAllDataAsync();
                 }
+                
+                // Capture progress snapshots for predictive analytics (runs in background)
+                _ = Services.Analytics.ProgressSnapshotService.Instance.CaptureSnapshotsIfNeededAsync();
+                
+                // Show daily briefing after data is loaded (with slight delay for smooth UX)
+                await Task.Delay(500);
+                await Views.Dialogs.DailyBriefingDialog.ShowIfEnabledAsync(this);
             };
             this.Loaded += _loadedHandler;
             

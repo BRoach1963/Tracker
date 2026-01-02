@@ -1,0 +1,104 @@
+<UserControl x:Class="Tracker.Controls.Settings.GeneralSettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="400"
+             d:DataContext="{d:DesignInstance Type=viewModels:SettingsViewModel}">
+    
+    <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+        
+        <!-- Startup Behavior -->
+        <Label Style="{StaticResource LabelStyle}" Content="Startup" />
+        <CheckBox Content="Start Tracker with Windows"
+                  IsChecked="{Binding StartWithWindows}"
+                  Margin="0,8,0,4"/>
+        <TextBlock Text="When enabled, Tracker will start minimized to the system tray when you log in to Windows."
+                   Foreground="{DynamicResource HintTextBrush}"
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   MaxWidth="350"
+                   HorizontalAlignment="Left"
+                   Margin="0,4,0,0"/>
+        
+        <!-- Theme -->
+        <Label Style="{StaticResource LabelStyle}" Content="Theme" Margin="0,20,0,0"/>
+        <ComboBox SelectedItem="{Binding SelectedTheme}"
+                  ItemsSource="{Binding AvailableThemes}"
+                  Width="200"
+                  HorizontalAlignment="Left"
+                  Margin="0,5,0,0">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="14" Height="14" 
+                                 Fill="{Binding PreviewColor}" 
+                                 Margin="0,0,10,0"
+                                 VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding DisplayName}" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+        
+        <TextBlock Text="Theme changes are applied immediately and saved automatically."
+                   Foreground="{DynamicResource HintTextBrush}"
+                   FontSize="11"
+                   Margin="0,8,0,0"
+                   FontStyle="Italic"/>
+        
+        <!-- Setup & Reset Section -->
+        <Label Style="{StaticResource LabelStyle}" Content="Setup &amp; Reset" Margin="0,25,0,0"/>
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <Button Content="Re-run Setup Wizard"
+                    Command="{Binding ResetSetupCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Padding="16,8"
+                    Margin="0,0,10,0"/>
+            <Button Content="Reset All Settings"
+                    Command="{Binding ResetSettingsCommand}"
+                    Style="{StaticResource DangerButtonStyle}"/>
+        </StackPanel>
+        <TextBlock Text="'Re-run Setup Wizard' shows the initial configuration wizard. 'Reset All Settings' clears all preferences but keeps your data."
+                   Foreground="{DynamicResource HintTextBrush}"
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   MaxWidth="350"
+                   HorizontalAlignment="Left"
+                   Margin="0,8,0,0"/>
+        
+        <!-- AI Help Bot Section -->
+        <Label Style="{StaticResource LabelStyle}" Content="AI Help Bot" Margin="0,25,0,0"/>
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <Button Command="{Binding RefreshAiKnowledgeCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Padding="16,8"
+                    IsEnabled="{Binding IsNotRefreshingAi}">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource RefreshIcon}" Style="{StaticResource IconPathSmall}" Margin="0,0,6,0"/>
+                    <TextBlock Text="Refresh AI Knowledge Base" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+        <TextBlock Text="{Binding AiRefreshStatus}"
+                   Foreground="{DynamicResource AccentBrush}"
+                   FontSize="12"
+                   FontWeight="Medium"
+                   TextWrapping="Wrap"
+                   MaxWidth="350"
+                   HorizontalAlignment="Left"
+                   Margin="0,8,0,0"
+                   Visibility="{Binding HasAiRefreshStatus, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"/>
+        <TextBlock Text="Re-indexes all documentation files for the AI Help Bot. Use this after updating help files or integrations."
+                   Foreground="{DynamicResource HintTextBrush}"
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   MaxWidth="350"
+                   HorizontalAlignment="Left"
+                   Margin="0,8,0,0"/>
+    </StackPanel>
+</UserControl>

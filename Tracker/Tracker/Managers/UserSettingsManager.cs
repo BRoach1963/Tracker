@@ -290,6 +290,55 @@ namespace Tracker.Managers
             return Path.Combine(userFolder, "tracker.db");
         }
 
+        /// <summary>
+        /// Saves Remember Me credentials to the anonymous settings file.
+        /// This must be called separately because RememberMe needs to be available
+        /// before user login (when we're still in anonymous mode).
+        /// </summary>
+        /// <param name="rememberMe">Whether Remember Me is enabled</param>
+        /// <param name="email">Email address to save (if RememberMe is true)</param>
+        public void SaveRememberMeToAnonymousSettings(bool rememberMe, string? email)
+        {
+            try
+            {
+                var anonymousPath = GetSettingsFilePath(null);
+                LocalUserSettings anonymousSettings;
+
+                // Load existing anonymous settings if they exist
+                if (File.Exists(anonymousPath))
+                {
+                    var json = File.ReadAllText(anonymousPath);
+                    anonymousSettings = JsonSerializer.Deserialize<LocalUserSettings>(json) ?? new LocalUserSettings();
+                }
+                else
+                {
+                    anonymousSettings = new LocalUserSettings();
+                }
+
+                // Update RememberMe settings
+                anonymousSettings.Authentication ??= new AuthenticationSettings();
+                anonymousSettings.Authentication.RememberMe = rememberMe;
+                anonymousSettings.Authentication.SavedEmail = rememberMe ? email : null;
+
+                // Save back to anonymous path
+                var dir = Path.GetDirectoryName(anonymousPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                var updatedJson = JsonSerializer.Serialize(anonymousSettings, options);
+                File.WriteAllText(anonymousPath, updatedJson);
+
+                _logger.Info("Saved RememberMe={0} to anonymous settings", rememberMe);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Failed to save RememberMe to anonymous settings");
+            }
+        }
+
         #endregion
 
         #region Private Methods

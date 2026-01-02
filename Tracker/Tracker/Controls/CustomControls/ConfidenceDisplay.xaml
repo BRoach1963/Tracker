@@ -1,0 +1,31 @@
+<UserControl x:Class="Tracker.Controls.CustomControls.ConfidenceDisplay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="24" d:DesignWidth="150"
+             x:Name="Root"
+             ToolTip="{Binding TooltipText, ElementName=Root}">
+    
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <!-- Confidence Bars -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,6,0" VerticalAlignment="Center">
+            <Rectangle Width="3" Height="8" Margin="1,0" RadiusX="1" RadiusY="1"
+                       Fill="{Binding Bar1Brush, ElementName=Root}"/>
+            <Rectangle Width="3" Height="12" Margin="1,0" RadiusX="1" RadiusY="1"
+                       Fill="{Binding Bar2Brush, ElementName=Root}"/>
+            <Rectangle Width="3" Height="16" Margin="1,0" RadiusX="1" RadiusY="1"
+                       Fill="{Binding Bar3Brush, ElementName=Root}"/>
+            <Rectangle Width="3" Height="20" Margin="1,0" RadiusX="1" RadiusY="1"
+                       Fill="{Binding Bar4Brush, ElementName=Root}"/>
+        </StackPanel>
+        
+        <!-- Confidence Text -->
+        <TextBlock Text="{Binding ConfidenceText, ElementName=Root}"
+                   FontSize="11"
+                   Foreground="{Binding TextBrush, ElementName=Root}"
+                   VerticalAlignment="Center"
+                   Visibility="{Binding ShowText, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}"/>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,115 @@
+<UserControl x:Class="Tracker.Controls.Settings.DatabaseSettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="450"
+             d:DataContext="{d:DesignInstance Type=viewModels:SettingsViewModel}">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="20,0,0,0">
+        <StackPanel MaxWidth="450" HorizontalAlignment="Left">
+            
+            <!-- Database Type -->
+            <Label Style="{StaticResource LabelStyle}" Content="Database Type" Margin="0,8,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <RadioButton x:Name="LocalDbOption" Content="Local Database (SQLite)" IsChecked="True" Margin="0,0,0,8"/>
+                    <RadioButton x:Name="SharedDbOption" Content="Shared Database (SQL Server)" Margin="0,0,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Database Location -->
+            <Label Style="{StaticResource LabelStyle}" Content="Database Location" Margin="0,8,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="DatabasePathTextBox" Grid.Column="0" 
+                                 Text="C:\Users\CurrentUser\AppData\Local\Tracker\TrackerDb.sqlite"
+                                 IsReadOnly="True" 
+                                 Margin="0,0,10,0"/>
+                        <Button x:Name="BrowseDatabaseButton" Grid.Column="1" 
+                                Content="Browse..." 
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="10,5"/>
+                    </Grid>
+                    <TextBlock Text="Database files are stored locally and are not shared with other users." 
+                               Foreground="{DynamicResource HintTextBrush}"
+                               FontSize="11"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Connection String -->
+            <Label Style="{StaticResource LabelStyle}" Content="Connection String" Margin="0,8,0,0"/>
+            <TextBox x:Name="ConnectionStringTextBox" 
+                     Height="60" 
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     IsEnabled="{Binding IsChecked, ElementName=SharedDbOption}"
+                     Margin="0,5,0,10"/>
+            <TextBlock Text="Enter SQL Server connection string for shared database access." 
+                       Foreground="{DynamicResource HintTextBrush}"
+                       FontSize="11"
+                       Margin="0,0,0,15"/>
+            
+            <!-- Database Actions -->
+            <Label Style="{StaticResource LabelStyle}" Content="Database Actions" Margin="0,8,0,0"/>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="TestConnectionButton" 
+                        Content="Test Connection" 
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Margin="0,0,10,0"/>
+                <Button x:Name="BackupDatabaseButton" 
+                        Content="Backup Database" 
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Margin="0,0,10,0"/>
+                <Button x:Name="RestoreDatabaseButton" 
+                        Content="Restore Database" 
+                        Style="{StaticResource PrimaryButtonStyle}"/>
+            </StackPanel>
+            
+            <TextBlock x:Name="ConnectionStatusTextBlock" 
+                       Text="Ready to test connection"
+                       Foreground="{DynamicResource HintTextBrush}"
+                       FontSize="11"
+                       Margin="0,8,0,0"/>
+            
+            <!-- Test Data -->
+            <Label Style="{StaticResource LabelStyle}" Content="Test Data" Margin="0,20,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <TextBlock Text="Load sample data for testing or clear all data from the database." 
+                               Foreground="{DynamicResource HintTextBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Load Test Data" 
+                                Command="{Binding SeedSampleDataCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Margin="0,0,10,0"/>
+                        <Button Content="Clear All Data" 
+                                Command="{Binding ClearDataCommand}"
+                                Style="{StaticResource DangerButtonStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

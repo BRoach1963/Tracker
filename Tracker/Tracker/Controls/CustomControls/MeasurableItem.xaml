@@ -24,7 +24,7 @@
             <Border Width="28" Height="28" CornerRadius="6" Margin="0,0,10,0"
                     Background="{Binding TypeIconBackground, ElementName=Root}">
                 <Path Data="{Binding TypeIconPath, ElementName=Root}"
-                      Fill="White"
+                      Fill="{DynamicResource SurfaceBrush}"
                       Width="14" Height="14"
                       Stretch="Uniform"
                       HorizontalAlignment="Center"

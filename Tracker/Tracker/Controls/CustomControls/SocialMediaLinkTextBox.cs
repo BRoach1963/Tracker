@@ -5,11 +5,20 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows;
 using Tracker.Command;
+using Tracker.Logging;
+using Tracker.Managers;
+using Tracker.Services;
 
 namespace Tracker.Controls.CustomControls
 {
     public class SocialMediaLinkTextBox : TextBox
     {
+        #region Fields
+
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger(nameof(SocialMediaLinkTextBox));
+
+        #endregion
+
         #region Commands
 
         public ICommand LaunchUrlCommand { get; private set; }
@@ -23,7 +32,40 @@ namespace Tracker.Controls.CustomControls
         {
             if (string.IsNullOrEmpty(this.Text)) return;
 
-            Process.Start(FormatUrl(this.Text));
+            try
+            {
+                // Parse and validate the URL
+                var uri = new Uri(this.Text, UriKind.Absolute);
+
+                // Only allow HTTP/HTTPS schemes for security
+                if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                {
+                    NotificationManager.Instance.ShowError(
+                        "Invalid URL",
+                        "Only HTTP/HTTPS URLs are allowed");
+                    return;
+                }
+
+                // Launch the validated URL
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = uri.AbsoluteUri,
+                    UseShellExecute = true
+                });
+            }
+            catch (UriFormatException)
+            {
+                NotificationManager.Instance.ShowError(
+                    "Invalid URL",
+                    "Please enter a valid URL");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Failed to launch URL: {0}", ex.Message);
+                NotificationManager.Instance.ShowError(
+                    "Error",
+                    "Failed to open URL");
+            }
         }
 
         #endregion

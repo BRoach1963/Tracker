@@ -23,9 +23,6 @@ namespace Tracker.Controls.CustomControls
         {
             InitializeComponent();
             Loaded += CalendarButton_Loaded;
-            
-            // Set the popup placement target to the button
-            CalendarPopup.PlacementTarget = CalendarIconButton;
         }
 
         private void CalendarButton_Loaded(object sender, RoutedEventArgs e)

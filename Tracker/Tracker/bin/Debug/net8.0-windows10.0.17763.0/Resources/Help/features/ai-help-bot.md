@@ -68,6 +68,23 @@ Oracle can execute tasks for you using natural language:
 
 > "Show me notes from last week"
 
+**Check Insights:**
+> "What insights do I have?"
+
+> "Show me my critical alerts"
+
+> "Any upcoming birthdays on my team?"
+
+> "Who haven't I met with recently?"
+
+> "Which OKRs are at risk?"
+
+> "Are any KPIs off target?"
+
+> "Show me survey alerts"
+
+> "Dismiss insight #5"
+
 Oracle executes these actions immediately and confirms what was created.
 
 ### 💬 Help with Features (Standard+)
@@ -163,6 +180,17 @@ Oracle can perform the following actions via natural language:
 - **get_upcoming_meetings**: View scheduled meetings in a date range
 - **get_projects**: List active or filtered projects
 - **get_notes**: Search through your quick notes
+
+### 💡 Insights Management
+- **get_insights**: View your proactive AI insights with optional filtering
+  - Example: "What insights do I have?"
+  - Example: "Show me my critical alerts"
+  - Example: "Any upcoming birthdays on my team?"
+  - Parameters: optional severity filter (critical/warning/info), optional type filter
+- **dismiss_insight**: Remove an insight you've already handled
+  - Example: "Dismiss insight #3"
+  - Example: "Clear the meeting gap alert for Sarah"
+  - Parameters: insight ID
 
 All actions execute immediately and provide confirmation of what was created.
 

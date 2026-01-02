@@ -159,6 +159,56 @@ namespace Tracker.Database
         /// <summary>Links from agenda items to other entities (Task, OKR, KPI, Project).</summary>
         public DbSet<LinkedItem> LinkedItems { get; set; } = null!;
 
+        // Pulse Survey entities
+        /// <summary>Pulse surveys for team engagement measurement.</summary>
+        public DbSet<PulseSurvey> PulseSurveys { get; set; } = null!;
+
+        /// <summary>Questions within pulse surveys.</summary>
+        public DbSet<PulseSurveyQuestion> PulseSurveyQuestions { get; set; } = null!;
+
+        /// <summary>Survey responses from team members.</summary>
+        public DbSet<PulseSurveyResponse> PulseSurveyResponses { get; set; } = null!;
+
+        /// <summary>Individual answers within survey responses.</summary>
+        public DbSet<PulseSurveyAnswer> PulseSurveyAnswers { get; set; } = null!;
+
+        // Performance Review entities
+        /// <summary>Review templates defining the structure of performance reviews.</summary>
+        public DbSet<ReviewTemplate> ReviewTemplates { get; set; } = null!;
+
+        /// <summary>Sections within review templates.</summary>
+        public DbSet<ReviewTemplateSection> ReviewTemplateSections { get; set; } = null!;
+
+        /// <summary>Questions within review template sections.</summary>
+        public DbSet<ReviewTemplateQuestion> ReviewTemplateQuestions { get; set; } = null!;
+
+        /// <summary>Performance review cycles (e.g., Q1 2024 Reviews).</summary>
+        public DbSet<PerformanceReviewCycle> PerformanceReviewCycles { get; set; } = null!;
+
+        /// <summary>Individual performance reviews for team members.</summary>
+        public DbSet<PerformanceReview> PerformanceReviews { get; set; } = null!;
+
+        /// <summary>Sections within performance reviews.</summary>
+        public DbSet<PerformanceReviewSection> PerformanceReviewSections { get; set; } = null!;
+
+        /// <summary>Answers to review questions.</summary>
+        public DbSet<PerformanceReviewAnswer> PerformanceReviewAnswers { get; set; } = null!;
+
+        // Recognition & Kudos
+        /// <summary>Kudos and recognition sent to team members.</summary>
+        public DbSet<Kudos> Kudos { get; set; } = null!;
+
+        // Predictive Analytics
+        /// <summary>Point-in-time snapshots of progress for trajectory analysis.</summary>
+        public DbSet<ProgressSnapshot> ProgressSnapshots { get; set; } = null!;
+
+        // Calendar Integration
+        /// <summary>Links between Tracker meetings and external calendar events.</summary>
+        public DbSet<CalendarLink> CalendarLinks { get; set; } = null!;
+
+        /// <summary>Sync tokens for calendar delta synchronization.</summary>
+        public DbSet<CalendarSyncToken> CalendarSyncTokens { get; set; } = null!;
+
         #endregion
 
         #region Configuration
@@ -244,6 +294,31 @@ namespace Tracker.Database
             ConfigureMeetingTemplate(modelBuilder);
             ConfigureQuickNote(modelBuilder);
             ConfigureLinkedItem(modelBuilder);
+            
+            // Pulse Survey configuration
+            ConfigurePulseSurvey(modelBuilder);
+            ConfigurePulseSurveyQuestion(modelBuilder);
+            ConfigurePulseSurveyResponse(modelBuilder);
+            ConfigurePulseSurveyAnswer(modelBuilder);
+            
+            // Performance Review configuration
+            ConfigureReviewTemplate(modelBuilder);
+            ConfigureReviewTemplateSection(modelBuilder);
+            ConfigureReviewTemplateQuestion(modelBuilder);
+            ConfigurePerformanceReviewCycle(modelBuilder);
+            ConfigurePerformanceReview(modelBuilder);
+            ConfigurePerformanceReviewSection(modelBuilder);
+            ConfigurePerformanceReviewAnswer(modelBuilder);
+            
+            // Recognition & Kudos configuration
+            ConfigureKudos(modelBuilder);
+            
+            // Predictive Analytics configuration
+            ConfigureProgressSnapshot(modelBuilder);
+            
+            // Calendar Integration configuration
+            ConfigureCalendarLink(modelBuilder);
+            ConfigureCalendarSyncToken(modelBuilder);
         }
 
         #endregion
@@ -358,6 +433,40 @@ namespace Tracker.Database
             
             // ProjectDependency: Filter by IsDeleted only (userId filtering via parent Project)
             modelBuilder.Entity<ProjectDependency>().HasQueryFilter(e => !e.IsDeleted);
+            
+            // Pulse Survey entities
+            modelBuilder.Entity<PulseSurvey>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            modelBuilder.Entity<PulseSurveyQuestion>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            modelBuilder.Entity<PulseSurveyResponse>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // PulseSurveyAnswer: No filter (simple value object, filtered via parent Response cascade)
+            
+            // Performance Review entities
+            modelBuilder.Entity<ReviewTemplate>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            modelBuilder.Entity<ReviewTemplateSection>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            modelBuilder.Entity<ReviewTemplateQuestion>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            modelBuilder.Entity<PerformanceReviewCycle>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            modelBuilder.Entity<PerformanceReview>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
+            
+            // PerformanceReviewSection, PerformanceReviewAnswer: No filter (simple value objects, filtered via parent cascade)
+            
+            // Kudos: Filter by UserId and IsDeleted
+            modelBuilder.Entity<Kudos>().HasQueryFilter(e => 
+                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
         }
         
         #endregion
@@ -1545,6 +1654,516 @@ namespace Tracker.Database
                 entity.HasIndex(e => new { e.Type, e.ItemId }); // For finding links by entity type and ID
             });
         }
+
+        #region Pulse Survey Entity Configurations
+
+        /// <summary>
+        /// Configures PulseSurvey - engagement pulse surveys.
+        /// </summary>
+        private void ConfigurePulseSurvey(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PulseSurvey>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(2000);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Survey has many Questions
+                entity.HasMany(e => e.Questions)
+                    .WithOne(q => q.PulseSurvey)
+                    .HasForeignKey(q => q.PulseSurveyId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Survey has many Responses
+                entity.HasMany(e => e.Responses)
+                    .WithOne(r => r.PulseSurvey)
+                    .HasForeignKey(r => r.PulseSurveyId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.SentDate);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures PulseSurveyQuestion - questions within pulse surveys.
+        /// </summary>
+        private void ConfigurePulseSurveyQuestion(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PulseSurveyQuestion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Text).HasMaxLength(500).IsRequired();
+                entity.Property(e => e.Category).HasMaxLength(100);
+                entity.Property(e => e.RatingMinLabel).HasMaxLength(100);
+                entity.Property(e => e.RatingMaxLabel).HasMaxLength(100);
+
+                // User ownership (for global query filtering)
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.PulseSurveyId);
+                entity.HasIndex(e => e.QuestionType);
+                entity.HasIndex(e => e.SortOrder);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures PulseSurveyResponse - survey responses from team members.
+        /// </summary>
+        private void ConfigurePulseSurveyResponse(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PulseSurveyResponse>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Response optionally belongs to a TeamMember (can be anonymous)
+                entity.HasOne(e => e.TeamMember)
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Response has many Answers
+                entity.HasMany(e => e.Answers)
+                    .WithOne(a => a.PulseSurveyResponse)
+                    .HasForeignKey(a => a.PulseSurveyResponseId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.PulseSurveyId);
+                entity.HasIndex(e => e.TeamMemberId);
+                entity.HasIndex(e => e.SubmittedAt);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures PulseSurveyAnswer - individual answers within survey responses.
+        /// </summary>
+        private void ConfigurePulseSurveyAnswer(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PulseSurveyAnswer>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TextValue).HasMaxLength(2000);
+
+                // Answer belongs to a Question
+                entity.HasOne(e => e.PulseSurveyQuestion)
+                    .WithMany()
+                    .HasForeignKey(e => e.PulseSurveyQuestionId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.NoAction); // Prevent cascade conflict
+
+                entity.HasIndex(e => e.PulseSurveyResponseId);
+                entity.HasIndex(e => e.PulseSurveyQuestionId);
+            });
+        }
+
+        #endregion
+
+        #region Performance Review Entity Configurations
+
+        /// <summary>
+        /// Configures ReviewTemplate - templates defining review structure.
+        /// </summary>
+        private void ConfigureReviewTemplate(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ReviewTemplate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(2000);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Template has many Sections
+                entity.HasMany(e => e.Sections)
+                    .WithOne(s => s.ReviewTemplate)
+                    .HasForeignKey(s => s.ReviewTemplateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.ReviewType);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures ReviewTemplateSection - sections within review templates.
+        /// </summary>
+        private void ConfigureReviewTemplateSection(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ReviewTemplateSection>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(1000);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Section has many Questions
+                entity.HasMany(e => e.Questions)
+                    .WithOne(q => q.ReviewTemplateSection)
+                    .HasForeignKey(q => q.ReviewTemplateSectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.ReviewTemplateId);
+                entity.HasIndex(e => e.SortOrder);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures ReviewTemplateQuestion - questions within template sections.
+        /// </summary>
+        private void ConfigureReviewTemplateQuestion(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ReviewTemplateQuestion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Text).HasMaxLength(500).IsRequired();
+                entity.Property(e => e.RatingLabels).HasMaxLength(500);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.ReviewTemplateSectionId);
+                entity.HasIndex(e => e.QuestionType);
+                entity.HasIndex(e => e.SortOrder);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures PerformanceReviewCycle - review cycles (e.g., Q1 2024).
+        /// </summary>
+        private void ConfigurePerformanceReviewCycle(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PerformanceReviewCycle>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(2000);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Cycle uses a Template
+                entity.HasOne(e => e.ReviewTemplate)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReviewTemplateId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Cycle has many Reviews
+                entity.HasMany(e => e.Reviews)
+                    .WithOne(r => r.PerformanceReviewCycle)
+                    .HasForeignKey(r => r.PerformanceReviewCycleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.SelfReviewStartDate);
+                entity.HasIndex(e => e.ManagerReviewDueDate);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures PerformanceReview - individual reviews for team members.
+        /// </summary>
+        private void ConfigurePerformanceReview(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PerformanceReview>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ManagerSummary).HasMaxLength(4000);
+                entity.Property(e => e.SelfAssessmentSummary).HasMaxLength(4000);
+
+                // User ownership
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Review belongs to a TeamMember
+                entity.HasOne(e => e.TeamMember)
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional link to OneOnOne where review was discussed
+                entity.HasOne(e => e.OneOnOne)
+                    .WithMany()
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Review has many Sections
+                entity.HasMany(e => e.Sections)
+                    .WithOne(s => s.PerformanceReview)
+                    .HasForeignKey(s => s.PerformanceReviewId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.PerformanceReviewCycleId);
+                entity.HasIndex(e => e.TeamMemberId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex("UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures PerformanceReviewSection - sections within individual reviews.
+        /// </summary>
+        private void ConfigurePerformanceReviewSection(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PerformanceReviewSection>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Reference to template section
+                entity.HasOne(e => e.ReviewTemplateSection)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReviewTemplateSectionId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Section has many Answers
+                entity.HasMany(e => e.Answers)
+                    .WithOne(a => a.PerformanceReviewSection)
+                    .HasForeignKey(a => a.PerformanceReviewSectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.PerformanceReviewId);
+                entity.HasIndex(e => e.ReviewTemplateSectionId);
+            });
+        }
+
+        /// <summary>
+        /// Configures PerformanceReviewAnswer - answers to review questions.
+        /// </summary>
+        private void ConfigurePerformanceReviewAnswer(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PerformanceReviewAnswer>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TextValue).HasMaxLength(4000);
+
+                // Reference to template question (for tracking)
+                entity.HasOne(e => e.ReviewTemplateQuestion)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReviewTemplateQuestionId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.PerformanceReviewSectionId);
+                entity.HasIndex(e => e.ReviewTemplateQuestionId);
+            });
+        }
+
+        /// <summary>
+        /// Configures Kudos - recognition sent to team members.
+        /// </summary>
+        private void ConfigureKudos(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Kudos>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.DeliveryError).HasMaxLength(1000);
+                
+                // Store enums as strings for readability
+                entity.Property(e => e.Category).HasConversion<string>().HasMaxLength(50);
+                entity.Property(e => e.DeliveryChannel).HasConversion<string>().HasMaxLength(50);
+                entity.Property(e => e.DeliveryStatus).HasConversion<string>().HasMaxLength(50);
+
+                // Foreign key to TeamMember
+                entity.HasOne(e => e.TeamMember)
+                    .WithMany()
+                    .HasForeignKey(e => e.TeamMemberId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Indexes for common queries
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.TeamMemberId);
+                entity.HasIndex(e => e.DeliveryStatus);
+                entity.HasIndex(e => e.CreatedAt);
+            });
+        }
+
+        private void ConfigureProgressSnapshot(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ProgressSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.EntityType)
+                    .IsRequired()
+                    .HasMaxLength(20);
+                
+                entity.Property(e => e.CurrentValue)
+                    .HasPrecision(18, 4);
+                
+                entity.Property(e => e.TargetValue)
+                    .HasPrecision(18, 4);
+                
+                entity.Property(e => e.Progress)
+                    .HasPrecision(18, 4);
+
+                // Unique constraint: one snapshot per entity per day
+                entity.HasIndex(e => new { e.EntityType, e.EntityId, e.SnapshotDate, e.UserId })
+                    .IsUnique()
+                    .HasDatabaseName("IX_ProgressSnapshots_Entity_Date");
+
+                // Index for efficient querying by entity
+                entity.HasIndex(e => new { e.EntityType, e.EntityId, e.UserId })
+                    .HasDatabaseName("IX_ProgressSnapshots_Entity");
+
+                // Index for date-based queries
+                entity.HasIndex(e => new { e.UserId, e.SnapshotDate })
+                    .HasDatabaseName("IX_ProgressSnapshots_User_Date");
+            });
+        }
+
+        /// <summary>
+        /// Configures the CalendarLink entity - links Tracker meetings to external calendar events.
+        /// </summary>
+        private void ConfigureCalendarLink(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<CalendarLink>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.ProviderId)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.ExternalEventId)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.ETag)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.LastError)
+                    .HasMaxLength(2000);
+
+                // Store enum as string for readability
+                entity.Property(e => e.LastSyncDirection)
+                    .HasConversion<string>()
+                    .HasMaxLength(10);
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(20);
+
+                // Relationship: Each link belongs to one OneOnOne
+                entity.HasOne(e => e.OneOnOne)
+                    .WithMany()
+                    .HasForeignKey(e => e.OneOnOneId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // User ownership via shadow property
+                entity.Property<int>("UserId");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Unique constraint: one link per provider per meeting
+                entity.HasIndex(e => new { e.OneOnOneId, e.ProviderId })
+                    .IsUnique()
+                    .HasDatabaseName("IX_CalendarLinks_Meeting_Provider");
+
+                // Index for looking up by external event ID
+                entity.HasIndex(e => new { e.ProviderId, e.ExternalEventId })
+                    .HasDatabaseName("IX_CalendarLinks_Provider_ExternalId");
+
+                // Index for user filtering
+                entity.HasIndex("UserId")
+                    .HasDatabaseName("IX_CalendarLinks_UserId");
+            });
+        }
+
+        /// <summary>
+        /// Configures the CalendarSyncToken entity - stores delta sync tokens per provider.
+        /// </summary>
+        private void ConfigureCalendarSyncToken(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<CalendarSyncToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.ProviderId)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.SyncToken)
+                    .IsRequired()
+                    .HasMaxLength(2000);
+
+                // User ownership via shadow property
+                entity.Property<int>("UserId");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Unique constraint: one token per provider per user
+                entity.HasIndex(e => new { e.ProviderId })
+                    .HasDatabaseName("IX_CalendarSyncTokens_Provider");
+
+                // Combined unique index including UserId
+                entity.HasIndex("UserId", "ProviderId")
+                    .IsUnique()
+                    .HasDatabaseName("IX_CalendarSyncTokens_User_Provider");
+            });
+        }
+
+        #endregion
 
         /// <summary>
         /// Automatically populates audit fields based on entity state.

@@ -282,6 +282,34 @@ namespace Tracker.Services.Google
         }
 
         /// <summary>
+        /// Gets a specific calendar event by ID.
+        /// </summary>
+        /// <param name="eventId">Event ID from Google Calendar.</param>
+        /// <returns>Event details, or null if not found.</returns>
+        public async Task<Event?> GetEventAsync(string eventId)
+        {
+            if (!await EnsureServiceAsync()) return null;
+            if (string.IsNullOrEmpty(eventId)) return null;
+
+            try
+            {
+                var calEvent = await _service!.Events.Get("primary", eventId).ExecuteAsync();
+                _logger.Info($"Retrieved calendar event: {eventId}");
+                return calEvent;
+            }
+            catch (Exception ex) when (ex.Message?.Contains("404") == true || ex.Message?.Contains("Not Found") == true)
+            {
+                _logger.Warn($"Calendar event not found: {eventId}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, $"Failed to get calendar event: {eventId}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets free/busy information for a user.
         /// </summary>
         public async Task<List<TimePeriod>?> GetFreeBusyAsync(string email, DateTime startDate, DateTime endDate)

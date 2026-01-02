@@ -527,6 +527,49 @@ namespace Tracker.Services
                                 },
                                 Required = new List<string>()
                             }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "get_insights",
+                            Description = "Gets proactive AI insights - alerts about meeting gaps, OKRs at risk, KPIs off target, upcoming birthdays, work anniversaries, stale action items, survey alerts, and overdue tasks that need attention",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["severity"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional filter by severity: 'critical', 'warning', 'info', or 'all' (default)",
+                                        Enum = new List<string> { "all", "critical", "warning", "info" }
+                                    },
+                                    ["type"] = new GeminiProperty
+                                    {
+                                        Type = "string",
+                                        Description = "Optional filter by type: 'meeting_gap', 'okr_at_risk', 'okr_ending', 'kpi_off_target', 'birthday', 'anniversary', 'stale_task', 'survey_alert'",
+                                        Enum = new List<string> { "meeting_gap", "okr_at_risk", "okr_ending", "kpi_off_target", "birthday", "anniversary", "stale_task", "survey_alert" }
+                                    }
+                                },
+                                Required = new List<string>()
+                            }
+                        },
+                        new GeminiFunctionDeclaration
+                        {
+                            Name = "dismiss_insight",
+                            Description = "Dismisses/acknowledges a specific insight so it no longer appears in the active list",
+                            Parameters = new GeminiSchema
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, GeminiProperty>
+                                {
+                                    ["insight_id"] = new GeminiProperty
+                                    {
+                                        Type = "integer",
+                                        Description = "The ID of the insight to dismiss"
+                                    }
+                                },
+                                Required = new List<string> { "insight_id" }
+                            }
                         }
                     }
                 }

@@ -14,6 +14,7 @@ using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
 using Tracker.Services.Google;
+using Tracker.Services.MeetingPrep;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
@@ -94,6 +95,17 @@ namespace Tracker.ViewModels.DialogViewModels
         private bool _createGoogleMeet;
         private ICommand? _copyGoogleMeetLinkCommand;
 
+        // Meeting Prep
+        private ICommand? _viewPrepCommand;
+        private bool _isPrepPanelVisible;
+        private MeetingPrepViewModel? _meetingPrepViewModel;
+
+        // Time field change tracking (for calendar sync - only push time if explicitly changed)
+        private DateTime _originalDate;
+        private TimeSpan _originalStartTime;
+        private TimeSpan _originalEndTime;
+        private bool _timeFieldsChangedByUser;
+
         #endregion
 
         #region Ctor
@@ -115,30 +127,92 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _teamMemberSearchText = _data.TeamMember.FullName;
             }
+
+            // If editing an existing meeting with calendar sync, refresh time from calendar first
+            if (!_inEditMode && _data?.Id > 0)
+            {
+                RefreshTimeFromCalendar();
+            }
+
+            // Store original time values for change detection
+            StoreOriginalTimeValues();
+        }
+
+        /// <summary>
+        /// Stores the current time values so we can detect if user explicitly changed them.
+        /// </summary>
+        private void StoreOriginalTimeValues()
+        {
+            if (_data != null)
+            {
+                _originalDate = _data.Date;
+                _originalStartTime = _data.StartTime;
+                _originalEndTime = _data.EndTime;
+                _timeFieldsChangedByUser = false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the user has changed any time fields since opening the dialog.
+        /// </summary>
+        public bool TimeFieldsChangedByUser => _timeFieldsChangedByUser;
+
+        /// <summary>
+        /// Refreshes the meeting time from the connected calendar (if synced).
+        /// Calendar is authoritative for time - this ensures we have the latest.
+        /// </summary>
+        private async void RefreshTimeFromCalendar()
+        {
+            if (_data == null) return;
+
+            // Check if meeting is synced to any calendar
+            bool hasSyncedCalendar = !string.IsNullOrEmpty(_data.CalendarEventId) || 
+                                     !string.IsNullOrEmpty(_data.GoogleCalendarEventId);
+
+            if (!hasSyncedCalendar) return;
+
+            try
+            {
+                var timeUpdated = await CalendarSyncManager.Instance.RefreshTimeFromCalendarAsync(_data);
+                
+                if (timeUpdated)
+                {
+                    // Update the UI with the new time values
+                    RaisePropertyChanged(nameof(Date));
+                    RaisePropertyChanged(nameof(StartTime));
+                    RaisePropertyChanged(nameof(EndTime));
+                    RaisePropertyChanged(nameof(StartTimeDateTime));
+                    RaisePropertyChanged(nameof(EndTimeDateTime));
+                    RaisePropertyChanged(nameof(DateDisplay));
+
+                    // Re-store original values after calendar refresh
+                    StoreOriginalTimeValues();
+
+                    NotificationManager.Instance.ShowInfo("Calendar Updated", 
+                        "Meeting time was updated from your calendar.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Failed to refresh time from calendar");
+            }
         }
 
         private async void LoadTemplates()
         {
             try
             {
-                var templates = await TrackerDbManager.Instance.GetMeetingTemplatesAsync();
-                _templates.Clear();
-                foreach (var template in templates)
-                {
-                    _templates.Add(template);
-                }
+                var templates = await TrackerDbManager.Instance.GetMeetingTemplatesAsync().ConfigureAwait(false);
 
                 // If no templates exist, create defaults
-                if (_templates.Count == 0)
+                if (templates.Count == 0)
                 {
-                    await TrackerDbManager.Instance.CreateDefaultTemplatesAsync();
-                    templates = await TrackerDbManager.Instance.GetMeetingTemplatesAsync();
-                    foreach (var template in templates)
-                    {
-                        _templates.Add(template);
-                    }
+                    await TrackerDbManager.Instance.CreateDefaultTemplatesAsync().ConfigureAwait(false);
+                    templates = await TrackerDbManager.Instance.GetMeetingTemplatesAsync().ConfigureAwait(false);
                 }
 
+                // Replace entire collection at once instead of Clear() + Add() loop
+                _templates = new ObservableCollection<MeetingTemplate>(templates);
                 RaisePropertyChanged(nameof(Templates));
             }
             catch
@@ -284,6 +358,117 @@ namespace Tracker.ViewModels.DialogViewModels
             _applyTemplateCommand ??= new TrackerCommand(ApplyTemplateExecuted, CanApplyTemplate);
 
         private bool CanApplyTemplate(object? obj) => SelectedTemplate != null && !_inEditMode;
+
+        // Meeting Prep Command
+        public ICommand ViewPrepCommand =>
+            _viewPrepCommand ??= new TrackerCommand(ViewPrepExecuted, CanViewPrep);
+
+        /// <summary>
+        /// Whether the meeting prep panel is visible.
+        /// </summary>
+        public bool IsPrepPanelVisible
+        {
+            get => _isPrepPanelVisible;
+            set
+            {
+                if (_isPrepPanelVisible != value)
+                {
+                    _isPrepPanelVisible = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// ViewModel for the meeting prep panel.
+        /// </summary>
+        public MeetingPrepViewModel? MeetingPrepViewModel
+        {
+            get => _meetingPrepViewModel;
+            set
+            {
+                if (_meetingPrepViewModel != value)
+                {
+                    _meetingPrepViewModel = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        private bool CanViewPrep(object? obj) => SelectedTeamMember != null && _data != null;
+
+        private void ViewPrepExecuted(object? parameter)
+        {
+            if (SelectedTeamMember == null || _data == null) return;
+
+            // Toggle the prep panel
+            if (IsPrepPanelVisible)
+            {
+                IsPrepPanelVisible = false;
+                return;
+            }
+
+            // Initialize and show the prep panel
+            MeetingPrepViewModel = new MeetingPrepViewModel();
+            MeetingPrepViewModel.Initialize(
+                _data,
+                onAgendaItemAdded: AddPrepItemToAgenda,
+                onClose: () => IsPrepPanelVisible = false);
+            
+            IsPrepPanelVisible = true;
+        }
+
+        private void AddPrepItemToAgenda(string itemText)
+        {
+            if (string.IsNullOrWhiteSpace(itemText)) return;
+
+            // Add to the Agenda property
+            var currentAgenda = AgendaMarkdown ?? string.Empty;
+            if (!string.IsNullOrEmpty(currentAgenda) && !currentAgenda.EndsWith("\n"))
+            {
+                currentAgenda += "\n";
+            }
+            AgendaMarkdown = currentAgenda + "- " + itemText + "\n";
+
+            _logger.Info("Added prep item to agenda: {0}", itemText);
+        }
+
+        /// <summary>
+        /// Whether the scheduling assistant control is visible.
+        /// </summary>
+        public bool IsSchedulingAssistantVisible
+        {
+            get => _isSchedulingAssistantVisible;
+            set
+            {
+                if (_isSchedulingAssistantVisible != value)
+                {
+                    _isSchedulingAssistantVisible = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+        private bool _isSchedulingAssistantVisible;
+
+        /// <summary>
+        /// Applies a selected time slot to the meeting.
+        /// </summary>
+        public void ApplySelectedTimeSlot(DateTime date, TimeSpan startTime, TimeSpan endTime)
+        {
+            if (_data == null) return;
+
+            _data.Date = date;
+            _data.StartTime = startTime;
+            _data.EndTime = endTime;
+            _data.Duration = endTime - startTime;
+
+            RaisePropertyChanged(nameof(Meeting));
+            RaisePropertyChanged(nameof(Date));
+            RaisePropertyChanged(nameof(StartTime));
+            RaisePropertyChanged(nameof(EndTime));
+            
+            _logger.Info("Applied selected time slot: {0} {1}-{2}", date.Date, startTime, endTime);
+        }
 
         // Quick Message Commands
         public ICommand SendMessageCommand =>
@@ -571,10 +756,15 @@ namespace Tracker.ViewModels.DialogViewModels
                 {
                     _data.TeamMember = value;
                     _teamMemberSearchText = value.FullName;
+                    
+                    // Clear filtered items to close the popup
+                    _filteredTeamMembers.Clear();
+                    
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(TeamMember));
                     RaisePropertyChanged(nameof(TeamMemberName));
                     RaisePropertyChanged(nameof(TeamMemberSearchText));
+                    RaisePropertyChanged(nameof(FilteredTeamMembers));
                     UpdateChangedValues(TrackerConstants.OneOnOneTeamMemberId, value.Id);
                     
                     // Load previous meeting for newly selected member
@@ -650,6 +840,12 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(DateDisplay));
                 UpdateChangedValues(TrackerConstants.OneOnOneDate, value);
+                
+                // Track if user changed time fields
+                if (value != _originalDate)
+                {
+                    _timeFieldsChangedByUser = true;
+                }
             }
         }
 
@@ -662,6 +858,12 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(StartTimeDateTime));
                 UpdateChangedValues(TrackerConstants.OneOnOneStartTime, _data.StartTime.ToString(@"hh\:mm\:ss"));
+                
+                // Track if user changed time fields
+                if (value != _originalStartTime)
+                {
+                    _timeFieldsChangedByUser = true;
+                }
             }
         }
 
@@ -674,6 +876,12 @@ namespace Tracker.ViewModels.DialogViewModels
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(EndTimeDateTime));
                 Duration = EndTime - StartTime;
+                
+                // Track if user changed time fields
+                if (value != _originalEndTime)
+                {
+                    _timeFieldsChangedByUser = true;
+                }
             }
         }
 
@@ -739,7 +947,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanExecuteAddOneOnOne(object? obj)
         {
-            if (_data.TeamMember.Id == 0) return false;
+            if (_data.TeamMember == null || _data.TeamMember.Id == 0) return false;
             return !string.IsNullOrEmpty(Description);
         }
 

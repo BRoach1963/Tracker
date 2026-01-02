@@ -21,6 +21,14 @@ namespace Tracker.Managers
         private List<ObjectiveKeyResult>? _okrs = new();
         private List<KeyPerformanceIndicator>? _kpis = new();
 
+        // Cache invalidation flags - track which caches need to be refreshed
+        private bool _teamMembersInvalidated = true;
+        private bool _oneOnOnesInvalidated = true;
+        private bool _projectsInvalidated = true;
+        private bool _tasksInvalidated = true;
+        private bool _okrsInvalidated = true;
+        private bool _kpisInvalidated = true;
+
         #endregion
 
         #region Singleton Instance
@@ -47,7 +55,15 @@ namespace Tracker.Managers
             _tasks?.Clear();
             _okrs?.Clear();
             _kpis?.Clear();
-            
+
+            // Reset invalidation flags
+            _teamMembersInvalidated = true;
+            _oneOnOnesInvalidated = true;
+            _projectsInvalidated = true;
+            _tasksInvalidated = true;
+            _okrsInvalidated = true;
+            _kpisInvalidated = true;
+
             _teamMembers = null;
             _oneOnOnes = null;
             _projects = null;
@@ -73,8 +89,12 @@ namespace Tracker.Managers
 
         public async Task<List<TeamMember>> GetTeamData()
         {
-            _teamMembers?.Clear();
-            _teamMembers = await TrackerDbManager.Instance!.GetTeamMembersAsync();
+            // Only refresh from database if cache is invalidated
+            if (_teamMembersInvalidated)
+            {
+                _teamMembers = await TrackerDbManager.Instance!.GetTeamMembersAsync();
+                _teamMembersInvalidated = false;
+            }
             return _teamMembers;
         }
 
@@ -85,7 +105,10 @@ namespace Tracker.Managers
             {
                 teamMember.Id = id;
                 _teamMembers?.Add(teamMember);
-                
+
+                // Mark cache as valid since we just added to it
+                _teamMembersInvalidated = false;
+
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.TeamMembers,
@@ -108,7 +131,10 @@ namespace Tracker.Managers
                     var index = _teamMembers!.IndexOf(existing);
                     _teamMembers[index] = teamMember;
                 }
-                
+
+                // Mark cache as valid since we just updated it
+                _teamMembersInvalidated = false;
+
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.TeamMembers,
@@ -124,7 +150,10 @@ namespace Tracker.Managers
             if (success)
             {
                 _teamMembers?.RemoveAll(t => t.Id == id);
-                
+
+                // Mark cache as valid since we just updated it
+                _teamMembersInvalidated = false;
+
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.TeamMembers,
@@ -140,8 +169,12 @@ namespace Tracker.Managers
 
         public async Task<List<OneOnOne>> GetOneOnOnes()
         {
-            _oneOnOnes?.Clear();
-            _oneOnOnes = await TrackerDbManager.Instance!.GetOneOnOnesAsync();
+            // Only refresh from database if cache is invalidated
+            if (_oneOnOnesInvalidated)
+            {
+                _oneOnOnes = await TrackerDbManager.Instance!.GetOneOnOnesAsync();
+                _oneOnOnesInvalidated = false;
+            }
             return _oneOnOnes;
         }
 
@@ -151,18 +184,21 @@ namespace Tracker.Managers
             if (id > 0)
             {
                 oneOnOne.Id = id;
-                
+
                 // If teamMemberId was provided, populate the TeamMember navigation property from cache
                 if (teamMemberId.HasValue && oneOnOne.TeamMember == null)
                 {
                     oneOnOne.TeamMember = _teamMembers?.FirstOrDefault(tm => tm.Id == teamMemberId.Value) ?? new TeamMember();
                 }
-                
+
                 _oneOnOnes?.Add(oneOnOne);
-                
+
+                // Mark cache as valid since we just added to it
+                _oneOnOnesInvalidated = false;
+
                 // Create meeting reminder if enabled
                 await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
-                
+
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.OneOnOnes,
@@ -179,7 +215,10 @@ namespace Tracker.Managers
             {
                 // Update meeting reminder if date/time changed
                 await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
-                
+
+                // Mark cache as valid since we just updated it
+                _oneOnOnesInvalidated = false;
+
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.OneOnOnes,
@@ -195,7 +234,10 @@ namespace Tracker.Managers
             if (success)
             {
                 _oneOnOnes?.RemoveAll(o => o.Id == id);
-                
+
+                // Mark cache as valid since we just updated it
+                _oneOnOnesInvalidated = false;
+
                 Messenger.Publish(new PropertyChangedMessage
                 {
                     ChangedProperty = PropertyChangedEnum.OneOnOnes,
@@ -211,8 +253,12 @@ namespace Tracker.Managers
 
         public async Task<List<Project>> GetProjects()
         {
-            _projects?.Clear();
-            _projects = await TrackerDbManager.Instance!.GetProjectsAsync();
+            // Only refresh from database if cache is invalidated
+            if (_projectsInvalidated)
+            {
+                _projects = await TrackerDbManager.Instance!.GetProjectsAsync();
+                _projectsInvalidated = false;
+            }
             return _projects;
         }
 
@@ -223,13 +269,37 @@ namespace Tracker.Managers
             {
                 project.ID = id;
                 _projects?.Add(project);
+
+                // Mark cache as valid since we just added to it
+                _projectsInvalidated = false;
             }
             return id;
         }
 
         public async Task<bool> UpdateProject(Project project)
         {
-            return await TrackerDbManager.Instance!.UpdateProjectAsync(project);
+            var success = await TrackerDbManager.Instance!.UpdateProjectAsync(project);
+            if (success)
+            {
+                // Update cache with the modified project
+                var existing = _projects?.FirstOrDefault(p => p.ID == project.ID);
+                if (existing != null)
+                {
+                    var index = _projects!.IndexOf(existing);
+                    _projects[index] = project;
+                }
+
+                // Mark cache as valid since we just updated it
+                _projectsInvalidated = false;
+
+                // Notify subscribers of the change
+                Messenger.Publish(new PropertyChangedMessage
+                {
+                    ChangedProperty = PropertyChangedEnum.Projects,
+                    RefreshData = true
+                });
+            }
+            return success;
         }
 
         public async Task<bool> DeleteProject(int id)
@@ -238,6 +308,9 @@ namespace Tracker.Managers
             if (success)
             {
                 _projects?.RemoveAll(p => p.ID == id);
+
+                // Mark cache as valid since we just updated it
+                _projectsInvalidated = false;
             }
             return success;
         }
@@ -248,29 +321,65 @@ namespace Tracker.Managers
 
         public async Task<List<IndividualTask>> GetTasks()
         {
-            _tasks?.Clear();
-            _tasks = await TrackerDbManager.Instance!.GetTasksAsync();
-            
-            // Populate meeting counts for each task
-            if (_tasks != null)
+            // Only refresh from database if cache is invalidated
+            if (_tasksInvalidated)
             {
-                foreach (var task in _tasks)
+                _tasks = await TrackerDbManager.Instance!.GetTasksAsync();
+
+                // Populate meeting counts for all tasks in a single batch query (prevents N+1 problem)
+                if (_tasks != null && _tasks.Count > 0)
                 {
-                    task.MeetingCount = await TrackerDbManager.Instance.GetTaskMeetingCountAsync(task.Id);
+                    var taskIds = _tasks.Select(t => t.Id).ToList();
+                    var meetingCounts = await TrackerDbManager.Instance.GetTaskMeetingCountsAsync(taskIds);
+
+                    foreach (var task in _tasks)
+                    {
+                        task.MeetingCount = meetingCounts.TryGetValue(task.Id, out var count) ? count : 0;
+                    }
                 }
+
+                _tasksInvalidated = false;
             }
-            
+
             return _tasks;
         }
 
         public async Task<int> AddTask(IndividualTask task)
         {
-            return await TrackerDbManager.Instance!.AddTaskAsync(task);
+            var id = await TrackerDbManager.Instance!.AddTaskAsync(task);
+            if (id > 0)
+            {
+                // Mark cache as invalid since we added a new task
+                // It will be refreshed on next GetTasks() call
+                _tasksInvalidated = true;
+            }
+            return id;
         }
 
         public async Task<bool> UpdateTask(IndividualTask task)
         {
-            return await TrackerDbManager.Instance!.UpdateTaskAsync(task);
+            var success = await TrackerDbManager.Instance!.UpdateTaskAsync(task);
+            if (success)
+            {
+                // Update cache with the modified task
+                var existing = _tasks?.FirstOrDefault(t => t.Id == task.Id);
+                if (existing != null)
+                {
+                    var index = _tasks!.IndexOf(existing);
+                    _tasks[index] = task;
+                }
+
+                // Mark cache as valid since we just updated it
+                _tasksInvalidated = false;
+
+                // Notify subscribers of the change
+                Messenger.Publish(new PropertyChangedMessage
+                {
+                    ChangedProperty = PropertyChangedEnum.Tasks,
+                    RefreshData = true
+                });
+            }
+            return success;
         }
 
         #endregion
@@ -279,29 +388,65 @@ namespace Tracker.Managers
 
         public async Task<List<ObjectiveKeyResult>> GetOKRs()
         {
-            _okrs?.Clear();
-            _okrs = await TrackerDbManager.Instance!.GetOKRsAsync();
-            
-            // Populate meeting counts for each OKR
-            if (_okrs != null)
+            // Only refresh from database if cache is invalidated
+            if (_okrsInvalidated)
             {
-                foreach (var okr in _okrs)
+                _okrs = await TrackerDbManager.Instance!.GetOKRsAsync();
+
+                // Populate meeting counts for all OKRs in a single batch query (prevents N+1 problem)
+                if (_okrs != null && _okrs.Count > 0)
                 {
-                    okr.MeetingCount = await TrackerDbManager.Instance.GetOkrMeetingCountAsync(okr.ObjectiveId);
+                    var okrIds = _okrs.Select(o => o.ObjectiveId).ToList();
+                    var meetingCounts = await TrackerDbManager.Instance.GetOkrMeetingCountsAsync(okrIds);
+
+                    foreach (var okr in _okrs)
+                    {
+                        okr.MeetingCount = meetingCounts.TryGetValue(okr.ObjectiveId, out var count) ? count : 0;
+                    }
                 }
+
+                _okrsInvalidated = false;
             }
-            
+
             return _okrs;
         }
 
         public async Task<int> AddOKR(ObjectiveKeyResult okr)
         {
-            return await TrackerDbManager.Instance!.AddOKRAsync(okr);
+            var id = await TrackerDbManager.Instance!.AddOKRAsync(okr);
+            if (id > 0)
+            {
+                // Mark cache as invalid since we added a new OKR
+                // It will be refreshed on next GetOKRs() call
+                _okrsInvalidated = true;
+            }
+            return id;
         }
 
         public async Task<bool> UpdateOKR(ObjectiveKeyResult okr)
         {
-            return await TrackerDbManager.Instance!.UpdateOKRAsync(okr);
+            var success = await TrackerDbManager.Instance!.UpdateOKRAsync(okr);
+            if (success)
+            {
+                // Update cache with the modified OKR
+                var existing = _okrs?.FirstOrDefault(o => o.ObjectiveId == okr.ObjectiveId);
+                if (existing != null)
+                {
+                    var index = _okrs!.IndexOf(existing);
+                    _okrs[index] = okr;
+                }
+
+                // Mark cache as valid since we just updated it
+                _okrsInvalidated = false;
+
+                // Notify subscribers of the change
+                Messenger.Publish(new PropertyChangedMessage
+                {
+                    ChangedProperty = PropertyChangedEnum.OKRs,
+                    RefreshData = true
+                });
+            }
+            return success;
         }
 
         #endregion
@@ -310,29 +455,65 @@ namespace Tracker.Managers
 
         public async Task<List<KeyPerformanceIndicator>> GetKPIs()
         {
-            _kpis?.Clear();
-            _kpis = await TrackerDbManager.Instance!.GetKPIsAsync();
-            
-            // Populate meeting counts for each KPI
-            if (_kpis != null)
+            // Only refresh from database if cache is invalidated
+            if (_kpisInvalidated)
             {
-                foreach (var kpi in _kpis)
+                _kpis = await TrackerDbManager.Instance!.GetKPIsAsync();
+
+                // Populate meeting counts for all KPIs in a single batch query (prevents N+1 problem)
+                if (_kpis != null && _kpis.Count > 0)
                 {
-                    kpi.MeetingCount = await TrackerDbManager.Instance.GetKpiMeetingCountAsync(kpi.KpiId);
+                    var kpiIds = _kpis.Select(k => k.KpiId).ToList();
+                    var meetingCounts = await TrackerDbManager.Instance.GetKpiMeetingCountsAsync(kpiIds);
+
+                    foreach (var kpi in _kpis)
+                    {
+                        kpi.MeetingCount = meetingCounts.TryGetValue(kpi.KpiId, out var count) ? count : 0;
+                    }
                 }
+
+                _kpisInvalidated = false;
             }
-            
+
             return _kpis;
         }
 
         public async Task<int> AddKPI(KeyPerformanceIndicator kpi)
         {
-            return await TrackerDbManager.Instance!.AddKPIAsync(kpi);
+            var id = await TrackerDbManager.Instance!.AddKPIAsync(kpi);
+            if (id > 0)
+            {
+                // Mark cache as invalid since we added a new KPI
+                // It will be refreshed on next GetKPIs() call
+                _kpisInvalidated = true;
+            }
+            return id;
         }
 
         public async Task<bool> UpdateKPI(KeyPerformanceIndicator kpi)
         {
-            return await TrackerDbManager.Instance!.UpdateKPIAsync(kpi);
+            var success = await TrackerDbManager.Instance!.UpdateKPIAsync(kpi);
+            if (success)
+            {
+                // Update cache with the modified KPI
+                var existing = _kpis?.FirstOrDefault(k => k.KpiId == kpi.KpiId);
+                if (existing != null)
+                {
+                    var index = _kpis!.IndexOf(existing);
+                    _kpis[index] = kpi;
+                }
+
+                // Mark cache as valid since we just updated it
+                _kpisInvalidated = false;
+
+                // Notify subscribers of the change
+                Messenger.Publish(new PropertyChangedMessage
+                {
+                    ChangedProperty = PropertyChangedEnum.KPIs,
+                    RefreshData = true
+                });
+            }
+            return success;
         }
 
         #endregion

@@ -3,6 +3,47 @@
   "version": "2.0",
   "sections": [
     {
+      "title": "Concepts",
+      "folder": "concepts",
+      "items": [
+        {
+          "title": "Understanding OKRs",
+          "file": "okrs-explained.md",
+          "description": "Complete guide to Objectives and Key Results"
+        },
+        {
+          "title": "Understanding Key Results",
+          "file": "key-results-explained.md",
+          "description": "How to define and measure Key Results"
+        },
+        {
+          "title": "Understanding KPIs",
+          "file": "kpis-explained.md",
+          "description": "Complete guide to Key Performance Indicators"
+        },
+        {
+          "title": "Setting Effective Goals",
+          "file": "goal-setting.md",
+          "description": "SMART goals and development planning"
+        },
+        {
+          "title": "Effective 1:1 Meetings",
+          "file": "one-on-ones-guide.md",
+          "description": "Running meaningful one-on-one conversations"
+        },
+        {
+          "title": "Giving Effective Feedback",
+          "file": "giving-feedback.md",
+          "description": "How to deliver feedback that helps people grow"
+        },
+        {
+          "title": "Proactive Team Management",
+          "file": "proactive-management.md",
+          "description": "Anticipating issues before they become problems"
+        }
+      ]
+    },
+    {
       "title": "Account",
       "folder": "account",
       "items": [
@@ -109,6 +150,11 @@
           "description": "Recording and tracking feedback"
         },
         {
+          "title": "Kudos & Recognition",
+          "file": "kudos.md",
+          "description": "Send recognition to team members via Teams or Slack"
+        },
+        {
           "title": "Quick Notes",
           "file": "quick-notes.md",
           "description": "Fast capture for thoughts and ideas"
@@ -122,6 +168,11 @@
           "title": "Oracle - AI Assistant",
           "file": "ai-help-bot.md",
           "description": "Your intelligent AI assistant with actions and semantic search"
+        },
+        {
+          "title": "Proactive AI Insights",
+          "file": "insights.md",
+          "description": "Smart alerts for meeting gaps, birthdays, anniversaries, and stale tasks"
         },
         {
           "title": "Settings",
@@ -180,6 +231,11 @@
           "description": "Recording feedback"
         },
         {
+          "title": "Daily Briefing",
+          "file": "daily-briefing.md",
+          "description": "Your daily startup summary of insights and tasks"
+        },
+        {
           "title": "Settings",
           "file": "settings.md",
           "description": "Application settings dialog"
@@ -204,8 +260,8 @@
     }
   ],
   "metadata": {
-    "lastUpdated": "2025-12-15",
-    "totalArticles": 28,
-    "categories": 5
+    "lastUpdated": "2025-12-27",
+    "totalArticles": 35,
+    "categories": 6
   }
 }

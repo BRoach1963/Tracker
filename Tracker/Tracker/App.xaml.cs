@@ -101,6 +101,14 @@ namespace Tracker
             // Close all active toast notifications before shutdown
             NotificationManager.Instance.CloseAllToasts();
             
+            // Dispose AI services (prevent file locking)
+            try
+            {
+                Services.AI.Insights.InsightEngine.Instance?.Dispose();
+                Services.AI.Insights.InsightStore.Instance?.Dispose();
+            }
+            catch { /* Ignore disposal errors during shutdown */ }
+            
             UserSettingsManager.Instance.Shutdown();
             LoggingManager.Instance.Shutdown();
             TrackerDataManager.Instance.Shutdown();
@@ -571,6 +579,40 @@ namespace Tracker
                 LoggingManager.GetComponentLogger("App").Warn("Help system initialization failed: {0}", ex.Message);
             }
             await Task.Delay(100);
+
+            // Stage 3.55: Initialize AI Insights engine
+            _splashScreen?.UpdateStatus("Initializing insights...");
+            _splashScreen?.UpdateProgress(82);
+            try
+            {
+                var insightSettings = UserSettingsManager.Instance?.Settings?.Insights;
+                if (insightSettings?.IsEnabled ?? true)
+                {
+                    await Services.AI.Insights.InsightEngine.Instance.InitializeAsync();
+                    
+                    // Run initial analysis in background (don't block startup)
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Services.AI.Insights.InsightEngine.Instance.RunAnalyzersAsync();
+                            // Start periodic analysis
+                            var intervalHours = insightSettings?.AnalysisIntervalHours ?? 4;
+                            Services.AI.Insights.InsightEngine.Instance.StartPeriodicAnalysis(intervalHours);
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggingManager.GetComponentLogger("App").Warn("Insight analysis failed: {0}", ex.Message);
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Insight engine failure is non-fatal
+                LoggingManager.GetComponentLogger("App").Warn("Insight engine initialization failed: {0}", ex.Message);
+            }
+            await Task.Delay(50);
 
             // Stage 3.6: Initialize cloud services
             _splashScreen?.UpdateStatus("Connecting to cloud services...");

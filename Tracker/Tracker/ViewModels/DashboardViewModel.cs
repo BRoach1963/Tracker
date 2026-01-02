@@ -15,6 +15,7 @@ using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services.Analytics;
 
 namespace Tracker.ViewModels
 {
@@ -73,6 +74,7 @@ namespace Tracker.ViewModels
         private ObservableCollection<AgendaItem> _recentConcerns = new();
         private ObservableCollection<IndividualGoal> _goalsDueSoon = new();
         private ObservableCollection<TeamHealthRow> _teamHealthRows = new();
+        private ObservableCollection<TrajectoryAlertItem> _atRiskTrajectoryItems = new();
 
         private ICommand? _refreshCommand;
         private ICommand? _newOneOnOneCommand;
@@ -90,8 +92,9 @@ namespace Tracker.ViewModels
         public DashboardViewModel()
         {
             InitializeCharts();
-            LoadData();
-            
+            // Don't load data in constructor - wait for Loaded event
+            // Data will be loaded asynchronously to avoid blocking UI
+
             // Subscribe to data change messages
             DataMessenger.Register(this, OnDataChanged);
         }
@@ -241,6 +244,18 @@ namespace Tracker.ViewModels
 
         #endregion
 
+        #region Properties - Trajectory Alerts
+
+        public ObservableCollection<TrajectoryAlertItem> AtRiskTrajectoryItems
+        {
+            get => _atRiskTrajectoryItems;
+            set { _atRiskTrajectoryItems = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasAtRiskItems)); }
+        }
+
+        public bool HasAtRiskItems => AtRiskTrajectoryItems.Count > 0;
+
+        #endregion
+
         #region Properties - Team Health Table
 
         public ObservableCollection<TeamHealthRow> TeamHealthRows
@@ -384,7 +399,11 @@ namespace Tracker.ViewModels
             KpiStatusSeries = new SeriesCollection();
         }
 
-        private async void LoadData()
+        /// <summary>
+        /// Initializes the dashboard by loading data asynchronously.
+        /// Call this from the View's Loaded event, not from the constructor.
+        /// </summary>
+        public async Task InitializeAsync()
         {
             await RefreshDataAsync();
         }
@@ -394,31 +413,47 @@ namespace Tracker.ViewModels
             _logger.Debug("RefreshDataAsync started");
             try
             {
-                _teamMembers = new ObservableCollection<TeamMember>(await TrackerDataManager.Instance.GetTeamData());
-                _oneOnOnes = new ObservableCollection<OneOnOne>(await TrackerDataManager.Instance.GetOneOnOnes());
-                _tasks = new ObservableCollection<IndividualTask>(await TrackerDataManager.Instance.GetTasks());
-                _okrs = new ObservableCollection<ObjectiveKeyResult>(await TrackerDataManager.Instance.GetOKRs());
-                _kpis = new ObservableCollection<KeyPerformanceIndicator>(await TrackerDataManager.Instance.GetKPIs());
-                _projects = new ObservableCollection<Project>(await TrackerDataManager.Instance.GetProjects());
-                _feedbacks = new ObservableCollection<Feedback>(await TrackerDataManager.Instance.GetFeedbacks());
-                
+                // Load all data in parallel
+                var teamTask = TrackerDataManager.Instance.GetTeamData();
+                var oneOnOnesTask = TrackerDataManager.Instance.GetOneOnOnes();
+                var tasksTask = TrackerDataManager.Instance.GetTasks();
+                var okrsTask = TrackerDataManager.Instance.GetOKRs();
+                var kpisTask = TrackerDataManager.Instance.GetKPIs();
+                var projectsTask = TrackerDataManager.Instance.GetProjects();
+                var feedbacksTask = TrackerDataManager.Instance.GetFeedbacks();
+                var goalsTask = TrackerDataManager.Instance.GetGoals();
+
+                await Task.WhenAll(teamTask, oneOnOnesTask, tasksTask, okrsTask, kpisTask, projectsTask, feedbacksTask, goalsTask).ConfigureAwait(false);
+
+                // Update collections
+                _teamMembers = new ObservableCollection<TeamMember>(await teamTask);
+                _oneOnOnes = new ObservableCollection<OneOnOne>(await oneOnOnesTask);
+                _tasks = new ObservableCollection<IndividualTask>(await tasksTask);
+                _okrs = new ObservableCollection<ObjectiveKeyResult>(await okrsTask);
+                _kpis = new ObservableCollection<KeyPerformanceIndicator>(await kpisTask);
+                _projects = new ObservableCollection<Project>(await projectsTask);
+                _feedbacks = new ObservableCollection<Feedback>(await feedbacksTask);
+
                 // Try to load goals if available
                 try
                 {
-                    _goals = new ObservableCollection<IndividualGoal>(await TrackerDataManager.Instance.GetGoals());
+                    _goals = new ObservableCollection<IndividualGoal>(await goalsTask);
                 }
                 catch
                 {
                     _goals = new ObservableCollection<IndividualGoal>();
                 }
 
-                _logger.Info("Dashboard data refreshed: {0} team members, {1} tasks, {2} OKRs", 
+                _logger.Info("Dashboard data refreshed: {0} team members, {1} tasks, {2} OKRs",
                     _teamMembers.Count, _tasks.Count, _okrs.Count);
 
                 UpdateManagerMetrics();
                 UpdateTeamHealthTable();
                 UpdateCharts();
                 
+                // Load trajectory alerts (fire and forget for non-blocking UI)
+                _ = LoadTrajectoryAlertsAsync();
+
                 _logger.Debug("RefreshDataAsync completed");
             }
             catch (Exception ex)
@@ -614,6 +649,8 @@ namespace Tracker.ViewModels
                 healthRows.Add(new TeamHealthRow
                 {
                     FullName = member.FullName,
+                    Initials = member.Initials,
+                    ProfileImage = member.ProfileImage,
                     PresenceEmoji = member.CombinedPresenceEmoji,
                     PresenceDisplay = member.CombinedPresenceDisplay,
                     LastMeetingDisplay = daysSince == 999 ? "Never" : daysSince == 0 ? "Today" : daysSince == 1 ? "1d ago" : $"{daysSince}d ago",
@@ -733,9 +770,11 @@ namespace Tracker.ViewModels
             };
         }
 
-        private void ExecuteRefresh(object? parameter)
+        private async void ExecuteRefresh(object? parameter)
         {
-            _ = RefreshDataAsync();
+            // Note: This is a command handler, so async void is acceptable here
+            // The command framework handles the async operation
+            await RefreshDataAsync();
         }
 
         private void ExecuteNewOneOnOne(object? parameter)
@@ -746,7 +785,122 @@ namespace Tracker.ViewModels
             });
         }
 
+        private async Task LoadTrajectoryAlertsAsync()
+        {
+            try
+            {
+                var alerts = new List<TrajectoryAlertItem>();
+                var analyticsService = PredictiveAnalyticsService.Instance;
+
+                // Check OKRs for at-risk trajectories
+                var activeOkrs = _okrs.Where(o => !o.IsDeleted).Take(10).ToList();
+                foreach (var okr in activeOkrs)
+                {
+                    try
+                    {
+                        var prediction = await analyticsService.AnalyzeOkrAsync(
+                            okr.ObjectiveId,
+                            okr.Title,
+                            okr.StartDate,
+                            okr.EndDate);
+
+                        if (prediction.IsValid && prediction.Trajectory != null)
+                        {
+                            if (prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.Critical ||
+                                prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.AtRisk)
+                            {
+                                alerts.Add(new TrajectoryAlertItem
+                                {
+                                    Title = okr.Title,
+                                    EntityType = "OKR",
+                                    RiskLevel = prediction.Trajectory.Risk,
+                                    TrendDirection = prediction.Trend?.Direction ?? TrendAnalyzer.TrendDirection.Stable
+                                });
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Skip items without sufficient data
+                    }
+                }
+
+                // Check KPIs for at-risk trajectories
+                var activeKpis = _kpis.Where(k => !k.IsDeleted).Take(10).ToList();
+                foreach (var kpi in activeKpis)
+                {
+                    try
+                    {
+                        var prediction = await analyticsService.AnalyzeKpiAsync(
+                            kpi.KpiId,
+                            kpi.Name,
+                            null, // KPIs typically don't have a target date
+                            kpi.TargetValue);
+
+                        if (prediction.IsValid && prediction.Trajectory != null)
+                        {
+                            if (prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.Critical ||
+                                prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.AtRisk)
+                            {
+                                alerts.Add(new TrajectoryAlertItem
+                                {
+                                    Title = kpi.Name,
+                                    EntityType = "KPI",
+                                    RiskLevel = prediction.Trajectory.Risk,
+                                    TrendDirection = prediction.Trend?.Direction ?? TrendAnalyzer.TrendDirection.Stable
+                                });
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Skip items without sufficient data
+                    }
+                }
+
+                // Update UI on dispatcher thread
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    AtRiskTrajectoryItems = new ObservableCollection<TrajectoryAlertItem>(
+                        alerts.OrderByDescending(a => a.RiskLevel == TrajectoryPredictor.RiskLevel.Critical)
+                              .ThenBy(a => a.Title)
+                              .Take(5));
+                });
+
+                _logger.Debug("Loaded {0} trajectory alerts", alerts.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Error loading trajectory alerts: {0}", ex.Message);
+            }
+        }
+
         #endregion
+    }
+
+    /// <summary>
+    /// Represents an at-risk item for the trajectory alerts panel.
+    /// </summary>
+    public class TrajectoryAlertItem
+    {
+        private static readonly Brush CriticalBrush = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+        private static readonly Brush AtRiskBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
+
+        public string Title { get; set; } = string.Empty;
+        public string EntityType { get; set; } = string.Empty;
+        public TrajectoryPredictor.RiskLevel RiskLevel { get; set; }
+        public TrendAnalyzer.TrendDirection TrendDirection { get; set; }
+
+        public Brush RiskColor => RiskLevel == TrajectoryPredictor.RiskLevel.Critical ? CriticalBrush : AtRiskBrush;
+        
+        public string TrendText => TrendDirection switch
+        {
+            TrendAnalyzer.TrendDirection.Declining => "↓ Declining",
+            TrendAnalyzer.TrendDirection.Stable => "→ Stalled",
+            TrendAnalyzer.TrendDirection.Improving => "↑ Improving",
+            TrendAnalyzer.TrendDirection.Insufficient => "? Data",
+            _ => ""
+        };
     }
 
     /// <summary>
@@ -766,6 +920,8 @@ namespace Tracker.ViewModels
     public class TeamHealthRow
     {
         public string FullName { get; set; } = string.Empty;
+        public string Initials { get; set; } = string.Empty;
+        public byte[] ProfileImage { get; set; } = Array.Empty<byte>();
         public string PresenceEmoji { get; set; } = "⚪";
         public string PresenceDisplay { get; set; } = "Unknown";
         public string LastMeetingDisplay { get; set; } = "—";

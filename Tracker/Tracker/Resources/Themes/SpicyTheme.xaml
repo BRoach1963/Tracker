@@ -38,5 +38,25 @@
     <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="#EF4444"/>
     <SolidColorBrush x:Key="DataGridHeaderForegroundBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="DataGridRowAlternateBrush" Color="#FFF5F5"/>
+    
+    <!-- Status Indicator Brushes -->
+    <SolidColorBrush x:Key="StatusDefaultBrush" Color="#64748B"/>
+    <SolidColorBrush x:Key="StatusOnTrackBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="StatusAtRiskBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="StatusOffTrackBrush" Color="#EF4444"/>
+    
+    <!-- Semantic Colors -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#3B82F6"/>
+    
+    <!-- Danger Button -->
+    <SolidColorBrush x:Key="DangerButtonBackgroundBrush" Color="#7F1D1D"/>
+    <SolidColorBrush x:Key="DangerButtonHoverBrush" Color="#991B1B"/>
+    <SolidColorBrush x:Key="DangerButtonForegroundBrush" Color="#FFFFFF"/>
+    
+    <!-- Warning Background (for alert boxes) -->
+    <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#2D1F00"/>
 </ResourceDictionary>
 

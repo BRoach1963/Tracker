@@ -1,9 +1,11 @@
 using System.IO;
 using System.Text;
 using Tracker.Database;
+using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services.AI;
+using Tracker.Services.Analytics;
 
 namespace Tracker.Services
 {
@@ -219,6 +221,18 @@ namespace Tracker.Services
 - Goals: individual development goals
 - Feedback: performance feedback records
 
+PREDICTIVE ANALYTICS CAPABILITIES:
+You have access to trajectory predictions for OKRs, KPIs, Goals, and Projects. Use this data to:
+- Alert users about items at risk of missing deadlines
+- Recommend actions when trends are declining
+- Celebrate improving trends and on-track progress
+- Provide data-driven coaching suggestions
+
+When discussing predictions:
+- Explain confidence levels (High/Medium/Low/Insufficient data)
+- Note that predictions improve with more historical data
+- Suggest checking trajectory charts in the app for visual analysis
+
 IMPORTANT - Current Date/Time Context:
 - Today is {today:dddd, MMMM d, yyyy} at {today:h:mm tt}
 - When users say ""next Tuesday"", ""tomorrow"", etc., YOU must calculate the actual date
@@ -258,6 +272,10 @@ Be concise and helpful. Reference the user's actual data when relevant.";
                 // OKRs Summary
                 sb.AppendLine("\n## Current OKRs");
                 await AppendOkrsSummary(sb);
+
+                // OKR Trajectory Predictions
+                sb.AppendLine("\n## OKR Trajectory Predictions");
+                await AppendOkrPredictionsSummary(sb);
 
                 // KPIs Summary
                 sb.AppendLine("\n## KPI Status");
@@ -418,6 +436,71 @@ Be concise and helpful. Reference the user's actual data when relevant.";
             catch (Exception ex)
             {
                 _logger.Warn("Error loading OKRs: {0}", ex.Message);
+            }
+        }
+
+        private async Task AppendOkrPredictionsSummary(StringBuilder sb)
+        {
+            try
+            {
+                var analyticsService = PredictiveAnalyticsService.Instance;
+                var okrs = await TrackerDataManager.Instance.GetOKRs();
+                var activeOkrs = okrs.Where(o => !o.IsDeleted).Take(5).ToList();
+
+                if (!activeOkrs.Any())
+                {
+                    sb.AppendLine("  No active OKRs to analyze.");
+                    return;
+                }
+
+                var predictionsAdded = 0;
+                foreach (var okr in activeOkrs)
+                {
+                    try
+                    {
+                        var prediction = await analyticsService.AnalyzeOkrAsync(
+                            okr.ObjectiveId, 
+                            okr.Title,
+                            okr.StartDate,
+                            okr.EndDate);
+
+                        if (prediction.IsValid && prediction.Trajectory != null)
+                        {
+                            var risk = prediction.Trajectory.Risk.ToString();
+                            var trend = prediction.Trend?.Direction.ToString() ?? "Unknown";
+                            var predictedDate = prediction.Trajectory.PredictedCompletionDate?.ToString("MMM d, yyyy") ?? "N/A";
+                            var confidence = prediction.DataSufficiency?.Confidence.ToString() ?? "Unknown";
+
+                            sb.AppendLine($"  - {okr.Title}:");
+                            sb.AppendLine($"      Risk: {risk}, Trend: {trend}");
+                            sb.AppendLine($"      Predicted completion: {predictedDate} (Confidence: {confidence})");
+                            
+                            if (prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.Critical)
+                            {
+                                sb.AppendLine($"      ⚠️ CRITICAL: This OKR may not meet its target deadline");
+                            }
+                            else if (prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.AtRisk)
+                            {
+                                sb.AppendLine($"      ⚡ AT RISK: Progress is slower than expected");
+                            }
+
+                            predictionsAdded++;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip OKRs without sufficient data
+                    }
+                }
+
+                if (predictionsAdded == 0)
+                {
+                    sb.AppendLine("  Not enough historical data for predictions yet. Predictions will be available after a few days of progress tracking.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Error loading OKR predictions: {0}", ex.Message);
             }
         }
 

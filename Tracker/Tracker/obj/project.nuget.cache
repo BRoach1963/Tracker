@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ZKnf5w41NDA=",
+  "dgSpecHash": "4swCpWaykV0=",
   "success": true,
-  "projectFilePath": "c:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Tracker.csproj",
+  "projectFilePath": "C:\\Users\\vbpro\\source\\repos\\Tracker\\Tracker\\Tracker\\Tracker.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\vbpro\\.nuget\\packages\\azure.core\\1.39.0\\azure.core.1.39.0.nupkg.sha512",
     "C:\\Users\\vbpro\\.nuget\\packages\\azure.identity\\1.7.0\\azure.identity.1.7.0.nupkg.sha512",
@@ -139,7 +139,13 @@
     "C:\\Users\\vbpro\\.nuget\\packages\\system.valuetuple\\4.5.0\\system.valuetuple.4.5.0.nupkg.sha512",
     "C:\\Users\\vbpro\\.nuget\\packages\\system.windows.extensions\\6.0.0\\system.windows.extensions.6.0.0.nupkg.sha512",
     "C:\\Users\\vbpro\\.nuget\\packages\\websocket.client\\5.1.1\\websocket.client.5.1.1.nupkg.sha512",
-    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.17763.57\\microsoft.windows.sdk.net.ref.10.0.17763.57.nupkg.sha512"
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x86\\8.0.14\\microsoft.netcore.app.runtime.win-x86.8.0.14.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.17763.57\\microsoft.windows.sdk.net.ref.10.0.17763.57.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x86\\8.0.14\\microsoft.aspnetcore.app.runtime.win-x86.8.0.14.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.14\\microsoft.aspnetcore.app.runtime.win-x64.8.0.14.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.14\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.14.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.14\\microsoft.netcore.app.runtime.win-x64.8.0.14.nupkg.sha512",
+    "C:\\Users\\vbpro\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.14\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.14.nupkg.sha512"
   ],
   "logs": []
 }

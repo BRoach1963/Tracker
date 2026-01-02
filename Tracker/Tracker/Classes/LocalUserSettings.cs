@@ -61,6 +61,26 @@ namespace Tracker.Classes
         /// Slack integration settings.
         /// </summary>
         public SlackSettings Slack { get; set; } = new();
+
+        /// <summary>
+        /// Kudos/Recognition integration settings.
+        /// </summary>
+        public KudosSettings Kudos { get; set; } = new();
+
+        /// <summary>
+        /// Proactive AI Insights settings.
+        /// </summary>
+        public InsightSettings Insights { get; set; } = new();
+
+        /// <summary>
+        /// Predictive Analytics settings.
+        /// </summary>
+        public PredictiveAnalyticsSettings PredictiveAnalytics { get; set; } = new();
+
+        /// <summary>
+        /// Meeting Prep auto-generation settings.
+        /// </summary>
+        public MeetingPrepSettings MeetingPrep { get; set; } = new();
     }
 
     /// <summary>
@@ -183,6 +203,12 @@ namespace Tracker.Classes
         /// Whether to enforce the budget limit (disable AI when exceeded).
         /// </summary>
         public bool EnforceBudgetLimit { get; set; } = true;
+
+        /// <summary>
+        /// The selected AI provider (Gemini, OpenAI, Anthropic).
+        /// Stored as string for JSON serialization.
+        /// </summary>
+        public string SelectedProvider { get; set; } = "Gemini";
     }
 
     /// <summary>
@@ -300,6 +326,12 @@ namespace Tracker.Classes
         public bool IsConnected { get; set; } = false;
 
         /// <summary>
+        /// Bot token obtained via OAuth for this workspace.
+        /// Each customer gets their own token when they connect.
+        /// </summary>
+        public string? BotToken { get; set; }
+
+        /// <summary>
         /// Whether Slack messaging is enabled.
         /// </summary>
         public bool MessagingEnabled { get; set; } = true;
@@ -333,5 +365,199 @@ namespace Tracker.Classes
         /// Connected user's email on Slack.
         /// </summary>
         public string? UserEmail { get; set; }
+    }
+
+    /// <summary>
+    /// Kudos/Recognition integration settings.
+    /// </summary>
+    public class KudosSettings
+    {
+        /// <summary>
+        /// Microsoft Teams incoming webhook URL for kudos delivery.
+        /// </summary>
+        public string? TeamsWebhookUrl { get; set; }
+
+        /// <summary>
+        /// Optional Slack channel ID for public kudos.
+        /// </summary>
+        public string? SlackKudosChannelId { get; set; }
+
+        /// <summary>
+        /// Whether to include kudos in meeting prep materials by default.
+        /// </summary>
+        public bool MentionInMeetingPrepByDefault { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Proactive AI Insights settings.
+    /// </summary>
+    public class InsightSettings
+    {
+        /// <summary>
+        /// Whether proactive insights are enabled.
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Whether to show daily briefing on app startup.
+        /// </summary>
+        public bool ShowDailyBriefingOnStartup { get; set; } = true;
+
+        /// <summary>
+        /// Days without a 1:1 before generating a warning.
+        /// </summary>
+        public int MeetingGapWarningDays { get; set; } = 14;
+
+        /// <summary>
+        /// Days without a 1:1 before generating a critical alert.
+        /// </summary>
+        public int MeetingGapCriticalDays { get; set; } = 21;
+
+        /// <summary>
+        /// Days before an action item is considered stale.
+        /// </summary>
+        public int ActionItemStaleDays { get; set; } = 14;
+
+        /// <summary>
+        /// Days ahead to look for upcoming birthdays.
+        /// </summary>
+        public int BirthdayLookAheadDays { get; set; } = 7;
+
+        /// <summary>
+        /// Days ahead to look for upcoming work anniversaries.
+        /// </summary>
+        public int AnniversaryLookAheadDays { get; set; } = 7;
+
+        /// <summary>
+        /// Survey rating threshold (at or below) to generate an alert.
+        /// </summary>
+        public int LowSurveyRatingThreshold { get; set; } = 3;
+
+        /// <summary>
+        /// Whether to generate AI-powered summary (costs API credits).
+        /// </summary>
+        public bool EnableAiSummary { get; set; } = false;
+
+        /// <summary>
+        /// Hours between automatic analysis runs.
+        /// </summary>
+        public int AnalysisIntervalHours { get; set; } = 4;
+    }
+
+    /// <summary>
+    /// Settings for Predictive Analytics features.
+    /// </summary>
+    public class PredictiveAnalyticsSettings
+    {
+        /// <summary>
+        /// Whether predictive analytics features are enabled.
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Whether to show trajectory charts in detail views.
+        /// </summary>
+        public bool ShowTrajectoryCharts { get; set; } = true;
+
+        /// <summary>
+        /// Whether to show confidence intervals in predictions.
+        /// </summary>
+        public bool ShowConfidenceIntervals { get; set; } = true;
+
+        /// <summary>
+        /// Whether to enable what-if scenario simulations.
+        /// </summary>
+        public bool EnableWhatIfScenarios { get; set; } = true;
+
+        /// <summary>
+        /// Whether to show AI-generated recommendations.
+        /// </summary>
+        public bool ShowRecommendations { get; set; } = true;
+
+        /// <summary>
+        /// Minimum data points required before showing predictions.
+        /// </summary>
+        public int MinDataPointsForPrediction { get; set; } = 5;
+
+        /// <summary>
+        /// How many days of history to retain for analytics.
+        /// </summary>
+        public int HistoryRetentionDays { get; set; } = 365;
+
+        /// <summary>
+        /// How often to capture progress snapshots.
+        /// </summary>
+        public SnapshotFrequency SnapshotFrequency { get; set; } = SnapshotFrequency.Daily;
+    }
+
+    /// <summary>
+    /// Frequency for capturing progress snapshots.
+    /// </summary>
+    public enum SnapshotFrequency
+    {
+        Daily,
+        Weekly,
+        Manual
+    }
+
+    /// <summary>
+    /// Settings for automatic meeting prep generation.
+    /// </summary>
+    public class MeetingPrepSettings
+    {
+        /// <summary>
+        /// Whether meeting prep auto-generation is enabled.
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Whether to automatically show prep when opening a meeting.
+        /// </summary>
+        public bool AutoShowOnMeetingOpen { get; set; } = true;
+
+        /// <summary>
+        /// Whether to enable AI-generated agenda suggestions.
+        /// </summary>
+        public bool EnableAiSuggestions { get; set; } = false;
+
+        /// <summary>
+        /// Maximum days to look back for overdue tasks.
+        /// </summary>
+        public int ShowOverdueTasksMaxDays { get; set; } = 30;
+
+        /// <summary>
+        /// Whether to show completed action items from last meeting.
+        /// </summary>
+        public bool ShowCompletedActionItems { get; set; } = false;
+
+        /// <summary>
+        /// Whether to include survey responses in prep.
+        /// </summary>
+        public bool IncludeSurveyResponses { get; set; } = true;
+
+        /// <summary>
+        /// Days to look back for survey responses.
+        /// </summary>
+        public int SurveyLookbackDays { get; set; } = 30;
+
+        /// <summary>
+        /// Maximum items to show per section.
+        /// </summary>
+        public int MaxItemsPerSection { get; set; } = 5;
+
+        /// <summary>
+        /// Days ahead to check for birthdays.
+        /// </summary>
+        public int BirthdayLookAheadDays { get; set; } = 7;
+
+        /// <summary>
+        /// Days ahead to check for work anniversaries.
+        /// </summary>
+        public int AnniversaryLookAheadDays { get; set; } = 7;
+
+        /// <summary>
+        /// Days to look back for recent feedback.
+        /// </summary>
+        public int FeedbackLookbackDays { get; set; } = 30;
     }
 }

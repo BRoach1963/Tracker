@@ -54,7 +54,7 @@
                            Visibility="Collapsed"/>
                 
                 <!-- 30-day notice -->
-                <Border Background="#2D1F00"
+                <Border Background="{DynamicResource WarningBackgroundBrush}"
                         CornerRadius="6"
                         Padding="12"
                         Margin="0,16,0,0">
@@ -62,12 +62,12 @@
                         <Path Data="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"
                               Width="16" Height="16"
                               Stretch="Uniform"
-                              Fill="#F59E0B"
+                              Fill="{DynamicResource WarningBrush}"
                               Margin="0,0,10,0"
                               VerticalAlignment="Top"/>
                         <TextBlock Text="Promotional codes provide 30 days of Pro access. After the trial period, you'll need to subscribe to continue using Pro features."
                                    FontSize="11"
-                                   Foreground="#F59E0B"
+                                   Foreground="{DynamicResource WarningBrush}"
                                    TextWrapping="Wrap"
                                    MaxWidth="280"/>
                     </StackPanel>

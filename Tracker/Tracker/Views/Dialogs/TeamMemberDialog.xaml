@@ -412,18 +412,30 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         
-                        <!-- Left: Quick Message button (when M365 connected) -->
-                        <Button Grid.Column="0"
-                                Style="{StaticResource DialogSecondaryButtonStyle}"
-                                Command="{Binding SendMessageCommand}"
-                                ToolTip="Send a quick Teams message or email"
-                                Visibility="{Binding CanShowMessaging, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
-                                Padding="12,8">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="💬" Margin="0,0,6,0"/>
-                                <TextBlock Text="Send Message"/>
-                            </StackPanel>
-                        </Button>
+                        <!-- Left: Quick Message and Kudos buttons -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Button Style="{StaticResource DialogSecondaryButtonStyle}"
+                                    Command="{Binding SendMessageCommand}"
+                                    ToolTip="Send a quick Teams message or email"
+                                    Visibility="{Binding CanShowMessaging, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                    Padding="12,8"
+                                    Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="💬" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Send Message"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource DialogSecondaryButtonStyle}"
+                                    Command="{Binding SendKudosCommand}"
+                                    ToolTip="Send recognition to this team member via Teams or Slack"
+                                    Visibility="{Binding InEditMode, Converter={x:Static converters:BoolToVisibilityConverter.Instance}}"
+                                    Padding="12,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🌟" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Send Kudos"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                         
                         <!-- Right: Action buttons -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">

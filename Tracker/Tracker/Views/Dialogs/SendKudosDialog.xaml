@@ -1,0 +1,280 @@
+<controls:BaseWindow x:Class="Tracker.Views.Dialogs.SendKudosDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Tracker.Controls"
+        xmlns:viewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+        xmlns:enums="clr-namespace:Tracker.Common.Enums"
+        xmlns:converters="clr-namespace:Tracker.Common.Converters"
+        mc:Ignorable="d"
+        Title="Send Kudos"
+        Height="700"
+        Width="550"
+        MinHeight="600"
+        MinWidth="500"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip"
+        d:DataContext="{d:DesignInstance Type=viewModels:SendKudosViewModel}">
+
+    <controls:BaseWindow.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:ReverseBoolToVisConverter x:Key="InverseBoolToVisibilityConverter"/>
+    </controls:BaseWindow.Resources>
+
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderBrush="{DynamicResource AccentBrush}"
+            BorderThickness="2"
+            CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource AccentBrush}"
+                    CornerRadius="10,10,0,0"
+                    Padding="16,12"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="🎉 Send Kudos"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BackgroundBrush}"/>
+                        <TextBlock Text="Recognize your team member's achievements"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource BackgroundBrush}"
+                                   Opacity="0.8"/>
+                    </StackPanel>
+                    
+                    <Button Grid.Column="1"
+                            Content="✕"
+                            Command="{Binding CancelCommand}"
+                            Width="28" Height="28"
+                            FontSize="14"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource BackgroundBrush}"
+                            Cursor="Hand"
+                            ToolTip="Close"/>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="20">
+                <StackPanel>
+                    
+                    <!-- Team Member Selection -->
+                    <TextBlock Text="Team Member"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <ComboBox ItemsSource="{Binding TeamMembers}"
+                              SelectedItem="{Binding SelectedTeamMember}"
+                              DisplayMemberPath="FullName"
+                              Style="{StaticResource ModernComboBoxStyle}"
+                              Margin="0,0,0,16"/>
+
+                    <!-- Category Selection -->
+                    <TextBlock Text="Category"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <ComboBox ItemsSource="{Binding Categories}"
+                              SelectedItem="{Binding SelectedCategory}"
+                              Style="{StaticResource ModernComboBoxStyle}"
+                              Margin="0,0,0,16">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0}">
+                                            <Binding />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <!-- Title (Optional) -->
+                    <TextBlock Text="Title (Optional)"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource ModernTextBoxStyle}"
+                             Margin="0,0,0,16"/>
+
+                    <!-- Message -->
+                    <TextBlock Text="Message"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource ModernTextBoxStyle}"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             Height="100"
+                             VerticalContentAlignment="Top"
+                             Margin="0,0,0,16"/>
+
+                    <!-- Delivery Channel -->
+                    <TextBlock Text="Deliver via"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,8"/>
+                    <StackPanel Margin="0,0,0,16">
+                        <RadioButton Content="📝 Internal Only (log in Tracker)"
+                                     IsChecked="{Binding SendInternalOnly}"
+                                     Foreground="{DynamicResource ForegroundBrush}"
+                                     Margin="0,4"/>
+                        <RadioButton IsChecked="{Binding SendViaTeams}"
+                                     Foreground="{DynamicResource ForegroundBrush}"
+                                     Margin="0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💬 Microsoft Teams"/>
+                                <TextBlock Text=" (via webhook)" Opacity="0.6"/>
+                                <TextBlock Text=" ✓" Foreground="Green" 
+                                           Visibility="{Binding TeamsAvailable, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton IsChecked="{Binding SendViaSlack}"
+                                     Foreground="{DynamicResource ForegroundBrush}"
+                                     Margin="0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💬 Slack"/>
+                                <TextBlock Text=" (via Bot API)" Opacity="0.6"/>
+                                <TextBlock Text=" ✓" Foreground="Green" 
+                                           Visibility="{Binding SlackAvailable, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+
+                    <!-- Webhook Setup Section -->
+                    <Expander Header="🔧 Setup Integrations" 
+                              IsExpanded="{Binding ShowWebhookSetup}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              Margin="0,0,0,16">
+                        <StackPanel Margin="0,10,0,0">
+                            
+                            <!-- Teams Setup -->
+                            <Border Background="{DynamicResource CardBackgroundBrush}"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="Microsoft Teams Webhook"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,0,0,8"/>
+                                    <TextBox Text="{Binding TeamsWebhookUrl, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBoxStyle}"
+                                             Margin="0,0,0,8"/>
+                                    <WrapPanel>
+                                        <Button Content="Save URL"
+                                                Command="{Binding SaveWebhookCommand}"
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                Padding="12,6"
+                                                Margin="0,0,8,0"/>
+                                        <Button Content="Test Connection"
+                                                Command="{Binding TestTeamsCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Padding="12,6"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding TeamsSetupInstructions}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                                               FontSize="11"
+                                               Margin="0,12,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Slack Setup -->
+                            <Border Background="{DynamicResource CardBackgroundBrush}"
+                                    CornerRadius="8"
+                                    Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="Slack Integration"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,0,0,8"/>
+                                    <Button Content="Test Slack Connection"
+                                            Command="{Binding TestSlackCommand}"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Padding="12,6"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding SlackSetupInstructions}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                                               FontSize="11"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Status Message -->
+                    <Border Background="{DynamicResource CardBackgroundBrush}"
+                            CornerRadius="8"
+                            Padding="12"
+                            Visibility="{Binding HasStatus, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,0,16">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource CardBackgroundBrush}"
+                    CornerRadius="0,0,10,10"
+                    Padding="16,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox Grid.Column="0"
+                              Content="Post publicly to channel"
+                              IsChecked="{Binding IsPublic}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              VerticalAlignment="Center"
+                              Visibility="{Binding SendInternalOnly, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+
+                    <Button Grid.Column="1"
+                            Content="Cancel"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="20,8"
+                            Margin="0,0,8,0"/>
+
+                    <Button Grid.Column="2"
+                            Content="🎉 Send Kudos"
+                            Command="{Binding SendCommand}"
+                            IsEnabled="{Binding CanSend}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="20,8"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</controls:BaseWindow>

@@ -1,0 +1,73 @@
+<UserControl x:Class="Tracker.Controls.CustomControls.TrajectoryChartControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Tracker.Controls.CustomControls"
+             mc:Ignorable="d" 
+             d:DesignHeight="200" d:DesignWidth="400"
+             x:Name="Root">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header with Legend -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
+                    Visibility="{Binding ShowLegend, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+            <!-- Actual Line -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                <Rectangle Width="16" Height="3" Fill="{Binding ActualLineBrush, ElementName=Root}" 
+                           RadiusX="1" RadiusY="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Actual" FontSize="11" Foreground="#6B7280" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            
+            <!-- Expected Line -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                <Rectangle Width="16" Height="3" Fill="{Binding ExpectedLineBrush, ElementName=Root}" 
+                           RadiusX="1" RadiusY="1" VerticalAlignment="Center" Opacity="0.5"/>
+                <TextBlock Text="Expected" FontSize="11" Foreground="#6B7280" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            
+            <!-- Projected Line -->
+            <StackPanel Orientation="Horizontal" 
+                        Visibility="{Binding HasProjection, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Rectangle Width="16" Height="3" RadiusX="1" RadiusY="1" VerticalAlignment="Center"
+                           StrokeDashArray="2,2" Stroke="{Binding ProjectedLineBrush, ElementName=Root}" StrokeThickness="2"/>
+                <TextBlock Text="Projected" FontSize="11" Foreground="#6B7280" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+        
+        <!-- Chart Area -->
+        <Border Grid.Row="1" Background="#F9FAFB" CornerRadius="8" Padding="8">
+            <Grid>
+                <!-- Y-Axis Labels -->
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                            Width="30" Margin="0,0,4,0">
+                    <TextBlock Text="100%" FontSize="9" Foreground="#9CA3AF" VerticalAlignment="Top"/>
+                    <TextBlock Text="50%" FontSize="9" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="0,0,0,0"/>
+                    <TextBlock Text="0%" FontSize="9" Foreground="#9CA3AF" VerticalAlignment="Bottom"/>
+                </StackPanel>
+                
+                <!-- Chart Canvas -->
+                <Canvas x:Name="ChartCanvas" Margin="34,0,0,0" ClipToBounds="True"/>
+                
+                <!-- Today Marker -->
+                <Rectangle x:Name="TodayMarker" Width="1" Fill="#6366F1" Opacity="0.5"
+                           VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="34,0,0,0"
+                           Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+        
+        <!-- X-Axis Labels / Footer -->
+        <Grid Grid.Row="2" Margin="34,4,0,0">
+            <TextBlock x:Name="StartDateLabel" Text="" FontSize="9" Foreground="#9CA3AF" HorizontalAlignment="Left"/>
+            <TextBlock x:Name="TodayLabel" Text="Today" FontSize="9" Foreground="#6366F1" HorizontalAlignment="Center"
+                       Visibility="{Binding ShowTodayMarker, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBlock x:Name="EndDateLabel" Text="" FontSize="9" Foreground="#9CA3AF" HorizontalAlignment="Right"/>
+        </Grid>
+    </Grid>
+</UserControl>

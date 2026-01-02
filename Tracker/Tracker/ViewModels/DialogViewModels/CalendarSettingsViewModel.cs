@@ -10,6 +10,7 @@ using Tracker.Helpers;
 using Tracker.Managers;
 using Tracker.Services;
 using Tracker.Services.Google;
+using Tracker.Services.Microsoft365;
 using Tracker.Services.Slack;
 using Tracker.Views.Dialogs;
 
@@ -184,6 +185,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private ICommand? _disconnectGoogleCommand;
         private ICommand? _connectOutlookCommand;
         private ICommand? _disconnectOutlookCommand;
+        private ICommand? _requestAdminConsentCommand;
         private ICommand? _connectSlackCommand;
         private ICommand? _disconnectSlackCommand;
 
@@ -198,6 +200,9 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public ICommand DisconnectOutlookCommand =>
             _disconnectOutlookCommand ??= new TrackerCommand(DisconnectOutlookExecuted, _ => OutlookCalendarEnabled);
+
+        public ICommand RequestAdminConsentCommand =>
+            _requestAdminConsentCommand ??= new TrackerCommand(RequestAdminConsentExecuted);
 
         public ICommand ConnectSlackCommand =>
             _connectSlackCommand ??= new TrackerCommand(ConnectSlackExecuted, _ => !IsConnectingSlack);
@@ -215,6 +220,49 @@ namespace Tracker.ViewModels.DialogViewModels
             UpdateGoogleStatus();
             UpdateOutlookStatus();
             UpdateSlackStatus();
+            
+            // Try to restore auth sessions in the background
+            _ = TryRestoreAuthSessionsAsync();
+        }
+        
+        private async Task TryRestoreAuthSessionsAsync()
+        {
+            // Try to restore Microsoft 365 session
+            if (_settings.OutlookCalendarEnabled && !MicrosoftGraphAuthService.Instance.IsAuthenticated)
+            {
+                var restored = await MicrosoftGraphAuthService.Instance.TrySignInSilentlyAsync();
+                if (restored)
+                {
+                    UpdateOutlookStatus();
+                    RaisePropertyChanged(nameof(OutlookCalendarEnabled));
+                }
+                else
+                {
+                    // Couldn't restore silently - mark as not connected
+                    _settings.OutlookCalendarEnabled = false;
+                    UserSettingsManager.Instance.SaveSettings();
+                    UpdateOutlookStatus();
+                }
+            }
+            
+            // Try to restore Google session
+            var googleSettings = UserSettingsManager.Instance.Settings.Google;
+            if (googleSettings.IsConnected && !GoogleAuthService.Instance.IsAuthenticated)
+            {
+                var restored = await GoogleAuthService.Instance.TrySilentSignInAsync();
+                if (restored)
+                {
+                    UpdateGoogleStatus();
+                    RaisePropertyChanged(nameof(GoogleCalendarEnabled));
+                }
+                else
+                {
+                    // Couldn't restore - mark as not connected
+                    googleSettings.IsConnected = false;
+                    UserSettingsManager.Instance.SaveSettings();
+                    UpdateGoogleStatus();
+                }
+            }
         }
 
         #endregion
@@ -223,9 +271,15 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private void UpdateGoogleStatus()
         {
-            if (_settings.GoogleCalendarEnabled && !string.IsNullOrEmpty(_settings.GoogleAccessToken))
+            var googleSettings = UserSettingsManager.Instance.Settings.Google;
+            if (googleSettings.IsConnected && GoogleAuthService.Instance.IsAuthenticated)
             {
-                GoogleStatus = $"Connected ({GoogleUserEmail})";
+                GoogleStatus = $"Connected ({GoogleAuthService.Instance.UserEmail})";
+            }
+            else if (googleSettings.IsConnected)
+            {
+                // Settings say connected but auth service isn't - try to restore
+                GoogleStatus = "Reconnecting...";
             }
             else
             {
@@ -235,9 +289,14 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private void UpdateOutlookStatus()
         {
-            if (_settings.OutlookCalendarEnabled && !string.IsNullOrEmpty(_settings.OutlookAccessToken))
+            if (_settings.OutlookCalendarEnabled && MicrosoftGraphAuthService.Instance.IsAuthenticated)
             {
-                OutlookStatus = $"Connected ({OutlookUserEmail})";
+                OutlookStatus = $"Connected ({MicrosoftGraphAuthService.Instance.UserEmail})";
+            }
+            else if (_settings.OutlookCalendarEnabled)
+            {
+                // Settings say connected but auth service isn't authenticated yet
+                OutlookStatus = "Reconnecting...";
             }
             else
             {
@@ -304,30 +363,94 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        private void ConnectOutlookExecuted(object? parameter)
+        private async void ConnectOutlookExecuted(object? parameter)
         {
-            // TODO: Implement Outlook authentication
-            NotificationManager.Instance.ShowInfo("Coming Soon", "Outlook Calendar integration will be available in Phase 2.");
+            IsConnectingOutlook = true;
+            try
+            {
+                var success = await MicrosoftGraphAuthService.Instance.SignInInteractiveAsync();
+
+                if (success)
+                {
+                    OutlookCalendarEnabled = true;
+                    
+                    // Update settings
+                    _settings.OutlookCalendarEnabled = true;
+                    _settings.OutlookUserEmail = MicrosoftGraphAuthService.Instance.UserEmail;
+                    UserSettingsManager.Instance.SaveSettings();
+                    
+                    UpdateOutlookStatus();
+                    NotificationManager.Instance.ShowSuccess("Connected", 
+                        $"Microsoft 365 connected as {MicrosoftGraphAuthService.Instance.UserEmail}");
+                }
+                else
+                {
+                    NotificationManager.Instance.ShowError("Error", "Failed to connect to Microsoft 365. Please try again.");
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationManager.Instance.ShowError("Error", $"Failed to connect Microsoft 365: {ex.Message}");
+            }
+            finally
+            {
+                IsConnectingOutlook = false;
+            }
         }
 
-        private void DisconnectOutlookExecuted(object? parameter)
+        private async void DisconnectOutlookExecuted(object? parameter)
         {
-            // TODO: Implement Outlook disconnect
-            NotificationManager.Instance.ShowInfo("Coming Soon", "Outlook Calendar integration will be available in Phase 2.");
+            var result = MessageBoxHelper.Show(
+                "Are you sure you want to disconnect Microsoft 365? This will stop syncing meetings to your Outlook Calendar.",
+                "Disconnect Microsoft 365",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                await MicrosoftGraphAuthService.Instance.SignOutAsync();
+                OutlookCalendarEnabled = false;
+                
+                // Update settings
+                _settings.OutlookCalendarEnabled = false;
+                _settings.OutlookAccessToken = null;
+                _settings.OutlookRefreshToken = null;
+                _settings.OutlookUserEmail = null;
+                UserSettingsManager.Instance.SaveSettings();
+                
+                UpdateOutlookStatus();
+                NotificationManager.Instance.ShowSuccess("Disconnected", "Microsoft 365 has been disconnected.");
+            }
+        }
+
+        private void RequestAdminConsentExecuted(object? parameter)
+        {
+            try
+            {
+                // Generate and open the admin consent URL
+                var adminConsentUrl = MicrosoftGraphConfig.GetAdminConsentUrl();
+                
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = adminConsentUrl,
+                    UseShellExecute = true
+                });
+
+                NotificationManager.Instance.ShowInfo(
+                    "Admin Consent",
+                    "A browser window has opened. Please sign in with an administrator account to grant consent for your organization.");
+            }
+            catch (Exception ex)
+            {
+                NotificationManager.Instance.ShowError("Error", $"Failed to open admin consent page: {ex.Message}");
+            }
         }
 
         private void UpdateSlackStatus()
         {
-            var slackSettings = UserSettingsManager.Instance.Settings.Slack;
-            if (slackSettings.IsConnected && !string.IsNullOrEmpty(slackSettings.WorkspaceName))
+            if (SlackAuthService.Instance.IsConnected)
             {
-                SlackStatus = $"Connected ({slackSettings.WorkspaceName})";
-            }
-            else if (SlackAuthService.Instance.IsConnected)
-            {
-                // Bot token is valid even without user OAuth
-                SlackStatus = "Connected (Bot Token)";
-                slackSettings.IsConnected = true;
+                SlackStatus = $"Connected ({SlackAuthService.Instance.TeamName})";
             }
             else
             {
@@ -340,18 +463,11 @@ namespace Tracker.ViewModels.DialogViewModels
             IsConnectingSlack = true;
             try
             {
-                // First validate the bot token
-                var botValid = await SlackAuthService.Instance.ValidateBotTokenAsync();
+                // Use the OAuth flow to connect to the user's workspace
+                var success = await SlackAuthService.Instance.ConnectWorkspaceAsync();
                 
-                if (botValid)
+                if (success)
                 {
-                    // Bot token is always available, update settings
-                    var slackSettings = UserSettingsManager.Instance.Settings.Slack;
-                    slackSettings.IsConnected = true;
-                    slackSettings.WorkspaceName = SlackAuthService.Instance.TeamName;
-                    slackSettings.WorkspaceId = SlackAuthService.Instance.TeamId;
-                    UserSettingsManager.Instance.SaveSettings();
-                    
                     UpdateSlackStatus();
                     RaisePropertyChanged(nameof(SlackConnected));
                     RaisePropertyChanged(nameof(SlackWorkspace));
@@ -361,7 +477,8 @@ namespace Tracker.ViewModels.DialogViewModels
                 }
                 else
                 {
-                    NotificationManager.Instance.ShowError("Error", "Failed to connect to Slack. Please check the bot token configuration.");
+                    var errorDetail = SlackAuthService.Instance.LastError ?? "Connection failed";
+                    NotificationManager.Instance.ShowError("Error", $"Failed to connect to Slack: {errorDetail}");
                 }
             }
             catch (Exception ex)
@@ -377,7 +494,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private void DisconnectSlackExecuted(object? parameter)
         {
             var result = MessageBoxHelper.Show(
-                "Are you sure you want to disconnect Slack? This will stop messaging and presence sync.",
+                "Are you sure you want to disconnect Slack? This will stop messaging and kudos delivery.",
                 "Disconnect Slack",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -385,14 +502,6 @@ namespace Tracker.ViewModels.DialogViewModels
             if (result == MessageBoxResult.Yes)
             {
                 SlackAuthService.Instance.Disconnect();
-                
-                // Update settings
-                var slackSettings = UserSettingsManager.Instance.Settings.Slack;
-                slackSettings.IsConnected = false;
-                slackSettings.WorkspaceName = null;
-                slackSettings.WorkspaceId = null;
-                slackSettings.UserId = null;
-                UserSettingsManager.Instance.SaveSettings();
                 
                 UpdateSlackStatus();
                 RaisePropertyChanged(nameof(SlackConnected));

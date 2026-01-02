@@ -1,0 +1,110 @@
+<UserControl x:Class="Tracker.Controls.Settings.IntegrationsSettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Tracker.Common.Converters"
+             xmlns:viewModels="clr-namespace:Tracker.ViewModels.DialogViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="450"
+             d:DataContext="{d:DesignInstance Type=viewModels:SettingsViewModel}">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="20,0,0,0">
+        <StackPanel MaxWidth="450" HorizontalAlignment="Left">
+            
+            <!-- Microsoft 365 Integration -->
+            <Label Style="{StaticResource LabelStyle}" Content="Microsoft 365" Margin="0,8,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Connect to Microsoft 365 to sync contacts and calendar events" 
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <CheckBox x:Name="SyncContactsCheckBox" Content="Sync Contacts" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="SyncCalendarCheckBox" Content="Sync Calendar Events" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="SyncEmailCheckBox" Content="Track Email Interactions"/>
+                        </StackPanel>
+                        
+                        <Button x:Name="ConnectOfficeButton" Grid.Column="1" 
+                                Content="Connect" 
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                VerticalAlignment="Top"/>
+                    </Grid>
+                    
+                    <TextBlock x:Name="OfficeStatusTextBlock" 
+                               Text="Not connected"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               FontSize="11"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Slack Integration -->
+            <Label Style="{StaticResource LabelStyle}" Content="Slack" Margin="0,8,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Connect to Slack to track team communications" 
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <CheckBox x:Name="TrackMessagesCheckBox" Content="Track Direct Messages" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="TrackChannelsCheckBox" Content="Track Channel Mentions" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="CreateContactsFromSlackCheckBox" Content="Create Contacts from Slack Users"/>
+                        </StackPanel>
+                        
+                        <Button x:Name="ConnectSlackButton" Grid.Column="1" 
+                                Content="Connect" 
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                VerticalAlignment="Top"/>
+                    </Grid>
+                    
+                    <TextBlock x:Name="SlackStatusTextBlock" 
+                               Text="Not connected"
+                               Foreground="{DynamicResource HintTextBrush}"
+                               FontSize="11"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Calendar Integration -->
+            <Label Style="{StaticResource LabelStyle}" Content="External Calendars" Margin="0,8,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <TextBlock Text="Connect external calendar services to import events and meetings" 
+                               TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button x:Name="ConnectGoogleCalendarButton" 
+                                Content="Google Calendar" 
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Margin="0,0,10,0"/>
+                        <Button x:Name="ConnectOutlookCalendarButton" 
+                                Content="Outlook Calendar" 
+                                Style="{StaticResource PrimaryButtonStyle}"/>
+                    </StackPanel>
+                    
+                    <CheckBox x:Name="AutoCreateMeetingContactsCheckBox" 
+                              Content="Automatically create contacts for meeting attendees"/>
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

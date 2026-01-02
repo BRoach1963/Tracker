@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Tracker.Classes;
@@ -59,6 +59,12 @@ namespace Tracker.Database
         /// Gets whether the database is initialized and ready.
         /// </summary>
         public bool IsInitialized => _isInitialized;
+
+        /// <summary>
+        /// Gets the database context for direct queries (use sparingly).
+        /// </summary>
+        /// <returns>The TrackerDbContext or null if not initialized.</returns>
+        public TrackerDbContext? GetDbContext() => _context;
 
         /// <summary>
         /// Gets the current database settings.
@@ -678,6 +684,39 @@ namespace Tracker.Database
             }
         }
 
+        /// <summary>
+        /// Finds a team member by display name (case-insensitive).
+        /// </summary>
+        public async Task<TeamMember?> FindTeamMemberByNameAsync(string displayName)
+        {
+            if (_context == null || string.IsNullOrWhiteSpace(displayName)) return null;
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                _logger.Warn("FindTeamMemberByNameAsync called but CurrentUserId is not set");
+                return null;
+            }
+
+            try
+            {
+                // Try exact match first (case-insensitive)
+                var member = await _context.TeamMembers
+                    .Where(t => !t.IsDeleted && EF.Property<int>(t, "UserId") == currentUserId.Value)
+                    .FirstOrDefaultAsync(t => 
+                        (t.FirstName + " " + t.LastName).ToLower() == displayName.ToLower() ||
+                        t.FirstName.ToLower() == displayName.ToLower() ||
+                        t.LastName.ToLower() == displayName.ToLower());
+
+                return member;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error finding team member by name: {0}", displayName);
+                return null;
+            }
+        }
+
         #endregion
 
         #region OneOnOne Operations
@@ -983,6 +1022,182 @@ namespace Tracker.Database
         }
 
         /// <summary>
+        /// <summary>
+        /// Gets all 1:1 meetings within a date range.
+        /// </summary>
+        public async Task<List<OneOnOne>> GetMeetingsInRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            if (_context == null) return new List<OneOnOne>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                _logger.Warn("GetMeetingsInRangeAsync called but CurrentUserId is not set");
+                return new List<OneOnOne>();
+            }
+
+            try
+            {
+                var results = await _context.OneOnOnes
+                    .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value &&
+                                o.Date >= startDate && o.Date <= endDate)
+                    .Include(o => o.TeamMember)
+                    .Include(o => o.Tasks)
+                    .Include(o => o.AgendaItems)
+                    .OrderBy(o => o.Date)
+                    .ToListAsync();
+                
+                // Filter deleted items in memory to avoid SQL translation issues
+                foreach (var oneOnOne in results)
+                {
+                    if (oneOnOne.Tasks != null)
+                        oneOnOne.Tasks = oneOnOne.Tasks.Where(t => !t.IsDeleted).ToList();
+                    if (oneOnOne.AgendaItems != null)
+                        oneOnOne.AgendaItems = oneOnOne.AgendaItems.Where(a => !a.IsDeleted).ToList();
+                }
+                
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving meetings in range {0} to {1}", startDate, endDate);
+                return new List<OneOnOne>();
+            }
+        }
+
+        /// <summary>
+        /// Gets all uncompleted MeetingTasks for a specific team member from previous meetings.
+        /// Used to rollover unfinished items into the next meeting.
+        /// </summary>
+        public async Task<List<OneOnOne>> GetCompletedMeetingsForTeamMemberAsync(int teamMemberId)
+        {
+            if (_context == null) return new List<OneOnOne>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+                return new List<OneOnOne>();
+
+            try
+            {
+                var results = await _context.OneOnOnes
+                    .Where(o => !o.IsDeleted && 
+                                EF.Property<int>(o, "UserId") == currentUserId.Value &&
+                                o.TeamMember.Id == teamMemberId &&
+                                o.Status == MeetingStatusEnum.Completed)
+                    .Include(o => o.TeamMember)
+                    .Include(o => o.Tasks)
+                    .OrderByDescending(o => o.Date)
+                    .ToListAsync();
+                
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving completed meetings for team member {0}", teamMemberId);
+                return new List<OneOnOne>();
+            }
+        }
+
+        /// <summary>
+        /// Saves calendar link data for a meeting.
+        /// </summary>
+        public async Task SaveCalendarLinkAsync(CalendarLink link)
+        {
+            if (_context == null || link == null) return;
+
+            try
+            {
+                _context.CalendarLinks.Add(link);
+                await _context.SaveChangesAsync();
+                _logger.Info("Saved calendar link for meeting");
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error saving calendar link");
+            }
+        }
+
+        /// <summary>
+        /// Deletes the calendar link for a meeting.
+        /// </summary>
+        public async Task DeleteCalendarLinkAsync(int meetingId, string provider)
+        {
+            if (_context == null) return;
+
+            try
+            {
+                var link = await _context.CalendarLinks
+                    .FirstOrDefaultAsync(l => l.OneOnOneId == meetingId && l.ProviderId == provider);
+                
+                if (link != null)
+                {
+                    _context.CalendarLinks.Remove(link);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted calendar link for meeting {0}", meetingId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting calendar link for meeting {0}", meetingId);
+            }
+        }
+
+        /// <summary>
+        /// Finds a meeting by external calendar event ID.
+        /// </summary>
+        public async Task<OneOnOne?> FindMeetingByCalendarEventIdAsync(string provider, string externalEventId)
+        {
+            if (_context == null || string.IsNullOrEmpty(externalEventId)) return null;
+
+            try
+            {
+                var link = await _context.CalendarLinks
+                    .FirstOrDefaultAsync(l => l.ProviderId == provider && 
+                                         l.ExternalEventId == externalEventId);
+                
+                if (link != null)
+                {
+                    return await _context.OneOnOnes.FirstOrDefaultAsync(o => o.Id == link.OneOnOneId);
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error finding meeting by calendar event ID");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Updates meeting sync data from external calendar.
+        /// </summary>
+        public async Task UpdateMeetingSyncDataAsync(int meetingId, string? externalEventId, string? externalEtag, string? syncStatus)
+        {
+            if (_context == null) return;
+
+            try
+            {
+                var meeting = await _context.OneOnOnes.FirstOrDefaultAsync(o => o.Id == meetingId);
+                if (meeting != null)
+                {
+                    meeting.CalendarEventId = externalEventId;
+                    meeting.CalendarEventEtag = externalEtag;
+                    meeting.SyncStatus = syncStatus;
+                    meeting.LastSyncedAt = DateTime.UtcNow;
+                    
+                    _context.OneOnOnes.Update(meeting);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Updated sync data for meeting {0}", meetingId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating meeting sync data for meeting {0}", meetingId);
+            }
+        }
+
+        /// <summary>
         /// Gets all uncompleted MeetingTasks for a specific team member from previous meetings.
         /// Used to rollover unfinished items into the next meeting.
         /// </summary>
@@ -1105,6 +1320,114 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error counting meetings for KPI {0}", kpiId);
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of OneOnOne meetings for multiple tasks in a single query (batch operation).
+        /// This prevents N+1 query problem when loading meeting counts for multiple tasks.
+        /// </summary>
+        public async Task<Dictionary<int, int>> GetTaskMeetingCountsAsync(List<int> taskIds)
+        {
+            if (_context == null || taskIds == null || taskIds.Count == 0)
+                return new Dictionary<int, int>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            try
+            {
+                var counts = await _context.OneOnOneLinkedTasks
+                    .Where(link => !link.IsDeleted && taskIds.Contains(link.TaskId))
+                    .Join(_context.OneOnOnes.Where(o => EF.Property<int>(o, "UserId") == currentUserId.Value),
+                        link => link.OneOnOneId,
+                        meeting => meeting.Id,
+                        (link, meeting) => link)
+                    .GroupBy(link => link.TaskId)
+                    .Select(g => new { TaskId = g.Key, Count = g.Select(x => x.OneOnOneId).Distinct().Count() })
+                    .ToDictionaryAsync(x => x.TaskId, x => x.Count);
+
+                return counts;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error counting meetings for tasks");
+                return new Dictionary<int, int>();
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of OneOnOne meetings for multiple OKRs in a single query (batch operation).
+        /// This prevents N+1 query problem when loading meeting counts for multiple OKRs.
+        /// </summary>
+        public async Task<Dictionary<int, int>> GetOkrMeetingCountsAsync(List<int> okrIds)
+        {
+            if (_context == null || okrIds == null || okrIds.Count == 0)
+                return new Dictionary<int, int>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            try
+            {
+                var counts = await _context.OneOnOneLinkedOkrs
+                    .Where(link => !link.IsDeleted && okrIds.Contains(link.OkrId))
+                    .Join(_context.OneOnOnes.Where(o => EF.Property<int>(o, "UserId") == currentUserId.Value),
+                        link => link.OneOnOneId,
+                        meeting => meeting.Id,
+                        (link, meeting) => link)
+                    .GroupBy(link => link.OkrId)
+                    .Select(g => new { OkrId = g.Key, Count = g.Select(x => x.OneOnOneId).Distinct().Count() })
+                    .ToDictionaryAsync(x => x.OkrId, x => x.Count);
+
+                return counts;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error counting meetings for OKRs");
+                return new Dictionary<int, int>();
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of OneOnOne meetings for multiple KPIs in a single query (batch operation).
+        /// This prevents N+1 query problem when loading meeting counts for multiple KPIs.
+        /// </summary>
+        public async Task<Dictionary<int, int>> GetKpiMeetingCountsAsync(List<int> kpiIds)
+        {
+            if (_context == null || kpiIds == null || kpiIds.Count == 0)
+                return new Dictionary<int, int>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            try
+            {
+                var counts = await _context.OneOnOneLinkedKpis
+                    .Where(link => !link.IsDeleted && kpiIds.Contains(link.KpiId))
+                    .Join(_context.OneOnOnes.Where(o => EF.Property<int>(o, "UserId") == currentUserId.Value),
+                        link => link.OneOnOneId,
+                        meeting => meeting.Id,
+                        (link, meeting) => link)
+                    .GroupBy(link => link.KpiId)
+                    .Select(g => new { KpiId = g.Key, Count = g.Select(x => x.OneOnOneId).Distinct().Count() })
+                    .ToDictionaryAsync(x => x.KpiId, x => x.Count);
+
+                return counts;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error counting meetings for KPIs");
+                return new Dictionary<int, int>();
             }
         }
 
@@ -1504,6 +1827,7 @@ namespace Tracker.Database
             try
             {
                 return await _context.Tasks
+                    .AsNoTracking()
                     .Where(t => !t.IsDeleted && EF.Property<int>(t, "UserId") == currentUserId.Value)
                     .Include(t => t.Owner)
                     .OrderBy(t => t.DueDate)
@@ -1876,6 +2200,7 @@ namespace Tracker.Database
             try
             {
                 return await _context.KeyPerformanceIndicators
+                    .AsNoTracking()
                     .Where(k => !k.IsDeleted && EF.Property<int>(k, "UserId") == currentUserId.Value)
                     .Include(k => k.Owner)
                     .OrderBy(k => k.Name)
@@ -3091,6 +3416,946 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error archiving note");
                 return false;
+            }
+        }
+
+        #endregion
+
+        #region Pulse Survey Operations
+
+        /// <summary>
+        /// Gets all pulse surveys.
+        /// </summary>
+        public async Task<List<PulseSurvey>> GetPulseSurveysAsync()
+        {
+            if (_context == null) return new List<PulseSurvey>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return new List<PulseSurvey>();
+
+            try
+            {
+                return await _context.PulseSurveys
+                    .Include(s => s.Questions.OrderBy(q => q.SortOrder))
+                    .Include(s => s.Responses)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving pulse surveys");
+                return new List<PulseSurvey>();
+            }
+        }
+
+        /// <summary>
+        /// Gets a pulse survey by ID with all related data.
+        /// </summary>
+        public async Task<PulseSurvey?> GetPulseSurveyAsync(int id)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                return await _context.PulseSurveys
+                    .Include(s => s.Questions.OrderBy(q => q.SortOrder))
+                    .Include(s => s.Responses)
+                        .ThenInclude(r => r.Answers)
+                    .Include(s => s.Responses)
+                        .ThenInclude(r => r.TeamMember)
+                    .FirstOrDefaultAsync(s => s.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving pulse survey ID: {0}", id);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Adds a new pulse survey.
+        /// </summary>
+        public async Task<int> AddPulseSurveyAsync(PulseSurvey survey)
+        {
+            if (_context == null) return 0;
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                _logger.Error("AddPulseSurveyAsync called but CurrentUserId is not set");
+                return 0;
+            }
+
+            try
+            {
+                _context.PulseSurveys.Add(survey);
+                _context.Entry(survey).Property("UserId").CurrentValue = currentUserId.Value;
+                
+                // Set UserId on questions
+                foreach (var question in survey.Questions)
+                {
+                    _context.Entry(question).Property("UserId").CurrentValue = currentUserId.Value;
+                }
+                
+                await _context.SaveChangesAsync();
+                _logger.Info("Added pulse survey ID: {0}", survey.Id);
+                return survey.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding pulse survey");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing pulse survey.
+        /// </summary>
+        public async Task<bool> UpdatePulseSurveyAsync(PulseSurvey survey)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var existing = await _context.PulseSurveys
+                    .Include(s => s.Questions)
+                    .FirstOrDefaultAsync(s => s.Id == survey.Id);
+                
+                if (existing == null)
+                {
+                    _logger.Error("UpdatePulseSurveyAsync: Survey ID {0} not found", survey.Id);
+                    return false;
+                }
+
+                // Update basic properties
+                existing.Title = survey.Title;
+                existing.Description = survey.Description;
+                existing.Status = survey.Status;
+                existing.SentDate = survey.SentDate;
+                existing.DueDate = survey.DueDate;
+                existing.ClosedDate = survey.ClosedDate;
+                existing.IsAnonymous = survey.IsAnonymous;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated pulse survey ID: {0}", survey.Id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating pulse survey ID: {0}", survey.Id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Deletes a pulse survey (soft delete).
+        /// </summary>
+        public async Task<bool> DeletePulseSurveyAsync(int id)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var survey = await _context.PulseSurveys.FindAsync(id);
+                if (survey != null)
+                {
+                    _context.PulseSurveys.Remove(survey);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted pulse survey ID: {0}", id);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting pulse survey ID: {0}", id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Adds a survey response.
+        /// </summary>
+        public async Task<int> AddSurveyResponseAsync(PulseSurveyResponse response)
+        {
+            if (_context == null) return 0;
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                _logger.Error("AddSurveyResponseAsync called but CurrentUserId is not set");
+                return 0;
+            }
+
+            try
+            {
+                _context.PulseSurveyResponses.Add(response);
+                _context.Entry(response).Property("UserId").CurrentValue = currentUserId.Value;
+                await _context.SaveChangesAsync();
+                _logger.Info("Added survey response ID: {0}", response.Id);
+                return response.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding survey response");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets survey analytics for a specific survey.
+        /// </summary>
+        public async Task<Dictionary<int, (double AverageRating, int ResponseCount)>> GetSurveyAnalyticsAsync(int surveyId)
+        {
+            if (_context == null) return new Dictionary<int, (double, int)>();
+
+            try
+            {
+                var responses = await _context.PulseSurveyResponses
+                    .Where(r => r.PulseSurveyId == surveyId)
+                    .Include(r => r.Answers)
+                    .ToListAsync();
+
+                var analytics = new Dictionary<int, (double AverageRating, int ResponseCount)>();
+                
+                var allAnswers = responses.SelectMany(r => r.Answers).ToList();
+                var groupedByQuestion = allAnswers.GroupBy(a => a.PulseSurveyQuestionId);
+                
+                foreach (var group in groupedByQuestion)
+                {
+                    var ratingAnswers = group.Where(a => a.RatingValue.HasValue).ToList();
+                    var avgRating = ratingAnswers.Any() ? ratingAnswers.Average(a => a.RatingValue!.Value) : 0;
+                    analytics[group.Key] = (avgRating, group.Count());
+                }
+                
+                return analytics;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error getting survey analytics for survey ID: {0}", surveyId);
+                return new Dictionary<int, (double, int)>();
+            }
+        }
+
+        #endregion
+
+        #region Performance Review Template Operations
+
+        /// <summary>
+        /// Gets all review templates.
+        /// </summary>
+        public async Task<List<ReviewTemplate>> GetReviewTemplatesAsync()
+        {
+            if (_context == null) return new List<ReviewTemplate>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return new List<ReviewTemplate>();
+
+            try
+            {
+                return await _context.ReviewTemplates
+                    .Include(t => t.Sections.OrderBy(s => s.SortOrder))
+                        .ThenInclude(s => s.Questions.OrderBy(q => q.SortOrder))
+                    .OrderBy(t => t.Name)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving review templates");
+                return new List<ReviewTemplate>();
+            }
+        }
+
+        /// <summary>
+        /// Gets a review template by ID.
+        /// </summary>
+        public async Task<ReviewTemplate?> GetReviewTemplateAsync(int id)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                return await _context.ReviewTemplates
+                    .Include(t => t.Sections.OrderBy(s => s.SortOrder))
+                        .ThenInclude(s => s.Questions.OrderBy(q => q.SortOrder))
+                    .FirstOrDefaultAsync(t => t.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving review template ID: {0}", id);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Adds a new review template.
+        /// </summary>
+        public async Task<int> AddReviewTemplateAsync(ReviewTemplate template)
+        {
+            if (_context == null) return 0;
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                _logger.Error("AddReviewTemplateAsync called but CurrentUserId is not set");
+                return 0;
+            }
+
+            try
+            {
+                _context.ReviewTemplates.Add(template);
+                _context.Entry(template).Property("UserId").CurrentValue = currentUserId.Value;
+                
+                // Set UserId on sections and questions
+                foreach (var section in template.Sections)
+                {
+                    _context.Entry(section).Property("UserId").CurrentValue = currentUserId.Value;
+                    foreach (var question in section.Questions)
+                    {
+                        _context.Entry(question).Property("UserId").CurrentValue = currentUserId.Value;
+                    }
+                }
+                
+                await _context.SaveChangesAsync();
+                _logger.Info("Added review template ID: {0}", template.Id);
+                return template.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding review template");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates a review template.
+        /// </summary>
+        public async Task<bool> UpdateReviewTemplateAsync(ReviewTemplate template)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var existing = await _context.ReviewTemplates.FindAsync(template.Id);
+                if (existing == null)
+                {
+                    _logger.Error("UpdateReviewTemplateAsync: Template ID {0} not found", template.Id);
+                    return false;
+                }
+
+                existing.Name = template.Name;
+                existing.Description = template.Description;
+                existing.ReviewType = template.ReviewType;
+                existing.IsDefault = template.IsDefault;
+                existing.IsActive = template.IsActive;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated review template ID: {0}", template.Id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating review template ID: {0}", template.Id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Deletes a review template (soft delete).
+        /// </summary>
+        public async Task<bool> DeleteReviewTemplateAsync(int id)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var template = await _context.ReviewTemplates.FindAsync(id);
+                if (template != null)
+                {
+                    _context.ReviewTemplates.Remove(template);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted review template ID: {0}", id);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting review template ID: {0}", id);
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Performance Review Cycle Operations
+
+        /// <summary>
+        /// Gets all review cycles.
+        /// </summary>
+        public async Task<List<PerformanceReviewCycle>> GetReviewCyclesAsync()
+        {
+            if (_context == null) return new List<PerformanceReviewCycle>();
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return new List<PerformanceReviewCycle>();
+
+            try
+            {
+                return await _context.PerformanceReviewCycles
+                    .Include(c => c.ReviewTemplate)
+                    .Include(c => c.Reviews)
+                        .ThenInclude(r => r.TeamMember)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving review cycles");
+                return new List<PerformanceReviewCycle>();
+            }
+        }
+
+        /// <summary>
+        /// Gets a review cycle by ID with all related data.
+        /// </summary>
+        public async Task<PerformanceReviewCycle?> GetReviewCycleAsync(int id)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                return await _context.PerformanceReviewCycles
+                    .Include(c => c.ReviewTemplate)
+                        .ThenInclude(t => t.Sections)
+                            .ThenInclude(s => s.Questions)
+                    .Include(c => c.Reviews)
+                        .ThenInclude(r => r.TeamMember)
+                    .Include(c => c.Reviews)
+                        .ThenInclude(r => r.Sections)
+                            .ThenInclude(s => s.Answers)
+                    .FirstOrDefaultAsync(c => c.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving review cycle ID: {0}", id);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Adds a new review cycle.
+        /// </summary>
+        public async Task<int> AddReviewCycleAsync(PerformanceReviewCycle cycle)
+        {
+            if (_context == null) return 0;
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                _logger.Error("AddReviewCycleAsync called but CurrentUserId is not set");
+                return 0;
+            }
+
+            try
+            {
+                _context.PerformanceReviewCycles.Add(cycle);
+                _context.Entry(cycle).Property("UserId").CurrentValue = currentUserId.Value;
+                
+                // Set UserId on reviews
+                foreach (var review in cycle.Reviews)
+                {
+                    _context.Entry(review).Property("UserId").CurrentValue = currentUserId.Value;
+                }
+                
+                await _context.SaveChangesAsync();
+                _logger.Info("Added review cycle ID: {0}", cycle.Id);
+                return cycle.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding review cycle");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates a review cycle.
+        /// </summary>
+        public async Task<bool> UpdateReviewCycleAsync(PerformanceReviewCycle cycle)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var existing = await _context.PerformanceReviewCycles.FindAsync(cycle.Id);
+                if (existing == null)
+                {
+                    _logger.Error("UpdateReviewCycleAsync: Cycle ID {0} not found", cycle.Id);
+                    return false;
+                }
+
+                existing.Name = cycle.Name;
+                existing.Description = cycle.Description;
+                existing.Status = cycle.Status;
+                existing.SelfReviewStartDate = cycle.SelfReviewStartDate;
+                existing.SelfReviewDueDate = cycle.SelfReviewDueDate;
+                existing.ManagerReviewStartDate = cycle.ManagerReviewStartDate;
+                existing.ManagerReviewDueDate = cycle.ManagerReviewDueDate;
+                existing.CalibrationDate = cycle.CalibrationDate;
+                existing.ShareDate = cycle.ShareDate;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated review cycle ID: {0}", cycle.Id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating review cycle ID: {0}", cycle.Id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Deletes a review cycle (soft delete).
+        /// </summary>
+        public async Task<bool> DeleteReviewCycleAsync(int id)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var cycle = await _context.PerformanceReviewCycles.FindAsync(id);
+                if (cycle != null)
+                {
+                    _context.PerformanceReviewCycles.Remove(cycle);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted review cycle ID: {0}", id);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting review cycle ID: {0}", id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates reviews for all team members in a cycle.
+        /// </summary>
+        public async Task<int> CreateReviewsForCycleAsync(int cycleId)
+        {
+            if (_context == null) return 0;
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return 0;
+
+            try
+            {
+                var cycle = await _context.PerformanceReviewCycles
+                    .Include(c => c.ReviewTemplate)
+                        .ThenInclude(t => t.Sections)
+                            .ThenInclude(s => s.Questions)
+                    .FirstOrDefaultAsync(c => c.Id == cycleId);
+
+                if (cycle == null)
+                {
+                    _logger.Error("CreateReviewsForCycleAsync: Cycle ID {0} not found", cycleId);
+                    return 0;
+                }
+
+                var teamMembers = await _context.TeamMembers
+                    .Where(tm => !tm.IsDeleted && EF.Property<int>(tm, "UserId") == currentUserId.Value)
+                    .ToListAsync();
+
+                var count = 0;
+                foreach (var member in teamMembers)
+                {
+                    // Check if review already exists
+                    var existingReview = await _context.PerformanceReviews
+                        .AnyAsync(r => r.PerformanceReviewCycleId == cycleId && r.TeamMemberId == member.Id);
+
+                    if (!existingReview)
+                    {
+                        var review = new PerformanceReview
+                        {
+                            PerformanceReviewCycleId = cycleId,
+                            TeamMemberId = member.Id,
+                            Status = Common.Enums.ReviewStatus.NotStarted
+                        };
+
+                        // Create sections based on template
+                        foreach (var templateSection in cycle.ReviewTemplate.Sections.OrderBy(s => s.SortOrder))
+                        {
+                            var reviewSection = new PerformanceReviewSection
+                            {
+                                ReviewTemplateSectionId = templateSection.Id
+                            };
+
+                            // Create answers for each question in the section
+                            foreach (var question in templateSection.Questions.OrderBy(q => q.SortOrder))
+                            {
+                                reviewSection.Answers.Add(new PerformanceReviewAnswer
+                                {
+                                    ReviewTemplateQuestionId = question.Id,
+                                    IsSelfAssessment = true
+                                });
+                            }
+
+                            review.Sections.Add(reviewSection);
+                        }
+
+                        _context.PerformanceReviews.Add(review);
+                        _context.Entry(review).Property("UserId").CurrentValue = currentUserId.Value;
+                        count++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Created {0} reviews for cycle ID: {1}", count, cycleId);
+                return count;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error creating reviews for cycle ID: {0}", cycleId);
+                return 0;
+            }
+        }
+
+        #endregion
+
+        #region Individual Performance Review Operations
+
+        /// <summary>
+        /// Gets a performance review by ID.
+        /// </summary>
+        public async Task<PerformanceReview?> GetPerformanceReviewAsync(int id)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                return await _context.PerformanceReviews
+                    .Include(r => r.TeamMember)
+                    .Include(r => r.PerformanceReviewCycle)
+                        .ThenInclude(c => c.ReviewTemplate)
+                    .Include(r => r.Sections)
+                        .ThenInclude(s => s.Answers)
+                            .ThenInclude(a => a.ReviewTemplateQuestion)
+                    .Include(r => r.Sections)
+                        .ThenInclude(s => s.ReviewTemplateSection)
+                    .FirstOrDefaultAsync(r => r.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving performance review ID: {0}", id);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets all reviews for a team member.
+        /// </summary>
+        public async Task<List<PerformanceReview>> GetReviewsForTeamMemberAsync(int teamMemberId)
+        {
+            if (_context == null) return new List<PerformanceReview>();
+
+            try
+            {
+                return await _context.PerformanceReviews
+                    .Include(r => r.PerformanceReviewCycle)
+                    .Where(r => r.TeamMemberId == teamMemberId)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving reviews for team member ID: {0}", teamMemberId);
+                return new List<PerformanceReview>();
+            }
+        }
+
+        /// <summary>
+        /// Updates a performance review.
+        /// </summary>
+        public async Task<bool> UpdatePerformanceReviewAsync(PerformanceReview review)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var existing = await _context.PerformanceReviews
+                    .Include(r => r.Sections)
+                        .ThenInclude(s => s.Answers)
+                    .FirstOrDefaultAsync(r => r.Id == review.Id);
+                
+                if (existing == null)
+                {
+                    _logger.Error("UpdatePerformanceReviewAsync: Review ID {0} not found", review.Id);
+                    return false;
+                }
+
+                // Update review properties
+                existing.Status = review.Status;
+                existing.OverallRating = review.OverallRating;
+                existing.ManagerSummary = review.ManagerSummary;
+                existing.SelfAssessmentSummary = review.SelfAssessmentSummary;
+                existing.SelfReviewSubmittedAt = review.SelfReviewSubmittedAt;
+                existing.ManagerReviewSubmittedAt = review.ManagerReviewSubmittedAt;
+                existing.SharedAt = review.SharedAt;
+                existing.DiscussionDate = review.DiscussionDate;
+                existing.OneOnOneId = review.OneOnOneId;
+
+                // Update answers
+                foreach (var section in review.Sections)
+                {
+                    var existingSection = existing.Sections.FirstOrDefault(s => s.Id == section.Id);
+                    if (existingSection != null)
+                    {
+                        foreach (var answer in section.Answers)
+                        {
+                            var existingAnswer = existingSection.Answers.FirstOrDefault(a => a.Id == answer.Id);
+                            if (existingAnswer != null)
+                            {
+                                existingAnswer.TextValue = answer.TextValue;
+                                existingAnswer.RatingValue = answer.RatingValue;
+                                existingAnswer.IsSelfAssessment = answer.IsSelfAssessment;
+                            }
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated performance review ID: {0}", review.Id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating performance review ID: {0}", review.Id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Submits a self-assessment for a review.
+        /// </summary>
+        public async Task<bool> SubmitSelfAssessmentAsync(int reviewId)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var review = await _context.PerformanceReviews.FindAsync(reviewId);
+                if (review == null) return false;
+
+                review.Status = Common.Enums.ReviewStatus.SelfReviewComplete;
+                review.SelfReviewSubmittedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Self-assessment submitted for review ID: {0}", reviewId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error submitting self-assessment for review ID: {0}", reviewId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Submits a manager review.
+        /// </summary>
+        public async Task<bool> SubmitManagerReviewAsync(int reviewId)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var review = await _context.PerformanceReviews.FindAsync(reviewId);
+                if (review == null) return false;
+
+                review.Status = Common.Enums.ReviewStatus.ManagerReviewComplete;
+                review.ManagerReviewSubmittedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Manager review submitted for review ID: {0}", reviewId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error submitting manager review for review ID: {0}", reviewId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Shares a review with the employee.
+        /// </summary>
+        public async Task<bool> ShareReviewAsync(int reviewId)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var review = await _context.PerformanceReviews.FindAsync(reviewId);
+                if (review == null) return false;
+
+                review.Status = Common.Enums.ReviewStatus.Shared;
+                review.SharedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Review shared for review ID: {0}", reviewId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error sharing review ID: {0}", reviewId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Marks a review as discussed.
+        /// </summary>
+        public async Task<bool> MarkReviewDiscussedAsync(int reviewId, int? oneOnOneId = null)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var review = await _context.PerformanceReviews.FindAsync(reviewId);
+                if (review == null) return false;
+
+                review.Status = Common.Enums.ReviewStatus.Discussed;
+                review.DiscussionDate = DateTime.UtcNow;
+                review.OneOnOneId = oneOnOneId;
+
+                await _context.SaveChangesAsync();
+                _logger.Info("Review marked as discussed for review ID: {0}", reviewId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error marking review as discussed ID: {0}", reviewId);
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Kudos Operations
+
+        /// <summary>
+        /// Adds a new kudos to the database.
+        /// </summary>
+        public async Task<int> AddKudosAsync(Kudos kudos)
+        {
+            if (_context == null) return 0;
+
+            try
+            {
+                kudos.UserId = GetCurrentUserId() ?? kudos.UserId;
+                _context.Kudos.Add(kudos);
+                await _context.SaveChangesAsync();
+                _logger.Info("Added kudos ID: {0} for team member ID: {1}", kudos.Id, kudos.TeamMemberId);
+                return kudos.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error adding kudos");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing kudos.
+        /// </summary>
+        public async Task<bool> UpdateKudosAsync(Kudos kudos)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                _context.Kudos.Update(kudos);
+                await _context.SaveChangesAsync();
+                _logger.Info("Updated kudos ID: {0}", kudos.Id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error updating kudos ID: {0}", kudos.Id);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets all kudos for the current user.
+        /// </summary>
+        public async Task<List<Kudos>> GetAllKudosAsync()
+        {
+            if (_context == null) return new List<Kudos>();
+
+            try
+            {
+                return await _context.Kudos
+                    .AsNoTracking()
+                    .Include(k => k.TeamMember)
+                    .OrderByDescending(k => k.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error getting all kudos");
+                return new List<Kudos>();
+            }
+        }
+
+        /// <summary>
+        /// Gets all kudos for a specific team member.
+        /// </summary>
+        public async Task<List<Kudos>> GetKudosForTeamMemberAsync(int teamMemberId)
+        {
+            if (_context == null) return new List<Kudos>();
+
+            try
+            {
+                return await _context.Kudos
+                    .AsNoTracking()
+                    .Where(k => k.TeamMemberId == teamMemberId)
+                    .OrderByDescending(k => k.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error getting kudos for team member ID: {0}", teamMemberId);
+                return new List<Kudos>();
+            }
+        }
+
+        /// <summary>
+        /// Gets recent kudos that should be mentioned in meeting prep.
+        /// </summary>
+        public async Task<List<Kudos>> GetRecentKudosForMeetingPrepAsync(int teamMemberId, int daysSince = 30)
+        {
+            if (_context == null) return new List<Kudos>();
+
+            try
+            {
+                var cutoff = DateTime.UtcNow.AddDays(-daysSince);
+                return await _context.Kudos
+                    .AsNoTracking()
+                    .Where(k => k.TeamMemberId == teamMemberId &&
+                                k.MentionInMeetingPrep &&
+                                k.CreatedAt >= cutoff)
+                    .OrderByDescending(k => k.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error getting kudos for meeting prep");
+                return new List<Kudos>();
             }
         }
 

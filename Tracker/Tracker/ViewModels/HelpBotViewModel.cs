@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Tracker.Command;
+using Tracker.DataModels;
 using Tracker.Interfaces;
 using Tracker.Logging;
 using Tracker.Services;
@@ -198,6 +199,8 @@ namespace Tracker.ViewModels
 
         private async void SendExecuted(object? parameter)
         {
+            // Note: This is a command handler, so async void is acceptable here
+            // The command framework handles the async operation
             if (string.IsNullOrWhiteSpace(InputText)) return;
 
             var userMessage = InputText.Trim();
@@ -207,7 +210,15 @@ namespace Tracker.ViewModels
             _messages.Add(new ChatMessageViewModel("user", userMessage));
 
             // Send to AI
-            await SendToAIAsync(userMessage);
+            try
+            {
+                await SendToAIAsync(userMessage);
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error sending message to AI");
+                StatusMessage = "Error: Failed to send message. Please try again.";
+            }
         }
 
         private void ClearExecuted(object? parameter)
@@ -222,9 +233,20 @@ namespace Tracker.ViewModels
 
         private async void RefreshContextExecuted(object? parameter)
         {
-            await RefreshContextInternalAsync();
-            _messages.Add(new ChatMessageViewModel("assistant", 
-                "✓ I've refreshed my knowledge of your current data. Ask me anything!"));
+            // Note: This is a command handler, so async void is acceptable here
+            // The command framework handles the async operation
+            try
+            {
+                await RefreshContextInternalAsync();
+                _messages.Add(new ChatMessageViewModel("assistant",
+                    "✓ I've refreshed my knowledge of your current data. Ask me anything!"));
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error refreshing context");
+                _messages.Add(new ChatMessageViewModel("assistant",
+                    "✗ Failed to refresh context. Please try again."));
+            }
         }
 
         private async Task RefreshContextInternalAsync()
@@ -255,20 +277,81 @@ namespace Tracker.ViewModels
 
         private void AddWelcomeMessage()
         {
+            // Start with a brief greeting, then load insights asynchronously
             _messages.Add(new ChatMessageViewModel("assistant",
-                "👋 Hi! I'm Oracle, your AI assistant with semantic search and intelligent actions!\n\n" +
-                "I have indexed:\n" +
-                "📚 App documentation\n" +
-                "👥 Your team members (with hire dates, birthdays, contact info)\n" +
-                "📅 Your 1:1 meetings (with agendas and notes)\n" +
-                "✅ Your tasks, OKRs, KPIs & projects\n\n" +
-                "I can answer questions like:\n" +
-                "• \"When did John start?\"\n" +
-                "• \"Who has meetings next week?\"\n" +
-                "• \"What tasks are assigned to Sarah?\"\n" +
-                "• \"Show me OKR progress\"\n" +
-                "• \"What's discussed in my upcoming 1:1s?\"\n\n" +
-                "What would you like to know?"));
+                "👋 Hi! I'm Oracle, your AI assistant. Loading your latest insights..."));
+            
+            // Load insights in background and update message
+            _ = LoadWelcomeInsightsAsync();
+        }
+
+        private async Task LoadWelcomeInsightsAsync()
+        {
+            try
+            {
+                // Wait a moment for InsightEngine to initialize
+                await Task.Delay(500);
+                
+                var insights = await Services.AI.Insights.InsightEngine.Instance.GetActiveInsightsAsync();
+                var topInsights = insights
+                    .Where(i => i.IsActive)
+                    .OrderByDescending(i => i.Severity)
+                    .ThenByDescending(i => i.GeneratedAt)
+                    .Take(3)
+                    .ToList();
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("👋 Hi! I'm Oracle, your AI assistant.\n");
+
+                if (topInsights.Any())
+                {
+                    sb.AppendLine("**📊 Your Top Insights:**\n");
+                    foreach (var insight in topInsights)
+                    {
+                        var icon = insight.Severity switch
+                        {
+                            InsightSeverity.Critical => "🔴",
+                            InsightSeverity.Warning => "🟡",
+                            _ => "🔵"
+                        };
+                        sb.AppendLine($"{icon} **{insight.Title}**");
+                        if (!string.IsNullOrEmpty(insight.Description))
+                        {
+                            var desc = insight.Description.Length > 80 
+                                ? insight.Description.Substring(0, 77) + "..." 
+                                : insight.Description;
+                            sb.AppendLine($"   {desc}");
+                        }
+                        sb.AppendLine();
+                    }
+                    
+                    var remaining = insights.Count(i => i.IsActive) - 3;
+                    if (remaining > 0)
+                    {
+                        sb.AppendLine($"*[View all {remaining + 3} insights...]*\n");
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("✨ No urgent insights right now. You're all caught up!\n");
+                }
+
+                sb.AppendLine("Ask me anything about your team, tasks, OKRs, or meetings.");
+
+                // Update the welcome message on UI thread
+                await App.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (_messages.Count > 0)
+                    {
+                        _messages[0] = new ChatMessageViewModel("assistant", sb.ToString());
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug("Could not load insights for welcome: {0}", ex.Message);
+                // Keep the simple greeting if insights fail
+            }
         }
 
         private void UpdateStatus()

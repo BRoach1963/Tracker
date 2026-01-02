@@ -8,6 +8,7 @@
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
              xmlns:viewModels="clr-namespace:Tracker.ViewModels"
+             xmlns:analytics="clr-namespace:Tracker.Controls.Analytics"
              mc:Ignorable="d"
              d:DesignHeight="700"
              d:DesignWidth="1200"
@@ -434,6 +435,33 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </StackPanel>
+                        
+                        <!-- Predictive Insights Section -->
+                        <TextBlock Text="PREDICTIVE INSIGHTS" 
+                                   FontSize="10" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource HintTextBrush}" 
+                                   Margin="0,0,0,8"/>
+                        
+                        <!-- What-If Simulator (Expander) -->
+                        <Expander Header="What-If Scenarios" 
+                                  IsExpanded="False"
+                                  Margin="0,0,0,8">
+                            <analytics:WhatIfSimulatorControl 
+                                Prediction="{Binding SelectedKpiAnalytics.Prediction}"
+                                Margin="0,8,0,0"/>
+                        </Expander>
+                        
+                        <!-- Recommendations Panel (Expander) -->
+                        <Expander Header="Recommendations" 
+                                  IsExpanded="True"
+                                  Margin="0,0,0,16">
+                            <analytics:RecommendationsPanel 
+                                Prediction="{Binding SelectedKpiAnalytics.Prediction}"
+                                MaxRecommendations="3"
+                                ShowActionSteps="True"
+                                Margin="0,8,0,0"/>
+                        </Expander>
                         
                         <!-- Actions -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">

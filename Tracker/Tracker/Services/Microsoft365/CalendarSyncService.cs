@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Windows.Threading;
 using Tracker.Classes;
+using Tracker.Database;
 using Tracker.DataModels;
+using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services.Subscription;
@@ -226,6 +228,81 @@ namespace Tracker.Services.Microsoft365
             await SyncDeltaAsync();
         }
 
+        /// <summary>
+        /// Fetches the latest calendar event and updates the meeting's time fields.
+        /// Call this before opening a meeting for edit to ensure time is current.
+        /// </summary>
+        /// <param name="meeting">The meeting to refresh from calendar.</param>
+        /// <returns>True if calendar was fetched and time was updated; false if no calendar link or fetch failed.</returns>
+        public async Task<bool> RefreshTimeFromCalendarAsync(OneOnOne meeting)
+        {
+            if (!IsReady || string.IsNullOrEmpty(meeting.CalendarEventId))
+            {
+                return false;
+            }
+
+            try
+            {
+                var calEvent = await MicrosoftGraphService.Instance.GetCalendarEventAsync(meeting.CalendarEventId);
+                if (calEvent == null)
+                {
+                    _logger.Warn($"Calendar event not found for meeting {meeting.Id}, may have been deleted");
+                    return false;
+                }
+
+                // Check if calendar event has changed (different ETag)
+                var calendarEtag = calEvent.ETag ?? calEvent.ChangeKey;
+                if (calendarEtag == meeting.CalendarEventEtag)
+                {
+                    _logger.Debug($"Calendar event unchanged for meeting {meeting.Id}");
+                    return false; // No changes
+                }
+
+                // Update time fields from calendar (calendar is authoritative for time)
+                bool timeChanged = false;
+
+                if (calEvent.Start != null)
+                {
+                    var startLocal = calEvent.Start.ToLocalDateTime();
+                    if (meeting.Date != startLocal.Date || meeting.StartTime != startLocal.TimeOfDay)
+                    {
+                        meeting.Date = startLocal.Date;
+                        meeting.StartTime = startLocal.TimeOfDay;
+                        timeChanged = true;
+                    }
+                }
+
+                if (calEvent.End != null)
+                {
+                    var endLocal = calEvent.End.ToLocalDateTime();
+                    if (meeting.EndTime != endLocal.TimeOfDay)
+                    {
+                        meeting.EndTime = endLocal.TimeOfDay;
+                        timeChanged = true;
+                    }
+                }
+
+                // Update ETag and sync timestamp
+                meeting.CalendarEventEtag = calendarEtag;
+                meeting.LastSyncedAt = DateTime.Now;
+
+                if (timeChanged)
+                {
+                    _logger.Info($"Updated meeting {meeting.Id} time from calendar: {meeting.Date:d} {meeting.StartTime:hh\\:mm}-{meeting.EndTime:hh\\:mm}");
+                    
+                    // Save the time changes to database
+                    await TrackerDbManager.Instance.UpdateOneOnOneAsync(meeting);
+                }
+
+                return timeChanged;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, $"Failed to refresh time from calendar for meeting {meeting.Id}");
+                return false;
+            }
+        }
+
         #endregion
 
         #region Push Operations (Tracker → Calendar)
@@ -441,13 +518,53 @@ namespace Tracker.Services.Microsoft365
                 var meeting = await FindMeetingByCalendarEventIdAsync(calendarEventId);
                 if (meeting != null)
                 {
-                    // Calendar event was deleted - mark 1:1 as unsynced
-                    meeting.CalendarEventId = null;
-                    meeting.CalendarEventEtag = null;
-                    meeting.SyncStatus = "NotSynced";
-                    await SaveMeetingSyncDataAsync(meeting);
+                    var memberName = meeting.TeamMember != null
+                        ? $"{meeting.TeamMember.FirstName} {meeting.TeamMember.LastName}".Trim()
+                        : "Unknown";
 
-                    _logger.Info($"Calendar event deleted, unlinked 1:1: {meeting.Description}");
+                    // Show dialog asking user what to do
+                    // Must dispatch to UI thread
+                    bool deleteInTracker = false;
+                    
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        var result = MessageBoxHelper.Show(
+                            $"The calendar event for \"1:1 with {memberName}\" on {meeting.Date:MMM d} was deleted in Outlook.\n\n" +
+                            "Do you also want to delete this meeting in Tracker?\n\n" +
+                            "• Yes - Delete the meeting (moves to recycle bin)\n" +
+                            "• No - Keep the meeting in Tracker (unlink from calendar)",
+                            "Calendar Event Deleted",
+                            System.Windows.MessageBoxButton.YesNo,
+                            System.Windows.MessageBoxImage.Question);
+
+                        deleteInTracker = (result == System.Windows.MessageBoxResult.Yes);
+                    });
+
+                    if (deleteInTracker)
+                    {
+                        // Soft delete the meeting (goes to recycle bin)
+                        await TrackerDbManager.Instance.DeleteOneOnOneAsync(meeting.Id);
+                        
+                        // Also delete the calendar link
+                        await TrackerDbManager.Instance.DeleteCalendarLinkAsync(meeting.Id, "outlook");
+                        
+                        _logger.Info($"Calendar event deleted in Outlook, user chose to delete in Tracker: {meeting.Description}");
+                        NotificationManager.Instance.ShowInfo("Meeting Deleted", 
+                            $"1:1 with {memberName} has been moved to the recycle bin.");
+                    }
+                    else
+                    {
+                        // Just unlink from calendar
+                        meeting.CalendarEventId = null;
+                        meeting.CalendarEventEtag = null;
+                        meeting.SyncStatus = "NotSynced";
+                        await SaveMeetingSyncDataAsync(meeting);
+
+                        _logger.Info($"Calendar event deleted in Outlook, user chose to keep in Tracker: {meeting.Description}");
+                        NotificationManager.Instance.ShowInfo("Meeting Unlinked", 
+                            $"1:1 with {memberName} is no longer synced to Outlook.");
+                    }
+
                     OneOnOneSynced?.Invoke(meeting, SyncDirection.Pull);
                 }
             }
@@ -657,37 +774,56 @@ namespace Tracker.Services.Microsoft365
 
         private void ShowConflictNotification(OneOnOne meeting, GraphCalendarEvent calEvent)
         {
-            // TODO: Implement toast notification
             var memberName = meeting.TeamMember != null 
                 ? $"{meeting.TeamMember.FirstName} {meeting.TeamMember.LastName}".Trim()
                 : "Unknown";
-            _logger.Info($"Conflict notification: 1:1 with {memberName} was moved in Outlook");
+            
+            // Use NotificationManager for toast notification
+            var message = $"1:1 with {memberName} was moved in Outlook to {calEvent.Start?.ToLocalDateTime():g}";
+            NotificationManager.Instance.ShowInfo("Calendar Update", message);
+            _logger.Info($"Conflict notification: {message}");
         }
 
         #endregion
 
-        #region Database Operations (Placeholders)
+        #region Database Operations
 
         private async Task<OneOnOne?> FindMeetingByCalendarEventIdAsync(string calendarEventId)
         {
-            // TODO: Query database for meeting with this calendar event ID
-            // For now, return null - will implement with data layer
-            await Task.CompletedTask;
-            return null;
+            // Query database for meeting with this calendar event ID via CalendarLinks table
+            return await TrackerDbManager.Instance.FindMeetingByCalendarEventIdAsync("outlook", calendarEventId);
         }
 
         private async Task<OneOnOne?> GetMeetingByIdAsync(int meetingId)
         {
-            // TODO: Query database for meeting by ID
-            await Task.CompletedTask;
-            return null;
+            return await TrackerDbManager.Instance.GetOneOnOneByIdAsync(meetingId);
         }
 
         private async Task SaveMeetingSyncDataAsync(OneOnOne meeting)
         {
-            // TODO: Update meeting's sync fields in database
-            // CalendarEventId, CalendarEventEtag, LastSyncedAt, SyncStatus
-            await Task.CompletedTask;
+            // Update meeting's sync fields in database
+            await TrackerDbManager.Instance.UpdateMeetingSyncDataAsync(
+                meeting.Id,
+                meeting.CalendarEventId,
+                meeting.CalendarEventEtag,
+                meeting.SyncStatus);
+
+            // Also save/update the CalendarLink record for proper tracking
+            if (!string.IsNullOrEmpty(meeting.CalendarEventId))
+            {
+                var link = new CalendarLink
+                {
+                    OneOnOneId = meeting.Id,
+                    ProviderId = "outlook",
+                    ExternalEventId = meeting.CalendarEventId,
+                    ETag = meeting.CalendarEventEtag,
+                    LastSyncedAt = meeting.LastSyncedAt ?? DateTime.Now,
+                    LastSyncDirection = DataModels.SyncDirection.Push,
+                    Status = meeting.SyncStatus == "Synced" ? CalendarLinkStatus.Synced : CalendarLinkStatus.Error,
+                    LastError = meeting.SyncStatus == "Error" ? "Sync failed" : null
+                };
+                await TrackerDbManager.Instance.SaveCalendarLinkAsync(link);
+            }
         }
 
         private async Task UpdateMeetingFromCalendarAsync(OneOnOne meeting, GraphCalendarEvent calEvent)

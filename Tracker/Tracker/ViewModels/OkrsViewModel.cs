@@ -10,6 +10,8 @@ using Tracker.Helpers;
 using Tracker.Interfaces;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services;
+using Tracker.Services.Analytics;
 
 namespace Tracker.ViewModels
 {
@@ -21,6 +23,7 @@ namespace Tracker.ViewModels
     /// - Top-right panel: Key Results for selected OKR
     /// - Bottom-right panel: KR details with linked measurables
     /// - Full CRUD + Duplication support
+    /// - Predictive analytics for trajectory visualization
     /// 
     /// Usage:
     /// Bind to OkrsControl.DataContext
@@ -37,6 +40,8 @@ namespace Tracker.ViewModels
         private string _searchText = string.Empty;
         private ObjectiveStatusEnum? _statusFilter;
         private bool _isLoading;
+        private PredictiveAnalyticsViewModel? _selectedOkrAnalytics;
+        private PredictiveAnalyticsViewModel? _selectedKrAnalytics;
 
         // Commands
         private ICommand? _addOkrCommand;
@@ -58,8 +63,9 @@ namespace Tracker.ViewModels
         public OkrsViewModel()
         {
             _logger = LoggingManager.GetComponentLogger("OkrsViewModel");
-            LoadDataAsync();
-            
+            // Don't load data in constructor - wait for Loaded event
+            // Data will be loaded asynchronously to avoid blocking UI
+
             // Subscribe to data change messages
             DataMessenger.Register(this, OnDataChanged);
         }
@@ -142,6 +148,9 @@ namespace Tracker.ViewModels
                 
                 // Clear KR selection when OKR changes
                 SelectedKeyResult = value?.KeyResults?.FirstOrDefault();
+                
+                // Load predictive analytics for the selected OKR
+                _ = LoadSelectedOkrAnalyticsAsync();
             }
         }
 
@@ -156,6 +165,35 @@ namespace Tracker.ViewModels
                 _selectedKeyResult = value;
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(HasSelectedKeyResult));
+                
+                // Load predictive analytics for the selected Key Result
+                _ = LoadSelectedKrAnalyticsAsync();
+            }
+        }
+
+        /// <summary>
+        /// Predictive analytics for the selected OKR.
+        /// </summary>
+        public PredictiveAnalyticsViewModel? SelectedOkrAnalytics
+        {
+            get => _selectedOkrAnalytics;
+            private set
+            {
+                _selectedOkrAnalytics = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Predictive analytics for the selected Key Result.
+        /// </summary>
+        public PredictiveAnalyticsViewModel? SelectedKrAnalytics
+        {
+            get => _selectedKrAnalytics;
+            private set
+            {
+                _selectedKrAnalytics = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -649,6 +687,62 @@ namespace Tracker.ViewModels
         public void SetStatusFilter(ObjectiveStatusEnum? status)
         {
             StatusFilter = status;
+        }
+
+        #endregion
+
+        #region Predictive Analytics
+
+        private async Task LoadSelectedOkrAnalyticsAsync()
+        {
+            if (SelectedOkr == null)
+            {
+                SelectedOkrAnalytics = null;
+                return;
+            }
+
+            try
+            {
+                var analytics = new PredictiveAnalyticsViewModel();
+                await analytics.LoadForOkrAsync(
+                    SelectedOkr.ObjectiveId,
+                    SelectedOkr.Title,
+                    SelectedOkr.StartDate,
+                    SelectedOkr.EndDate);
+                SelectedOkrAnalytics = analytics;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Failed to load OKR analytics: {0}", ex.Message);
+                SelectedOkrAnalytics = null;
+            }
+        }
+
+        private async Task LoadSelectedKrAnalyticsAsync()
+        {
+            if (SelectedKeyResult == null)
+            {
+                SelectedKrAnalytics = null;
+                return;
+            }
+
+            try
+            {
+                var analytics = new PredictiveAnalyticsViewModel();
+                // Use parent OKR dates for the Key Result
+                var parentOkr = SelectedOkr;
+                await analytics.LoadForKeyResultAsync(
+                    SelectedKeyResult.Id,
+                    SelectedKeyResult.Title,
+                    parentOkr?.StartDate,
+                    parentOkr?.EndDate);
+                SelectedKrAnalytics = analytics;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Failed to load KR analytics: {0}", ex.Message);
+                SelectedKrAnalytics = null;
+            }
         }
 
         #endregion
