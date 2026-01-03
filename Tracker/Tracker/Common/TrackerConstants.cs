@@ -106,7 +106,6 @@ namespace Tracker.Common
         // Feature Preview Messages
         public const string FeatureComingSoon = "Coming Soon";
         public const string FeaturePreview = "Feature Preview";
-        public const string MergeUsersComingSoon = "Merge Users functionality coming soon!";
         public const string DeleteUserComingSoon = "Delete User functionality coming soon!";
         public const string RestoreDbComingSoon = "Restore Database functionality coming soon!";
         public const string OptimizeDbComingSoon = "Optimize Database functionality coming soon!";

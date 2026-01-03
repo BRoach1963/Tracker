@@ -323,8 +323,7 @@ namespace Tracker.Services.AI.Insights
                 var allTasks = await dbManager.GetTasksAsync();
                 var overdueTasks = allTasks?.Where(t => 
                     !t.IsCompleted && 
-                    t.DueDate.HasValue && 
-                    t.DueDate.Value < DateTime.Now).ToList();
+                    t.DueDate < DateTime.Now).ToList();
                 var atRiskOkrs = await GetAtRiskOkrsAsync(dbManager);
 
                 var context = new TeamDataContext

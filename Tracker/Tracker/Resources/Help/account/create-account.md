@@ -69,12 +69,6 @@ After signing in for the first time:
 
 ## Account Security
 
-### Two-Factor Authentication (Coming Soon)
-Enhanced security with:
-- SMS verification codes
-- Authenticator app support
-- Backup codes
-
 ### Session Management
 - Sessions expire after 30 days of inactivity
 - Sign out remotely from Account Settings

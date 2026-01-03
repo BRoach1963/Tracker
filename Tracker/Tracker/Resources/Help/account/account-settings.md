@@ -195,7 +195,6 @@ Manage calendar connections:
 **Supported Calendars**:
 - Google Calendar
 - Microsoft Outlook
-- Apple Calendar (coming soon)
 
 ### Disconnect a Service
 1. Go to **Account** → **Connected Services**

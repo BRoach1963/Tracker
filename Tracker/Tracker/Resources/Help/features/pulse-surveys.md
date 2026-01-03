@@ -105,7 +105,6 @@ https://polished-wood-b404.brian-6df.workers.dev?token=UNIQUE-TOKEN
 ### Sharing Options
 - **Copy Link**: Copy the URL to share via email, Slack, Teams, etc.
 - **QR Code**: Generate a QR code for in-person distribution
-- **Email**: (Coming soon) Send directly from Tracker
 
 ### External Survey Experience
 

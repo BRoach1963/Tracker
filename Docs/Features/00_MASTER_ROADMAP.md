@@ -101,11 +101,10 @@ These features exist in the UI but show "Coming Soon" dialogs:
 
 | Feature | Priority | Complexity | Notes |
 |---------|----------|------------|-------|
-| **Merge Users** | High | Medium | Combine duplicate team member records |
-| **Delete User (Full)** | High | Low | Complete deletion with cascade |
 | **Export All Data** | High | Medium | JSON/CSV full backup (Excel export exists) |
 | **Import Data** | High | High | Restore from backup file |
-| **Clear All Data** | Medium | Low | Wipe database with confirmation |
+| **Delete User (Full)** | Medium | Low | Complete deletion with cascade |
+| **Clear All Data** | Low | Low | Wipe database with confirmation |
 
 ### Medium Priority - Database Tools
 
@@ -129,12 +128,7 @@ These features exist in the UI but show "Coming Soon" dialogs:
 
 The following help files claim features that don't exist:
 
-| File | Issue | Action |
-|------|-------|--------|
-| `account/create-account.md` | Says "Two-Factor Authentication (Coming Soon)" | Remove section |
-| `account/account-settings.md` | Says "Apple Calendar (coming soon)" | Remove line |
-| `features/kudos.md` | Says "Public option: Coming soon" | Remove or complete UI |
-| `features/pulse-surveys.md` | Says "Email: (Coming soon)" | Remove line |
+All help files have been audited and updated to reflect current application state.
 
 ---
 
@@ -143,7 +137,6 @@ The following help files claim features that don't exist:
 | Item | Impact | Effort |
 |------|--------|--------|
 | Report export "Coming Soon" for some types | Low | Low |
-| Constants for unused "Coming Soon" features | Low | Low |
 
 ---
 
@@ -152,12 +145,11 @@ The following help files claim features that don't exist:
 ### Immediate (This Week)
 1. ✅ ~~Clean up dead code (TeamHealthDashboardControl)~~ - Done
 2. ✅ ~~Remove outdated constants~~ - Done  
-3. ⬜ Fix help files - remove "Coming Soon" claims
+3. ✅ ~~Fix help files - remove "Coming Soon" claims~~ - Done
 
 ### Short Term (Next Sprint)
 4. ⬜ Implement Export All Data (JSON backup)
 5. ⬜ Implement Import Data (restore from backup)
-6. ⬜ Implement Merge Users feature
 
 ### Medium Term (Next Quarter)
 7. ⬜ Implement Delete User with full cascade

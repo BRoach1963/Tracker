@@ -136,7 +136,6 @@ namespace Tracker.ViewModels
 
         // Commands
         public ICommand ViewUserCommand { get; }
-        public ICommand MergeUsersCommand { get; }
         public ICommand DeleteUserCommand { get; }
         public ICommand BackupDatabaseCommand { get; }
         public ICommand RestoreDatabaseCommand { get; }
@@ -153,7 +152,6 @@ namespace Tracker.ViewModels
 
             // Initialize commands
             ViewUserCommand = new AsyncCommand(async _ => await ViewUserAsync());
-            MergeUsersCommand = new AsyncCommand(async _ => await MergeUsersAsync());
             DeleteUserCommand = new AsyncCommand(async _ => await DeleteUserAsync());
             BackupDatabaseCommand = new AsyncCommand(async _ => await BackupDatabaseAsync());
             RestoreDatabaseCommand = new AsyncCommand(async _ => await RestoreDatabaseAsync());
@@ -261,11 +259,6 @@ namespace Tracker.ViewModels
                 "User Details", 
                 MessageBoxButton.OK, 
                 MessageBoxImage.Information);
-        }
-
-        private async Task MergeUsersAsync()
-        {
-            MessageBoxHelper.Show(TrackerConstants.MergeUsersComingSoon, TrackerConstants.FeaturePreview, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private async Task DeleteUserAsync()

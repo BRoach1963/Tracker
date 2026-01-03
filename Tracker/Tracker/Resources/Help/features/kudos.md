@@ -152,7 +152,6 @@ Kudos you've sent are stored in Tracker. You can:
 - **Kudos you send**: Visible only to you and the recipient
 - **Delivery**: Goes directly to team member, not to channels
 - **Storage**: Kept in your Tracker database for your records
-- **Public option**: Coming soon - share kudos in a team channel
 
 ---
 
