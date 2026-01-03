@@ -113,7 +113,6 @@ namespace Tracker.Common
         public const string ExportDataComingSoon = "Export Data functionality coming soon!";
         public const string ImportDataComingSoon = "Import Data functionality coming soon!";
         public const string ClearDataComingSoon = "Clear Data functionality coming soon!";
-        public const string OutlookCalendarComingSoon = "Outlook Calendar integration will be available in Phase 2.";
         public const string ExportNotAvailable = "Export for this report is not yet available.";
 
         // Dialog Titles

@@ -57,8 +57,6 @@ namespace Tracker.Infrastructure
             services.AddTransient<HelpBotViewModel>();
             services.AddTransient<PulseSurveysViewModel>();
             services.AddTransient<PerformanceReviewsViewModel>();
-            //services.AddTransient<TeamHealthDashboardViewModel>(sp =>
-            //    new TeamHealthDashboardViewModel(sp.GetRequiredService<ITeamHealthService>()));
             services.AddTransient<LogViewerViewModel>();
 
             // ViewModels without callbacks
