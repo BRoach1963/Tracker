@@ -102,6 +102,84 @@ Free-form field for:
 | `Tab` | Move to next field |
 | `Shift+Tab` | Move to previous field |
 
+## Meeting History Tab
+
+*Available in Edit mode only*
+
+View the complete 1:1 meeting history with this team member:
+
+| Column | Description |
+|--------|-------------|
+| **Meeting Date** | When the meeting occurred |
+| **Status** | Scheduled, Completed, Canceled |
+| **Duration** | How long the meeting lasted |
+| **Summary** | Brief description or notes |
+
+### Actions
+- Double-click a meeting to view full details
+- View agenda items and tasks from past meetings
+- See patterns in meeting frequency
+
+## Feedback History Tab
+
+*Available in Edit mode only*
+
+Track feedback given to and received from this team member:
+
+| Column | Description |
+|--------|-------------|
+| **Date** | When feedback was given |
+| **Type** | Positive, Constructive, Recognition, Coaching, Performance Review |
+| **Title** | Brief summary |
+| **Content** | Full feedback details |
+
+### Actions
+- **Add Feedback** - Record new feedback
+- **Edit** - Modify existing feedback
+- **Delete** - Remove feedback record
+
+### Feedback Types
+
+| Type | Color | Use Case |
+|------|-------|----------|
+| 🟢 Positive | Green | Praise, good work |
+| 🟡 Constructive | Yellow | Areas for improvement |
+| 🔵 Recognition | Blue | Public acknowledgment |
+| 🟣 Coaching | Purple | Guidance and mentoring |
+| ⚪ Performance Review | Gray | Formal reviews |
+
+## Goals Tab
+
+*Available in Edit mode only*
+
+Manage individual development goals for this team member:
+
+| Column | Description |
+|--------|-------------|
+| **Goal Title** | What they're working toward |
+| **Category** | Career, Skill Development, Certification, etc. |
+| **Status** | Not Started, In Progress, Completed, On Hold |
+| **Target Date** | When the goal should be achieved |
+| **Progress** | Percentage complete |
+
+### Actions
+- **Add Goal** - Create a new goal
+- **Edit** - Modify goal details
+- **Delete** - Remove a goal
+- Click progress bar to update completion
+
+### Goal Categories
+
+| Icon | Category |
+|------|----------|
+| 🎯 | Career |
+| 📚 | Skill Development |
+| 📜 | Certification |
+| 👥 | Leadership |
+| 💬 | Communication |
+| 💻 | Technical |
+| 🌟 | Personal |
+
 ## Tips
 
 ### When Adding New Members
@@ -115,3 +193,12 @@ Free-form field for:
 - Keep skills current
 - Add notes after significant conversations
 - Update photo if they change
+- Record feedback frequently, not just during reviews
+
+---
+
+*See also:*
+- [Team Members](../features/team-members.md)
+- [Goals](../features/goals.md)
+- [Feedback](../features/feedback.md)
+- [1:1 Meetings](../features/one-on-ones.md)
