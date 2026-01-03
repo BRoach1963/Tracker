@@ -4,27 +4,28 @@
 **Status**: PLANNING (Do Not Implement)  
 **Priority**: TOP - Roadmap Priority #1  
 **Last Updated**: January 3, 2026  
-**Version**: 2.0 (Revised after architecture discussion)
+**Version**: 3.0 (Licensing architecture finalized)
 
 ---
 
 ## Table of Contents
 1. [Executive Summary](#executive-summary)
 2. [Key Decisions Made](#key-decisions-made)
-3. [Architecture Options: Organization Model](#architecture-options-organization-model)
-4. [Authentication Strategy](#authentication-strategy)
-5. [Current vs Target Architecture](#current-vs-target-architecture)
-6. [SQLite: Keep or Kill](#sqlite-keep-or-kill)
-7. [Pricing Structure Analysis](#pricing-structure-analysis)
-8. [Phase 1: Schema Design](#phase-1-schema-design)
-9. [Phase 2: Auth Implementation](#phase-2-auth-implementation)
-10. [Phase 3: Application Changes](#phase-3-application-changes)
-11. [Phase 4: Data Migration](#phase-4-data-migration)
-12. [Phase 5: Team Features](#phase-5-team-features)
-13. [Deployment Options](#deployment-options)
-14. [Risks & Concerns](#risks--concerns)
-15. [Open Questions](#open-questions)
-16. [Timeline Estimate](#timeline-estimate)
+3. [Licensing & Billing Architecture](#licensing--billing-architecture) ← NEW
+4. [Data Model: Owner-Based Sharing](#data-model-owner-based-sharing)
+5. [Authentication Strategy](#authentication-strategy)
+6. [Current vs Target Architecture](#current-vs-target-architecture)
+7. [SQLite: Keep or Kill](#sqlite-keep-or-kill)
+8. [Pricing Structure](#pricing-structure)
+9. [Phase 1: Schema Design](#phase-1-schema-design)
+10. [Phase 2: Auth Implementation](#phase-2-auth-implementation)
+11. [Phase 3: Application Changes](#phase-3-application-changes)
+12. [Phase 4: Data Migration](#phase-4-data-migration)
+13. [Phase 5: Team Features](#phase-5-team-features)
+14. [Deployment Options](#deployment-options)
+15. [Risks & Concerns](#risks--concerns)
+16. [Open Questions](#open-questions)
+17. [Timeline Estimate](#timeline-estimate)
 
 ---
 
@@ -67,121 +68,354 @@ Migrating Tracker from local SQLite databases to PostgreSQL with self-contained 
 | **SQLite** | ❌ Kill for product | Keep only for dev/testing, not shipped |
 | **Data Migration** | N/A | No users = no data to migrate |
 | **Seed Data Feature** | ❌ Remove from product | Only needed for testing, dumb to ship |
-
-### Decisions Still Pending
-
-| Decision | Options | Status |
-|----------|---------|--------|
-| **Organization Model** | A) Everyone has org, B) Org on-demand, C) No orgs | ⏳ Under discussion |
-| **Auth Method** | Password, Windows Auth, both | ⏳ Under discussion |
-| **Pricing Structure** | Per-seat vs flat tiers | ⏳ Under discussion |
-| **Free Tier Limits** | TBD | ⏳ Needs definition |
+| **Organization Model** | ✅ Option C: No Orgs | Orgs are for billing only (Supabase), not data scoping |
+| **Data Sharing** | ✅ Owner-based | Users own data, explicitly share with others |
+| **Billing System** | ✅ Keep in Supabase | Maintains control, Stripe integration exists |
+| **Seat Management** | ✅ Active User model | Server-side truth, not installer-based |
+| **Pricing Model** | ✅ Flat tiers | Predictable, competitive for small teams |
 
 ---
 
-## Architecture Options: Organization Model
+## Licensing & Billing Architecture
 
-### The Core Question
-**Do we need an "organization" concept at all?**
-
-An org is really only useful for:
-- ✅ Billing (grouping users for payment)
-- ✅ Data sharing (scoping shared data)
-- ✅ Seat management (tracking who's in the "team")
-
-It is NOT needed for:
-- ❌ Auth/login (just need user accounts)
-- ❌ Data isolation for solo users (use user_id)
-
-### Option A: Everyone Has an Org (Hidden for Solos)
+### Core Principle: Separation of Concerns
 
 ```
-Solo User → Auto-creates "Org of 1" (invisible in UI) → Data scoped to org
-Team User → Creates/Joins Team Org → Data scoped to org
+┌────────────────────────────────────┐    ┌────────────────────────────────────┐
+│      SUPABASE (Billing/Licensing)  │    │     PostgreSQL (App Data)          │
+│                                    │    │                                    │
+│  "Can these users use the app?"    │    │  "What data do users see?"         │
+│  "Who is paying?"                  │    │  "Who owns what?"                  │
+│  "How many seats are used?"        │    │  "Who shared with whom?"           │
+│                                    │    │                                    │
+│  organizations                     │    │  users (auth only, cached license) │
+│  licenses                          │    │  team_members (owner_id)           │
+│  active_seats                      │    │  meetings (owner_id)               │
+│  stripe_webhooks                   │    │  data_shares (owner → shared_with) │
+└────────────────────────────────────┘    └────────────────────────────────────┘
 ```
 
-**Pros:**
-- One code path everywhere
-- Easy upgrade (solo → team, just add members)
-- Consistent RLS rules
+### Why NOT Installer-Based Seat Management
 
-**Cons:**
-- Feels heavyweight for solo user
-- Creates unnecessary record
+Installer-based seat tracking is fragile:
+- Uninstalls don't always run (user deletes folder, system crash, reformat)
+- Same user on laptop + desktop = 2 installs, 1 seat?
+- Easy to game (uninstall, reinstall elsewhere)
+- No enforcement if user just... doesn't uninstall
 
-### Option B: Org Created On-Demand
+### The Model: Active User Seats
 
-```
-Solo User → No org, data scoped to user_id
-Team Upgrade → Creates org, migrates data to org scope
-```
+**A "seat" = a user who has logged in within the billing period. NOT an install.**
 
-**Pros:**
-- Simpler for individuals
-- No unnecessary records
+This is how Slack, Notion, and other modern SaaS products work.
 
-**Cons:**
-- Two query patterns (user_id vs org_id)
-- Data migration when going solo → team
-
-### Option C: No Orgs, Just Ownership + Sharing (SIMPLEST)
+### Supabase Billing Schema
 
 ```sql
--- Users own their data directly
-CREATE TABLE team_members (
-    id UUID PRIMARY KEY,
-    owner_id UUID REFERENCES users(id), -- Who owns this
-    ...
+-- ============================================
+-- SUPABASE: BILLING & LICENSING TABLES
+-- (These stay in Supabase, NOT in app PostgreSQL)
+-- ============================================
+
+-- Organization = billing entity (NOT data scoping)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    owner_email VARCHAR(255) NOT NULL, -- Who created/pays
+    stripe_customer_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sharing is explicit, not implicit
-CREATE TABLE data_shares (
-    resource_type VARCHAR(50), -- 'team_member', 'meeting', etc.
-    resource_id UUID,
-    owner_id UUID REFERENCES users(id),
-    shared_with_id UUID REFERENCES users(id),
-    permission VARCHAR(50) -- 'view', 'edit'
+-- Subscription details
+CREATE TABLE subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    plan_tier VARCHAR(50) NOT NULL, -- 'free', 'solo', 'team', 'team_plus', 'business'
+    status VARCHAR(50) NOT NULL, -- 'active', 'canceled', 'past_due', 'trialing'
+    seat_limit INTEGER NOT NULL DEFAULT 1, -- Max allowed seats
+    billing_cycle VARCHAR(20), -- 'monthly', 'annual'
+    current_period_start TIMESTAMP,
+    current_period_end TIMESTAMP,
+    stripe_subscription_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Billing is separate from data model
-CREATE TABLE billing_groups (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255),
-    owner_id UUID REFERENCES users(id)
+-- License key = what the user enters in the app
+CREATE TABLE licenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    license_key VARCHAR(255) UNIQUE NOT NULL, -- UUID format, user enters this
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255), -- "Main Office License", "Developer License"
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP -- NULL = never expires (tied to subscription)
 );
 
-CREATE TABLE billing_group_members (
-    billing_group_id UUID,
-    user_id UUID
+-- Active seats = who is currently using a seat
+CREATE TABLE active_seats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    license_id UUID REFERENCES licenses(id) ON DELETE CASCADE,
+    user_email VARCHAR(255) NOT NULL, -- Email of the user using this seat
+    machine_id VARCHAR(255), -- Optional: for "2 devices per user" limits
+    first_seen_at TIMESTAMP DEFAULT NOW(),
+    last_seen_at TIMESTAMP DEFAULT NOW(), -- Updated on each app launch
+    UNIQUE(organization_id, user_email) -- One seat per user per org
+);
+
+-- AI credits tracked per-organization
+CREATE TABLE ai_credits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    credits_remaining INTEGER DEFAULT 0,
+    credits_used_this_period INTEGER DEFAULT 0,
+    period_reset_date TIMESTAMP
 );
 ```
 
-**Pros:**
-- Super simple data model
-- Clear ownership
-- No migration when "upgrading" to team
-- Matches mental model: "I own my data, I share with Bob"
-- Billing is cleanly separated from data
-
-**Cons:**
-- Sharing is more manual
-- No implicit "everyone in org sees this"
-
-### Recommendation for Small Firms
-
-**Option C (No Orgs, Just Sharing)** may be best because:
-- A 5-person law firm doesn't think in "organizations"
-- They think: "I'm a partner, I have my team, I want to share with Bob"
-- Explicit sharing matches how small firms actually work
-- Billing group ≠ data scope (clean separation)
-
-### ⏳ DECISION NEEDED: Which model?
+### License Validation Flow
 
 ```
-[ ] Option A: Everyone has org (hidden for solos)
-[ ] Option B: Org created on-demand
-[ ] Option C: No orgs, just ownership + sharing
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          APP LAUNCH FLOW                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. User launches Tracker app
+
+2. App reads stored license_key from local settings
+   (first time: prompts user to enter license key)
+
+3. App calls Supabase Edge Function: validate_license
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ POST /functions/v1/validate_license                            │
+   │ Body: { license_key: "xxx", user_email: "alice@acme.com" }     │
+   └─────────────────────────────────────────────────────────────────┘
+
+4. Supabase Edge Function checks:
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ a) Is license_key valid and active?                            │
+   │ b) Is organization subscription active?                        │
+   │ c) Is this user already in active_seats?                       │
+   │    YES → Update last_seen_at → ALLOW                           │
+   │    NO  → Check: available_seats < seat_limit?                  │
+   │          YES → Add to active_seats → ALLOW                     │
+   │          NO  → REJECT ("No seats available")                   │
+   └─────────────────────────────────────────────────────────────────┘
+
+5. Supabase returns:
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ {                                                              │
+   │   valid: true,                                                 │
+   │   organization_name: "Acme Corp",                              │
+   │   plan_tier: "team",                                           │
+   │   features: ["ai_insights", "surveys", "reviews"],             │
+   │   seat_info: { used: 3, limit: 5 },                            │
+   │   ai_credits_remaining: 450,                                   │
+   │   next_validation_required: "2026-01-04T00:00:00Z"             │
+   │ }                                                              │
+   └─────────────────────────────────────────────────────────────────┘
+
+6. App caches this locally (for offline grace period: 7 days)
+
+7. App runs normal startup against PostgreSQL database
+
+8. Daily background check re-validates license
 ```
+
+### Seat Release Mechanism
+
+Seats are released automatically - NO reliance on installer:
+
+| Method | How It Works | When |
+|--------|--------------|------|
+| **Auto-release** | User inactive for 30 days | `last_seen_at` older than 30 days |
+| **Admin removal** | Admin removes user in billing portal | Manual action in Supabase/Stripe portal |
+| **Best-effort uninstall** | App calls "release my seat" on uninstall | Nice to have, not required |
+
+```sql
+-- Supabase scheduled function: release_stale_seats (runs daily)
+DELETE FROM active_seats 
+WHERE last_seen_at < NOW() - INTERVAL '30 days';
+```
+
+### Edge Function: validate_license
+
+```typescript
+// supabase/functions/validate_license/index.ts
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+serve(async (req) => {
+  const { license_key, user_email, machine_id } = await req.json()
+  
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  )
+
+  // 1. Validate license key
+  const { data: license } = await supabase
+    .from('licenses')
+    .select('*, organizations(*), organizations!inner(subscriptions(*))')
+    .eq('license_key', license_key)
+    .eq('is_active', true)
+    .single()
+
+  if (!license) {
+    return new Response(JSON.stringify({ valid: false, error: 'Invalid license key' }), { status: 401 })
+  }
+
+  const org = license.organizations
+  const subscription = org.subscriptions[0]
+
+  // 2. Check subscription is active
+  if (!subscription || subscription.status !== 'active') {
+    return new Response(JSON.stringify({ valid: false, error: 'Subscription inactive' }), { status: 403 })
+  }
+
+  // 3. Check/claim seat
+  const { data: existingSeat } = await supabase
+    .from('active_seats')
+    .select('*')
+    .eq('organization_id', org.id)
+    .eq('user_email', user_email)
+    .single()
+
+  if (existingSeat) {
+    // Update last_seen
+    await supabase
+      .from('active_seats')
+      .update({ last_seen_at: new Date().toISOString(), machine_id })
+      .eq('id', existingSeat.id)
+  } else {
+    // Check seat availability
+    const { count: usedSeats } = await supabase
+      .from('active_seats')
+      .select('*', { count: 'exact' })
+      .eq('organization_id', org.id)
+
+    if (usedSeats >= subscription.seat_limit) {
+      return new Response(JSON.stringify({ 
+        valid: false, 
+        error: 'No seats available',
+        seat_info: { used: usedSeats, limit: subscription.seat_limit }
+      }), { status: 403 })
+    }
+
+    // Claim seat
+    await supabase.from('active_seats').insert({
+      organization_id: org.id,
+      license_id: license.id,
+      user_email,
+      machine_id
+    })
+  }
+
+  // 4. Get AI credits
+  const { data: credits } = await supabase
+    .from('ai_credits')
+    .select('*')
+    .eq('organization_id', org.id)
+    .single()
+
+  // 5. Return success
+  return new Response(JSON.stringify({
+    valid: true,
+    organization_name: org.name,
+    plan_tier: subscription.plan_tier,
+    features: getFeaturesForPlan(subscription.plan_tier),
+    seat_info: { used: usedSeats + 1, limit: subscription.seat_limit },
+    ai_credits_remaining: credits?.credits_remaining ?? 0,
+    next_validation_required: getNextValidationDate()
+  }))
+})
+
+function getFeaturesForPlan(tier: string): string[] {
+  const features: Record<string, string[]> = {
+    'free': ['basic'],
+    'solo': ['basic', 'ai_insights', 'surveys', 'reviews', 'unlimited_team_members'],
+    'team': ['basic', 'ai_insights', 'surveys', 'reviews', 'unlimited_team_members', 'multi_user', 'sharing'],
+    'team_plus': ['basic', 'ai_insights', 'surveys', 'reviews', 'unlimited_team_members', 'multi_user', 'sharing', 'admin_dashboard'],
+    'business': ['basic', 'ai_insights', 'surveys', 'reviews', 'unlimited_team_members', 'multi_user', 'sharing', 'admin_dashboard', 'analytics', 'priority_support']
+  }
+  return features[tier] ?? features['free']
+}
+```
+
+### Self-Hosted License Validation
+
+For self-hosted customers, the app still validates against Supabase:
+
+```
+┌────────────────────┐         ┌────────────────────┐         ┌────────────────────┐
+│  Customer Network  │         │      Internet      │         │     Supabase       │
+│                    │         │                    │         │                    │
+│  ┌──────────────┐  │         │                    │         │  validate_license  │
+│  │  Tracker.exe │──┼────────▶│ HTTPS license call │────────▶│  (edge function)   │
+│  └──────────────┘  │         │                    │         │                    │
+│         │          │         │                    │         │                    │
+│         ▼          │         │                    │         │                    │
+│  ┌──────────────┐  │         │                    │         │                    │
+│  │  PostgreSQL  │  │  (Data stays on-prem)       │         │                    │
+│  │  (on-prem)   │  │         │                    │         │                    │
+│  └──────────────┘  │         │                    │         │                    │
+└────────────────────┘         └────────────────────┘         └────────────────────┘
+```
+
+**Self-hosted = data is local, licensing is cloud.**
+
+For true air-gapped environments (rare): 
+- Enterprise contract with license file (signed, expiring)
+- Manual renewal process
+- Premium pricing for the overhead
+
+---
+
+## Data Model: Owner-Based Sharing
+
+### Decision: Option C - No Orgs for Data
+
+"Organization" only exists for **billing**. Data ownership and sharing is handled differently:
+
+```
+Mental Model for Small Firms:
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  "I'm Sarah, a manager at a small law firm"                      │
+│                                                                  │
+│  I OWN:                           I SHARE WITH:                  │
+│  ├── TeamMember: Bob              ├── Bob's info → Partner Tom   │
+│  ├── TeamMember: Alice            ├── Alice's info → Partner Tom │
+│  ├── 15 meeting records           └── Selected meetings → Tom    │
+│  └── 3 performance reviews                                       │
+│                                                                  │
+│  Tom and I are on the SAME BILL (same org in Supabase)           │
+│  But Tom doesn't automatically see my data - I share explicitly  │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Works for Small Teams
+
+- Small firms don't think in "organizations"
+- They think: "I own my data, I share with my partner"
+- Explicit sharing matches reality (not everyone sees everything)
+- Billing is separate from data access
+- No complexity of implicit org-wide permissions
+
+### What PostgreSQL Holds vs. What Supabase Holds
+
+| Concern | Where | Why |
+|---------|-------|-----|
+| User authentication (password, JWT) | PostgreSQL | Self-contained, works self-hosted |
+| User data (team members, meetings) | PostgreSQL | Core app data |
+| Data sharing (who sees what) | PostgreSQL | App-level concern |
+| Billing/subscription status | Supabase | Maintains control, Stripe integration |
+| License keys | Supabase | Server-side truth |
+| Seat tracking | Supabase | Server-side truth |
+| AI credit balance | Supabase | Prevents gaming |
 
 ---
 
@@ -192,6 +426,23 @@ Self-contained auth that works for:
 1. Cloud deployment (Prickly Cactus hosted)
 2. Self-hosted deployment (customer's server)
 3. Potentially Windows domain environments (future)
+
+### Relationship: Auth vs. Licensing
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  AUTHENTICATION (PostgreSQL)              LICENSING (Supabase)              │
+│                                                                             │
+│  "Who are you?"                           "Are you allowed to use this?"    │
+│  - Email/password validation              - License key validation          │
+│  - JWT token generation                   - Seat availability               │
+│  - Session management                     - Feature entitlements            │
+│  - Password reset                         - AI credit balance               │
+│                                                                             │
+│  Happens FIRST on login                   Happens AFTER auth succeeds       │
+│  Works offline (cached session)           Requires internet (daily check)   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Auth Implementation: Lightweight JWT + bcrypt
 
@@ -328,25 +579,9 @@ CREATE TABLE refresh_tokens (
 
 ---
 
-## Pricing Structure Analysis
+## Pricing Structure
 
-### Original Pricing (Under Review)
-| Plan | Price | Notes |
-|------|-------|-------|
-| Free | $0 | ??? limits |
-| Standard | $7/mo | Individual |
-| Pro | $12/mo | Individual + more AI |
-| Team Standard | $5/seat/mo | 5+ seats |
-| Team Pro | $9/seat/mo | 5+ seats + more AI |
-| Enterprise | Custom | Custom |
-
-### Problems with Original
-1. What's free? No clear limits defined
-2. Individual vs Team distinction is confusing
-3. What triggers the upgrade? Unclear
-4. Why 5 seat minimum? Arbitrary
-
-### Proposed: Flat Tier Pricing (Simpler)
+### ✅ DECIDED: Flat Tier Pricing
 
 | Tier | Monthly | Annual | Users | Key Limits |
 |------|---------|--------|-------|------------|
@@ -357,7 +592,7 @@ CREATE TABLE refresh_tokens (
 | **Business** | $99/mo | $990/yr | Up to 30 | + Analytics, priority support |
 | **Custom** | Contact | Contact | 30+ | Whatever they need |
 
-### Why Flat Tiers Are Better for Small Teams
+### Why Flat Tiers
 - Predictable pricing (no seat math)
 - Clear upgrade triggers (need more users or features)
 - $99/mo for 30 users = $3.30/user (very competitive vs $9/seat competitors)
@@ -375,17 +610,21 @@ CREATE TABLE refresh_tokens (
 | **Pulse Surveys** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Performance Reviews** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Multi-user** | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Data Sharing** | ❌ | ❌ | ✅ | ✅ | ✅ |
 | **Admin Dashboard** | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **Team Analytics** | ❌ | ❌ | ❌ | ❌ | ✅ |
 | **Priority Support** | ❌ | ❌ | ❌ | ❌ | ✅ |
 
-### ⏳ DECISION NEEDED: Pricing Model
+### AI Credits Allocation (Per Billing Period)
 
-```
-[ ] Keep original per-seat pricing
-[ ] Switch to flat tier pricing
-[ ] Hybrid (flat for small, per-seat for large)
-```
+| Tier | AI Credits/Month | Notes |
+|------|-----------------|-------|
+| Free | 0 | No AI features |
+| Solo | 100 | ~20 meeting summaries |
+| Team | 300 | Shared across org |
+| Team+ | 750 | Shared across org |
+| Business | 2000 | Shared across org |
+| Custom | Negotiated | Based on needs |
 
 ---
 
@@ -1217,26 +1456,118 @@ For self-hosted customers, provide:
 
 ## Open Questions
 
-### ⏳ Decisions Still Needed
+### ✅ Decisions Made (No Longer Open)
 
-| Question | Options | Notes |
-|----------|---------|-------|
-| **Organization Model** | A) Everyone has org, B) On-demand, C) No orgs | Recommend C for simplicity |
-| **Windows Auth** | Now vs Later | Recommend: design for it, implement later |
-| **Pricing Model** | Per-seat vs Flat tiers | Recommend: Flat tiers |
-| **Free Tier Limits** | TBD | Proposed: 1 user, 3 team members, 5 meetings/mo |
-| **Seed Data Feature** | Keep vs Remove | Recommend: Remove from product |
+| Question | Decision | Notes |
+|----------|----------|-------|
+| ~~Organization Model~~ | Option C: No Orgs | Orgs for billing only |
+| ~~Pricing Model~~ | Flat tiers | $0 → $9 → $29 → $59 → $99 |
+| ~~Seat Management~~ | Active User model | Server-side, 30-day inactive release |
+| ~~Where billing lives~~ | Supabase | Stripe integration, control |
+| ~~Free Tier Limits~~ | 1 user, 3 team members, 5 meetings/mo | Clear gates |
 
-### Technical Questions (Need Research/Spike)
+### ⏳ Technical Decisions Still Needed
+
+| Question | Options | Impact | Notes |
+|----------|---------|--------|-------|
+| **Windows Auth** | Now vs Later | Dev time | Recommend: design for it, implement later |
+| **EF Core + RLS** | Direct RLS vs App-level filtering | Security, complexity | Need spike to validate |
+| **JWT Storage** | DPAPI vs Credential Manager vs encrypted file | Security | Research needed |
+| **License key UX** | Enter once vs per-device | User friction | Recommend: once, stored locally |
+| **Offline grace period** | 7 days? 14 days? | UX vs security | 7 days seems reasonable |
+| **Stale seat threshold** | 30 days? 60 days? | UX vs billing | 30 days proposed |
+
+### 🔬 Questions Requiring Spikes/Research
 
 1. **EF Core + PostgreSQL RLS**: Does setting session variables work cleanly with connection pooling?
    - Need proof-of-concept before committing to RLS approach
+   - Alternative: All filtering in app code (simpler but less secure)
 
-2. **JWT storage on Windows**: Where to store securely?
-   - Options: DPAPI, Windows Credential Manager, encrypted local file
+2. **Supabase Edge Functions**: Validate they work well for license validation
+   - Latency concerns?
+   - Rate limiting?
+   - Cost at scale?
 
-3. **Connection string for self-hosted**: How to secure?
-   - User enters once, stored encrypted locally
+3. **Npgsql Connection Pooling**: How does it interact with session variables?
+   - Do we need to reset `app.current_user_id` on each request?
+   - Connection lifetime concerns?
+
+### 📋 Pre-Implementation Checklist
+
+Before writing code, ensure:
+
+- [x] Organization model chosen (Option C: No Orgs for data)
+- [x] Pricing structure finalized (Flat tiers)
+- [x] Licensing model defined (Supabase + Active User seats)
+- [x] Data model decided (Owner-based with explicit sharing)
+- [ ] **SPIKE**: EF Core + PostgreSQL + RLS proof-of-concept
+- [ ] **SPIKE**: Supabase Edge Function latency test
+- [ ] Dev PostgreSQL environment set up (Supabase project or local Docker)
+- [ ] JWT secret management strategy
+- [ ] Stripe webhook endpoints defined
+- [ ] Supabase schema created (billing tables)
+
+---
+
+## Remaining Work Before Starting
+
+### Must-Do Spikes (1-2 days each)
+
+#### Spike 1: EF Core + PostgreSQL + RLS
+
+**Goal**: Validate that Row-Level Security works with EF Core and connection pooling.
+
+```csharp
+// Test scenario:
+// 1. Set session variable for user context
+// 2. Query team_members (should only return user's data)
+// 3. Switch user context
+// 4. Query again (should return different data)
+// 5. Verify no data leakage
+```
+
+**Success criteria**:
+- RLS policies filter correctly
+- No cross-user data leakage
+- Acceptable performance overhead
+
+**Alternative if fails**: App-level filtering (WHERE owner_id = @userId)
+
+#### Spike 2: Supabase Edge Function Performance
+
+**Goal**: Validate license validation is fast enough for app launch.
+
+```typescript
+// Test scenario:
+// 1. Call validate_license edge function 100 times
+// 2. Measure latency (should be < 500ms average)
+// 3. Test under load (10 concurrent calls)
+// 4. Verify rate limiting behavior
+```
+
+**Success criteria**:
+- < 500ms average response time
+- Works with concurrent requests
+- Clear error messages for edge cases
+
+### Environment Setup Needed
+
+1. **Supabase Project** (for billing)
+   - Create project or use existing
+   - Create billing tables (organizations, licenses, active_seats, etc.)
+   - Deploy edge functions
+   - Set up Stripe webhooks
+
+2. **PostgreSQL Dev Database** (for app data)
+   - Option A: Supabase PostgreSQL (easiest)
+   - Option B: Local Docker (more control)
+   - Create schema with RLS policies
+   - Seed test users
+
+3. **Local Dev Environment**
+   - Connection string management
+   - JWT secret for local testing
+   - Test license keys
 
 ---
 
@@ -1244,138 +1575,182 @@ For self-hosted customers, provide:
 
 Since there's no data migration burden (no users), timeline is simpler:
 
-### Phase 1: Design & Setup (2 weeks)
-- Finalize org model decision
-- Set up PostgreSQL dev environment
-- Create schema (based on chosen model)
-- Spike: EF Core + RLS compatibility
+### Pre-Work: Spikes & Setup (1 week)
+- Day 1-2: EF Core + RLS spike
+- Day 3: Supabase Edge Function spike
+- Day 4-5: Dev environment setup (Supabase billing + PostgreSQL data)
+
+### Phase 1: Supabase Billing Setup (1 week)
+- Create billing tables in Supabase
+- Deploy validate_license edge function
+- Set up Stripe webhooks
+- Create test organizations + licenses
+- Test seat claiming/releasing
 
 ### Phase 2: Auth Implementation (2-3 weeks)
 - Build auth service (password + JWT)
 - User registration/login flows
 - Session management
 - Remove Supabase auth code
+- Password reset flow
 
 ### Phase 3: Database Layer (3-4 weeks)
 - Replace SQLite provider with Npgsql
-- Update TrackerDbContext
+- Update TrackerDbContext with RLS session variables
 - Update TrackerDbManager (all methods)
-- Add user context to all queries
+- Add owner_id to all queries
+- Build data sharing (data_shares table + queries)
 
 ### Phase 4: UI Updates (2 weeks)
 - Login/registration screens
+- License key entry screen
 - Remove SQLite-specific UI
 - Connection configuration for self-hosted
 - Remove seed data feature
+- License validation error handling
 
 ### Phase 5: Team Features (3-4 weeks) - IF NEEDED FOR V1
-- Sharing UI (if using Option C)
-- OR Org management UI (if using Option A/B)
-- Billing group management
+- Sharing UI ("Share with..." dialogs)
+- View shared data from others
+- Billing portal link
 - Admin dashboard (Team+ tier)
 
 ### Phase 6: Testing & Polish (2 weeks)
 - End-to-end testing
-- Security review
+- Security review (RLS, auth, license validation)
 - Documentation
 - Self-hosted deployment package
 
 **Total: ~14-17 weeks (3.5-4 months)**
 
-*Note: Could be faster if we defer team features to post-launch.*
+*Could be faster if we defer team features (sharing, admin dashboard) to post-MVP.*
+
+### MVP vs Full Release
+
+| Feature | MVP | Full |
+|---------|:---:|:----:|
+| PostgreSQL backend | ✅ | ✅ |
+| Self-contained auth | ✅ | ✅ |
+| License validation | ✅ | ✅ |
+| Seat management | ✅ | ✅ |
+| Single-user experience | ✅ | ✅ |
+| Data sharing | ❌ | ✅ |
+| Admin dashboard | ❌ | ✅ |
+| Team analytics | ❌ | ✅ |
+
+**MVP Timeline: ~10-12 weeks (2.5-3 months)**
 
 ---
 
 ## Next Steps
 
-### Immediate Actions
+### Immediate (This Week)
 
-1. **Make org model decision** (A, B, or C)
-2. **Make pricing decision** (per-seat vs flat)
-3. **Spike**: EF Core + PostgreSQL + RLS proof-of-concept
-4. **Define free tier limits**
+1. **✅ DONE**: Finalize architecture decisions (this document)
+2. **TODO**: Run EF Core + RLS spike
+3. **TODO**: Run Supabase Edge Function spike
+4. **TODO**: Set up dev PostgreSQL environment
 
-### Before Starting Implementation
+### Before Writing Production Code
 
-- [ ] Org model chosen
-- [ ] Pricing structure finalized
-- [ ] POC validates EF Core + RLS approach
-- [ ] Dev PostgreSQL environment set up
+- [ ] Both spikes pass (or we have fallback plans)
+- [ ] Dev Supabase project with billing tables
+- [ ] Dev PostgreSQL with app schema
+- [ ] JWT secret management figured out
+- [ ] Connection string encryption approach
+
+### Implementation Order
+
+```
+Week 1:      Spikes + Environment
+Week 2:      Supabase billing setup
+Week 3-5:    Auth system
+Week 6-9:    Database layer rewrite
+Week 10-11:  UI updates
+Week 12-14:  Team features (or defer)
+Week 15-16:  Testing + polish
+```
 
 ---
 
-## Appendix: Comparison of Org Models
+## Appendix A: Comparison of Org Models (Historical)
 
-| Aspect | Option A (Everyone Has Org) | Option B (Org On-Demand) | Option C (No Orgs) |
+*Kept for reference on how we arrived at Option C.*
+
+| Aspect | Option A (Everyone Has Org) | Option B (Org On-Demand) | Option C (No Orgs) ✅ |
 |--------|----------------------------|--------------------------|-------------------|
 | **Schema complexity** | Medium | Medium | Low |
 | **Query patterns** | One pattern (org-scoped) | Two patterns | One pattern (owner-scoped) |
 | **Solo → Team upgrade** | Easy (add members) | Requires data migration | Easy (share data) |
 | **Data sharing** | Implicit (same org) | Implicit (same org) | Explicit (data_shares) |
-| **Billing** | Tied to org | Tied to org | Separate (billing_groups) |
+| **Billing** | Tied to org | Tied to org | Separate (Supabase) |
 | **Mental model** | "I'm in an organization" | "I might join an org" | "I own my data, I share it" |
-| **Best for** | Enterprise-focused | Hybrid | Small teams |
+| **Best for** | Enterprise-focused | Hybrid | Small teams ✅ |
 
-### Recommendation: Option C for Small Firm Focus
+### Why We Chose Option C
 
 Small firms don't think in "organizations." They think:
 - "These are MY team members"
 - "I want to share Sarah's info with my partner Bob"
 - "Bob and I are on the same bill"
 
-Option C maps directly to this mental model.
-
-### Phase 3: Application Changes (4-6 weeks)
-- Week 8-9: Database abstraction layer
-- Week 10-11: Update all ViewModels/Services
-- Week 12-13: Testing, bug fixes
-
-### Phase 4: Data Migration (2-3 weeks)
-- Week 14: Build migration tool
-- Week 15-16: Testing with real user data (volunteers)
-
-### Phase 5: Team Features (3-4 weeks)
-- Week 17-18: Org management, invites
-- Week 19-20: Admin dashboard, analytics
-
-### Phase 6: Polish & Launch (2-3 weeks)
-- Week 21: Beta testing with select customers
-- Week 22-23: Bug fixes, documentation, launch
-
-**Total: ~20-25 weeks (5-6 months)**
+Option C maps directly to this mental model. Billing (Supabase) is cleanly separated from data ownership (PostgreSQL).
 
 ---
 
-## Next Steps
+## Appendix B: Full Schema Reference
 
-1. **Review this document** - Add comments, questions
-2. **Make decisions** on the 5 critical decision points
-3. **Prioritize** - Do we need ALL team features for v1?
-4. **Spike** - Quick proof-of-concept on EF Core + PostgreSQL + RLS
-5. **Staff** - Do we need additional help for this scope?
-
----
-
-## Appendix: Current SQLite Schema Reference
-
-For migration mapping, document current schema:
+### Supabase Tables (Billing/Licensing)
 
 ```sql
--- Run against current SQLite to extract schema
-SELECT sql FROM sqlite_master WHERE type='table';
+-- organizations: billing entity
+-- subscriptions: Stripe subscription details
+-- licenses: license keys for orgs
+-- active_seats: who is using seats
+-- ai_credits: credit balance per org
 ```
 
-Tables to migrate:
-- TeamMembers
-- Meetings  
-- MeetingAgendaItems
-- IndividualTasks
-- ObjectiveKeyResults
-- KeyResults
-- Kudos
-- PulseSurveys
-- PulseSurveyQuestions
-- PulseSurveyResponses
-- PerformanceReviews
-- Reminders
-- Settings (special handling)
+*Full schema in Licensing & Billing Architecture section above.*
+
+### PostgreSQL Tables (App Data)
+
+```sql
+-- users: auth + profile
+-- user_sessions: active sessions
+-- refresh_tokens: JWT refresh tokens
+-- team_members: people being managed (owner_id)
+-- meetings: 1:1 records (owner_id)
+-- meeting_agenda_items: agenda for meetings
+-- tasks: action items (owner_id)
+-- okrs: objectives (owner_id)
+-- key_results: OKR key results
+-- kudos: recognition (owner_id)
+-- pulse_surveys: surveys (owner_id)
+-- pulse_survey_questions: survey questions
+-- pulse_survey_responses: responses
+-- performance_reviews: reviews (owner_id)
+-- reminders: user reminders
+-- data_shares: explicit sharing permissions
+```
+
+*Full schema in Phase 1: Schema Design section.*
+
+---
+
+## Appendix C: Migration Mapping (SQLite → PostgreSQL)
+
+*For reference when implementing database layer changes.*
+
+| SQLite Table | PostgreSQL Table | Key Changes |
+|--------------|------------------|-------------|
+| `TeamMembers` | `team_members` | +owner_id (UUID), int→UUID ID |
+| `Meetings` | `meetings` | +owner_id (UUID), int→UUID ID |
+| `MeetingAgendaItems` | `meeting_agenda_items` | UUID references |
+| `IndividualTasks` | `tasks` | +owner_id (UUID) |
+| `ObjectiveKeyResults` | `okrs` | +owner_id (UUID) |
+| `KeyResults` | `key_results` | UUID references |
+| `Kudos` | `kudos` | +owner_id (UUID) |
+| `PulseSurveys` | `pulse_surveys` | +owner_id (UUID) |
+| `PerformanceReviews` | `performance_reviews` | +owner_id (UUID) |
+| `Reminders` | `reminders` | +user_id (UUID) |
+| `Settings` | `users.settings` | JSONB column |
