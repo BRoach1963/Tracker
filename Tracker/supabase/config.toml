@@ -1,0 +1,4 @@
+# Supabase Configuration
+
+[functions.tracker-survey]
+verify_jwt = false
