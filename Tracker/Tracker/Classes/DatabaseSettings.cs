@@ -102,6 +102,54 @@ namespace Tracker.Classes
         /// </summary>
         public bool IsOfflineMode { get; set; } = false;
 
+        #region PostgreSQL Settings
+
+        /// <summary>
+        /// PostgreSQL host address.
+        /// Default is localhost for local development.
+        /// </summary>
+        public string PostgresHost { get; set; } = "localhost";
+
+        /// <summary>
+        /// PostgreSQL port number.
+        /// Default is 5432.
+        /// </summary>
+        public int PostgresPort { get; set; } = 5432;
+
+        /// <summary>
+        /// PostgreSQL database name.
+        /// </summary>
+        public string PostgresDatabase { get; set; } = "tracker";
+
+        /// <summary>
+        /// PostgreSQL username for authentication.
+        /// Uses a dedicated app user with limited privileges.
+        /// </summary>
+        public string PostgresUsername { get; set; } = "tracker_app";
+
+        /// <summary>
+        /// PostgreSQL password for authentication.
+        /// </summary>
+        public string PostgresPassword { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Whether to use SSL for PostgreSQL connections.
+        /// Should be true for production, can be false for localhost.
+        /// </summary>
+        public bool PostgresUseSsl { get; set; } = false;
+
+        /// <summary>
+        /// PostgreSQL connection pool minimum size.
+        /// </summary>
+        public int PostgresPoolMinSize { get; set; } = 1;
+
+        /// <summary>
+        /// PostgreSQL connection pool maximum size.
+        /// </summary>
+        public int PostgresPoolMaxSize { get; set; } = 20;
+
+        #endregion
+
     /// <summary>
     /// Custom path for SQLite database file.
     /// If empty, uses default %LocalAppData%\Tracker\tracker.db
@@ -135,6 +183,20 @@ namespace Tracker.Classes
                 var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 var trackerFolder = Path.Combine(appDataPath, "Tracker");
                 return $"Data Source={Path.Combine(trackerFolder, "tracker.db")}";
+            }
+
+            // PostgreSQL connection string with connection pooling
+            if (Type == DatabaseType.PostgreSQL)
+            {
+                return $"Host={PostgresHost};" +
+                       $"Port={PostgresPort};" +
+                       $"Database={PostgresDatabase};" +
+                       $"Username={PostgresUsername};" +
+                       $"Password={PostgresPassword};" +
+                       $"Timeout={ConnectionTimeout};" +
+                       $"Minimum Pool Size={PostgresPoolMinSize};" +
+                       $"Maximum Pool Size={PostgresPoolMaxSize};" +
+                       (PostgresUseSsl ? "SSL Mode=Require;" : "SSL Mode=Prefer;");
             }
 
             // ODBC connection - uses a pre-configured Data Source Name
@@ -176,6 +238,20 @@ namespace Tracker.Classes
         }
 
         /// <summary>
+        /// Gets the PostgreSQL connection string for authentication (before user is known).
+        /// </summary>
+        public string GetPostgresAuthConnectionString()
+        {
+            return $"Host={PostgresHost};" +
+                   $"Port={PostgresPort};" +
+                   $"Database={PostgresDatabase};" +
+                   $"Username={PostgresUsername};" +
+                   $"Password={PostgresPassword};" +
+                   $"Timeout={ConnectionTimeout};" +
+                   (PostgresUseSsl ? "SSL Mode=Require;" : "SSL Mode=Prefer;");
+        }
+
+        /// <summary>
         /// Gets the SQLite database path.
         /// </summary>
         public static string GetSqlitePath()
@@ -205,7 +281,13 @@ namespace Tracker.Classes
         /// <summary>
         /// Remote SQL Server instance.
         /// </summary>
-        SqlServer = 1
+        SqlServer = 1,
+
+        /// <summary>
+        /// PostgreSQL database with Row-Level Security.
+        /// This is the preferred option for new deployments.
+        /// </summary>
+        PostgreSQL = 2
     }
 }
 

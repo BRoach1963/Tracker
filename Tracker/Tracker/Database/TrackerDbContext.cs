@@ -30,25 +30,44 @@ namespace Tracker.Database
     public class TrackerDbContext : DbContext
     {
         private readonly DatabaseSettings _settings;
+        private readonly Guid? _postgresUserId;
         
         /// <summary>
         /// Gets or sets the current user ID for query filtering.
         /// When set, global query filters will automatically filter data by this user.
         /// Set to null to disable user filtering (for admin/seeding operations).
+        /// Used for SQLite and SQL Server databases.
         /// </summary>
         public int? CurrentUserId { get; set; }
+
+        /// <summary>
+        /// Gets the PostgreSQL user ID (Guid) for RLS filtering.
+        /// This is set via constructor for PostgreSQL databases.
+        /// </summary>
+        public Guid? PostgresUserId => _postgresUserId;
 
         #region Constructors
 
         /// <summary>
         /// Creates a new database context with the specified settings.
         /// </summary>
-        /// <param name="settings">Database connection settings (SQLite or SQL Server).</param>
+        /// <param name="settings">Database connection settings (SQLite, SQL Server, or PostgreSQL).</param>
         public TrackerDbContext(DatabaseSettings settings)
         {
             _settings = settings;
-            // Initialize CurrentUserId from UserSettingsManager for automatic query filtering
+            // Initialize CurrentUserId from UserSettingsManager for automatic query filtering (SQLite/SQL Server)
             CurrentUserId = UserSettingsManager.Instance?.CurrentUserId;
+        }
+
+        /// <summary>
+        /// Creates a new database context with PostgreSQL settings and user ID for RLS.
+        /// </summary>
+        /// <param name="settings">Database connection settings (should be PostgreSQL).</param>
+        /// <param name="userId">The user ID to set for Row-Level Security filtering.</param>
+        public TrackerDbContext(DatabaseSettings settings, Guid userId)
+        {
+            _settings = settings;
+            _postgresUserId = userId;
         }
 
         /// <summary>
@@ -243,6 +262,19 @@ namespace Tracker.Database
                 case DatabaseType.SqlServer:
                     // SQL Server for multi-user/enterprise scenarios
                     optionsBuilder.UseSqlServer(_settings.GetConnectionString());
+                    break;
+
+                case DatabaseType.PostgreSQL:
+                    // PostgreSQL with Row-Level Security (RLS)
+                    // The RLS interceptor sets app.current_user_id on connection open
+                    optionsBuilder.UseNpgsql(_settings.GetConnectionString());
+                    
+                    // Add RLS interceptor if we have a current user ID
+                    if (_postgresUserId.HasValue)
+                    {
+                        optionsBuilder.AddInterceptors(
+                            new Interceptors.RlsConnectionInterceptor(_postgresUserId.Value));
+                    }
                     break;
             }
 
