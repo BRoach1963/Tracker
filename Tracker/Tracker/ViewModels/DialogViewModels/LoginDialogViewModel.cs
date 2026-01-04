@@ -7,6 +7,7 @@ using Tracker.Database;
 using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services.Auth;
 using Tracker.Services.Backend;
 using Tracker.Services.Subscription;
 
@@ -14,7 +15,7 @@ namespace Tracker.ViewModels.DialogViewModels
 {
     /// <summary>
     /// ViewModel for the login dialog.
-    /// Handles user authentication via Supabase cloud backend.
+    /// Handles user authentication via PostgreSQL with Row-Level Security.
     /// Supports both Sign In and Create Account modes.
     /// </summary>
     public class LoginDialogViewModel : BaseDialogViewModel
@@ -196,15 +197,15 @@ namespace Tracker.ViewModels.DialogViewModels
 
         /// <summary>
         /// Whether the admin checkbox can be selected.
-        /// Checks if the current user has admin privileges from Supabase.
+        /// Checks if the current user has admin privileges.
         /// </summary>
         public bool CanSelectAdmin
         {
             get
             {
-                // After successful login, check Supabase profile for admin status
-                var profile = SupabaseService.Instance.CurrentProfile;
-                return profile?.IsAdmin ?? false;
+                // For now, admin is determined by local check
+                // TODO: Add admin flag to PostgreSQL users table
+                return false;
             }
         }
 
@@ -332,40 +333,26 @@ namespace Tracker.ViewModels.DialogViewModels
 
                 _logger.Info("Attempting sign in for: {0}", Email);
 
-                // Initialize Supabase if needed
-                if (!SupabaseService.Instance.IsInitialized)
-                {
-                    SetStatus("Connecting to server...", false);
-                    await SupabaseService.Instance.InitializeAsync();
-                }
+                // Ensure PostgreSQL auth is initialized
+                EnsureAuthenticationInitialized();
 
                 SetStatus("Signing in...", false);
 
-                var (success, error) = await SupabaseService.Instance.SignInAsync(Email, Password);
+                var result = await AuthenticationManager.Instance.SignInAsync(Email, Password);
 
-                if (success)
+                if (result.Success && result.User != null)
                 {
                     _logger.Info("Sign in successful");
 
                     // Switch to user-specific settings
-                    var userId = SupabaseService.Instance.CurrentUser?.Id;
-                    if (!string.IsNullOrEmpty(userId))
-                    {
-                        UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: false);
-                    }
+                    var userId = result.User.Id.ToString();
+                    UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: false);
 
-                    // Save auth settings (extracted to avoid DRY violation)
-                    SaveAuthenticationSettings(isNewAccount: false);
-
-                    // Update subscription from cloud
-                    if (SupabaseService.Instance.CurrentSubscription != null)
-                    {
-                        SubscriptionService.Instance.SetTier(
-                            SupabaseService.Instance.CurrentSubscription.Tier);
-                    }
+                    // Save auth settings
+                    SaveAuthenticationSettings(isNewAccount: false, result.User, result.AccessToken);
 
                     // Create local user record
-                    await CreateLocalUserAsync();
+                    await CreateLocalUserAsync(result.User);
 
                     UserSettingsManager.Instance.SaveSettings();
 
@@ -378,7 +365,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 }
                 else
                 {
-                    SetStatus(error ?? "Sign in failed", true);
+                    SetStatus(result.ErrorMessage ?? "Sign in failed", true);
                 }
             }
             catch (Exception ex)
@@ -423,20 +410,16 @@ namespace Tracker.ViewModels.DialogViewModels
                     return;
                 }
 
-                if (Password.Length < 6)
+                if (Password.Length < 8)
                 {
-                    SetStatus("Password must be at least 6 characters", true);
+                    SetStatus("Password must be at least 8 characters", true);
                     return;
                 }
 
                 _logger.Info("Creating account for: {0}", Email);
 
-                // Initialize Supabase if needed
-                if (!SupabaseService.Instance.IsInitialized)
-                {
-                    SetStatus("Connecting to server...", false);
-                    await SupabaseService.Instance.InitializeAsync();
-                }
+                // Ensure PostgreSQL auth is initialized
+                EnsureAuthenticationInitialized();
 
                 SetStatus("Creating your account...", false);
 
@@ -444,30 +427,26 @@ namespace Tracker.ViewModels.DialogViewModels
                     ? DisplayName
                     : Email.Split('@')[0];
 
-                var (success, error) = await SupabaseService.Instance.SignUpAsync(
-                    Email, Password, displayName);
+                var result = await AuthenticationManager.Instance.SignUpAsync(Email, Password, displayName);
 
-                if (success)
+                if (result.Success && result.User != null)
                 {
                     _logger.Info("Account created successfully");
 
                     // Switch to user-specific settings (new account = fresh defaults)
-                    var userId = SupabaseService.Instance.CurrentUser?.Id;
-                    if (!string.IsNullOrEmpty(userId))
-                    {
-                        UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: true);
-                    }
+                    var userId = result.User.Id.ToString();
+                    UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: true);
 
-                    // Save auth settings (extracted to avoid DRY violation)
-                    SaveAuthenticationSettings(isNewAccount: true);
+                    // Save auth settings
+                    SaveAuthenticationSettings(isNewAccount: true, result.User, result.AccessToken);
 
                     // Create local user record
-                    await CreateLocalUserAsync();
+                    await CreateLocalUserAsync(result.User);
 
                     UserSettingsManager.Instance.SaveSettings();
 
-                    SetStatus("Account created! Check your email to confirm.", false);
-                    await Task.Delay(1500);
+                    SetStatus("Account created successfully!", false);
+                    await Task.Delay(1000);
 
                     Result.Cancelled = false;
                     Result.IsAdminLogin = IsAdminLogin;
@@ -475,7 +454,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 }
                 else
                 {
-                    SetStatus(error ?? "Account creation failed", true);
+                    SetStatus(result.ErrorMessage ?? "Account creation failed", true);
                 }
             }
             catch (Exception ex)
@@ -489,42 +468,11 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        private async void ExecuteForgotPassword(object? parameter)
+        private void ExecuteForgotPassword(object? parameter)
         {
-            if (string.IsNullOrWhiteSpace(Email))
-            {
-                SetStatus("Enter your email address first", true);
-                return;
-            }
-
-            IsProcessing = true;
-
-            try
-            {
-                if (!SupabaseService.Instance.IsInitialized)
-                {
-                    await SupabaseService.Instance.InitializeAsync();
-                }
-
-                var (success, error) = await SupabaseService.Instance.ResetPasswordAsync(Email);
-
-                if (success)
-                {
-                    SetStatus("Password reset email sent! Check your inbox.", false);
-                }
-                else
-                {
-                    SetStatus(error ?? "Failed to send reset email", true);
-                }
-            }
-            catch (Exception ex)
-            {
-                SetStatus($"Error: {ex.Message}", true);
-            }
-            finally
-            {
-                IsProcessing = false;
-            }
+            // Password reset not yet implemented for PostgreSQL
+            // TODO: Implement email-based password reset
+            SetStatus("Password reset: Contact support@pricklycactus.com", false);
         }
 
         private void ExecuteCancel(object? parameter)
@@ -574,16 +522,45 @@ namespace Tracker.ViewModels.DialogViewModels
         #region Private Methods
 
         /// <summary>
+        /// Ensures PostgreSQL authentication is initialized with current database settings.
+        /// </summary>
+        private void EnsureAuthenticationInitialized()
+        {
+            if (!AuthenticationManager.Instance.IsPostgresConfigured)
+            {
+                // Get PostgreSQL settings from user settings
+                var dbSettings = UserSettingsManager.Instance.Settings.Database;
+                
+                // If not configured for PostgreSQL, set up defaults for local development
+                if (dbSettings.Type != DatabaseType.PostgreSQL)
+                {
+                    dbSettings.Type = DatabaseType.PostgreSQL;
+                    dbSettings.PostgresHost = "localhost";
+                    dbSettings.PostgresPort = 5432;
+                    dbSettings.PostgresDatabase = "tracker_spike";
+                    dbSettings.PostgresUsername = "tracker_app";
+                    dbSettings.PostgresPassword = "tracker123";
+                }
+
+                // JWT secret - in production this should come from secure config
+                var jwtSecret = "TrackerProductionSecret_AtLeast32Characters!";
+                
+                AuthenticationManager.Instance.Initialize(dbSettings, jwtSecret);
+            }
+        }
+
+        /// <summary>
         /// Saves authentication settings after successful sign-in or account creation.
-        /// Extracted to eliminate DRY violation between ExecuteSignIn and ExecuteCreateAccount.
         /// </summary>
         /// <param name="isNewAccount">True if this is a new account (don't clear credentials on non-remember)</param>
-        private void SaveAuthenticationSettings(bool isNewAccount)
+        /// <param name="user">The authenticated user</param>
+        /// <param name="accessToken">The JWT access token (optional, for session restore)</param>
+        private void SaveAuthenticationSettings(bool isNewAccount, AuthenticatedUser user, string? accessToken)
         {
             // Save to user-specific settings (after SwitchToUser has been called)
             var authSettings = UserSettingsManager.Instance.Settings.Authentication;
             authSettings.CloudAccountLinked = true;
-            authSettings.CloudUserId = SupabaseService.Instance.CurrentUser?.Id;
+            authSettings.CloudUserId = user.Id.ToString();
             authSettings.CloudUserEmail = Email;
             authSettings.RememberMe = RememberMe;
 
@@ -591,12 +568,18 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 authSettings.SavedEmail = Email;
                 SecureTokenStorage.SavePassword(Password);
+                // Also save access token for session restore
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    SecureTokenStorage.SaveAccessToken(accessToken);
+                }
             }
             else if (!isNewAccount)
             {
                 // Only clear on sign-in, not on new account creation
                 authSettings.SavedEmail = null;
                 SecureTokenStorage.ClearPassword();
+                SecureTokenStorage.ClearAccessToken();
             }
 
             // CRITICAL: Also save RememberMe to anonymous settings so it's available
@@ -604,31 +587,24 @@ namespace Tracker.ViewModels.DialogViewModels
             UserSettingsManager.Instance.SaveRememberMeToAnonymousSettings(RememberMe, RememberMe ? Email : null);
         }
 
-        private async Task CreateLocalUserAsync()
+        private async Task CreateLocalUserAsync(AuthenticatedUser user)
         {
             try
             {
-                var displayName = SupabaseService.Instance.CurrentProfile?.DisplayName
-                    ?? DisplayName
-                    ?? Email.Split('@')[0];
+                var displayName = user.DisplayName ?? DisplayName ?? Email.Split('@')[0];
 
                 UserSettingsManager.Instance.CurrentUser = displayName;
 
                 if (TrackerDbManager.Instance != null)
                 {
-                    var user = await TrackerDbManager.Instance.GetOrCreateUserAsync(displayName);
-                    if (user != null)
+                    var localUser = await TrackerDbManager.Instance.GetOrCreateUserAsync(displayName);
+                    if (localUser != null)
                     {
                         var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-                        authSettings.StoredUserId = user.Id;
+                        authSettings.StoredUserId = localUser.Id;
                         authSettings.AccountSetupCompleted = true;
                         
-                        // Log admin status from Supabase (will be checked from profile at runtime)
-                        var profile = SupabaseService.Instance.CurrentProfile;
-                        if (profile != null)
-                        {
-                            _logger.Info("User admin status from Supabase: IsAdmin={0}", profile.IsAdmin);
-                        }
+                        _logger.Info("Local user created/retrieved: {0}", displayName);
                         
                         // Refresh CanSelectAdmin binding to enable/disable checkbox
                         RaisePropertyChanged(nameof(CanSelectAdmin));

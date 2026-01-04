@@ -17,6 +17,7 @@ namespace Tracker.Services.Backend
         private static readonly string RefreshTokenFile = Path.Combine(TokenDirectory, "rt.dat");
         private static readonly string PasswordFile = Path.Combine(TokenDirectory, "pwd.dat");
         private static readonly string SlackTokenFile = Path.Combine(TokenDirectory, "slack.dat");
+        private static readonly string AccessTokenFile = Path.Combine(TokenDirectory, "at.dat");
 
         #region Refresh Token
 
@@ -110,6 +111,42 @@ namespace Tracker.Services.Backend
 
         #endregion
 
+        #region Access Token (JWT)
+
+        /// <summary>
+        /// Saves the JWT access token securely for session restore.
+        /// </summary>
+        public static void SaveAccessToken(string token)
+        {
+            SaveEncrypted(AccessTokenFile, token);
+        }
+
+        /// <summary>
+        /// Gets the stored JWT access token.
+        /// </summary>
+        public static string? GetAccessToken()
+        {
+            return GetEncrypted(AccessTokenFile);
+        }
+
+        /// <summary>
+        /// Clears the access token.
+        /// </summary>
+        public static void ClearAccessToken()
+        {
+            try
+            {
+                if (File.Exists(AccessTokenFile))
+                    File.Delete(AccessTokenFile);
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+        }
+
+        #endregion
+
         #region Common Methods
 
         /// <summary>
@@ -125,6 +162,8 @@ namespace Tracker.Services.Backend
                     File.Delete(PasswordFile);
                 if (File.Exists(SlackTokenFile))
                     File.Delete(SlackTokenFile);
+                if (File.Exists(AccessTokenFile))
+                    File.Delete(AccessTokenFile);
             }
             catch
             {
