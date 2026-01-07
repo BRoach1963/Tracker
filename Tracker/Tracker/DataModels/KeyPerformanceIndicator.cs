@@ -19,6 +19,12 @@ namespace Tracker.DataModels
         /// Primary key for the KPI.
         /// </summary>
         public int KpiId { get; set; }
+
+        /// <summary>
+        /// The organization this KPI belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
         
         /// <summary>
         /// Name of the KPI.

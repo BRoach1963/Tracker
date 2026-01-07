@@ -21,7 +21,8 @@ namespace Tracker.Database
 
     /// <summary>
     /// Manages database operations using Entity Framework Core.
-    /// Supports both SQLite (local) and SQL Server (remote) providers.
+    /// Supports SQLite (local), SQL Server (remote), and PostgreSQL providers.
+    /// Uses a context factory pattern for PostgreSQL to enable parallel operations.
     /// </summary>
     public class TrackerDbManager
     {
@@ -30,6 +31,10 @@ namespace Tracker.Database
         private bool _isInitialized;
         private TrackerDbContext? _context;
         private DatabaseSettings? _settings;
+        
+        // Context factory state for PostgreSQL
+        private Guid? _supabaseUserId;
+        private int? _localUserId;
 
         private readonly LoggingManager.Logger _logger = new(nameof(TrackerDbManager), "DatabaseLog");
 
@@ -331,6 +336,93 @@ namespace Tracker.Database
         }
 
         /// <summary>
+        /// Gets or creates a User in the database based on the Supabase user ID.
+        /// Used for Supabase authentication where we need to link local users to Supabase UUIDs.
+        /// </summary>
+        /// <param name="supabaseUserId">The Supabase user's UUID.</param>
+        /// <param name="email">The user's email address.</param>
+        /// <param name="displayName">The user's display name.</param>
+        /// <returns>The User entity, or null if database is not initialized.</returns>
+        public async Task<User?> GetOrCreateUserAsync(Guid supabaseUserId, string email, string displayName)
+        {
+            if (_context == null) return null;
+
+            try
+            {
+                // First, check if a user exists with this Supabase UUID
+                var existingUser = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.SupabaseUserId == supabaseUserId);
+                
+                if (existingUser != null)
+                {
+                    UserSettingsManager.Instance.CurrentUserId = existingUser.Id;
+                    
+                    // Update context's CurrentUserId for EF query filters
+                    _context.CurrentUserId = existingUser.Id;
+                    
+                    // Store for context factory
+                    _supabaseUserId = supabaseUserId;
+                    _localUserId = existingUser.Id;
+                    
+                    return existingUser;
+                }
+
+                // Check if a user exists with this email (migration scenario)
+                var existingByEmail = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.Email == email);
+                
+                if (existingByEmail != null)
+                {
+                    // Update existing user with Supabase UUID
+                    existingByEmail.SupabaseUserId = supabaseUserId;
+                    existingByEmail.DisplayName = displayName;
+                    await _context.SaveChangesAsync();
+                    
+                    UserSettingsManager.Instance.CurrentUserId = existingByEmail.Id;
+                    _context.CurrentUserId = existingByEmail.Id;
+                    _supabaseUserId = supabaseUserId;
+                    _localUserId = existingByEmail.Id;
+                    
+                    _logger.Info("Updated existing User with Supabase ID: {0} (Local Id: {1})", displayName, existingByEmail.Id);
+                    return existingByEmail;
+                }
+
+                // Create new User
+                var newUser = new User
+                {
+                    SupabaseUserId = supabaseUserId,
+                    Username = displayName,
+                    Email = email,
+                    DisplayName = displayName,
+                    IsActive = true
+                };
+                
+                _context.Users.Add(newUser);
+                await _context.SaveChangesAsync();
+                
+                // Reload to get the ID
+                var createdUser = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstAsync(u => u.SupabaseUserId == supabaseUserId);
+                    
+                UserSettingsManager.Instance.CurrentUserId = createdUser.Id;
+                _context.CurrentUserId = createdUser.Id;
+                _supabaseUserId = supabaseUserId;
+                _localUserId = createdUser.Id;
+                
+                _logger.Info("Created new User: {0} (Id: {1}, Supabase: {2})", displayName, createdUser.Id, supabaseUserId);
+                return createdUser;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Failed to get or create User with Supabase ID: {0}", supabaseUserId);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Test a database connection without initializing.
         /// </summary>
         public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseSettings settings)
@@ -415,7 +507,118 @@ namespace Tracker.Database
 
         #endregion
 
+        #region PostgreSQL Context Factory
+
+        /// <summary>
+        /// Sets up the PostgreSQL user context for the context factory pattern.
+        /// Must be called after Supabase authentication to enable parallel queries.
+        /// </summary>
+        /// <param name="supabaseUserId">The authenticated Supabase user's UUID.</param>
+        public async Task SetPostgresUserAsync(Guid supabaseUserId)
+        {
+            _supabaseUserId = supabaseUserId;
+            _logger.Info("PostgreSQL user set: {0}", supabaseUserId);
+
+            // Look up the local User.Id from the Supabase UUID
+            if (_context != null && _settings?.Type == DatabaseType.PostgreSQL)
+            {
+                try
+                {
+                    // Query without the UserId filter to find the user by SupabaseUserId
+                    var user = await _context.Users
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(u => u.SupabaseUserId == supabaseUserId)
+                        .ConfigureAwait(false);
+
+                    if (user != null)
+                    {
+                        _localUserId = user.Id;
+                        
+                        // Update UserSettingsManager for compatibility with existing code
+                        UserSettingsManager.Instance.CurrentUserId = user.Id;
+                        
+                        // Update the existing context's CurrentUserId for EF query filters
+                        _context.CurrentUserId = user.Id;
+                        
+                        _logger.Info("PostgreSQL local user ID resolved: {0} (Supabase: {1})", user.Id, supabaseUserId);
+                    }
+                    else
+                    {
+                        _logger.Warn("No user found for Supabase ID: {0}", supabaseUserId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Exception(ex, "Failed to look up local user ID for Supabase user {0}", supabaseUserId);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a new DbContext for PostgreSQL operations.
+        /// Each operation gets its own context to enable parallel queries.
+        /// For SQLite/SQL Server, returns the singleton context.
+        /// </summary>
+        /// <returns>A DbContext instance - caller should dispose for PostgreSQL contexts.</returns>
+        private TrackerDbContext CreateContext()
+        {
+            if (_settings == null)
+            {
+                throw new InvalidOperationException("Database not initialized. Call InitializeAsync first.");
+            }
+
+            // For PostgreSQL, create a fresh context for each operation
+            if (_settings.Type == DatabaseType.PostgreSQL && _supabaseUserId.HasValue)
+            {
+                return new TrackerDbContext(_settings, _supabaseUserId.Value, _localUserId);
+            }
+
+            // For SQLite/SQL Server, return the singleton context
+            // (Caller should NOT dispose this)
+            return _context ?? throw new InvalidOperationException("Database context not initialized.");
+        }
+
+        /// <summary>
+        /// Gets whether PostgreSQL context factory is ready (user has been set).
+        /// </summary>
+        public bool IsPostgresFactoryReady => 
+            _settings?.Type == DatabaseType.PostgreSQL && _supabaseUserId.HasValue;
+
+        /// <summary>
+        /// Gets whether we should use factory pattern (PostgreSQL) or singleton (SQLite/SQL Server).
+        /// </summary>
+        private bool ShouldUseContextFactory => 
+            _settings?.Type == DatabaseType.PostgreSQL;
+
+        #endregion
+
         #region Helper Methods
+
+        /// <summary>
+        /// Gets a context for read operations. For PostgreSQL, creates a fresh context.
+        /// For SQLite/SQL Server, returns the singleton context.
+        /// IMPORTANT: Caller must dispose the returned context if ShouldUseContextFactory is true!
+        /// </summary>
+        private TrackerDbContext? GetReadContext()
+        {
+            if (ShouldUseContextFactory && _settings != null && _supabaseUserId.HasValue)
+            {
+                return CreateContext();
+            }
+            return _context;
+        }
+
+        /// <summary>
+        /// Disposes the context if it was created by the factory (PostgreSQL).
+        /// Does nothing for singleton contexts (SQLite/SQL Server).
+        /// </summary>
+        private void DisposeIfFactory(TrackerDbContext? context)
+        {
+            if (ShouldUseContextFactory && context != null && context != _context)
+            {
+                context.Dispose();
+            }
+        }
 
         /// <summary>
         /// Gets the current UserId from UserSettingsManager.
@@ -428,13 +631,64 @@ namespace Tracker.Database
 
         /// <summary>
         /// Executes an async operation with context and user validation.
-        /// Returns the default value if context is null or user is not set.
+        /// For PostgreSQL, creates a fresh context per operation to enable parallel queries.
+        /// For SQLite/SQL Server, uses the singleton context.
         /// </summary>
         /// <typeparam name="T">Return type</typeparam>
-        /// <param name="operation">The async operation to execute</param>
+        /// <param name="operation">The async operation to execute (receives context)</param>
         /// <param name="defaultValue">Value to return if validation fails</param>
         /// <param name="operationName">Name for logging</param>
         /// <param name="requireUserId">Whether to require CurrentUserId to be set</param>
+        private async Task<T> ExecuteWithContextAsync<T>(
+            Func<TrackerDbContext, Task<T>> operation,
+            T defaultValue,
+            string operationName,
+            bool requireUserId = true)
+        {
+            if (_settings == null || (_context == null && !ShouldUseContextFactory))
+            {
+                _logger.Warn("{0} called but database not initialized", operationName);
+                return defaultValue;
+            }
+
+            if (requireUserId && !GetCurrentUserId().HasValue)
+            {
+                _logger.Warn("{0} called but CurrentUserId is not set", operationName);
+                return defaultValue;
+            }
+
+            try
+            {
+                if (ShouldUseContextFactory)
+                {
+                    // PostgreSQL: Create fresh context for this operation
+                    using var context = CreateContext();
+                    return await operation(context).ConfigureAwait(false);
+                }
+                else
+                {
+                    // SQLite/SQL Server: Use singleton context
+                    return await operation(_context!).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log full exception details for PostgreSQL debugging
+                System.Diagnostics.Debug.WriteLine($"=== DB ERROR in {operationName}: {ex.GetType().Name}: {ex.Message} ===");
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
+                }
+                _logger.Exception(ex, "Error in {0}", operationName);
+                return defaultValue;
+            }
+        }
+
+        /// <summary>
+        /// Legacy overload for backwards compatibility.
+        /// Wraps operations that reference _context directly.
+        /// </summary>
+        [Obsolete("Use the overload that accepts TrackerDbContext parameter for PostgreSQL support")]
         private async Task<T> ExecuteWithContextAsync<T>(
             Func<Task<T>> operation,
             T defaultValue,
@@ -471,10 +725,10 @@ namespace Tracker.Database
         public async Task<List<TeamMember>> GetTeamMembersAsync()
         {
             return await ExecuteWithContextAsync(
-                async () =>
+                async (context) =>
                 {
                     // Global query filters handle UserId and IsDeleted filtering automatically
-                    var teamMembers = await _context!.TeamMembers
+                    var teamMembers = await context.TeamMembers
                         .AsNoTracking()
                         .OrderBy(tm => tm.Role)
                         .ThenBy(tm => tm.LastName)
@@ -494,6 +748,7 @@ namespace Tracker.Database
         /// <summary>
         /// Populates runtime statistics for team members (last 1:1, next 1:1, task/goal counts).
         /// Uses global query filters for automatic UserId/IsDeleted filtering.
+        /// For PostgreSQL, runs queries sequentially due to DbContext threading limitations.
         /// </summary>
         private async Task PopulateTeamMemberStatsAsync(List<TeamMember> teamMembers, int userId)
         {
@@ -504,16 +759,101 @@ namespace Tracker.Database
                 var teamMemberIds = teamMembers.Select(t => t.Id).ToList();
                 var today = DateTime.Now.Date;
 
-                // Execute all stat queries in parallel for better performance
-                // Global filters handle UserId/IsDeleted - we only add business logic filters
-                var lastOneOnOnesTask = _context.OneOnOnes
+                if (ShouldUseContextFactory)
+                {
+                    // PostgreSQL: Run queries sequentially with own context
+                    // Each query gets its own context to avoid threading issues
+                    await PopulateTeamMemberStatsSequentialAsync(teamMembers, teamMemberIds, today);
+                }
+                else
+                {
+                    // SQLite/SQL Server: Run queries in parallel (safe with singleton context)
+                    await PopulateTeamMemberStatsParallelAsync(teamMembers, teamMemberIds, today);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error populating team member stats");
+            }
+        }
+
+        /// <summary>
+        /// Populates team member stats using parallel queries (for SQLite/SQL Server).
+        /// </summary>
+        private async Task PopulateTeamMemberStatsParallelAsync(List<TeamMember> teamMembers, List<int> teamMemberIds, DateTime today)
+        {
+            // Execute all stat queries in parallel for better performance
+            // Global filters handle UserId/IsDeleted - we only add business logic filters
+            var lastOneOnOnesTask = _context!.OneOnOnes
+                .AsNoTracking()
+                .Where(o => teamMemberIds.Contains(o.TeamMember.Id) && o.Date <= today)
+                .GroupBy(o => o.TeamMember.Id)
+                .Select(g => new { TeamMemberId = g.Key, LastDate = g.Max(o => o.Date) })
+                .ToListAsync();
+
+            var nextOneOnOnesTask = _context.OneOnOnes
+                .AsNoTracking()
+                .Where(o => teamMemberIds.Contains(o.TeamMember.Id) &&
+                            o.Date >= today &&
+                            o.Status == Common.Enums.MeetingStatusEnum.Scheduled)
+                .GroupBy(o => o.TeamMember.Id)
+                .Select(g => new { TeamMemberId = g.Key, NextDate = g.Min(o => o.Date), UpcomingCount = g.Count() })
+                .ToListAsync();
+
+            var taskCountsTask = _context.Tasks
+                .AsNoTracking()
+                .Include(t => t.Owner)
+                .Where(t => t.Owner != null &&
+                            teamMemberIds.Contains(t.Owner.Id) &&
+                            !t.IsCompleted)
+                .GroupBy(t => t.Owner.Id)
+                .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var goalCountsTask = _context.IndividualGoals
+                .AsNoTracking()
+                .Where(g => teamMemberIds.Contains(g.TeamMemberId) &&
+                            g.Status != GoalStatus.Completed &&
+                            g.Status != GoalStatus.Cancelled)
+                .GroupBy(g => g.TeamMemberId)
+                .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            // Wait for all queries to complete in parallel
+            await Task.WhenAll(lastOneOnOnesTask, nextOneOnOnesTask, taskCountsTask, goalCountsTask)
+                .ConfigureAwait(false);
+
+            var lastOneOnOnes = await lastOneOnOnesTask.ConfigureAwait(false);
+            var nextOneOnOnes = await nextOneOnOnesTask.ConfigureAwait(false);
+            var taskCounts = await taskCountsTask.ConfigureAwait(false);
+            var goalCounts = await goalCountsTask.ConfigureAwait(false);
+
+            // Populate the team members
+            PopulateTeamMemberStatsFromResults(teamMembers, lastOneOnOnes, nextOneOnOnes, taskCounts, goalCounts);
+        }
+
+        /// <summary>
+        /// Populates team member stats using sequential queries (for PostgreSQL).
+        /// Uses context factory to create a fresh context per query for true parallelism.
+        /// </summary>
+        private async Task PopulateTeamMemberStatsSequentialAsync(List<TeamMember> teamMembers, List<int> teamMemberIds, DateTime today)
+        {
+            // For PostgreSQL, we can run TRUE parallel queries since each uses its own context
+            var lastOneOnOnesTask = Task.Run(async () =>
+            {
+                using var context = CreateContext();
+                return await context.OneOnOnes
                     .AsNoTracking()
                     .Where(o => teamMemberIds.Contains(o.TeamMember.Id) && o.Date <= today)
                     .GroupBy(o => o.TeamMember.Id)
                     .Select(g => new { TeamMemberId = g.Key, LastDate = g.Max(o => o.Date) })
                     .ToListAsync();
+            });
 
-                var nextOneOnOnesTask = _context.OneOnOnes
+            var nextOneOnOnesTask = Task.Run(async () =>
+            {
+                using var context = CreateContext();
+                return await context.OneOnOnes
                     .AsNoTracking()
                     .Where(o => teamMemberIds.Contains(o.TeamMember.Id) &&
                                 o.Date >= today &&
@@ -521,8 +861,12 @@ namespace Tracker.Database
                     .GroupBy(o => o.TeamMember.Id)
                     .Select(g => new { TeamMemberId = g.Key, NextDate = g.Min(o => o.Date), UpcomingCount = g.Count() })
                     .ToListAsync();
+            });
 
-                var taskCountsTask = _context.Tasks
+            var taskCountsTask = Task.Run(async () =>
+            {
+                using var context = CreateContext();
+                return await context.Tasks
                     .AsNoTracking()
                     .Include(t => t.Owner)
                     .Where(t => t.Owner != null &&
@@ -531,8 +875,12 @@ namespace Tracker.Database
                     .GroupBy(t => t.Owner.Id)
                     .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
                     .ToListAsync();
+            });
 
-                var goalCountsTask = _context.IndividualGoals
+            var goalCountsTask = Task.Run(async () =>
+            {
+                using var context = CreateContext();
+                return await context.IndividualGoals
                     .AsNoTracking()
                     .Where(g => teamMemberIds.Contains(g.TeamMemberId) &&
                                 g.Status != GoalStatus.Completed &&
@@ -540,36 +888,50 @@ namespace Tracker.Database
                     .GroupBy(g => g.TeamMemberId)
                     .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
                     .ToListAsync();
+            });
 
-                // Wait for all queries to complete in parallel
-                await Task.WhenAll(lastOneOnOnesTask, nextOneOnOnesTask, taskCountsTask, goalCountsTask)
-                    .ConfigureAwait(false);
+            // Wait for all parallel queries to complete
+            await Task.WhenAll(lastOneOnOnesTask, nextOneOnOnesTask, taskCountsTask, goalCountsTask)
+                .ConfigureAwait(false);
 
-                var lastOneOnOnes = await lastOneOnOnesTask.ConfigureAwait(false);
-                var nextOneOnOnes = await nextOneOnOnesTask.ConfigureAwait(false);
-                var taskCounts = await taskCountsTask.ConfigureAwait(false);
-                var goalCounts = await goalCountsTask.ConfigureAwait(false);
+            var lastOneOnOnes = await lastOneOnOnesTask.ConfigureAwait(false);
+            var nextOneOnOnes = await nextOneOnOnesTask.ConfigureAwait(false);
+            var taskCounts = await taskCountsTask.ConfigureAwait(false);
+            var goalCounts = await goalCountsTask.ConfigureAwait(false);
 
-                // Populate the team members
-                foreach (var tm in teamMembers)
-                {
-                    var lastMeeting = lastOneOnOnes.FirstOrDefault(x => x.TeamMemberId == tm.Id);
-                    tm.LastOneOnOneDate = lastMeeting?.LastDate;
+            // Populate the team members
+            PopulateTeamMemberStatsFromResults(teamMembers, lastOneOnOnes, nextOneOnOnes, taskCounts, goalCounts);
+        }
 
-                    var nextMeeting = nextOneOnOnes.FirstOrDefault(x => x.TeamMemberId == tm.Id);
-                    tm.NextOneOnOneDate = nextMeeting?.NextDate;
-                    tm.UpcomingMeetingCount = nextMeeting?.UpcomingCount ?? 0;
-
-                    var taskCount = taskCounts.FirstOrDefault(x => x.TeamMemberId == tm.Id);
-                    tm.OpenTaskCount = taskCount?.Count ?? 0;
-
-                    var goalCount = goalCounts.FirstOrDefault(x => x.TeamMemberId == tm.Id);
-                    tm.ActiveGoalCount = goalCount?.Count ?? 0;
-                }
-            }
-            catch (Exception ex)
+        /// <summary>
+        /// Populates team member properties from query results.
+        /// </summary>
+        private void PopulateTeamMemberStatsFromResults<TLast, TNext, TTask, TGoal>(
+            List<TeamMember> teamMembers,
+            List<TLast> lastOneOnOnes,
+            List<TNext> nextOneOnOnes,
+            List<TTask> taskCounts,
+            List<TGoal> goalCounts)
+            where TLast : class
+            where TNext : class
+            where TTask : class
+            where TGoal : class
+        {
+            foreach (var tm in teamMembers)
             {
-                _logger.Exception(ex, "Error populating team member stats");
+                // Use dynamic to access anonymous type properties
+                dynamic? lastMeeting = lastOneOnOnes.FirstOrDefault(x => ((dynamic)x!).TeamMemberId == tm.Id);
+                tm.LastOneOnOneDate = lastMeeting?.LastDate;
+
+                dynamic? nextMeeting = nextOneOnOnes.FirstOrDefault(x => ((dynamic)x!).TeamMemberId == tm.Id);
+                tm.NextOneOnOneDate = nextMeeting?.NextDate;
+                tm.UpcomingMeetingCount = nextMeeting?.UpcomingCount ?? 0;
+
+                dynamic? taskCount = taskCounts.FirstOrDefault(x => ((dynamic)x!).TeamMemberId == tm.Id);
+                tm.OpenTaskCount = taskCount?.Count ?? 0;
+
+                dynamic? goalCount = goalCounts.FirstOrDefault(x => ((dynamic)x!).TeamMemberId == tm.Id);
+                tm.ActiveGoalCount = goalCount?.Count ?? 0;
             }
         }
 
@@ -723,8 +1085,6 @@ namespace Tracker.Database
 
         public async Task<List<OneOnOne>> GetOneOnOnesAsync()
         {
-            if (_context == null) return new List<OneOnOne>();
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
@@ -732,9 +1092,12 @@ namespace Tracker.Database
                 return new List<OneOnOne>();
             }
 
+            var context = GetReadContext();
+            if (context == null) return new List<OneOnOne>();
+
             try
             {
-                var query = _context.OneOnOnes
+                var query = context.OneOnOnes
                     .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value)
                     .Include(o => o.TeamMember)
                     .Include(o => o.Tasks)
@@ -779,6 +1142,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving one-on-ones from database");
                 return new List<OneOnOne>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 
@@ -1698,8 +2065,6 @@ namespace Tracker.Database
 
         public async Task<List<Project>> GetProjectsAsync()
         {
-            if (_context == null) return new List<Project>();
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
@@ -1707,9 +2072,12 @@ namespace Tracker.Database
                 return new List<Project>();
             }
 
+            var context = GetReadContext();
+            if (context == null) return new List<Project>();
+
             try
             {
-                return await _context.Projects
+                return await context.Projects
                     .Where(p => !p.IsDeleted && EF.Property<int>(p, "UserId") == currentUserId.Value)
                     .Include(p => p.Owner)
                     .Include(p => p.TeamMembers.Where(tm => !tm.IsDeleted))
@@ -1724,6 +2092,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving projects from database");
                 return new List<Project>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 
@@ -1815,8 +2187,6 @@ namespace Tracker.Database
 
         public async Task<List<IndividualTask>> GetTasksAsync()
         {
-            if (_context == null) return new List<IndividualTask>();
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
@@ -1824,9 +2194,12 @@ namespace Tracker.Database
                 return new List<IndividualTask>();
             }
 
+            var context = GetReadContext();
+            if (context == null) return new List<IndividualTask>();
+
             try
             {
-                return await _context.Tasks
+                return await context.Tasks
                     .AsNoTracking()
                     .Where(t => !t.IsDeleted && EF.Property<int>(t, "UserId") == currentUserId.Value)
                     .Include(t => t.Owner)
@@ -1837,6 +2210,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving tasks from database");
                 return new List<IndividualTask>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 
@@ -1896,16 +2273,17 @@ namespace Tracker.Database
 
         public async Task<List<ObjectiveKeyResult>> GetOKRsAsync()
         {
-            if (_context == null)
-            {
-                _logger.Warn("GetOKRsAsync: Context is null");
-                return new List<ObjectiveKeyResult>();
-            }
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
                 _logger.Warn("GetOKRsAsync called but CurrentUserId is not set");
+                return new List<ObjectiveKeyResult>();
+            }
+
+            var context = GetReadContext();
+            if (context == null)
+            {
+                _logger.Warn("GetOKRsAsync: Context is null");
                 return new List<ObjectiveKeyResult>();
             }
 
@@ -1914,11 +2292,11 @@ namespace Tracker.Database
             try
             {
                 // First, let's see all OKRs regardless of UserId for debugging
-                var allOkrsCount = await _context.ObjectiveKeyResults.CountAsync();
+                var allOkrsCount = await context.ObjectiveKeyResults.CountAsync();
                 _logger.Info("GetOKRsAsync: Total OKRs in database (all users) = {0}", allOkrsCount);
                 
                 // Load all data without filters in the Include to avoid SQL translation errors
-                var result = await _context.ObjectiveKeyResults
+                var result = await context.ObjectiveKeyResults
                     .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value)
                     .Include(o => o.Owner)
                     .Include(o => o.KeyResults)
@@ -1947,6 +2325,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving OKRs from database");
                 return new List<ObjectiveKeyResult>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 
@@ -2188,8 +2570,6 @@ namespace Tracker.Database
 
         public async Task<List<KeyPerformanceIndicator>> GetKPIsAsync()
         {
-            if (_context == null) return new List<KeyPerformanceIndicator>();
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
@@ -2197,9 +2577,12 @@ namespace Tracker.Database
                 return new List<KeyPerformanceIndicator>();
             }
 
+            var context = GetReadContext();
+            if (context == null) return new List<KeyPerformanceIndicator>();
+
             try
             {
-                return await _context.KeyPerformanceIndicators
+                return await context.KeyPerformanceIndicators
                     .AsNoTracking()
                     .Where(k => !k.IsDeleted && EF.Property<int>(k, "UserId") == currentUserId.Value)
                     .Include(k => k.Owner)
@@ -2210,6 +2593,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving KPIs from database");
                 return new List<KeyPerformanceIndicator>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 
@@ -2363,14 +2750,15 @@ namespace Tracker.Database
         /// </summary>
         public async Task<List<Feedback>> GetAllFeedbackAsync()
         {
-            if (_context == null) return new List<Feedback>();
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue) return new List<Feedback>();
 
+            var context = GetReadContext();
+            if (context == null) return new List<Feedback>();
+
             try
             {
-                return await _context.Feedbacks
+                return await context.Feedbacks
                     .Where(f => !f.IsDeleted && EF.Property<int>(f, "UserId") == currentUserId.Value)
                     .Include(f => f.TeamMember)
                     .OrderByDescending(f => f.Date)
@@ -2380,6 +2768,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving all feedback");
                 return new List<Feedback>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 
@@ -2506,14 +2898,15 @@ namespace Tracker.Database
         /// </summary>
         public async Task<List<IndividualGoal>> GetAllGoalsAsync()
         {
-            if (_context == null) return new List<IndividualGoal>();
-
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue) return new List<IndividualGoal>();
 
+            var context = GetReadContext();
+            if (context == null) return new List<IndividualGoal>();
+
             try
             {
-                return await _context.IndividualGoals
+                return await context.IndividualGoals
                     .Where(g => !g.IsDeleted && EF.Property<int>(g, "UserId") == currentUserId.Value)
                     .Include(g => g.TeamMember)
                     .Include(g => g.Milestones.Where(m => !m.IsDeleted))
@@ -2525,6 +2918,10 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving all goals");
                 return new List<IndividualGoal>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
             }
         }
 

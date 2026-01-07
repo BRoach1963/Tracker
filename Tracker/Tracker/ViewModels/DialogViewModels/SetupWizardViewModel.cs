@@ -1003,11 +1003,19 @@ namespace Tracker.ViewModels.DialogViewModels
                 // Initialize database
                 await TrackerDbManager.Instance!.InitializeAsync(settings, CreateDatabase, IncludeSampleData);
 
-                // Create the local user account
+                // Create the local user account using Supabase UUID
+                var supabaseUser = SupabaseService.Instance.CurrentUser;
+                if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
+                {
+                    logger.Error("No Supabase user available during setup");
+                    return;
+                }
+                var supabaseUserId = Guid.Parse(supabaseUser.Id);
                 var displayName = SupabaseService.Instance.CurrentProfile?.DisplayName
                     ?? AccountDisplayName
+                    ?? supabaseUser.Email?.Split('@')[0]
                     ?? Environment.UserName;
-                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(displayName ?? "User");
+                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(supabaseUserId, supabaseUser.Email ?? "", displayName);
                 
                 if (user != null)
                 {

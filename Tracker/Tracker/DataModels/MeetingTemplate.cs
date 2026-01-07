@@ -10,6 +10,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this template belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Name of the template (e.g., "Weekly Check-in", "Performance Review").
         /// </summary>
         public string Name { get; set; } = string.Empty;

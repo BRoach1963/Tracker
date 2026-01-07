@@ -3,6 +3,7 @@ using Tracker.Classes;
 using Tracker.Database;
 using Tracker.Logging;
 using Tracker.Services.Auth;
+using Tracker.Services.Licensing;
 
 namespace Tracker.Managers
 {
@@ -25,10 +26,14 @@ namespace Tracker.Managers
 
         private readonly ILogger _logger;
         private readonly AuthService _authService;
+        private readonly IFirmLicenseService _licenseService;
         private PostgresAuthContextFactory? _authFactory;
         private PostgresDbContextFactory? _userContextFactory;
         private DatabaseSettings? _settings;
         private string _jwtSecret = string.Empty;
+        
+        // Current firm info (populated after successful sign in)
+        private SeatValidationResult? _currentSeatInfo;
 
         #endregion
 
@@ -85,6 +90,21 @@ namespace Tracker.Managers
             }
         }
 
+        /// <summary>
+        /// Gets the current firm information (after successful sign in).
+        /// </summary>
+        public SeatValidationResult? CurrentSeatInfo => _currentSeatInfo;
+
+        /// <summary>
+        /// Gets the current firm name.
+        /// </summary>
+        public string? CurrentFirmName => _currentSeatInfo?.FirmName;
+
+        /// <summary>
+        /// Gets the current subscription tier.
+        /// </summary>
+        public string? CurrentTier => _currentSeatInfo?.Tier;
+
         #endregion
 
         #region Constructor
@@ -93,6 +113,7 @@ namespace Tracker.Managers
         {
             _logger = LoggingManager.GetComponentLogger("AuthManager");
             _authService = AuthService.Instance;
+            _licenseService = new FirmLicenseService();
             
             // Forward auth events
             _authService.AuthStateChanged += (sender, e) => AuthStateChanged?.Invoke(this, e);
@@ -136,6 +157,7 @@ namespace Tracker.Managers
 
         /// <summary>
         /// Sign in with email and password.
+        /// Flow: 1) Validate Supabase seat 2) Authenticate locally against PostgreSQL
         /// </summary>
         /// <param name="email">User's email address.</param>
         /// <param name="password">User's password.</param>
@@ -153,6 +175,24 @@ namespace Tracker.Managers
 
             _logger.Info("Sign in attempt: {0}", email);
 
+            // Step 1: Validate Supabase license seat
+            _logger.Info("Checking license seat for: {0}", email);
+            var seatResult = await _licenseService.ValidateSeatAsync(email, "tracker");
+            
+            if (!seatResult.IsValid)
+            {
+                _logger.Warn("License check failed for {0}: {1}", email, seatResult.ErrorMessage);
+                return new AuthResult 
+                { 
+                    Success = false, 
+                    ErrorMessage = seatResult.ErrorMessage ?? "No valid license found for this email" 
+                };
+            }
+
+            _logger.Info("License valid for {0}: Firm={1}, Tier={2}", 
+                email, seatResult.FirmName, seatResult.Tier);
+
+            // Step 2: Authenticate locally against PostgreSQL
             var result = await _authService.LoginAsync(
                 email,
                 password,
@@ -161,6 +201,9 @@ namespace Tracker.Managers
 
             if (result.Success && result.User != null)
             {
+                // Store seat info
+                _currentSeatInfo = seatResult;
+                
                 // Update last login timestamp
                 await _authFactory.UpdateLastLoginAsync(result.User.Id);
                 
@@ -168,7 +211,7 @@ namespace Tracker.Managers
                 _userContextFactory?.Dispose();
                 _userContextFactory = new PostgresDbContextFactory(_settings, result.User.Id);
                 
-                _logger.Info("Sign in successful: {0}", result.User.Email);
+                _logger.Info("Sign in successful: {0} (Firm: {1})", result.User.Email, seatResult.FirmName);
             }
             else
             {

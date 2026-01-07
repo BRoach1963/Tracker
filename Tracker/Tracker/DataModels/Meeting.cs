@@ -11,6 +11,12 @@ namespace Tracker.DataModels
     [Table("Meetings")]
     public class Meeting : AuditableEntity
     {
+        /// <summary>
+        /// The organization this meeting belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
         /// <summary>Gets or sets the meeting type (OneOnOne, TeamMeeting, etc.).</summary>
         [Required]
         public MeetingType Type { get; set; }

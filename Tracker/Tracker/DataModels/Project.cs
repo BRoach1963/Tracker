@@ -19,6 +19,12 @@ namespace Tracker.DataModels
         /// Primary key for the project.
         /// </summary>
         public int ID { get; set; }
+
+        /// <summary>
+        /// The organization this project belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
         
         /// <summary>
         /// Project name.

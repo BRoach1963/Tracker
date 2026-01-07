@@ -63,11 +63,14 @@ namespace Tracker.Database
         /// Creates a new database context with PostgreSQL settings and user ID for RLS.
         /// </summary>
         /// <param name="settings">Database connection settings (should be PostgreSQL).</param>
-        /// <param name="userId">The user ID to set for Row-Level Security filtering.</param>
-        public TrackerDbContext(DatabaseSettings settings, Guid userId)
+        /// <param name="supabaseUserId">The Supabase UUID for Row-Level Security filtering.</param>
+        /// <param name="localUserId">The local EF Core User.Id for query filtering.</param>
+        public TrackerDbContext(DatabaseSettings settings, Guid supabaseUserId, int? localUserId = null)
         {
             _settings = settings;
-            _postgresUserId = userId;
+            _postgresUserId = supabaseUserId;
+            // Set CurrentUserId for EF query filters - this is the integer User.Id
+            CurrentUserId = localUserId ?? UserSettingsManager.Instance?.CurrentUserId;
         }
 
         /// <summary>
@@ -265,16 +268,9 @@ namespace Tracker.Database
                     break;
 
                 case DatabaseType.PostgreSQL:
-                    // PostgreSQL with Row-Level Security (RLS)
-                    // The RLS interceptor sets app.current_user_id on connection open
+                    // PostgreSQL - data isolation handled by EF Core query filters
+                    // (ConfigureGlobalQueryFilters adds WHERE UserId = @currentUser)
                     optionsBuilder.UseNpgsql(_settings.GetConnectionString());
-                    
-                    // Add RLS interceptor if we have a current user ID
-                    if (_postgresUserId.HasValue)
-                    {
-                        optionsBuilder.AddInterceptors(
-                            new Interceptors.RlsConnectionInterceptor(_postgresUserId.Value));
-                    }
                     break;
             }
 
@@ -290,6 +286,8 @@ namespace Tracker.Database
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            System.Diagnostics.Debug.WriteLine($"=== OnModelCreating: DatabaseType = {_settings?.Type} ===");
+            
             base.OnModelCreating(modelBuilder);
             
             // Apply global query filters for automatic data isolation
@@ -351,6 +349,14 @@ namespace Tracker.Database
             // Calendar Integration configuration
             ConfigureCalendarLink(modelBuilder);
             ConfigureCalendarSyncToken(modelBuilder);
+            
+            // MUST BE LAST: For PostgreSQL, configure ALL DateTime properties to use timestamp without time zone
+            // This prevents InvalidCastException when Npgsql tries to read timestamptz into DateTime
+            // This runs AFTER all entity configurations so all properties are registered
+            if (_settings.Type == DatabaseType.PostgreSQL)
+            {
+                ConfigurePostgreSqlDateTimeProperties(modelBuilder);
+            }
         }
 
         #endregion
@@ -506,6 +512,47 @@ namespace Tracker.Database
         #region Entity Configurations
 
         /// <summary>
+        /// Configures ALL DateTime and DateTime? properties in the model to use 'timestamp without time zone'
+        /// for PostgreSQL. This is necessary because Npgsql 6+ requires DateTimeOffset for timestamptz columns,
+        /// but our entities use DateTime. This prevents InvalidCastException errors.
+        /// </summary>
+        private void ConfigurePostgreSqlDateTimeProperties(ModelBuilder modelBuilder)
+        {
+            int configuredCount = 0;
+            
+            // Create converters to ensure DateTime is treated as Unspecified kind (for timestamp without time zone)
+            var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+                v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified),
+                v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified));
+            
+            var nullableDateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : v,
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Unspecified) : v);
+            
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    // Check if this is a DateTime or DateTime? property
+                    if (property.ClrType == typeof(DateTime))
+                    {
+                        // Set column type to timestamp without time zone for PostgreSQL
+                        property.SetColumnType("timestamp without time zone");
+                        property.SetValueConverter(dateTimeConverter);
+                        configuredCount++;
+                    }
+                    else if (property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetColumnType("timestamp without time zone");
+                        property.SetValueConverter(nullableDateTimeConverter);
+                        configuredCount++;
+                    }
+                }
+            }
+            System.Diagnostics.Debug.WriteLine($"=== ConfigurePostgreSqlDateTimeProperties: Configured {configuredCount} DateTime properties ===");
+        }
+
+        /// <summary>
         /// Applies audit field configuration to all entities that inherit from AuditableEntity.
         /// This includes CreatedAt, CreatedBy, LastModifiedAt, LastModifiedBy, and soft delete fields.
         /// </summary>
@@ -525,6 +572,9 @@ namespace Tracker.Database
                     modelBuilder.Entity(entityType.ClrType)
                         .Property<DateTime>("LastModifiedAt")
                         .HasDefaultValueSql(GetUtcDateFunction());
+                    
+                    // Note: PostgreSQL DateTime column types are configured globally in 
+                    // ConfigurePostgreSqlDateTimeProperties() which runs before this method
 
                     // Set max lengths for user name fields
                     modelBuilder.Entity(entityType.ClrType).Property<string>("CreatedBy").HasMaxLength(100);
@@ -552,9 +602,12 @@ namespace Tracker.Database
         /// </summary>
         private string GetUtcDateFunction()
         {
-            return _settings.Type == DatabaseType.SqlServer 
-                ? "GETUTCDATE()" 
-                : "datetime('now')";
+            return _settings.Type switch
+            {
+                DatabaseType.SqlServer => "GETUTCDATE()",
+                DatabaseType.PostgreSQL => "NOW() AT TIME ZONE 'UTC'",
+                _ => "datetime('now')" // SQLite
+            };
         }
 
         /// <summary>
@@ -564,15 +617,36 @@ namespace Tracker.Database
         {
             modelBuilder.Entity<User>(entity =>
             {
+                // Use lowercase table name for PostgreSQL convention
+                entity.ToTable("users");
+                
                 entity.HasKey(e => e.Id);
                 
-                // Set reasonable max lengths for string fields
-                entity.Property(e => e.Username).HasMaxLength(200).IsRequired();
-                entity.Property(e => e.Email).HasMaxLength(200);
-                entity.Property(e => e.DisplayName).HasMaxLength(200);
+                // Map to snake_case column names for PostgreSQL
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.FirmId).HasColumnName("firm_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organizationid");
+                entity.Property(e => e.SupabaseUserId).HasColumnName("supabaseuserid");
+                entity.Property(e => e.Username).HasColumnName("username").HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(200);
+                entity.Property(e => e.DisplayName).HasColumnName("displayname").HasMaxLength(200);
+                entity.Property(e => e.IsActive).HasColumnName("isactive");
+                entity.Property(e => e.IsAdmin).HasColumnName("isadmin");
+                entity.Property(e => e.Role).HasColumnName("role").HasMaxLength(50);
+                entity.Property(e => e.PasswordHash).HasColumnName("password_hash");
+                
+                // Audit columns (from AuditableEntity)
+                entity.Property(e => e.CreatedAt).HasColumnName("createdat");
+                entity.Property(e => e.CreatedBy).HasColumnName("createdby");
+                entity.Property(e => e.LastModifiedAt).HasColumnName("lastmodifiedat");
+                entity.Property(e => e.LastModifiedBy).HasColumnName("lastmodifiedby");
+                entity.Property(e => e.RowVersion).HasColumnName("rowversion");
+                entity.Property(e => e.IsDeleted).HasColumnName("isdeleted");
+                entity.Property(e => e.DeletedAt).HasColumnName("deletedat");
+                entity.Property(e => e.DeletedBy).HasColumnName("deletedby");
 
-                // Unique constraint on Username (one user per username)
-                entity.HasIndex(e => e.Username).IsUnique();
+                // Unique constraint on Email (one user per email)
+                entity.HasIndex(e => e.Email).IsUnique();
                 
                 // Index for querying active users
                 entity.HasIndex(e => e.IsActive);

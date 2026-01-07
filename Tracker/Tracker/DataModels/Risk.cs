@@ -9,6 +9,13 @@ namespace Tracker.DataModels
     public class Risk : AuditableEntity
     {
         public int ID { get; set; } = 0;
+
+        /// <summary>
+        /// The organization this risk belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
         public int ProjectId { get; set; } = 0;
 
         /// <summary>

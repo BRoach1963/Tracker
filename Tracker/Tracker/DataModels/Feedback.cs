@@ -11,6 +11,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this feedback belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// The team member this feedback is for.
         /// </summary>
         public int TeamMemberId { get; set; }

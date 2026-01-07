@@ -233,8 +233,10 @@ namespace Tracker.Views
 
             try
             {
-                // Verify database connection and create/get user
-                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(username);
+                // For local SQLite auth, generate a deterministic UUID from username
+                // This ensures the same user always gets the same UUID
+                var localUserId = GenerateLocalUserId(username);
+                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(localUserId, $"{username}@local", username);
                 
                 if (user != null)
                 {
@@ -259,6 +261,16 @@ namespace Tracker.Views
                 ShowError($"Login failed: {ex.Message}");
                 SetLoginEnabled(true);
             }
+        }
+
+        /// <summary>
+        /// Generate a deterministic UUID from a username for local SQLite auth.
+        /// </summary>
+        private static Guid GenerateLocalUserId(string username)
+        {
+            using var md5 = System.Security.Cryptography.MD5.Create();
+            var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(username.ToLowerInvariant()));
+            return new Guid(hash);
         }
 
         #endregion

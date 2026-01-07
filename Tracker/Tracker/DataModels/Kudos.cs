@@ -16,6 +16,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this kudos belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Foreign key to the User (manager) who sent this kudos.
         /// </summary>
         public int UserId { get; set; }

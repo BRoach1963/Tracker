@@ -13,6 +13,17 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this meeting belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
+        /// The manager (user) who conducted this meeting.
+        /// </summary>
+        public int? ManagerUserId { get; set; }
+
+        /// <summary>
         /// Brief title/description of the meeting.
         /// </summary>
         public string Description { get; set; } = string.Empty;
@@ -200,6 +211,20 @@ namespace Tracker.DataModels
         /// Formatted date and time for display.
         /// </summary>
         public string DateTimeDisplay => $"{Date:MMM dd} @ {StartTime:hh\\:mm}";
+
+        #endregion
+
+        #region Navigation Properties
+
+        /// <summary>
+        /// The organization this meeting belongs to.
+        /// </summary>
+        public Organization? Organization { get; set; }
+
+        /// <summary>
+        /// The manager who conducted this meeting.
+        /// </summary>
+        public User? Manager { get; set; }
 
         #endregion
     }

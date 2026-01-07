@@ -13,6 +13,7 @@ using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
+using Tracker.Services.AI;
 using Tracker.Views.Dialogs;
 
 namespace Tracker.ViewModels.DialogViewModels
@@ -300,6 +301,56 @@ namespace Tracker.ViewModels.DialogViewModels
         /// Whether credits are exhausted.
         /// </summary>
         public bool IsCreditsExhausted => !HasUnlimitedCredits && _creditsUsed >= (MonthlyCredits + AdditionalCredits);
+
+        #endregion
+
+        #region Vector Storage Properties
+
+        /// <summary>
+        /// Gets a user-friendly name for the current vector storage provider.
+        /// </summary>
+        public string VectorStorageProviderName
+        {
+            get
+            {
+                var settings = TrackerDbManager.Instance.CurrentSettings;
+                if (settings == null) return "Legacy (SQLite)";
+                return Services.AI.VectorStoreFactory.GetProviderDisplayName(settings);
+            }
+        }
+
+        /// <summary>
+        /// Gets whether a legacy vector store exists that could be migrated.
+        /// </summary>
+        public bool HasLegacyVectorStore => Services.AI.VectorStoreMigrator.HasLegacyStore();
+
+        /// <summary>
+        /// Gets the size of the legacy vector store in a friendly format.
+        /// </summary>
+        public string LegacyVectorStoreSize
+        {
+            get
+            {
+                var bytes = Services.AI.VectorStoreMigrator.GetLegacyStoreSize();
+                if (bytes == 0) return "None";
+                if (bytes < 1024) return $"{bytes} B";
+                if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+                return $"{bytes / (1024.0 * 1024):F1} MB";
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the current provider supports native vector operations.
+        /// </summary>
+        public bool HasNativeVectorSupport
+        {
+            get
+            {
+                var settings = TrackerDbManager.Instance.CurrentSettings;
+                if (settings == null) return false;
+                return settings.GetVectorStorageProvider() == VectorStorageProvider.PostgreSQL;
+            }
+        }
 
         #endregion
 

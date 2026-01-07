@@ -10,6 +10,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this reminder belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Type of reminder (Meeting, Task, Goal, Engagement, Custom).
         /// </summary>
         public ReminderType Type { get; set; }

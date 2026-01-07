@@ -397,6 +397,31 @@ namespace Tracker.Services.AI
             return docs;
         }
 
+        /// <summary>
+        /// Gets the chunk count for a specific document.
+        /// </summary>
+        public async Task<int> GetDocumentChunkCountAsync(string docId)
+        {
+            await InitializeAsync();
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                await connection.OpenAsync();
+
+                using var command = new SqliteCommand(
+                    "SELECT COUNT(*) FROM document_chunks WHERE doc_id = @docId", 
+                    connection);
+                command.Parameters.AddWithValue("@docId", docId);
+                var result = await command.ExecuteScalarAsync();
+                return Convert.ToInt32(result);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
         #endregion
 
         #region Serialization

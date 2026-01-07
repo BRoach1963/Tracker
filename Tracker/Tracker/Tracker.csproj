@@ -30,6 +30,11 @@
     <Description>Team management and 1:1 meeting tracker for engineering leaders</Description>
   </PropertyGroup>
 
+  <!-- Npgsql 6.0+ requires this to use DateTime with PostgreSQL timestamptz columns -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Npgsql.EnableLegacyTimestampBehavior" Value="true" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Remove="Images\profile.png" />
     <None Remove="Views\TrackerSplash.png" />

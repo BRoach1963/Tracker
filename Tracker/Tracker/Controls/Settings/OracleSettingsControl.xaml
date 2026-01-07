@@ -138,6 +138,69 @@
                 </StackPanel>
             </Border>
             
+            <!-- Vector Storage -->
+            <Label Style="{StaticResource LabelStyle}" Content="Vector Storage" Margin="0,8,0,0"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,5,0,10">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Current Provider" FontSize="11" Foreground="{DynamicResource HintTextBrush}"/>
+                            <TextBlock Text="{Binding VectorStorageProviderName}" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        </StackPanel>
+                        <Path Grid.Column="1" 
+                              Data="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,16.5L18,9.5L16.59,8.09L11,13.67L7.41,10.09L6,11.5L11,16.5Z"
+                              Width="24" Height="24"
+                              Stretch="Uniform"
+                              Fill="{DynamicResource SuccessBrush}"
+                              VerticalAlignment="Center"
+                              Visibility="{Binding HasNativeVectorSupport, Converter={StaticResource BoolToVisibilityConverter}}"
+                              ToolTip="Native vector support with pgvector"/>
+                    </Grid>
+                    
+                    <TextBlock Text="Vector embeddings are stored in your main database for semantic search and AI features."
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0"
+                               Foreground="{DynamicResource HintTextBrush}"/>
+                    
+                    <!-- Legacy migration notice -->
+                    <Border Background="{DynamicResource InfoBackgroundBrush}" 
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="0,12,0,0"
+                            Visibility="{Binding HasLegacyVectorStore, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Path Data="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+                                      Width="16" Height="16"
+                                      Stretch="Uniform"
+                                      Fill="{DynamicResource InfoBrush}"
+                                      Margin="0,0,8,0"
+                                      VerticalAlignment="Center"/>
+                                <TextBlock Text="Legacy Data Found" 
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource InfoBrush}"/>
+                            </StackPanel>
+                            <TextBlock TextWrapping="Wrap"
+                                       Foreground="{DynamicResource SecondaryTextBrush}">
+                                <Run Text="Your previous vector embeddings ("/>
+                                <Run Text="{Binding LegacyVectorStoreSize, Mode=OneWay}"/>
+                                <Run Text=") can be migrated to your current database. Use 'Refresh AI Knowledge' to reindex your data."/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+            
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -12,6 +12,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this note belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Optional title for the note. If empty, the content preview is used.
         /// </summary>
         public string Title { get; set; } = string.Empty;

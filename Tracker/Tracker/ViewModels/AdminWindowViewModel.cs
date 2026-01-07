@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using Npgsql;
 using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Common;
@@ -178,7 +179,13 @@ namespace Tracker.ViewModels
 
                 // Get database settings and path
                 var dbSettings = UserSettingsManager.Instance.Settings.Database;
-                DatabaseType = dbSettings.Type == Classes.DatabaseType.SQLite ? "SQLite" : "SQL Server";
+                DatabaseType = dbSettings.Type switch
+                {
+                    Classes.DatabaseType.SQLite => "SQLite",
+                    Classes.DatabaseType.PostgreSQL => "PostgreSQL",
+                    Classes.DatabaseType.SqlServer => "SQL Server",
+                    _ => "Unknown"
+                };
                 
                 _logger.Info($"AdminWindow: Database type configured as: {DatabaseType}");
                 
@@ -212,6 +219,14 @@ namespace Tracker.ViewModels
                         ConnectionStatus = "⚠️ File not found";
                         _logger.Warn($"AdminWindow: Database file NOT FOUND at: {sqlitePath}");
                     }
+                }
+                else if (dbSettings.Type == Classes.DatabaseType.PostgreSQL)
+                {
+                    // PostgreSQL
+                    DatabasePath = $"Host: {dbSettings.PostgresHost}:{dbSettings.PostgresPort}\nDatabase: {dbSettings.PostgresDatabase}";
+                    ConnectionStatus = "✅ PostgreSQL";
+                    DatabaseSize = "N/A (PostgreSQL)";
+                    _logger.Info($"AdminWindow: PostgreSQL connection - Host: {dbSettings.PostgresHost}, Database: {dbSettings.PostgresDatabase}");
                 }
                 else
                 {
@@ -382,6 +397,44 @@ namespace Tracker.ViewModels
                         _tableColumns[table] = columns;
                     }
                 }
+                else if (dbSettings.Type == Classes.DatabaseType.PostgreSQL)
+                {
+                    var connectionString = $"Host={dbSettings.PostgresHost};Port={dbSettings.PostgresPort};Database={dbSettings.PostgresDatabase};Username={dbSettings.PostgresUsername};Password={dbSettings.PostgresPassword}";
+                    await using var connection = new NpgsqlConnection(connectionString);
+                    await connection.OpenAsync();
+                    
+                    // Get all tables in public schema
+                    await using var command = new NpgsqlCommand(
+                        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;", 
+                        connection);
+                    
+                    await using var reader = await command.ExecuteReaderAsync();
+                    var tableNames = new List<string>();
+                    while (await reader.ReadAsync())
+                    {
+                        tableNames.Add(reader.GetString(0));
+                    }
+                    await reader.CloseAsync();
+                    
+                    foreach (var table in tableNames)
+                    {
+                        Tables.Add(table);
+                        
+                        // Get columns for each table
+                        await using var colCommand = new NpgsqlCommand(
+                            "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = @table ORDER BY ordinal_position;",
+                            connection);
+                        colCommand.Parameters.AddWithValue("@table", table);
+                        await using var colReader = await colCommand.ExecuteReaderAsync();
+                        
+                        var columns = new List<string>();
+                        while (await colReader.ReadAsync())
+                        {
+                            columns.Add(colReader.GetString(0));
+                        }
+                        _tableColumns[table] = columns;
+                    }
+                }
                 
                 QueryStatus = $"Found {Tables.Count} tables";
                 _logger.Info($"Schema loaded: {Tables.Count} tables, {_tableColumns.Values.Sum(c => c.Count)} columns");
@@ -482,6 +535,66 @@ namespace Tracker.ViewModels
                         {
                             var dataTable = new System.Data.DataTable();
                             using var reader = await command.ExecuteReaderAsync();
+                            dataTable.Load(reader);
+                            
+                            QueryResultSets.Add(new QueryResultSet
+                            {
+                                QueryText = trimmedQuery.Length > 50 ? trimmedQuery.Substring(0, 50) + "..." : trimmedQuery,
+                                Results = dataTable,
+                                RowCount = dataTable.Rows.Count,
+                                Message = $"Query {queryIndex}: {dataTable.Rows.Count} row(s) returned"
+                            });
+                            
+                            totalRows += dataTable.Rows.Count;
+                        }
+                        else
+                        {
+                            // Execute non-query (UPDATE, DELETE, INSERT, etc.)
+                            var affectedRows = await command.ExecuteNonQueryAsync();
+                            
+                            QueryResultSets.Add(new QueryResultSet
+                            {
+                                QueryText = trimmedQuery.Length > 50 ? trimmedQuery.Substring(0, 50) + "..." : trimmedQuery,
+                                Results = null,
+                                RowCount = affectedRows,
+                                Message = $"Query {queryIndex}: {affectedRows} row(s) affected"
+                            });
+                        }
+                    }
+                    
+                    QueryStatus = $"Executed {queryIndex} query(ies). Total: {totalRows} row(s) returned";
+                }
+                else if (dbSettings.Type == Classes.DatabaseType.PostgreSQL)
+                {
+                    var connectionString = $"Host={dbSettings.PostgresHost};Port={dbSettings.PostgresPort};Database={dbSettings.PostgresDatabase};Username={dbSettings.PostgresUsername};Password={dbSettings.PostgresPassword}";
+                    _logger.Info($"Executing query against PostgreSQL: {dbSettings.PostgresHost}/{dbSettings.PostgresDatabase}");
+                    
+                    await using var connection = new NpgsqlConnection(connectionString);
+                    await connection.OpenAsync();
+                    
+                    // Split queries by semicolon
+                    var queries = SplitQueries(SqlQuery);
+                    int totalRows = 0;
+                    int queryIndex = 0;
+                    
+                    foreach (var query in queries)
+                    {
+                        if (string.IsNullOrWhiteSpace(query)) continue;
+                        
+                        queryIndex++;
+                        var trimmedQuery = query.Trim();
+                        
+                        // Skip comments
+                        if (trimmedQuery.StartsWith("--")) continue;
+                        
+                        await using var command = new NpgsqlCommand(trimmedQuery, connection);
+                        
+                        // Check if it's a SELECT query
+                        var upperQuery = trimmedQuery.ToUpperInvariant();
+                        if (upperQuery.StartsWith("SELECT") || upperQuery.StartsWith("WITH") || upperQuery.StartsWith("SHOW"))
+                        {
+                            var dataTable = new System.Data.DataTable();
+                            await using var reader = await command.ExecuteReaderAsync();
                             dataTable.Load(reader);
                             
                             QueryResultSets.Add(new QueryResultSet

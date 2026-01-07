@@ -12,6 +12,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this calendar link belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// The Tracker meeting this link belongs to.
         /// </summary>
         public int OneOnOneId { get; set; }

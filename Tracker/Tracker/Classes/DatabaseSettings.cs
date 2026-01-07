@@ -266,6 +266,55 @@ namespace Tracker.Classes
             
             return Path.Combine(trackerFolder, "tracker.db");
         }
+
+        #region Vector Storage Strategy
+
+        /// <summary>
+        /// Gets the vector storage provider type based on the database configuration.
+        /// PostgreSQL uses pgvector, SQL Server uses VARBINARY with app-side similarity,
+        /// SQLite uses the legacy local vector store.
+        /// </summary>
+        public VectorStorageProvider GetVectorStorageProvider()
+        {
+            return Type switch
+            {
+                DatabaseType.PostgreSQL => VectorStorageProvider.PostgreSQL,
+                DatabaseType.SqlServer => VectorStorageProvider.SqlServer,
+                _ => VectorStorageProvider.Legacy
+            };
+        }
+
+        /// <summary>
+        /// Whether vector embeddings should be stored in the main database (PostgreSQL/SQL Server)
+        /// or in a separate local SQLite database (legacy mode).
+        /// </summary>
+        public bool UseUnifiedVectorStorage => Type == DatabaseType.PostgreSQL || Type == DatabaseType.SqlServer;
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Supported vector storage providers.
+    /// </summary>
+    public enum VectorStorageProvider
+    {
+        /// <summary>
+        /// Legacy SQLite vector store at %LocalAppData%\Tracker\vectors.db.
+        /// Used for backwards compatibility when no PostgreSQL/SQL Server is configured.
+        /// </summary>
+        Legacy = 0,
+
+        /// <summary>
+        /// PostgreSQL with pgvector extension.
+        /// Provides native vector similarity operations.
+        /// </summary>
+        PostgreSQL = 1,
+
+        /// <summary>
+        /// SQL Server with VARBINARY storage.
+        /// Similarity calculated in application layer.
+        /// </summary>
+        SqlServer = 2
     }
 
     /// <summary>

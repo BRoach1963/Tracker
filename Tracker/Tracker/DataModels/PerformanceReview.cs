@@ -11,6 +11,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this template belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Template name (e.g., "Annual Performance Review", "Quarterly Check-In").
         /// </summary>
         public string Name { get; set; } = string.Empty;
@@ -132,6 +138,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this review cycle belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Cycle name (e.g., "Q4 2024 Reviews", "2024 Annual Performance Review").
         /// </summary>
         public string Name { get; set; } = string.Empty;
@@ -209,6 +221,12 @@ namespace Tracker.DataModels
     public class PerformanceReview : AuditableEntity
     {
         public int Id { get; set; }
+
+        /// <summary>
+        /// The organization this review belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
 
         /// <summary>
         /// The review cycle this review belongs to.

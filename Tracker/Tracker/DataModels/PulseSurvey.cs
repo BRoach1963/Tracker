@@ -11,6 +11,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this survey belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Survey title (e.g., "Weekly Check-In", "Q4 Engagement Pulse").
         /// </summary>
         public string Title { get; set; } = string.Empty;

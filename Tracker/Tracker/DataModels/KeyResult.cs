@@ -20,6 +20,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this key result belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// FK to the parent OKR. Required - Key Results cannot exist without an OKR.
         /// </summary>
         public int OkrId { get; set; }

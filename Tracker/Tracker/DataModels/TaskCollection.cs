@@ -17,6 +17,12 @@ namespace Tracker.DataModels
         public int Id { get; set; }
 
         /// <summary>
+        /// The organization this task collection belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
+
+        /// <summary>
         /// Name of the task collection.
         /// Example: "Q1 Customer Interviews", "Bug Fixes Sprint 5"
         /// </summary>

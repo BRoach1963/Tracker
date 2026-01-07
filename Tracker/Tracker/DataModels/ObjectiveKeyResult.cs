@@ -18,6 +18,12 @@ namespace Tracker.DataModels
         /// Primary key for the OKR.
         /// </summary>
         public int ObjectiveId { get; set; }
+
+        /// <summary>
+        /// The organization this OKR belongs to.
+        /// Null for legacy local-only databases (migration compatibility).
+        /// </summary>
+        public Guid? OrganizationId { get; set; }
         
         /// <summary>
         /// The objective statement - what we want to achieve.

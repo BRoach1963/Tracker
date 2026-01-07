@@ -4,7 +4,17 @@ using Tracker.Logging;
 namespace Tracker.Services.AI
 {
     /// <summary>
-    /// Main coordinator for indexing all user data as vectors
+    /// Main coordinator for indexing all user data as vectors.
+    /// 
+    /// Supports both legacy VectorStore (SQLite) and new IVectorStore implementations
+    /// (PostgreSQL, SQL Server) for multi-tenant scenarios.
+    /// 
+    /// Usage for multi-tenant:
+    /// <code>
+    /// var vectorStore = await VectorStoreFactory.CreateAsync(settings, orgId);
+    /// DataIndexer.Instance.SetVectorStore(vectorStore);
+    /// await DataIndexer.Instance.IndexAllDataAsync();
+    /// </code>
     /// </summary>
     public class DataIndexer
     {
@@ -22,6 +32,7 @@ namespace Tracker.Services.AI
         private readonly ILogger _logger;
         private bool _isIndexing = false;
         private DateTime _lastIndexed = DateTime.MinValue;
+        private IVectorStore? _vectorStore;
         private static readonly string LAST_INDEXED_FILE = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Tracker", "LastIndexed.txt");
@@ -39,6 +50,44 @@ namespace Tracker.Services.AI
         private DataIndexer()
         {
             _logger = LoggingManager.GetComponentLogger("DataIndexer");
+        }
+
+        #endregion
+
+        #region Vector Store Configuration
+
+        /// <summary>
+        /// Sets the IVectorStore for all entity indexers.
+        /// Call this before IndexAllDataAsync to use multi-tenant vector storage.
+        /// </summary>
+        public void SetVectorStore(IVectorStore vectorStore)
+        {
+            _vectorStore = vectorStore;
+            _logger.Info("DataIndexer configured with custom vector store");
+        }
+
+        /// <summary>
+        /// Clears the custom vector store, reverting to legacy singleton.
+        /// </summary>
+        public void ClearVectorStore()
+        {
+            _vectorStore = null;
+            _logger.Info("DataIndexer cleared custom vector store, using legacy");
+        }
+
+        /// <summary>
+        /// Configures all entity indexers with the current vector store (if set).
+        /// </summary>
+        private void ConfigureIndexers()
+        {
+            if (_vectorStore != null)
+            {
+                TeamMemberIndexer.Instance.SetVectorStore(_vectorStore);
+                MeetingIndexer.Instance.SetVectorStore(_vectorStore);
+                TaskIndexer.Instance.SetVectorStore(_vectorStore);
+                GoalIndexer.Instance.SetVectorStore(_vectorStore);
+                PulseSurveyIndexer.Instance.SetVectorStore(_vectorStore);
+            }
         }
 
         #endregion
@@ -62,6 +111,9 @@ namespace Tracker.Services.AI
 
             try
             {
+                // Configure indexers with vector store if set
+                ConfigureIndexers();
+
                 // Load last indexed time
                 LoadLastIndexedTime();
                 DateTime? sinceTime = _lastIndexed == DateTime.MinValue ? null : _lastIndexed;

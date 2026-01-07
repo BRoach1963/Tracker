@@ -5,21 +5,44 @@ namespace Tracker.Services.AI
     /// <summary>
     /// Base class for entity indexers - provides common functionality using Template Method pattern.
     /// Subclasses only need to implement entity-specific logic.
+    /// 
+    /// Supports both legacy VectorStore (SQLite) and new IVectorStore implementations
+    /// (PostgreSQL, SQL Server) for vector storage.
     /// </summary>
     public abstract class EntityIndexerBase
     {
         protected readonly ILogger _logger;
         protected int _indexedCount = 0;
+        private IVectorStore? _vectorStore;
         
         /// <summary>
         /// The name of the entity type for logging (e.g., "tasks", "meetings")
         /// </summary>
         protected abstract string EntityTypeName { get; }
 
+        /// <summary>
+        /// The entity type identifier used in IVectorStore (e.g., "TeamMember", "Meeting")
+        /// </summary>
+        protected virtual string EntityTypeId => EntityTypeName;
+
         protected EntityIndexerBase(string componentName)
         {
             _logger = LoggingManager.GetComponentLogger(componentName);
         }
+
+        /// <summary>
+        /// Sets a custom IVectorStore to use instead of the legacy singleton.
+        /// Call this before IndexAllAsync to use the new multi-tenant vector store.
+        /// </summary>
+        public void SetVectorStore(IVectorStore vectorStore)
+        {
+            _vectorStore = vectorStore;
+        }
+
+        /// <summary>
+        /// Gets whether a custom vector store is configured.
+        /// </summary>
+        protected bool HasCustomVectorStore => _vectorStore != null;
 
         /// <summary>
         /// Template method for indexing all entities of a type.
@@ -89,8 +112,12 @@ namespace Tracker.Services.AI
         protected abstract Task IndexSingleEntityAsync(object entity);
 
         /// <summary>
-        /// Creates a vector embedding and stores it
+        /// Creates a vector embedding and stores it.
+        /// Uses IVectorStore if configured, otherwise falls back to legacy VectorStore.
         /// </summary>
+        /// <param name="id">Unique identifier for the entity</param>
+        /// <param name="content">Text content to embed</param>
+        /// <param name="metadata">Optional metadata dictionary</param>
         protected async Task<bool> IndexEntityAsync(string id, string content, Dictionary<string, object>? metadata = null)
         {
             try
@@ -103,8 +130,23 @@ namespace Tracker.Services.AI
                     return false;
                 }
 
-                // Store in vector database
-                await VectorStore.Instance.AddAsync(id, embedding, content, metadata);
+                // Store in vector database - use new IVectorStore if configured
+                if (_vectorStore != null)
+                {
+                    await _vectorStore.StoreAsync(
+                        entityType: EntityTypeId,
+                        entityId: id,
+                        content: content,
+                        embedding: embedding,
+                        chunkIndex: 0,
+                        metadata: metadata);
+                }
+                else
+                {
+                    // Legacy path - use singleton VectorStore
+                    await VectorStore.Instance.AddAsync(id, embedding, content, metadata);
+                }
+                
                 _indexedCount++;
                 return true;
             }

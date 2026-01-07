@@ -141,42 +141,57 @@ namespace Tracker.Database
         /// <returns>User information if found, null otherwise.</returns>
         public async Task<(Guid? id, string? email, string? displayName, string? passwordHash)?> LookupUserByEmailAsync(string email)
         {
+            _logger.Info("Looking up user by email: {0}", email);
+            System.Diagnostics.Debug.WriteLine($"=== LookupUserByEmailAsync START: {email} ===");
+            
             try
             {
                 using var context = CreateContext();
+                _logger.Info("Context created, querying Users table...");
+                System.Diagnostics.Debug.WriteLine("=== LookupUserByEmailAsync: Context created ===");
                 
-                // Direct SQL query since we don't have EF Core entity for users table yet
-                var connection = context.Database.GetDbConnection();
-                await connection.OpenAsync();
-                
-                await using var cmd = connection.CreateCommand();
-                cmd.CommandText = @"
-                    SELECT id, email, display_name, password_hash 
-                    FROM users 
-                    WHERE email = @email";
-                
-                var param = cmd.CreateParameter();
-                param.ParameterName = "@email";
-                param.Value = email.ToLowerInvariant();
-                cmd.Parameters.Add(param);
+                // Use projection to avoid loading DateTime columns (which cause InvalidCastException
+                // with PostgreSQL timestamptz if EnableLegacyTimestampBehavior isn't set early enough)
+                var result = await context.Users
+                    .AsNoTracking()
+                    .IgnoreQueryFilters() // Important: bypass RLS filters for auth lookup
+                    .Where(u => u.Email.ToLower() == email.ToLowerInvariant())
+                    .Select(u => new 
+                    {
+                        u.SupabaseUserId,
+                        u.Email,
+                        u.DisplayName,
+                        u.PasswordHash
+                    })
+                    .FirstOrDefaultAsync();
 
-                await using var reader = await cmd.ExecuteReaderAsync();
-                if (await reader.ReadAsync())
+                System.Diagnostics.Debug.WriteLine($"=== LookupUserByEmailAsync: Query complete, result is {(result == null ? "NULL" : "FOUND")} ===");
+
+                if (result == null)
                 {
-                    return (
-                        reader.GetGuid(0),
-                        reader.GetString(1),
-                        reader.IsDBNull(2) ? null : reader.GetString(2),
-                        reader.IsDBNull(3) ? null : reader.GetString(3)
-                    );
+                    _logger.Warn("User not found in database: {0}", email);
+                    System.Diagnostics.Debug.WriteLine($"=== LookupUserByEmailAsync: User NOT FOUND ===");
+                    return null;
                 }
 
-                return null;
+                System.Diagnostics.Debug.WriteLine($"=== LookupUserByEmailAsync: Found Email={result.Email}, SupabaseId={result.SupabaseUserId}, HasHash={!string.IsNullOrEmpty(result.PasswordHash)} ===");
+                _logger.Info("Found user: Email={0}, SupabaseUserId={1}, HasPassword={2}",
+                    result.Email, result.SupabaseUserId, !string.IsNullOrEmpty(result.PasswordHash));
+
+                // Return SupabaseUserId as the auth ID (used for RLS)
+                return (
+                    result.SupabaseUserId,
+                    result.Email,
+                    result.DisplayName,
+                    result.PasswordHash
+                );
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== LookupUserByEmailAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                _logger.Error("EXCEPTION in LookupUserByEmailAsync: {0}: {1}", ex.GetType().Name, ex.Message);
                 _logger.Exception(ex, "Failed to lookup user by email: {0}", email);
-                return null;
+                throw; // Re-throw so we can see the actual error
             }
         }
 

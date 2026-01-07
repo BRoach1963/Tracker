@@ -348,11 +348,14 @@ namespace Tracker.ViewModels.DialogViewModels
                     var userId = result.User.Id.ToString();
                     UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: false);
 
+                    // Create local user record FIRST - this sets CurrentUserId
+                    await CreateLocalUserAsync(result.User);
+
+                    // Set PostgreSQL RLS context AFTER CurrentUserId is set
+                    await TrackerDbManager.Instance!.SetPostgresUserAsync(result.User.Id);
+
                     // Save auth settings
                     SaveAuthenticationSettings(isNewAccount: false, result.User, result.AccessToken);
-
-                    // Create local user record
-                    await CreateLocalUserAsync(result.User);
 
                     UserSettingsManager.Instance.SaveSettings();
 
@@ -437,11 +440,14 @@ namespace Tracker.ViewModels.DialogViewModels
                     var userId = result.User.Id.ToString();
                     UserSettingsManager.Instance.SwitchToUser(userId, isNewAccount: true);
 
+                    // Create local user record FIRST - this sets CurrentUserId
+                    await CreateLocalUserAsync(result.User);
+
+                    // Set PostgreSQL RLS context AFTER CurrentUserId is set
+                    await TrackerDbManager.Instance!.SetPostgresUserAsync(result.User.Id);
+
                     // Save auth settings
                     SaveAuthenticationSettings(isNewAccount: true, result.User, result.AccessToken);
-
-                    // Create local user record
-                    await CreateLocalUserAsync(result.User);
 
                     UserSettingsManager.Instance.SaveSettings();
 
@@ -537,7 +543,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     dbSettings.Type = DatabaseType.PostgreSQL;
                     dbSettings.PostgresHost = "localhost";
                     dbSettings.PostgresPort = 5432;
-                    dbSettings.PostgresDatabase = "tracker_spike";
+                    dbSettings.PostgresDatabase = "tracker";
                     dbSettings.PostgresUsername = "tracker_app";
                     dbSettings.PostgresPassword = "tracker123";
                 }
@@ -597,14 +603,15 @@ namespace Tracker.ViewModels.DialogViewModels
 
                 if (TrackerDbManager.Instance != null)
                 {
-                    var localUser = await TrackerDbManager.Instance.GetOrCreateUserAsync(displayName);
+                    // Look up by SupabaseUserId (UUID), not by display name string
+                    var localUser = await TrackerDbManager.Instance.GetOrCreateUserAsync(user.Id, user.Email, displayName);
                     if (localUser != null)
                     {
                         var authSettings = UserSettingsManager.Instance.Settings.Authentication;
                         authSettings.StoredUserId = localUser.Id;
                         authSettings.AccountSetupCompleted = true;
                         
-                        _logger.Info("Local user created/retrieved: {0}", displayName);
+                        _logger.Info("Local user created/retrieved: {0} (Id: {1})", displayName, localUser.Id);
                         
                         // Refresh CanSelectAdmin binding to enable/disable checkbox
                         RaisePropertyChanged(nameof(CanSelectAdmin));
