@@ -298,7 +298,7 @@ Be concise and helpful. Reference the user's actual data when relevant.";
         {
             try
             {
-                var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
+                var members = await TrackerDataManager.Instance.GetTeamData();
                 var activeMembers = members.Where(m => !m.IsDeleted).ToList();
 
                 sb.AppendLine($"Total team members: {activeMembers.Count}");
@@ -338,7 +338,7 @@ Be concise and helpful. Reference the user's actual data when relevant.";
         {
             try
             {
-                var meetings = await TrackerDbManager.Instance.GetOneOnOnesAsync();
+                var meetings = await TrackerDataManager.Instance.GetOneOnOnes();
                 var upcoming = meetings
                     .Where(m => m.Date >= DateTime.Today && !m.IsDeleted)
                     .OrderBy(m => m.Date)

@@ -1,6 +1,7 @@
 using System.Text;
 using Tracker.Database;
 using Tracker.Logging;
+using Tracker.Managers;
 
 namespace Tracker.Services.AI
 {
@@ -22,7 +23,7 @@ namespace Tracker.Services.AI
 
         protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
         {
-            var meetings = await TrackerDbManager.Instance.GetOneOnOnesAsync();
+            var meetings = await TrackerDataManager.Instance.GetOneOnOnes();
             return meetings.Where(m => !m.IsDeleted).Cast<object>();
         }
 

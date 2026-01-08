@@ -482,7 +482,8 @@ namespace Tracker.ViewModels
                 _cycles = new ObservableCollection<PerformanceReviewCycle>(cycles);
                 RaisePropertyChanged(nameof(Cycles));
 
-                var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
+                // Use TrackerDataManager as single source of truth for team members
+                var members = await TrackerDataManager.Instance.GetTeamData();
                 _teamMembers = new ObservableCollection<TeamMember>(members);
                 RaisePropertyChanged(nameof(TeamMembers));
 

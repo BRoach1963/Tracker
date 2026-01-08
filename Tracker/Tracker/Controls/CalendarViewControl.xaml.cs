@@ -11,6 +11,7 @@ using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
 using Tracker.Logging;
+using Tracker.Managers;
 
 namespace Tracker.Controls
 {
@@ -121,8 +122,8 @@ namespace Tracker.Controls
         {
             try
             {
-                // Load team members for filter
-                var teamMembers = await TrackerDbManager.Instance.GetTeamMembersAsync();
+                // Load team members for filter from TrackerDataManager (single source of truth)
+                var teamMembers = await TrackerDataManager.Instance.GetTeamData();
                 _teamMembers = new ObservableCollection<TeamMember>(teamMembers);
                 PopulateTeamMemberFilter();
 

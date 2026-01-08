@@ -221,7 +221,7 @@ namespace Tracker.Services.Kudos
         /// </summary>
         public async Task<List<KudosStats>> GetKudosStatsAsync()
         {
-            var teamMembers = await TrackerDbManager.Instance.GetTeamMembersAsync();
+            var teamMembers = await TrackerDataManager.Instance.GetTeamData();
             var allKudos = await GetAllKudosAsync();
 
             return teamMembers.Select(tm => new KudosStats
@@ -254,7 +254,7 @@ namespace Tracker.Services.Kudos
                 .Select(s => s.TeamMemberId)
                 .ToList();
 
-            var allTeamMembers = await TrackerDbManager.Instance.GetTeamMembersAsync();
+            var allTeamMembers = await TrackerDataManager.Instance.GetTeamData();
             return allTeamMembers.Where(tm => underrecognizedIds.Contains(tm.Id)).ToList();
         }
 

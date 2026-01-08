@@ -328,7 +328,7 @@ namespace Tracker.Services.Analytics
         {
             try
             {
-                var okrs = await TrackerDbManager.Instance.GetOKRsAsync();
+                var okrs = await TrackerDataManager.Instance.GetOKRs();
                 if (okrs == null) return;
 
                 foreach (var okr in okrs)
@@ -387,7 +387,7 @@ namespace Tracker.Services.Analytics
         {
             try
             {
-                var kpis = await TrackerDbManager.Instance.GetKPIsAsync();
+                var kpis = await TrackerDataManager.Instance.GetKPIs();
                 if (kpis == null) return;
 
                 foreach (var kpi in kpis)
@@ -427,7 +427,7 @@ namespace Tracker.Services.Analytics
         {
             try
             {
-                var projects = await TrackerDbManager.Instance.GetProjectsAsync();
+                var projects = await TrackerDataManager.Instance.GetProjects();
                 if (projects == null) return;
 
                 foreach (var project in projects)

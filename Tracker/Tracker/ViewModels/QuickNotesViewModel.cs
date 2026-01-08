@@ -539,19 +539,20 @@ namespace Tracker.ViewModels
 
         private async Task LoadLinkedEntityOptionsAsync()
         {
-            var teamMembers = await TrackerDbManager.Instance.GetTeamMembersAsync();
+            // Use TrackerDataManager as single source of truth for linked entities
+            var teamMembers = await TrackerDataManager.Instance.GetTeamData();
             _teamMembers.Clear();
             foreach (var tm in teamMembers) _teamMembers.Add(tm);
 
-            var projects = await TrackerDbManager.Instance.GetProjectsAsync();
+            var projects = await TrackerDataManager.Instance.GetProjects();
             _projects.Clear();
             foreach (var p in projects) _projects.Add(p);
 
-            var kpis = await TrackerDbManager.Instance.GetKPIsAsync();
+            var kpis = await TrackerDataManager.Instance.GetKPIs();
             _kpis.Clear();
             foreach (var k in kpis) _kpis.Add(k);
 
-            var okrs = await TrackerDbManager.Instance.GetOKRsAsync();
+            var okrs = await TrackerDataManager.Instance.GetOKRs();
             _okrs.Clear();
             foreach (var o in okrs) _okrs.Add(o);
         }

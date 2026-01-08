@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Logging;
+using Tracker.Managers;
 
 namespace Tracker.Services.Analytics
 {
@@ -276,7 +277,7 @@ namespace Tracker.Services.Analytics
 
             try
             {
-                var okrs = await TrackerDbManager.Instance.GetOKRsAsync();
+                var okrs = await TrackerDataManager.Instance.GetOKRs();
                 if (okrs == null) return CreateEmptySummary();
 
                 foreach (var okr in okrs.Where(o => o.EndDate >= DateTime.Today))
@@ -307,7 +308,7 @@ namespace Tracker.Services.Analytics
 
             try
             {
-                var kpis = await TrackerDbManager.Instance.GetKPIsAsync();
+                var kpis = await TrackerDataManager.Instance.GetKPIs();
                 if (kpis == null) return CreateEmptySummary();
 
                 foreach (var kpi in kpis.Where(k => k.TargetValue > 0))
@@ -339,7 +340,7 @@ namespace Tracker.Services.Analytics
             try
             {
                 // Analyze OKRs
-                var okrs = await TrackerDbManager.Instance.GetOKRsAsync();
+                var okrs = await TrackerDataManager.Instance.GetOKRs();
                 if (okrs != null)
                 {
                     foreach (var okr in okrs.Where(o => o.EndDate >= DateTime.Today && o.CompletionPercentage < 100))
@@ -350,7 +351,7 @@ namespace Tracker.Services.Analytics
                 }
 
                 // Analyze Projects
-                var projects = await TrackerDbManager.Instance.GetProjectsAsync();
+                var projects = await TrackerDataManager.Instance.GetProjects();
                 if (projects != null)
                 {
                     foreach (var project in projects.Where(p => p.EndDate >= DateTime.Today && p.Progress < 100))
