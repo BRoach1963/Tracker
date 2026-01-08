@@ -32,6 +32,11 @@ namespace Tracker.Managers
         private readonly ObservableCollection<IndividualGoal> _goals = new();
         private readonly ObservableCollection<QuickNote> _quickNotes = new();
 
+        // Specialized data collections (isolated - no cross-dependencies with core data)
+        private readonly ObservableCollection<PulseSurvey> _pulseSurveys = new();
+        private readonly ObservableCollection<ReviewTemplate> _reviewTemplates = new();
+        private readonly ObservableCollection<PerformanceReviewCycle> _reviewCycles = new();
+
         // Read-only wrappers for external access (prevents external modification)
         private readonly ReadOnlyObservableCollection<TeamMember> _teamMembersReadOnly;
         private readonly ReadOnlyObservableCollection<OneOnOne> _oneOnOnesReadOnly;
@@ -42,6 +47,11 @@ namespace Tracker.Managers
         private readonly ReadOnlyObservableCollection<Feedback> _feedbacksReadOnly;
         private readonly ReadOnlyObservableCollection<IndividualGoal> _goalsReadOnly;
         private readonly ReadOnlyObservableCollection<QuickNote> _quickNotesReadOnly;
+
+        // Read-only wrappers for specialized data
+        private readonly ReadOnlyObservableCollection<PulseSurvey> _pulseSurveysReadOnly;
+        private readonly ReadOnlyObservableCollection<ReviewTemplate> _reviewTemplatesReadOnly;
+        private readonly ReadOnlyObservableCollection<PerformanceReviewCycle> _reviewCyclesReadOnly;
 
         // Track if initial load has been done for each collection
         private bool _teamMembersLoaded;
@@ -54,6 +64,11 @@ namespace Tracker.Managers
         private bool _goalsLoaded;
         private bool _quickNotesLoaded;
 
+        // Track load status for specialized data
+        private bool _pulseSurveysLoaded;
+        private bool _reviewTemplatesLoaded;
+        private bool _reviewCyclesLoaded;
+
         // Lock objects for thread safety during collection updates
         private readonly object _teamMembersLock = new();
         private readonly object _oneOnOnesLock = new();
@@ -64,6 +79,11 @@ namespace Tracker.Managers
         private readonly object _feedbacksLock = new();
         private readonly object _goalsLock = new();
         private readonly object _quickNotesLock = new();
+
+        // Lock objects for specialized data
+        private readonly object _pulseSurveysLock = new();
+        private readonly object _reviewTemplatesLock = new();
+        private readonly object _reviewCyclesLock = new();
 
         #endregion
 
@@ -89,6 +109,11 @@ namespace Tracker.Managers
             _feedbacksReadOnly = new ReadOnlyObservableCollection<Feedback>(_feedbacks);
             _goalsReadOnly = new ReadOnlyObservableCollection<IndividualGoal>(_goals);
             _quickNotesReadOnly = new ReadOnlyObservableCollection<QuickNote>(_quickNotes);
+
+            // Initialize read-only wrappers for specialized data
+            _pulseSurveysReadOnly = new ReadOnlyObservableCollection<PulseSurvey>(_pulseSurveys);
+            _reviewTemplatesReadOnly = new ReadOnlyObservableCollection<ReviewTemplate>(_reviewTemplates);
+            _reviewCyclesReadOnly = new ReadOnlyObservableCollection<PerformanceReviewCycle>(_reviewCycles);
         }
 
         public void Initialize()
@@ -110,6 +135,11 @@ namespace Tracker.Managers
                 _feedbacks.Clear();
                 _goals.Clear();
                 _quickNotes.Clear();
+
+                // Clear specialized data
+                _pulseSurveys.Clear();
+                _reviewTemplates.Clear();
+                _reviewCycles.Clear();
             });
 
             // Reset load flags
@@ -122,6 +152,11 @@ namespace Tracker.Managers
             _feedbacksLoaded = false;
             _goalsLoaded = false;
             _quickNotesLoaded = false;
+
+            // Reset specialized data flags
+            _pulseSurveysLoaded = false;
+            _reviewTemplatesLoaded = false;
+            _reviewCyclesLoaded = false;
         }
 
         /// <summary>
@@ -142,6 +177,11 @@ namespace Tracker.Managers
             _goalsLoaded = false;
             _quickNotesLoaded = false;
 
+            // Invalidate specialized data caches
+            _pulseSurveysLoaded = false;
+            _reviewTemplatesLoaded = false;
+            _reviewCyclesLoaded = false;
+
             // Clear collections to free memory and ensure stale data isn't shown
             RunOnUiThread(() =>
             {
@@ -154,6 +194,11 @@ namespace Tracker.Managers
                 _feedbacks.Clear();
                 _goals.Clear();
                 _quickNotes.Clear();
+
+                // Clear specialized data
+                _pulseSurveys.Clear();
+                _reviewTemplates.Clear();
+                _reviewCycles.Clear();
             });
         }
 
@@ -205,6 +250,28 @@ namespace Tracker.Managers
         /// Gets the read-only collection of quick notes. Bind directly to this in ViewModels.
         /// </summary>
         public ReadOnlyObservableCollection<QuickNote> QuickNotes => _quickNotesReadOnly;
+
+        #endregion
+
+        #region Public Properties - Specialized Data (Isolated)
+
+        /// <summary>
+        /// Gets the read-only collection of pulse surveys. Bind directly to this in ViewModels.
+        /// This data is isolated - CRUD operations only refresh this collection.
+        /// </summary>
+        public ReadOnlyObservableCollection<PulseSurvey> PulseSurveys => _pulseSurveysReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of review templates. Bind directly to this in ViewModels.
+        /// This data is isolated - CRUD operations only refresh this collection.
+        /// </summary>
+        public ReadOnlyObservableCollection<ReviewTemplate> ReviewTemplates => _reviewTemplatesReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of review cycles. Bind directly to this in ViewModels.
+        /// This data is isolated - CRUD operations only refresh this collection.
+        /// </summary>
+        public ReadOnlyObservableCollection<PerformanceReviewCycle> ReviewCycles => _reviewCyclesReadOnly;
 
         #endregion
 
@@ -726,6 +793,159 @@ namespace Tracker.Managers
 
         #endregion
 
+        #region PulseSurvey Methods (Isolated Refresh)
+
+        /// <summary>
+        /// Ensures pulse surveys are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<PulseSurvey>> GetPulseSurveys()
+        {
+            if (!_pulseSurveysLoaded)
+            {
+                _logger.Debug("Loading pulse surveys from database");
+                var surveys = await TrackerDbManager.Instance!.GetPulseSurveysAsync();
+                ReplaceCollectionItems(_pulseSurveys, surveys, _pulseSurveysLock);
+                _pulseSurveysLoaded = true;
+                _logger.Debug("Loaded {0} pulse surveys", _pulseSurveys.Count);
+            }
+            return _pulseSurveysReadOnly;
+        }
+
+        public async Task<int> AddPulseSurvey(PulseSurvey survey)
+        {
+            var id = await TrackerDbManager.Instance!.AddPulseSurveyAsync(survey);
+            if (id > 0)
+            {
+                survey.Id = id;
+                await RefreshPulseSurveysAsync();
+            }
+            return id;
+        }
+
+        public async Task<bool> UpdatePulseSurvey(PulseSurvey survey)
+        {
+            var success = await TrackerDbManager.Instance!.UpdatePulseSurveyAsync(survey);
+            if (success)
+            {
+                await RefreshPulseSurveysAsync();
+            }
+            return success;
+        }
+
+        public async Task<bool> DeletePulseSurvey(int id)
+        {
+            var success = await TrackerDbManager.Instance!.DeletePulseSurveyAsync(id);
+            if (success)
+            {
+                await RefreshPulseSurveysAsync();
+            }
+            return success;
+        }
+
+        #endregion
+
+        #region ReviewTemplate Methods (Isolated Refresh)
+
+        /// <summary>
+        /// Ensures review templates are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<ReviewTemplate>> GetReviewTemplates()
+        {
+            if (!_reviewTemplatesLoaded)
+            {
+                _logger.Debug("Loading review templates from database");
+                var templates = await TrackerDbManager.Instance!.GetReviewTemplatesAsync();
+                ReplaceCollectionItems(_reviewTemplates, templates, _reviewTemplatesLock);
+                _reviewTemplatesLoaded = true;
+                _logger.Debug("Loaded {0} review templates", _reviewTemplates.Count);
+            }
+            return _reviewTemplatesReadOnly;
+        }
+
+        public async Task<int> AddReviewTemplate(ReviewTemplate template)
+        {
+            var id = await TrackerDbManager.Instance!.AddReviewTemplateAsync(template);
+            if (id > 0)
+            {
+                template.Id = id;
+                await RefreshReviewTemplatesAsync();
+            }
+            return id;
+        }
+
+        public async Task<bool> UpdateReviewTemplate(ReviewTemplate template)
+        {
+            var success = await TrackerDbManager.Instance!.UpdateReviewTemplateAsync(template);
+            if (success)
+            {
+                await RefreshReviewTemplatesAsync();
+            }
+            return success;
+        }
+
+        public async Task<bool> DeleteReviewTemplate(int id)
+        {
+            var success = await TrackerDbManager.Instance!.DeleteReviewTemplateAsync(id);
+            if (success)
+            {
+                await RefreshReviewTemplatesAsync();
+            }
+            return success;
+        }
+
+        #endregion
+
+        #region ReviewCycle Methods (Isolated Refresh)
+
+        /// <summary>
+        /// Ensures review cycles are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<PerformanceReviewCycle>> GetReviewCycles()
+        {
+            if (!_reviewCyclesLoaded)
+            {
+                _logger.Debug("Loading review cycles from database");
+                var cycles = await TrackerDbManager.Instance!.GetReviewCyclesAsync();
+                ReplaceCollectionItems(_reviewCycles, cycles, _reviewCyclesLock);
+                _reviewCyclesLoaded = true;
+                _logger.Debug("Loaded {0} review cycles", _reviewCycles.Count);
+            }
+            return _reviewCyclesReadOnly;
+        }
+
+        public async Task<int> AddReviewCycle(PerformanceReviewCycle cycle)
+        {
+            var id = await TrackerDbManager.Instance!.AddReviewCycleAsync(cycle);
+            if (id > 0)
+            {
+                cycle.Id = id;
+                await RefreshReviewCyclesAsync();
+            }
+            return id;
+        }
+
+        public async Task<bool> UpdateReviewCycle(PerformanceReviewCycle cycle)
+        {
+            var success = await TrackerDbManager.Instance!.UpdateReviewCycleAsync(cycle);
+            if (success)
+            {
+                await RefreshReviewCyclesAsync();
+            }
+            return success;
+        }
+
+        public async Task<bool> DeleteReviewCycle(int id)
+        {
+            var success = await TrackerDbManager.Instance!.DeleteReviewCycleAsync(id);
+            if (success)
+            {
+                await RefreshReviewCyclesAsync();
+            }
+            return success;
+        }
+
+        #endregion
+
         #region TaskCollection Methods
 
         public async Task<List<TaskCollection>> GetTaskCollections()
@@ -889,6 +1109,39 @@ namespace Tracker.Managers
         {
             _quickNotesLoaded = false;
             await GetQuickNotes();
+        }
+
+        /// <summary>
+        /// Refreshes pulse surveys from the database.
+        /// This is an isolated refresh - does not trigger RefreshAll since no dependencies exist.
+        /// </summary>
+        public async Task RefreshPulseSurveysAsync()
+        {
+            _pulseSurveysLoaded = false;
+            await GetPulseSurveys();
+            _logger.Debug("Pulse surveys refreshed");
+        }
+
+        /// <summary>
+        /// Refreshes review templates from the database.
+        /// This is an isolated refresh - does not trigger RefreshAll since no dependencies exist.
+        /// </summary>
+        public async Task RefreshReviewTemplatesAsync()
+        {
+            _reviewTemplatesLoaded = false;
+            await GetReviewTemplates();
+            _logger.Debug("Review templates refreshed");
+        }
+
+        /// <summary>
+        /// Refreshes review cycles from the database.
+        /// This is an isolated refresh - does not trigger RefreshAll since no dependencies exist.
+        /// </summary>
+        public async Task RefreshReviewCyclesAsync()
+        {
+            _reviewCyclesLoaded = false;
+            await GetReviewCycles();
+            _logger.Debug("Review cycles refreshed");
         }
 
         #endregion

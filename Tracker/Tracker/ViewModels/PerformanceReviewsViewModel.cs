@@ -474,15 +474,15 @@ namespace Tracker.ViewModels
             {
                 IsLoading = true;
 
-                var templates = await TrackerDbManager.Instance.GetReviewTemplatesAsync();
+                // Use TrackerDataManager as single source of truth for all data
+                var templates = await TrackerDataManager.Instance.GetReviewTemplates();
                 _templates = new ObservableCollection<ReviewTemplate>(templates);
                 RaisePropertyChanged(nameof(Templates));
 
-                var cycles = await TrackerDbManager.Instance.GetReviewCyclesAsync();
+                var cycles = await TrackerDataManager.Instance.GetReviewCycles();
                 _cycles = new ObservableCollection<PerformanceReviewCycle>(cycles);
                 RaisePropertyChanged(nameof(Cycles));
 
-                // Use TrackerDataManager as single source of truth for team members
                 var members = await TrackerDataManager.Instance.GetTeamData();
                 _teamMembers = new ObservableCollection<TeamMember>(members);
                 RaisePropertyChanged(nameof(TeamMembers));
@@ -584,20 +584,21 @@ namespace Tracker.ViewModels
                         }
                     });
 
-                    var id = await TrackerDbManager.Instance.AddReviewTemplateAsync(_selectedTemplate);
+                    var id = await TrackerDataManager.Instance.AddReviewTemplate(_selectedTemplate);
                     if (id > 0)
                     {
                         _selectedTemplate.Id = id;
-                        _templates.Add(_selectedTemplate);
                         _logger.Info("Created new template: {0}", _selectedTemplate.Name);
+                        await LoadDataAsync();
                     }
                 }
                 else
                 {
-                    var success = await TrackerDbManager.Instance.UpdateReviewTemplateAsync(_selectedTemplate);
+                    var success = await TrackerDataManager.Instance.UpdateReviewTemplate(_selectedTemplate);
                     if (success)
                     {
                         _logger.Info("Updated template: {0}", _selectedTemplate.Name);
+                        await LoadDataAsync();
                     }
                 }
 
@@ -618,14 +619,14 @@ namespace Tracker.ViewModels
 
             try
             {
-                var success = await TrackerDbManager.Instance.DeleteReviewTemplateAsync(_selectedTemplate.Id);
+                var success = await TrackerDataManager.Instance.DeleteReviewTemplate(_selectedTemplate.Id);
                 if (success)
                 {
-                    _templates.Remove(_selectedTemplate);
                     _selectedTemplate = null;
                     RaisePropertyChanged(nameof(SelectedTemplate));
                     RaisePropertyChanged(nameof(HasSelectedTemplate));
                     _logger.Info("Deleted template");
+                    await LoadDataAsync();
                 }
             }
             catch (Exception ex)
@@ -686,20 +687,21 @@ namespace Tracker.ViewModels
 
                 if (IsNewCycle)
                 {
-                    var id = await TrackerDbManager.Instance.AddReviewCycleAsync(_selectedCycle);
+                    var id = await TrackerDataManager.Instance.AddReviewCycle(_selectedCycle);
                     if (id > 0)
                     {
                         _selectedCycle.Id = id;
-                        _cycles.Add(_selectedCycle);
                         _logger.Info("Created new cycle: {0}", _selectedCycle.Name);
+                        await LoadDataAsync();
                     }
                 }
                 else
                 {
-                    var success = await TrackerDbManager.Instance.UpdateReviewCycleAsync(_selectedCycle);
+                    var success = await TrackerDataManager.Instance.UpdateReviewCycle(_selectedCycle);
                     if (success)
                     {
                         _logger.Info("Updated cycle: {0}", _selectedCycle.Name);
+                        await LoadDataAsync();
                     }
                 }
 
@@ -719,14 +721,14 @@ namespace Tracker.ViewModels
 
             try
             {
-                var success = await TrackerDbManager.Instance.DeleteReviewCycleAsync(_selectedCycle.Id);
+                var success = await TrackerDataManager.Instance.DeleteReviewCycle(_selectedCycle.Id);
                 if (success)
                 {
-                    _cycles.Remove(_selectedCycle);
                     _selectedCycle = null;
                     RaisePropertyChanged(nameof(SelectedCycle));
                     RaisePropertyChanged(nameof(HasSelectedCycle));
                     _logger.Info("Deleted cycle");
+                    await LoadDataAsync();
                 }
             }
             catch (Exception ex)
@@ -741,11 +743,11 @@ namespace Tracker.ViewModels
 
             try
             {
-                // Create reviews for all team members
+                // Create reviews for all team members (special operation, uses DB directly)
                 var count = await TrackerDbManager.Instance.CreateReviewsForCycleAsync(_selectedCycle.Id);
                 
                 _selectedCycle.Status = ReviewCycleStatus.SelfReviewInProgress;
-                await TrackerDbManager.Instance.UpdateReviewCycleAsync(_selectedCycle);
+                await TrackerDataManager.Instance.UpdateReviewCycle(_selectedCycle);
 
                 // Reload to get the created reviews
                 _selectedCycle = await TrackerDbManager.Instance.GetReviewCycleAsync(_selectedCycle.Id);
@@ -770,7 +772,7 @@ namespace Tracker.ViewModels
             try
             {
                 _selectedCycle.Status = ReviewCycleStatus.Completed;
-                await TrackerDbManager.Instance.UpdateReviewCycleAsync(_selectedCycle);
+                await TrackerDataManager.Instance.UpdateReviewCycle(_selectedCycle);
 
                 RaisePropertyChanged(nameof(SelectedCycle));
                 RaisePropertyChanged(nameof(CanStartCycle));

@@ -498,11 +498,11 @@ namespace Tracker.ViewModels
             {
                 IsLoading = true;
 
-                var surveys = await TrackerDbManager.Instance.GetPulseSurveysAsync();
+                // Use TrackerDataManager as single source of truth for all data
+                var surveys = await TrackerDataManager.Instance.GetPulseSurveys();
                 _surveys = new ObservableCollection<PulseSurvey>(surveys);
                 RaisePropertyChanged(nameof(Surveys));
 
-                // Use TrackerDataManager as single source of truth for team members
                 var members = await TrackerDataManager.Instance.GetTeamData();
                 _teamMembers = new ObservableCollection<TeamMember>(members);
                 RaisePropertyChanged(nameof(TeamMembers));
@@ -669,20 +669,22 @@ namespace Tracker.ViewModels
 
                 if (IsNewSurvey)
                 {
-                    var id = await TrackerDbManager.Instance.AddPulseSurveyAsync(_selectedSurvey);
+                    var id = await TrackerDataManager.Instance.AddPulseSurvey(_selectedSurvey);
                     if (id > 0)
                     {
                         _selectedSurvey.Id = id;
-                        _surveys.Add(_selectedSurvey);
                         _logger.Info("Created new survey: {0}", _selectedSurvey.Title);
+                        // Reload to get fresh data from cache
+                        await LoadDataAsync();
                     }
                 }
                 else
                 {
-                    var success = await TrackerDbManager.Instance.UpdatePulseSurveyAsync(_selectedSurvey);
+                    var success = await TrackerDataManager.Instance.UpdatePulseSurvey(_selectedSurvey);
                     if (success)
                     {
                         _logger.Info("Updated survey: {0}", _selectedSurvey.Title);
+                        await LoadDataAsync();
                     }
                 }
 
@@ -703,14 +705,14 @@ namespace Tracker.ViewModels
 
             try
             {
-                var success = await TrackerDbManager.Instance.DeletePulseSurveyAsync(_selectedSurvey.Id);
+                var success = await TrackerDataManager.Instance.DeletePulseSurvey(_selectedSurvey.Id);
                 if (success)
                 {
-                    _surveys.Remove(_selectedSurvey);
                     _selectedSurvey = null;
                     RaisePropertyChanged(nameof(SelectedSurvey));
                     RaisePropertyChanged(nameof(HasSelectedSurvey));
                     _logger.Info("Deleted survey");
+                    await LoadDataAsync();
                 }
             }
             catch (Exception ex)
@@ -752,7 +754,7 @@ namespace Tracker.ViewModels
                 _selectedSurvey.Status = SurveyStatus.Active;
                 _selectedSurvey.SentDate = DateTime.UtcNow;
 
-                var updateSuccess = await TrackerDbManager.Instance.UpdatePulseSurveyAsync(_selectedSurvey);
+                var updateSuccess = await TrackerDataManager.Instance.UpdatePulseSurvey(_selectedSurvey);
                 if (updateSuccess)
                 {
                     StatusMessage = "Survey is now active!";
@@ -789,7 +791,7 @@ namespace Tracker.ViewModels
                 _selectedSurvey.Status = SurveyStatus.Closed;
                 _selectedSurvey.ClosedDate = DateTime.UtcNow;
 
-                var success = await TrackerDbManager.Instance.UpdatePulseSurveyAsync(_selectedSurvey);
+                var success = await TrackerDataManager.Instance.UpdatePulseSurvey(_selectedSurvey);
                 if (success)
                 {
                     _logger.Info("Survey closed: {0}", _selectedSurvey.Title);
