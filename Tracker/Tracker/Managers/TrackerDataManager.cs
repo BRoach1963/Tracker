@@ -1,45 +1,95 @@
-﻿using Tracker.Common.Enums;
+using System.Collections.ObjectModel;
+using System.Windows;
+using Tracker.Common.Enums;
 using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
+using Tracker.Logging;
 
 namespace Tracker.Managers
 {
     /// <summary>
-    /// Manages application data and provides a caching layer over the database.
+    /// Manages application data and provides a single source of truth for all data collections.
+    /// Uses ObservableCollection to enable automatic UI updates when data changes.
+    /// ViewModels should bind directly to these collections rather than maintaining their own copies.
     /// </summary>
     public class TrackerDataManager
     {
         #region Fields
 
+        private readonly ILogger _logger = LoggingManager.GetComponentLogger(nameof(TrackerDataManager));
         private bool _initialized;
-        private List<TeamMember>? _teamMembers = new();
-        private List<OneOnOne>? _oneOnOnes = new();
-        private List<Project>? _projects = new();
-        private List<IndividualTask>? _tasks = new();
-        private List<ObjectiveKeyResult>? _okrs = new();
-        private List<KeyPerformanceIndicator>? _kpis = new();
 
-        // Cache invalidation flags - track which caches need to be refreshed
-        private bool _teamMembersInvalidated = true;
-        private bool _oneOnOnesInvalidated = true;
-        private bool _projectsInvalidated = true;
-        private bool _tasksInvalidated = true;
-        private bool _okrsInvalidated = true;
-        private bool _kpisInvalidated = true;
+        // Observable collections - THE single source of truth
+        private readonly ObservableCollection<TeamMember> _teamMembers = new();
+        private readonly ObservableCollection<OneOnOne> _oneOnOnes = new();
+        private readonly ObservableCollection<Project> _projects = new();
+        private readonly ObservableCollection<IndividualTask> _tasks = new();
+        private readonly ObservableCollection<ObjectiveKeyResult> _okrs = new();
+        private readonly ObservableCollection<KeyPerformanceIndicator> _kpis = new();
+        private readonly ObservableCollection<Feedback> _feedbacks = new();
+        private readonly ObservableCollection<IndividualGoal> _goals = new();
+        private readonly ObservableCollection<QuickNote> _quickNotes = new();
+
+        // Read-only wrappers for external access (prevents external modification)
+        private readonly ReadOnlyObservableCollection<TeamMember> _teamMembersReadOnly;
+        private readonly ReadOnlyObservableCollection<OneOnOne> _oneOnOnesReadOnly;
+        private readonly ReadOnlyObservableCollection<Project> _projectsReadOnly;
+        private readonly ReadOnlyObservableCollection<IndividualTask> _tasksReadOnly;
+        private readonly ReadOnlyObservableCollection<ObjectiveKeyResult> _okrsReadOnly;
+        private readonly ReadOnlyObservableCollection<KeyPerformanceIndicator> _kpisReadOnly;
+        private readonly ReadOnlyObservableCollection<Feedback> _feedbacksReadOnly;
+        private readonly ReadOnlyObservableCollection<IndividualGoal> _goalsReadOnly;
+        private readonly ReadOnlyObservableCollection<QuickNote> _quickNotesReadOnly;
+
+        // Track if initial load has been done for each collection
+        private bool _teamMembersLoaded;
+        private bool _oneOnOnesLoaded;
+        private bool _projectsLoaded;
+        private bool _tasksLoaded;
+        private bool _okrsLoaded;
+        private bool _kpisLoaded;
+        private bool _feedbacksLoaded;
+        private bool _goalsLoaded;
+        private bool _quickNotesLoaded;
+
+        // Lock objects for thread safety during collection updates
+        private readonly object _teamMembersLock = new();
+        private readonly object _oneOnOnesLock = new();
+        private readonly object _projectsLock = new();
+        private readonly object _tasksLock = new();
+        private readonly object _okrsLock = new();
+        private readonly object _kpisLock = new();
+        private readonly object _feedbacksLock = new();
+        private readonly object _goalsLock = new();
+        private readonly object _quickNotesLock = new();
 
         #endregion
 
         #region Singleton Instance
 
-        private static readonly Lazy<TrackerDataManager> _lazyInstance = 
+        private static readonly Lazy<TrackerDataManager> _lazyInstance =
             new(() => new TrackerDataManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
         /// <summary>
         /// Gets the singleton instance of TrackerDataManager.
         /// </summary>
         public static TrackerDataManager Instance => _lazyInstance.Value;
+
+        private TrackerDataManager()
+        {
+            // Initialize read-only wrappers
+            _teamMembersReadOnly = new ReadOnlyObservableCollection<TeamMember>(_teamMembers);
+            _oneOnOnesReadOnly = new ReadOnlyObservableCollection<OneOnOne>(_oneOnOnes);
+            _projectsReadOnly = new ReadOnlyObservableCollection<Project>(_projects);
+            _tasksReadOnly = new ReadOnlyObservableCollection<IndividualTask>(_tasks);
+            _okrsReadOnly = new ReadOnlyObservableCollection<ObjectiveKeyResult>(_okrs);
+            _kpisReadOnly = new ReadOnlyObservableCollection<KeyPerformanceIndicator>(_kpis);
+            _feedbacksReadOnly = new ReadOnlyObservableCollection<Feedback>(_feedbacks);
+            _goalsReadOnly = new ReadOnlyObservableCollection<IndividualGoal>(_goals);
+            _quickNotesReadOnly = new ReadOnlyObservableCollection<QuickNote>(_quickNotes);
+        }
 
         public void Initialize()
         {
@@ -49,53 +99,188 @@ namespace Tracker.Managers
 
         public void Shutdown()
         {
-            _teamMembers?.Clear();
-            _oneOnOnes?.Clear();
-            _projects?.Clear();
-            _tasks?.Clear();
-            _okrs?.Clear();
-            _kpis?.Clear();
+            RunOnUiThread(() =>
+            {
+                _teamMembers.Clear();
+                _oneOnOnes.Clear();
+                _projects.Clear();
+                _tasks.Clear();
+                _okrs.Clear();
+                _kpis.Clear();
+                _feedbacks.Clear();
+                _goals.Clear();
+                _quickNotes.Clear();
+            });
 
-            // Reset invalidation flags
-            _teamMembersInvalidated = true;
-            _oneOnOnesInvalidated = true;
-            _projectsInvalidated = true;
-            _tasksInvalidated = true;
-            _okrsInvalidated = true;
-            _kpisInvalidated = true;
+            // Reset load flags
+            _teamMembersLoaded = false;
+            _oneOnOnesLoaded = false;
+            _projectsLoaded = false;
+            _tasksLoaded = false;
+            _okrsLoaded = false;
+            _kpisLoaded = false;
+            _feedbacksLoaded = false;
+            _goalsLoaded = false;
+            _quickNotesLoaded = false;
+        }
 
-            _teamMembers = null;
-            _oneOnOnes = null;
-            _projects = null;
-            _tasks = null;
-            _okrs = null;
-            _kpis = null;
+        /// <summary>
+        /// Invalidates all caches, forcing a fresh load from database on next access.
+        /// Call this after login to ensure fresh data for the new user.
+        /// </summary>
+        public void InvalidateAllCaches()
+        {
+            _logger.Debug("Invalidating all caches");
+            
+            _teamMembersLoaded = false;
+            _oneOnOnesLoaded = false;
+            _projectsLoaded = false;
+            _tasksLoaded = false;
+            _okrsLoaded = false;
+            _kpisLoaded = false;
+            _feedbacksLoaded = false;
+            _goalsLoaded = false;
+            _quickNotesLoaded = false;
+
+            // Clear collections to free memory and ensure stale data isn't shown
+            RunOnUiThread(() =>
+            {
+                _teamMembers.Clear();
+                _oneOnOnes.Clear();
+                _projects.Clear();
+                _tasks.Clear();
+                _okrs.Clear();
+                _kpis.Clear();
+                _feedbacks.Clear();
+                _goals.Clear();
+                _quickNotes.Clear();
+            });
         }
 
         #endregion
 
-        #region Public Properties
+        #region Public Properties - Single Source of Truth
 
-        public List<TeamMember>? TeamMembers => _teamMembers;
-        public List<OneOnOne>? OneOnOnes => _oneOnOnes;
-        public List<Project>? Projects => _projects;
-        public List<IndividualTask>? Tasks => _tasks;
-        public List<ObjectiveKeyResult>? OKRs => _okrs;
-        public List<KeyPerformanceIndicator>? KPIs => _kpis;
+        /// <summary>
+        /// Gets the read-only collection of team members. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<TeamMember> TeamMembers => _teamMembersReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of one-on-ones. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<OneOnOne> OneOnOnes => _oneOnOnesReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of projects. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<Project> Projects => _projectsReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of tasks. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<IndividualTask> Tasks => _tasksReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of OKRs. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<ObjectiveKeyResult> OKRs => _okrsReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of KPIs. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<KeyPerformanceIndicator> KPIs => _kpisReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of feedbacks. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<Feedback> Feedbacks => _feedbacksReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of goals. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<IndividualGoal> Goals => _goalsReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of quick notes. Bind directly to this in ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<QuickNote> QuickNotes => _quickNotesReadOnly;
+
+        #endregion
+
+        #region Helper Methods
+
+        /// <summary>
+        /// Runs an action on the UI thread. Required because ObservableCollection 
+        /// must be modified on the same thread that created it (UI thread).
+        /// </summary>
+        private void RunOnUiThread(Action action)
+        {
+            if (Application.Current?.Dispatcher == null)
+            {
+                // No dispatcher available (unit tests or before app starts)
+                action();
+                return;
+            }
+
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                Application.Current.Dispatcher.Invoke(action);
+            }
+        }
+
+        /// <summary>
+        /// Replaces all items in a collection on the UI thread.
+        /// </summary>
+        private void ReplaceCollectionItems<T>(ObservableCollection<T> collection, IEnumerable<T> newItems, object lockObj)
+        {
+            lock (lockObj)
+            {
+                RunOnUiThread(() =>
+                {
+                    collection.Clear();
+                    foreach (var item in newItems)
+                    {
+                        collection.Add(item);
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// Refreshes all data from database and notifies all ViewModels.
+        /// Call this after ANY CRUD operation to ensure all screens stay in sync.
+        /// </summary>
+        private async Task RefreshAllAndNotifyAsync()
+        {
+            _logger.Debug("Refreshing all data after mutation");
+            await RefreshAllDataAsync();
+            DataMessenger.SendRefreshAll();
+        }
 
         #endregion
 
         #region Team Member Methods
 
-        public async Task<List<TeamMember>> GetTeamData()
+        /// <summary>
+        /// Ensures team members are loaded and returns the collection.
+        /// The returned collection IS the single source of truth - bind to it directly.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<TeamMember>> GetTeamData()
         {
-            // Only refresh from database if cache is invalidated
-            if (_teamMembersInvalidated)
+            if (!_teamMembersLoaded)
             {
-                _teamMembers = await TrackerDbManager.Instance!.GetTeamMembersAsync();
-                _teamMembersInvalidated = false;
+                _logger.Debug("Loading team members from database");
+                var members = await TrackerDbManager.Instance!.GetTeamMembersAsync();
+                ReplaceCollectionItems(_teamMembers, members, _teamMembersLock);
+                _teamMembersLoaded = true;
+                _logger.Debug("Loaded {0} team members", _teamMembers.Count);
             }
-            return _teamMembers;
+            return _teamMembersReadOnly;
         }
 
         public async Task<bool> AddTeamMember(TeamMember teamMember)
@@ -104,16 +289,7 @@ namespace Tracker.Managers
             if (id > 0)
             {
                 teamMember.Id = id;
-                _teamMembers?.Add(teamMember);
-
-                // Mark cache as valid since we just added to it
-                _teamMembersInvalidated = false;
-
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.TeamMembers,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
                 return true;
             }
             return false;
@@ -124,22 +300,7 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.UpdateTeamMemberAsync(teamMember);
             if (success)
             {
-                // Update local cache
-                var existing = _teamMembers?.FirstOrDefault(t => t.Id == teamMember.Id);
-                if (existing != null)
-                {
-                    var index = _teamMembers!.IndexOf(existing);
-                    _teamMembers[index] = teamMember;
-                }
-
-                // Mark cache as valid since we just updated it
-                _teamMembersInvalidated = false;
-
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.TeamMembers,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -149,16 +310,7 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.DeleteTeamMemberAsync(id);
             if (success)
             {
-                _teamMembers?.RemoveAll(t => t.Id == id);
-
-                // Mark cache as valid since we just updated it
-                _teamMembersInvalidated = false;
-
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.TeamMembers,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -167,15 +319,20 @@ namespace Tracker.Managers
 
         #region OneOnOne Methods
 
-        public async Task<List<OneOnOne>> GetOneOnOnes()
+        /// <summary>
+        /// Ensures one-on-ones are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<OneOnOne>> GetOneOnOnes()
         {
-            // Only refresh from database if cache is invalidated
-            if (_oneOnOnesInvalidated)
+            if (!_oneOnOnesLoaded)
             {
-                _oneOnOnes = await TrackerDbManager.Instance!.GetOneOnOnesAsync();
-                _oneOnOnesInvalidated = false;
+                _logger.Debug("Loading one-on-ones from database");
+                var oneOnOnes = await TrackerDbManager.Instance!.GetOneOnOnesAsync();
+                ReplaceCollectionItems(_oneOnOnes, oneOnOnes, _oneOnOnesLock);
+                _oneOnOnesLoaded = true;
+                _logger.Debug("Loaded {0} one-on-ones", _oneOnOnes.Count);
             }
-            return _oneOnOnes;
+            return _oneOnOnesReadOnly;
         }
 
         public async Task<int> AddOneOnOne(OneOnOne oneOnOne, int? teamMemberId = null)
@@ -185,25 +342,10 @@ namespace Tracker.Managers
             {
                 oneOnOne.Id = id;
 
-                // If teamMemberId was provided, populate the TeamMember navigation property from cache
-                if (teamMemberId.HasValue && oneOnOne.TeamMember == null)
-                {
-                    oneOnOne.TeamMember = _teamMembers?.FirstOrDefault(tm => tm.Id == teamMemberId.Value) ?? new TeamMember();
-                }
-
-                _oneOnOnes?.Add(oneOnOne);
-
-                // Mark cache as valid since we just added to it
-                _oneOnOnesInvalidated = false;
-
                 // Create meeting reminder if enabled
                 await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
 
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.OneOnOnes,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return id;
         }
@@ -216,14 +358,7 @@ namespace Tracker.Managers
                 // Update meeting reminder if date/time changed
                 await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
 
-                // Mark cache as valid since we just updated it
-                _oneOnOnesInvalidated = false;
-
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.OneOnOnes,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -233,16 +368,7 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.DeleteOneOnOneAsync(id);
             if (success)
             {
-                _oneOnOnes?.RemoveAll(o => o.Id == id);
-
-                // Mark cache as valid since we just updated it
-                _oneOnOnesInvalidated = false;
-
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.OneOnOnes,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -251,15 +377,20 @@ namespace Tracker.Managers
 
         #region Project Methods
 
-        public async Task<List<Project>> GetProjects()
+        /// <summary>
+        /// Ensures projects are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<Project>> GetProjects()
         {
-            // Only refresh from database if cache is invalidated
-            if (_projectsInvalidated)
+            if (!_projectsLoaded)
             {
-                _projects = await TrackerDbManager.Instance!.GetProjectsAsync();
-                _projectsInvalidated = false;
+                _logger.Debug("Loading projects from database");
+                var projects = await TrackerDbManager.Instance!.GetProjectsAsync();
+                ReplaceCollectionItems(_projects, projects, _projectsLock);
+                _projectsLoaded = true;
+                _logger.Debug("Loaded {0} projects", _projects.Count);
             }
-            return _projects;
+            return _projectsReadOnly;
         }
 
         public async Task<int> AddProject(Project project)
@@ -268,10 +399,7 @@ namespace Tracker.Managers
             if (id > 0)
             {
                 project.ID = id;
-                _projects?.Add(project);
-
-                // Mark cache as valid since we just added to it
-                _projectsInvalidated = false;
+                await RefreshAllAndNotifyAsync();
             }
             return id;
         }
@@ -281,23 +409,7 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.UpdateProjectAsync(project);
             if (success)
             {
-                // Update cache with the modified project
-                var existing = _projects?.FirstOrDefault(p => p.ID == project.ID);
-                if (existing != null)
-                {
-                    var index = _projects!.IndexOf(existing);
-                    _projects[index] = project;
-                }
-
-                // Mark cache as valid since we just updated it
-                _projectsInvalidated = false;
-
-                // Notify subscribers of the change
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.Projects,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -307,10 +419,7 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.DeleteProjectAsync(id);
             if (success)
             {
-                _projects?.RemoveAll(p => p.ID == id);
-
-                // Mark cache as valid since we just updated it
-                _projectsInvalidated = false;
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -319,29 +428,34 @@ namespace Tracker.Managers
 
         #region Task Methods
 
-        public async Task<List<IndividualTask>> GetTasks()
+        /// <summary>
+        /// Ensures tasks are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<IndividualTask>> GetTasks()
         {
-            // Only refresh from database if cache is invalidated
-            if (_tasksInvalidated)
+            if (!_tasksLoaded)
             {
-                _tasks = await TrackerDbManager.Instance!.GetTasksAsync();
+                _logger.Debug("Loading tasks from database");
+                var tasks = await TrackerDbManager.Instance!.GetTasksAsync();
 
                 // Populate meeting counts for all tasks in a single batch query (prevents N+1 problem)
-                if (_tasks != null && _tasks.Count > 0)
+                if (tasks != null && tasks.Count > 0)
                 {
-                    var taskIds = _tasks.Select(t => t.Id).ToList();
+                    var taskIds = tasks.Select(t => t.Id).ToList();
                     var meetingCounts = await TrackerDbManager.Instance.GetTaskMeetingCountsAsync(taskIds);
 
-                    foreach (var task in _tasks)
+                    foreach (var task in tasks)
                     {
                         task.MeetingCount = meetingCounts.TryGetValue(task.Id, out var count) ? count : 0;
                     }
                 }
 
-                _tasksInvalidated = false;
+                ReplaceCollectionItems(_tasks, tasks ?? new List<IndividualTask>(), _tasksLock);
+                _tasksLoaded = true;
+                _logger.Debug("Loaded {0} tasks", _tasks.Count);
             }
 
-            return _tasks;
+            return _tasksReadOnly;
         }
 
         public async Task<int> AddTask(IndividualTask task)
@@ -349,9 +463,8 @@ namespace Tracker.Managers
             var id = await TrackerDbManager.Instance!.AddTaskAsync(task);
             if (id > 0)
             {
-                // Mark cache as invalid since we added a new task
-                // It will be refreshed on next GetTasks() call
-                _tasksInvalidated = true;
+                task.Id = id;
+                await RefreshAllAndNotifyAsync();
             }
             return id;
         }
@@ -361,23 +474,17 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.UpdateTaskAsync(task);
             if (success)
             {
-                // Update cache with the modified task
-                var existing = _tasks?.FirstOrDefault(t => t.Id == task.Id);
-                if (existing != null)
-                {
-                    var index = _tasks!.IndexOf(existing);
-                    _tasks[index] = task;
-                }
+                await RefreshAllAndNotifyAsync();
+            }
+            return success;
+        }
 
-                // Mark cache as valid since we just updated it
-                _tasksInvalidated = false;
-
-                // Notify subscribers of the change
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.Tasks,
-                    RefreshData = true
-                });
+        public async Task<bool> DeleteTask(int id)
+        {
+            var success = await TrackerDbManager.Instance!.DeleteTaskAsync(id);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -386,29 +493,34 @@ namespace Tracker.Managers
 
         #region OKR Methods
 
-        public async Task<List<ObjectiveKeyResult>> GetOKRs()
+        /// <summary>
+        /// Ensures OKRs are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<ObjectiveKeyResult>> GetOKRs()
         {
-            // Only refresh from database if cache is invalidated
-            if (_okrsInvalidated)
+            if (!_okrsLoaded)
             {
-                _okrs = await TrackerDbManager.Instance!.GetOKRsAsync();
+                _logger.Debug("Loading OKRs from database");
+                var okrs = await TrackerDbManager.Instance!.GetOKRsAsync();
 
                 // Populate meeting counts for all OKRs in a single batch query (prevents N+1 problem)
-                if (_okrs != null && _okrs.Count > 0)
+                if (okrs != null && okrs.Count > 0)
                 {
-                    var okrIds = _okrs.Select(o => o.ObjectiveId).ToList();
+                    var okrIds = okrs.Select(o => o.ObjectiveId).ToList();
                     var meetingCounts = await TrackerDbManager.Instance.GetOkrMeetingCountsAsync(okrIds);
 
-                    foreach (var okr in _okrs)
+                    foreach (var okr in okrs)
                     {
                         okr.MeetingCount = meetingCounts.TryGetValue(okr.ObjectiveId, out var count) ? count : 0;
                     }
                 }
 
-                _okrsInvalidated = false;
+                ReplaceCollectionItems(_okrs, okrs ?? new List<ObjectiveKeyResult>(), _okrsLock);
+                _okrsLoaded = true;
+                _logger.Debug("Loaded {0} OKRs", _okrs.Count);
             }
 
-            return _okrs;
+            return _okrsReadOnly;
         }
 
         public async Task<int> AddOKR(ObjectiveKeyResult okr)
@@ -416,9 +528,8 @@ namespace Tracker.Managers
             var id = await TrackerDbManager.Instance!.AddOKRAsync(okr);
             if (id > 0)
             {
-                // Mark cache as invalid since we added a new OKR
-                // It will be refreshed on next GetOKRs() call
-                _okrsInvalidated = true;
+                okr.ObjectiveId = id;
+                await RefreshAllAndNotifyAsync();
             }
             return id;
         }
@@ -428,23 +539,17 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.UpdateOKRAsync(okr);
             if (success)
             {
-                // Update cache with the modified OKR
-                var existing = _okrs?.FirstOrDefault(o => o.ObjectiveId == okr.ObjectiveId);
-                if (existing != null)
-                {
-                    var index = _okrs!.IndexOf(existing);
-                    _okrs[index] = okr;
-                }
+                await RefreshAllAndNotifyAsync();
+            }
+            return success;
+        }
 
-                // Mark cache as valid since we just updated it
-                _okrsInvalidated = false;
-
-                // Notify subscribers of the change
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.OKRs,
-                    RefreshData = true
-                });
+        public async Task<bool> DeleteOKR(int id)
+        {
+            var success = await TrackerDbManager.Instance!.DeleteOKRAsync(id);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
             }
             return success;
         }
@@ -453,29 +558,34 @@ namespace Tracker.Managers
 
         #region KPI Methods
 
-        public async Task<List<KeyPerformanceIndicator>> GetKPIs()
+        /// <summary>
+        /// Ensures KPIs are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<KeyPerformanceIndicator>> GetKPIs()
         {
-            // Only refresh from database if cache is invalidated
-            if (_kpisInvalidated)
+            if (!_kpisLoaded)
             {
-                _kpis = await TrackerDbManager.Instance!.GetKPIsAsync();
+                _logger.Debug("Loading KPIs from database");
+                var kpis = await TrackerDbManager.Instance!.GetKPIsAsync();
 
                 // Populate meeting counts for all KPIs in a single batch query (prevents N+1 problem)
-                if (_kpis != null && _kpis.Count > 0)
+                if (kpis != null && kpis.Count > 0)
                 {
-                    var kpiIds = _kpis.Select(k => k.KpiId).ToList();
+                    var kpiIds = kpis.Select(k => k.KpiId).ToList();
                     var meetingCounts = await TrackerDbManager.Instance.GetKpiMeetingCountsAsync(kpiIds);
 
-                    foreach (var kpi in _kpis)
+                    foreach (var kpi in kpis)
                     {
                         kpi.MeetingCount = meetingCounts.TryGetValue(kpi.KpiId, out var count) ? count : 0;
                     }
                 }
 
-                _kpisInvalidated = false;
+                ReplaceCollectionItems(_kpis, kpis ?? new List<KeyPerformanceIndicator>(), _kpisLock);
+                _kpisLoaded = true;
+                _logger.Debug("Loaded {0} KPIs", _kpis.Count);
             }
 
-            return _kpis;
+            return _kpisReadOnly;
         }
 
         public async Task<int> AddKPI(KeyPerformanceIndicator kpi)
@@ -483,9 +593,8 @@ namespace Tracker.Managers
             var id = await TrackerDbManager.Instance!.AddKPIAsync(kpi);
             if (id > 0)
             {
-                // Mark cache as invalid since we added a new KPI
-                // It will be refreshed on next GetKPIs() call
-                _kpisInvalidated = true;
+                kpi.KpiId = id;
+                await RefreshAllAndNotifyAsync();
             }
             return id;
         }
@@ -495,25 +604,124 @@ namespace Tracker.Managers
             var success = await TrackerDbManager.Instance!.UpdateKPIAsync(kpi);
             if (success)
             {
-                // Update cache with the modified KPI
-                var existing = _kpis?.FirstOrDefault(k => k.KpiId == kpi.KpiId);
-                if (existing != null)
-                {
-                    var index = _kpis!.IndexOf(existing);
-                    _kpis[index] = kpi;
-                }
-
-                // Mark cache as valid since we just updated it
-                _kpisInvalidated = false;
-
-                // Notify subscribers of the change
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.KPIs,
-                    RefreshData = true
-                });
+                await RefreshAllAndNotifyAsync();
             }
             return success;
+        }
+
+        public async Task<bool> DeleteKPI(int id)
+        {
+            var success = await TrackerDbManager.Instance!.DeleteKPIAsync(id);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
+            }
+            return success;
+        }
+
+        #endregion
+
+        #region Feedback Methods
+
+        /// <summary>
+        /// Ensures feedbacks are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<Feedback>> GetFeedbacks()
+        {
+            if (!_feedbacksLoaded)
+            {
+                _logger.Debug("Loading feedbacks from database");
+                var feedbacks = await TrackerDbManager.Instance!.GetAllFeedbackAsync();
+                ReplaceCollectionItems(_feedbacks, feedbacks, _feedbacksLock);
+                _feedbacksLoaded = true;
+                _logger.Debug("Loaded {0} feedbacks", _feedbacks.Count);
+            }
+            return _feedbacksReadOnly;
+        }
+
+        public async Task<int> AddFeedback(Feedback feedback)
+        {
+            var id = await TrackerDbManager.Instance!.AddFeedbackAsync(feedback);
+            if (id > 0)
+            {
+                feedback.Id = id;
+                await RefreshAllAndNotifyAsync();
+            }
+            return id;
+        }
+
+        public async Task DeleteFeedbackAsync(Feedback feedback)
+        {
+            await TrackerDbManager.Instance!.DeleteFeedbackAsync(feedback.Id);
+            await RefreshAllAndNotifyAsync();
+        }
+
+        #endregion
+
+        #region Goal Methods
+
+        /// <summary>
+        /// Ensures goals are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<IndividualGoal>> GetGoals()
+        {
+            if (!_goalsLoaded)
+            {
+                _logger.Debug("Loading goals from database");
+                var goals = await TrackerDbManager.Instance!.GetAllGoalsAsync();
+                ReplaceCollectionItems(_goals, goals, _goalsLock);
+                _goalsLoaded = true;
+                _logger.Debug("Loaded {0} goals", _goals.Count);
+            }
+            return _goalsReadOnly;
+        }
+
+        public async Task<int> AddGoal(IndividualGoal goal)
+        {
+            var id = await TrackerDbManager.Instance!.AddGoalAsync(goal);
+            if (id > 0)
+            {
+                goal.Id = id;
+                await RefreshAllAndNotifyAsync();
+            }
+            return id;
+        }
+
+        public async Task DeleteGoalAsync(IndividualGoal goal)
+        {
+            await TrackerDbManager.Instance!.DeleteGoalAsync(goal.Id);
+            await RefreshAllAndNotifyAsync();
+        }
+
+        #endregion
+
+        #region QuickNote Methods
+
+        /// <summary>
+        /// Ensures quick notes are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<QuickNote>> GetQuickNotes()
+        {
+            if (!_quickNotesLoaded)
+            {
+                _logger.Debug("Loading quick notes from database");
+                var notes = await TrackerDbManager.Instance!.GetQuickNotesAsync();
+                ReplaceCollectionItems(_quickNotes, notes, _quickNotesLock);
+                _quickNotesLoaded = true;
+                _logger.Debug("Loaded {0} quick notes", _quickNotes.Count);
+            }
+            return _quickNotesReadOnly;
+        }
+
+        public async Task<int> AddQuickNote(QuickNote note)
+        {
+            var id = await TrackerDbManager.Instance!.AddQuickNoteAsync(note);
+            if (id > 0)
+            {
+                note.Id = id;
+                await RefreshAllAndNotifyAsync();
+            }
+            return id;
         }
 
         #endregion
@@ -527,54 +735,160 @@ namespace Tracker.Managers
 
         #endregion
 
-        #region Feedback Methods
+        #region Refresh Methods
 
-        public async Task<List<Feedback>> GetFeedbacks()
+        /// <summary>
+        /// Forces a refresh of all data from the database.
+        /// Use sparingly - prefer letting the cache work.
+        /// </summary>
+        public async Task RefreshAllDataAsync()
         {
-            return await TrackerDbManager.Instance!.GetAllFeedbackAsync();
+            _logger.Info("Force refreshing all data from database");
+            
+            // Mark all as needing reload
+            InvalidateAllCaches();
+
+            // Load all data in parallel
+            await Task.WhenAll(
+                GetTeamData(),
+                GetOneOnOnes(),
+                GetTasks(),
+                GetOKRs(),
+                GetKPIs(),
+                GetProjects(),
+                GetFeedbacks(),
+                GetGoals()
+            );
+
+            _logger.Info("All data refreshed: {0} team members, {1} tasks, {2} OKRs",
+                _teamMembers.Count, _tasks.Count, _okrs.Count);
         }
 
-        public async Task<int> AddFeedback(Feedback feedback)
+        /// <summary>
+        /// Refreshes a specific data type from the database.
+        /// </summary>
+        public async Task RefreshDataTypeAsync(DataChangeType type)
         {
-            return await TrackerDbManager.Instance!.AddFeedbackAsync(feedback);
+            switch (type)
+            {
+                case DataChangeType.TeamMembers:
+                    _teamMembersLoaded = false;
+                    await GetTeamData();
+                    break;
+                case DataChangeType.OneOnOnes:
+                    _oneOnOnesLoaded = false;
+                    await GetOneOnOnes();
+                    break;
+                case DataChangeType.Tasks:
+                    _tasksLoaded = false;
+                    await GetTasks();
+                    break;
+                case DataChangeType.OKRs:
+                    _okrsLoaded = false;
+                    await GetOKRs();
+                    break;
+                case DataChangeType.KPIs:
+                    _kpisLoaded = false;
+                    await GetKPIs();
+                    break;
+                case DataChangeType.Projects:
+                    _projectsLoaded = false;
+                    await GetProjects();
+                    break;
+                case DataChangeType.Feedback:
+                    _feedbacksLoaded = false;
+                    await GetFeedbacks();
+                    break;
+                case DataChangeType.Goals:
+                    _goalsLoaded = false;
+                    await GetGoals();
+                    break;
+                case DataChangeType.QuickNotes:
+                    _quickNotesLoaded = false;
+                    await GetQuickNotes();
+                    break;
+            }
         }
 
-        public async Task DeleteFeedbackAsync(Feedback feedback)
+        /// <summary>
+        /// Refreshes team members from the database.
+        /// </summary>
+        public async Task RefreshTeamMembersAsync()
         {
-            await TrackerDbManager.Instance!.DeleteFeedbackAsync(feedback.Id);
+            _teamMembersLoaded = false;
+            await GetTeamData();
         }
 
-        #endregion
-
-        #region Goal Methods
-
-        public async Task<List<IndividualGoal>> GetGoals()
+        /// <summary>
+        /// Refreshes 1:1 meetings from the database.
+        /// </summary>
+        public async Task RefreshOneOnOnesAsync()
         {
-            return await TrackerDbManager.Instance!.GetAllGoalsAsync();
+            _oneOnOnesLoaded = false;
+            await GetOneOnOnes();
         }
 
-        public async Task<int> AddGoal(IndividualGoal goal)
+        /// <summary>
+        /// Refreshes tasks from the database.
+        /// </summary>
+        public async Task RefreshTasksAsync()
         {
-            return await TrackerDbManager.Instance!.AddGoalAsync(goal);
+            _tasksLoaded = false;
+            await GetTasks();
         }
 
-        public async Task DeleteGoalAsync(IndividualGoal goal)
+        /// <summary>
+        /// Refreshes OKRs from the database.
+        /// </summary>
+        public async Task RefreshOKRsAsync()
         {
-            await TrackerDbManager.Instance!.DeleteGoalAsync(goal.Id);
+            _okrsLoaded = false;
+            await GetOKRs();
         }
 
-        #endregion
-
-        #region QuickNote Methods
-
-        public async Task<List<QuickNote>> GetQuickNotes()
+        /// <summary>
+        /// Refreshes KPIs from the database.
+        /// </summary>
+        public async Task RefreshKPIsAsync()
         {
-            return await TrackerDbManager.Instance!.GetQuickNotesAsync();
+            _kpisLoaded = false;
+            await GetKPIs();
         }
 
-        public async Task<int> AddQuickNote(QuickNote note)
+        /// <summary>
+        /// Refreshes projects from the database.
+        /// </summary>
+        public async Task RefreshProjectsAsync()
         {
-            return await TrackerDbManager.Instance!.AddQuickNoteAsync(note);
+            _projectsLoaded = false;
+            await GetProjects();
+        }
+
+        /// <summary>
+        /// Refreshes feedbacks from the database.
+        /// </summary>
+        public async Task RefreshFeedbacksAsync()
+        {
+            _feedbacksLoaded = false;
+            await GetFeedbacks();
+        }
+
+        /// <summary>
+        /// Refreshes goals from the database.
+        /// </summary>
+        public async Task RefreshGoalsAsync()
+        {
+            _goalsLoaded = false;
+            await GetGoals();
+        }
+
+        /// <summary>
+        /// Refreshes quick notes from the database.
+        /// </summary>
+        public async Task RefreshQuickNotesAsync()
+        {
+            _quickNotesLoaded = false;
+            await GetQuickNotes();
         }
 
         #endregion

@@ -349,46 +349,71 @@ namespace Tracker.Database
 
             try
             {
-                // First, check if a user exists with this Supabase UUID
-                var existingUser = await _context.Users
-                    .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(u => u.SupabaseUserId == supabaseUserId);
+                System.Diagnostics.Debug.WriteLine($"=== GetOrCreateUserAsync START: {email}, SupabaseId: {supabaseUserId} ===");
                 
-                if (existingUser != null)
+                // First, check if a user exists with this Supabase UUID (using projection to avoid DateTime issues)
+                var existingUserInfo = await _context.Users
+                    .IgnoreQueryFilters()
+                    .Where(u => u.SupabaseUserId == supabaseUserId)
+                    .Select(u => new { u.Id, u.Email })
+                    .FirstOrDefaultAsync();
+                
+                if (existingUserInfo != null)
                 {
-                    UserSettingsManager.Instance.CurrentUserId = existingUser.Id;
+                    UserSettingsManager.Instance.CurrentUserId = existingUserInfo.Id;
                     
                     // Update context's CurrentUserId for EF query filters
-                    _context.CurrentUserId = existingUser.Id;
+                    _context.CurrentUserId = existingUserInfo.Id;
                     
                     // Store for context factory
                     _supabaseUserId = supabaseUserId;
-                    _localUserId = existingUser.Id;
+                    _localUserId = existingUserInfo.Id;
                     
-                    return existingUser;
+                    System.Diagnostics.Debug.WriteLine($"=== GetOrCreateUserAsync: Found existing user by SupabaseId, Id={existingUserInfo.Id} ===");
+                    
+                    // Return a minimal User object (don't reload full entity to avoid DateTime issues)
+                    return new User 
+                    { 
+                        Id = existingUserInfo.Id, 
+                        Email = existingUserInfo.Email,
+                        SupabaseUserId = supabaseUserId,
+                        DisplayName = displayName
+                    };
                 }
 
                 // Check if a user exists with this email (migration scenario)
-                var existingByEmail = await _context.Users
+                var existingByEmailInfo = await _context.Users
                     .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(u => u.Email == email);
+                    .Where(u => u.Email == email)
+                    .Select(u => new { u.Id, u.Email, u.SupabaseUserId })
+                    .FirstOrDefaultAsync();
                 
-                if (existingByEmail != null)
+                if (existingByEmailInfo != null)
                 {
-                    // Update existing user with Supabase UUID
-                    existingByEmail.SupabaseUserId = supabaseUserId;
-                    existingByEmail.DisplayName = displayName;
-                    await _context.SaveChangesAsync();
+                    // Update existing user with Supabase UUID using raw SQL to avoid loading full entity
+                    await _context.Database.ExecuteSqlRawAsync(
+                        "UPDATE \"users\" SET \"supabaseuserid\" = {0}, \"displayname\" = {1} WHERE \"id\" = {2}",
+                        supabaseUserId, displayName, existingByEmailInfo.Id);
                     
-                    UserSettingsManager.Instance.CurrentUserId = existingByEmail.Id;
-                    _context.CurrentUserId = existingByEmail.Id;
+                    UserSettingsManager.Instance.CurrentUserId = existingByEmailInfo.Id;
+                    _context.CurrentUserId = existingByEmailInfo.Id;
                     _supabaseUserId = supabaseUserId;
-                    _localUserId = existingByEmail.Id;
+                    _localUserId = existingByEmailInfo.Id;
                     
-                    _logger.Info("Updated existing User with Supabase ID: {0} (Local Id: {1})", displayName, existingByEmail.Id);
-                    return existingByEmail;
+                    System.Diagnostics.Debug.WriteLine($"=== GetOrCreateUserAsync: Updated existing user by email, Id={existingByEmailInfo.Id} ===");
+                    _logger.Info("Updated existing User with Supabase ID: {0} (Local Id: {1})", displayName, existingByEmailInfo.Id);
+                    
+                    return new User 
+                    { 
+                        Id = existingByEmailInfo.Id, 
+                        Email = email,
+                        SupabaseUserId = supabaseUserId,
+                        DisplayName = displayName
+                    };
                 }
 
+                System.Diagnostics.Debug.WriteLine($"=== GetOrCreateUserAsync: Creating new user ===");
+                
                 // Create new User
                 var newUser = new User
                 {
@@ -402,21 +427,28 @@ namespace Tracker.Database
                 _context.Users.Add(newUser);
                 await _context.SaveChangesAsync();
                 
-                // Reload to get the ID
-                var createdUser = await _context.Users
+                // Get the ID using projection instead of full entity reload
+                var createdUserId = await _context.Users
                     .IgnoreQueryFilters()
-                    .FirstAsync(u => u.SupabaseUserId == supabaseUserId);
+                    .Where(u => u.SupabaseUserId == supabaseUserId)
+                    .Select(u => u.Id)
+                    .FirstAsync();
                     
-                UserSettingsManager.Instance.CurrentUserId = createdUser.Id;
-                _context.CurrentUserId = createdUser.Id;
+                UserSettingsManager.Instance.CurrentUserId = createdUserId;
+                _context.CurrentUserId = createdUserId;
                 _supabaseUserId = supabaseUserId;
-                _localUserId = createdUser.Id;
+                _localUserId = createdUserId;
                 
-                _logger.Info("Created new User: {0} (Id: {1}, Supabase: {2})", displayName, createdUser.Id, supabaseUserId);
-                return createdUser;
+                // Update the newUser with the assigned Id
+                newUser.Id = createdUserId;
+                
+                System.Diagnostics.Debug.WriteLine($"=== GetOrCreateUserAsync: Created new user, Id={createdUserId} ===");
+                _logger.Info("Created new User: {0} (Id: {1}, Supabase: {2})", displayName, createdUserId, supabaseUserId);
+                return newUser;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetOrCreateUserAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
                 _logger.Exception(ex, "Failed to get or create User with Supabase ID: {0}", supabaseUserId);
                 return null;
             }
@@ -524,31 +556,39 @@ namespace Tracker.Database
             {
                 try
                 {
-                    // Query without the UserId filter to find the user by SupabaseUserId
-                    var user = await _context.Users
+                    System.Diagnostics.Debug.WriteLine($"=== SetPostgresUserAsync: Looking up local user ID for Supabase: {supabaseUserId} ===");
+                    
+                    // Use projection query to avoid loading DateTime columns that might cause InvalidCastException
+                    // This is a workaround for PostgreSQL timestamp handling issues with EF Core
+                    var userInfo = await _context.Users
                         .IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(u => u.SupabaseUserId == supabaseUserId)
+                        .Where(u => u.SupabaseUserId == supabaseUserId)
+                        .Select(u => new { u.Id, u.Email })
+                        .FirstOrDefaultAsync()
                         .ConfigureAwait(false);
 
-                    if (user != null)
+                    if (userInfo != null)
                     {
-                        _localUserId = user.Id;
+                        _localUserId = userInfo.Id;
                         
                         // Update UserSettingsManager for compatibility with existing code
-                        UserSettingsManager.Instance.CurrentUserId = user.Id;
+                        UserSettingsManager.Instance.CurrentUserId = userInfo.Id;
                         
                         // Update the existing context's CurrentUserId for EF query filters
-                        _context.CurrentUserId = user.Id;
+                        _context.CurrentUserId = userInfo.Id;
                         
-                        _logger.Info("PostgreSQL local user ID resolved: {0} (Supabase: {1})", user.Id, supabaseUserId);
+                        System.Diagnostics.Debug.WriteLine($"=== SetPostgresUserAsync: Resolved local user ID = {userInfo.Id} for {userInfo.Email} ===");
+                        _logger.Info("PostgreSQL local user ID resolved: {0} (Supabase: {1})", userInfo.Id, supabaseUserId);
                     }
                     else
                     {
+                        System.Diagnostics.Debug.WriteLine($"=== SetPostgresUserAsync: No user found for Supabase ID: {supabaseUserId} ===");
                         _logger.Warn("No user found for Supabase ID: {0}", supabaseUserId);
                     }
                 }
                 catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"=== SetPostgresUserAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
                     _logger.Exception(ex, "Failed to look up local user ID for Supabase user {0}", supabaseUserId);
                 }
             }
@@ -727,19 +767,35 @@ namespace Tracker.Database
             return await ExecuteWithContextAsync(
                 async (context) =>
                 {
-                    // Global query filters handle UserId and IsDeleted filtering automatically
-                    var teamMembers = await context.TeamMembers
-                        .AsNoTracking()
-                        .OrderBy(tm => tm.Role)
-                        .ThenBy(tm => tm.LastName)
-                        .ThenBy(tm => tm.FirstName)
-                        .ToListAsync()
-                        .ConfigureAwait(false);
+                    System.Diagnostics.Debug.WriteLine($"=== GetTeamMembersAsync: Starting query, CurrentUserId={context.CurrentUserId} ===");
+                    
+                    try
+                    {
+                        // Global query filters handle UserId and IsDeleted filtering automatically
+                        var teamMembers = await context.TeamMembers
+                            .AsNoTracking()
+                            .OrderBy(tm => tm.Role)
+                            .ThenBy(tm => tm.LastName)
+                            .ThenBy(tm => tm.FirstName)
+                            .ToListAsync()
+                            .ConfigureAwait(false);
 
-                    // Populate runtime properties for display
-                    await PopulateTeamMemberStatsAsync(teamMembers, GetCurrentUserId()!.Value).ConfigureAwait(false);
+                        System.Diagnostics.Debug.WriteLine($"=== GetTeamMembersAsync: Query succeeded, got {teamMembers.Count} members ===");
 
-                    return teamMembers;
+                        // Populate runtime properties for display
+                        await PopulateTeamMemberStatsAsync(teamMembers, GetCurrentUserId()!.Value).ConfigureAwait(false);
+
+                        return teamMembers;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"=== GetTeamMembersAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                        if (ex.InnerException != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
+                        }
+                        throw; // Re-throw to let ExecuteWithContextAsync handle it
+                    }
                 },
                 new List<TeamMember>(),
                 nameof(GetTeamMembersAsync));
@@ -1085,15 +1141,21 @@ namespace Tracker.Database
 
         public async Task<List<OneOnOne>> GetOneOnOnesAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"=== GetOneOnOnesAsync: Starting ===");
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetOneOnOnesAsync: No CurrentUserId ===");
                 _logger.Warn("GetOneOnOnesAsync called but CurrentUserId is not set");
                 return new List<OneOnOne>();
             }
 
             var context = GetReadContext();
-            if (context == null) return new List<OneOnOne>();
+            if (context == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"=== GetOneOnOnesAsync: No context ===");
+                return new List<OneOnOne>();
+            }
 
             try
             {
@@ -1136,10 +1198,14 @@ namespace Tracker.Database
                         oneOnOne.LinkedKpis = oneOnOne.LinkedKpis.Where(lk => !lk.IsDeleted).ToList();
                 }
                 
+                System.Diagnostics.Debug.WriteLine($"=== GetOneOnOnesAsync: Query succeeded, got {results.Count} meetings ===");
                 return results;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetOneOnOnesAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                if (ex.InnerException != null)
+                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
                 _logger.Exception(ex, "Error retrieving one-on-ones from database");
                 return new List<OneOnOne>();
             }
@@ -2065,19 +2131,25 @@ namespace Tracker.Database
 
         public async Task<List<Project>> GetProjectsAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"=== GetProjectsAsync: Starting ===");
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetProjectsAsync: No CurrentUserId ===");
                 _logger.Warn("GetProjectsAsync called but CurrentUserId is not set");
                 return new List<Project>();
             }
 
             var context = GetReadContext();
-            if (context == null) return new List<Project>();
+            if (context == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"=== GetProjectsAsync: No context ===");
+                return new List<Project>();
+            }
 
             try
             {
-                return await context.Projects
+                var result = await context.Projects
                     .Where(p => !p.IsDeleted && EF.Property<int>(p, "UserId") == currentUserId.Value)
                     .Include(p => p.Owner)
                     .Include(p => p.TeamMembers.Where(tm => !tm.IsDeleted))
@@ -2087,9 +2159,14 @@ namespace Tracker.Database
                     .Include(p => p.Dependencies.Where(d => !d.IsDeleted))
                     .OrderBy(p => p.Name)
                     .ToListAsync();
+                System.Diagnostics.Debug.WriteLine($"=== GetProjectsAsync: Query succeeded, got {result.Count} projects ===");
+                return result;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetProjectsAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                if (ex.InnerException != null)
+                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
                 _logger.Exception(ex, "Error retrieving projects from database");
                 return new List<Project>();
             }
@@ -2187,27 +2264,38 @@ namespace Tracker.Database
 
         public async Task<List<IndividualTask>> GetTasksAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"=== GetTasksAsync: Starting ===");
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetTasksAsync: No CurrentUserId ===");
                 _logger.Warn("GetTasksAsync called but CurrentUserId is not set");
                 return new List<IndividualTask>();
             }
 
             var context = GetReadContext();
-            if (context == null) return new List<IndividualTask>();
+            if (context == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"=== GetTasksAsync: No context ===");
+                return new List<IndividualTask>();
+            }
 
             try
             {
-                return await context.Tasks
+                var result = await context.Tasks
                     .AsNoTracking()
                     .Where(t => !t.IsDeleted && EF.Property<int>(t, "UserId") == currentUserId.Value)
                     .Include(t => t.Owner)
                     .OrderBy(t => t.DueDate)
                     .ToListAsync();
+                System.Diagnostics.Debug.WriteLine($"=== GetTasksAsync: Query succeeded, got {result.Count} tasks ===");
+                return result;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetTasksAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                if (ex.InnerException != null)
+                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
                 _logger.Exception(ex, "Error retrieving tasks from database");
                 return new List<IndividualTask>();
             }
@@ -2267,15 +2355,43 @@ namespace Tracker.Database
             }
         }
 
+        /// <summary>
+        /// Deletes a task by ID.
+        /// </summary>
+        public async Task<bool> DeleteTaskAsync(int id)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var task = await _context.Tasks.FindAsync(id);
+                if (task != null)
+                {
+                    _context.Tasks.Remove(task);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted Task ID: {0}", id);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting Task ID: {0}", id);
+                return false;
+            }
+        }
+
         #endregion
 
         #region OKR Operations
 
         public async Task<List<ObjectiveKeyResult>> GetOKRsAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: Starting ===");
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: No CurrentUserId ===");
                 _logger.Warn("GetOKRsAsync called but CurrentUserId is not set");
                 return new List<ObjectiveKeyResult>();
             }
@@ -2283,6 +2399,7 @@ namespace Tracker.Database
             var context = GetReadContext();
             if (context == null)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: No context ===");
                 _logger.Warn("GetOKRsAsync: Context is null");
                 return new List<ObjectiveKeyResult>();
             }
@@ -2293,6 +2410,7 @@ namespace Tracker.Database
             {
                 // First, let's see all OKRs regardless of UserId for debugging
                 var allOkrsCount = await context.ObjectiveKeyResults.CountAsync();
+                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: Total OKRs in database (all users) = {allOkrsCount} ===");
                 _logger.Info("GetOKRsAsync: Total OKRs in database (all users) = {0}", allOkrsCount);
                 
                 // Load all data without filters in the Include to avoid SQL translation errors
@@ -2317,12 +2435,16 @@ namespace Tracker.Database
                         }
                     }
                 }
-                    
+                
+                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: Query succeeded, got {result.Count} OKRs ===");
                 _logger.Info("GetOKRsAsync: Found {0} OKRs for UserId = {1}", result.Count, currentUserId.Value);
                 return result;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                if (ex.InnerException != null)
+                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
                 _logger.Exception(ex, "Error retrieving OKRs from database");
                 return new List<ObjectiveKeyResult>();
             }
@@ -2570,27 +2692,38 @@ namespace Tracker.Database
 
         public async Task<List<KeyPerformanceIndicator>> GetKPIsAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"=== GetKPIsAsync: Starting ===");
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetKPIsAsync: No CurrentUserId ===");
                 _logger.Warn("GetKPIsAsync called but CurrentUserId is not set");
                 return new List<KeyPerformanceIndicator>();
             }
 
             var context = GetReadContext();
-            if (context == null) return new List<KeyPerformanceIndicator>();
+            if (context == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"=== GetKPIsAsync: No context ===");
+                return new List<KeyPerformanceIndicator>();
+            }
 
             try
             {
-                return await context.KeyPerformanceIndicators
+                var result = await context.KeyPerformanceIndicators
                     .AsNoTracking()
                     .Where(k => !k.IsDeleted && EF.Property<int>(k, "UserId") == currentUserId.Value)
                     .Include(k => k.Owner)
                     .OrderBy(k => k.Name)
                     .ToListAsync();
+                System.Diagnostics.Debug.WriteLine($"=== GetKPIsAsync: Query succeeded, got {result.Count} KPIs ===");
+                return result;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== GetKPIsAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
+                if (ex.InnerException != null)
+                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
                 _logger.Exception(ex, "Error retrieving KPIs from database");
                 return new List<KeyPerformanceIndicator>();
             }
@@ -2646,6 +2779,32 @@ namespace Tracker.Database
             catch (Exception ex)
             {
                 _logger.Exception(ex, "Error updating KPI ID: {0}", kpi.KpiId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Deletes a KPI by ID.
+        /// </summary>
+        public async Task<bool> DeleteKPIAsync(int id)
+        {
+            if (_context == null) return false;
+
+            try
+            {
+                var kpi = await _context.KeyPerformanceIndicators.FindAsync(id);
+                if (kpi != null)
+                {
+                    _context.KeyPerformanceIndicators.Remove(kpi);
+                    await _context.SaveChangesAsync();
+                    _logger.Info("Deleted KPI ID: {0}", id);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error deleting KPI ID: {0}", id);
                 return false;
             }
         }

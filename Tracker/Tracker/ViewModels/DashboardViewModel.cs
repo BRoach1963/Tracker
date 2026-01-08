@@ -29,14 +29,15 @@ namespace Tracker.ViewModels
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("DashboardVM");
         
-        private ObservableCollection<TeamMember> _teamMembers = new();
-        private ObservableCollection<OneOnOne> _oneOnOnes = new();
-        private ObservableCollection<IndividualTask> _tasks = new();
-        private ObservableCollection<ObjectiveKeyResult> _okrs = new();
-        private ObservableCollection<KeyPerformanceIndicator> _kpis = new();
-        private ObservableCollection<Project> _projects = new();
-        private ObservableCollection<Feedback> _feedbacks = new();
-        private ObservableCollection<IndividualGoal> _goals = new();
+        // Reference to shared data - DO NOT create copies, bind directly to TrackerDataManager
+        private ReadOnlyObservableCollection<TeamMember> TeamMembersData => TrackerDataManager.Instance.TeamMembers;
+        private ReadOnlyObservableCollection<OneOnOne> OneOnOnesData => TrackerDataManager.Instance.OneOnOnes;
+        private ReadOnlyObservableCollection<IndividualTask> TasksData => TrackerDataManager.Instance.Tasks;
+        private ReadOnlyObservableCollection<ObjectiveKeyResult> OkrsData => TrackerDataManager.Instance.OKRs;
+        private ReadOnlyObservableCollection<KeyPerformanceIndicator> KpisData => TrackerDataManager.Instance.KPIs;
+        private ReadOnlyObservableCollection<Project> ProjectsData => TrackerDataManager.Instance.Projects;
+        private ReadOnlyObservableCollection<Feedback> FeedbacksData => TrackerDataManager.Instance.Feedbacks;
+        private ReadOnlyObservableCollection<IndividualGoal> GoalsData => TrackerDataManager.Instance.Goals;
 
         // Summary statistics
         private int _totalTeamMembers;
@@ -44,7 +45,7 @@ namespace Tracker.ViewModels
         private int _completedTasks;
         private int _upcomingMeetings;
         private int _activeOkrs;
-        private int _kpisOnTarget;
+        private int KpisDataOnTarget;
         private int _totalKpis;
 
         // Manager-centric metrics
@@ -53,7 +54,7 @@ namespace Tracker.ViewModels
         private int _totalActionItems;
         private int _completedActionItems;
         private int _unresolvedConcernsCount;
-        private int _goalsDueSoonCount;
+        private int GoalsDataDueSoonCount;
 
         // KPI Card metrics
         private int _meetingCadencePercent;
@@ -63,7 +64,7 @@ namespace Tracker.ViewModels
         // Chart series
         private SeriesCollection _taskCompletionSeries = new();
         private SeriesCollection _okrProgressSeries = new();
-        private SeriesCollection _kpiStatusSeries = new();
+        private SeriesCollection KpisDatatatusSeries = new();
         private string[] _okrProgressLabels = Array.Empty<string>();
 
         // Collections for display
@@ -72,7 +73,7 @@ namespace Tracker.ViewModels
         private ObservableCollection<TeamMemberCadenceInfo> _overdueMeetingMembers = new();
         private ObservableCollection<MeetingTask> _recentActionItems = new();
         private ObservableCollection<AgendaItem> _recentConcerns = new();
-        private ObservableCollection<IndividualGoal> _goalsDueSoon = new();
+        private ObservableCollection<IndividualGoal> GoalsDataDueSoon = new();
         private ObservableCollection<TeamHealthRow> _teamHealthRows = new();
         private ObservableCollection<TrajectoryAlertItem> _atRiskTrajectoryItems = new();
 
@@ -188,7 +189,7 @@ namespace Tracker.ViewModels
 
         public Brush OkrColor => _okrOnTrackPercent >= 70 ? GreenBrush : _okrOnTrackPercent >= 40 ? AmberBrush : RedBrush;
 
-        public Brush KpiColor => _kpisOnTarget >= 70 ? GreenBrush : _kpisOnTarget >= 40 ? AmberBrush : RedBrush;
+        public Brush KpiColor => KpisDataOnTarget >= 70 ? GreenBrush : KpisDataOnTarget >= 40 ? AmberBrush : RedBrush;
 
         public int TotalKpis
         {
@@ -304,16 +305,16 @@ namespace Tracker.ViewModels
 
         public int GoalsDueSoonCount
         {
-            get => _goalsDueSoonCount;
-            set { _goalsDueSoonCount = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoGoalsDueSoon)); }
+            get => GoalsDataDueSoonCount;
+            set { GoalsDataDueSoonCount = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(HasNoGoalsDueSoon)); }
         }
 
         public bool HasNoGoalsDueSoon => GoalsDueSoonCount == 0;
 
         public ObservableCollection<IndividualGoal> GoalsDueSoon
         {
-            get => _goalsDueSoon;
-            set { _goalsDueSoon = value; RaisePropertyChanged(); }
+            get => GoalsDataDueSoon;
+            set { GoalsDataDueSoon = value; RaisePropertyChanged(); }
         }
 
         #endregion
@@ -350,8 +351,8 @@ namespace Tracker.ViewModels
 
         public int KpisOnTarget
         {
-            get => _kpisOnTarget;
-            set { _kpisOnTarget = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(KpiColor)); }
+            get => KpisDataOnTarget;
+            set { KpisDataOnTarget = value; RaisePropertyChanged(); RaisePropertyChanged(nameof(KpiColor)); }
         }
 
         public SeriesCollection TaskCompletionSeries
@@ -368,8 +369,8 @@ namespace Tracker.ViewModels
 
         public SeriesCollection KpiStatusSeries
         {
-            get => _kpiStatusSeries;
-            set { _kpiStatusSeries = value; RaisePropertyChanged(); }
+            get => KpisDatatatusSeries;
+            set { KpisDatatatusSeries = value; RaisePropertyChanged(); }
         }
 
         public string[] OkrProgressLabels
@@ -413,43 +414,31 @@ namespace Tracker.ViewModels
             _logger.Debug("RefreshDataAsync started");
             try
             {
-                // Load all data in parallel
-                var teamTask = TrackerDataManager.Instance.GetTeamData();
-                var oneOnOnesTask = TrackerDataManager.Instance.GetOneOnOnes();
-                var tasksTask = TrackerDataManager.Instance.GetTasks();
-                var okrsTask = TrackerDataManager.Instance.GetOKRs();
-                var kpisTask = TrackerDataManager.Instance.GetKPIs();
-                var projectsTask = TrackerDataManager.Instance.GetProjects();
-                var feedbacksTask = TrackerDataManager.Instance.GetFeedbacks();
-                var goalsTask = TrackerDataManager.Instance.GetGoals();
+                // Ensure all data is loaded in TrackerDataManager (single source of truth)
+                // These calls populate the shared ObservableCollections if not already loaded
+                await Task.WhenAll(
+                    TrackerDataManager.Instance.GetTeamData(),
+                    TrackerDataManager.Instance.GetOneOnOnes(),
+                    TrackerDataManager.Instance.GetTasks(),
+                    TrackerDataManager.Instance.GetOKRs(),
+                    TrackerDataManager.Instance.GetKPIs(),
+                    TrackerDataManager.Instance.GetProjects(),
+                    TrackerDataManager.Instance.GetFeedbacks(),
+                    TrackerDataManager.Instance.GetGoals()
+                ).ConfigureAwait(false);
 
-                await Task.WhenAll(teamTask, oneOnOnesTask, tasksTask, okrsTask, kpisTask, projectsTask, feedbacksTask, goalsTask).ConfigureAwait(false);
+                System.Diagnostics.Debug.WriteLine($"=== DashboardViewModel.RefreshDataAsync: Data ready - TeamMembers={TeamMembersData.Count}, OneOnOnes={OneOnOnesData.Count}, Tasks={TasksData.Count}, OKRs={OkrsData.Count}, KPIs={KpisData.Count}, Projects={ProjectsData.Count}, Feedbacks={FeedbacksData.Count} ===");
 
-                // Update collections
-                _teamMembers = new ObservableCollection<TeamMember>(await teamTask);
-                _oneOnOnes = new ObservableCollection<OneOnOne>(await oneOnOnesTask);
-                _tasks = new ObservableCollection<IndividualTask>(await tasksTask);
-                _okrs = new ObservableCollection<ObjectiveKeyResult>(await okrsTask);
-                _kpis = new ObservableCollection<KeyPerformanceIndicator>(await kpisTask);
-                _projects = new ObservableCollection<Project>(await projectsTask);
-                _feedbacks = new ObservableCollection<Feedback>(await feedbacksTask);
+                _logger.Info("Dashboard data ready: {0} team members, {1} tasks, {2} OKRs",
+                    TeamMembersData.Count, TasksData.Count, OkrsData.Count);
 
-                // Try to load goals if available
-                try
+                // Update computed values on UI thread
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    _goals = new ObservableCollection<IndividualGoal>(await goalsTask);
-                }
-                catch
-                {
-                    _goals = new ObservableCollection<IndividualGoal>();
-                }
-
-                _logger.Info("Dashboard data refreshed: {0} team members, {1} tasks, {2} OKRs",
-                    _teamMembers.Count, _tasks.Count, _okrs.Count);
-
-                UpdateManagerMetrics();
-                UpdateTeamHealthTable();
-                UpdateCharts();
+                    UpdateManagerMetrics();
+                    UpdateTeamHealthTable();
+                    UpdateCharts();
+                });
                 
                 // Load trajectory alerts (fire and forget for non-blocking UI)
                 _ = LoadTrajectoryAlertsAsync();
@@ -458,6 +447,7 @@ namespace Tracker.ViewModels
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"=== DashboardViewModel.RefreshDataAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
                 _logger.Exception(ex, "Error in RefreshDataAsync");
                 // Handle gracefully - dashboard can work with partial data
             }
@@ -465,15 +455,18 @@ namespace Tracker.ViewModels
 
         private void UpdateManagerMetrics()
         {
+            System.Diagnostics.Debug.WriteLine($"=== DashboardViewModel.UpdateManagerMetrics: TeamMembersData.Count={TeamMembersData?.Count ?? -1} ===");
+            
             var today = DateTime.Today;
             var endOfWeek = today.AddDays(7 - (int)today.DayOfWeek);
             var endOfMonth = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
 
             // Basic counts
-            TotalTeamMembers = _teamMembers.Count;
-            TotalTasks = _tasks.Count;
-            CompletedTasks = _tasks.Count(t => t.IsCompleted);
-            TotalKpis = _kpis.Count;
+            TotalTeamMembers = TeamMembersData.Count;
+            System.Diagnostics.Debug.WriteLine($"=== DashboardViewModel.UpdateManagerMetrics: Set TotalTeamMembers={TotalTeamMembers} ===");
+            TotalTasks = TasksData.Count;
+            CompletedTasks = TasksData.Count(t => t.IsCompleted);
+            TotalKpis = KpisData.Count;
 
             // =====================================================
             // NEEDS ATTENTION: Overdue 1:1s
@@ -481,9 +474,9 @@ namespace Tracker.ViewModels
             var meetingCadenceDays = 14; // Assume bi-weekly cadence
             var cadenceInfo = new List<TeamMemberCadenceInfo>();
             
-            foreach (var member in _teamMembers)
+            foreach (var member in TeamMembersData)
             {
-                var lastMeeting = _oneOnOnes
+                var lastMeeting = OneOnOnesData
                     .Where(m => m.TeamMember?.Id == member.Id && m.Date <= today)
                     .OrderByDescending(m => m.Date)
                     .FirstOrDefault();
@@ -527,7 +520,7 @@ namespace Tracker.ViewModels
             // =====================================================
             // NEEDS ATTENTION: Open Action Items
             // =====================================================
-            var allActionItems = _oneOnOnes
+            var allActionItems = OneOnOnesData
                 .SelectMany(m => m.Tasks ?? new List<MeetingTask>())
                 .ToList();
 
@@ -546,7 +539,7 @@ namespace Tracker.ViewModels
             // =====================================================
             // NEEDS ATTENTION: Unresolved Concerns
             // =====================================================
-            var allConcerns = _oneOnOnes
+            var allConcerns = OneOnOnesData
                 .SelectMany(m => m.AgendaItems ?? new List<AgendaItem>())
                 .Where(a => a.Category == AgendaItemCategory.Concern && 
                            string.IsNullOrWhiteSpace(a.Resolution))
@@ -558,9 +551,9 @@ namespace Tracker.ViewModels
             // =====================================================
             // THIS WEEK: Upcoming Meetings
             // =====================================================
-            UpcomingMeetings = _oneOnOnes.Count(m => m.Date >= today && m.Date <= endOfWeek);
+            UpcomingMeetings = OneOnOnesData.Count(m => m.Date >= today && m.Date <= endOfWeek);
             UpcomingMeetingsList = new ObservableCollection<OneOnOne>(
-                _oneOnOnes
+                OneOnOnesData
                     .Where(m => m.Date >= today && m.Date <= endOfWeek)
                     .OrderBy(m => m.Date)
                     .Take(8));
@@ -568,7 +561,7 @@ namespace Tracker.ViewModels
             // =====================================================
             // THIS WEEK: Goals Due Soon
             // =====================================================
-            var goalsDue = _goals
+            var goalsDue = GoalsData
                 .Where(g => g.TargetDate.HasValue && 
                            g.TargetDate.Value >= today && 
                            g.TargetDate.Value <= endOfMonth &&
@@ -582,13 +575,13 @@ namespace Tracker.ViewModels
             // =====================================================
             // PERFORMANCE: OKRs and KPIs
             // =====================================================
-            var onTrackOkrs = _okrs.Count(o => o.Status == ObjectiveStatusEnum.OnTrack);
-            ActiveOkrs = _okrs.Count;
+            var onTrackOkrs = OkrsData.Count(o => o.Status == ObjectiveStatusEnum.OnTrack);
+            ActiveOkrs = OkrsData.Count;
             OkrOnTrackPercent = ActiveOkrs > 0 
                 ? (int)Math.Round((onTrackOkrs / (double)ActiveOkrs) * 100) 
                 : 0;
             
-            var onTargetKpis = _kpis.Count(k => k.Status == KpiStatusEnum.OnTarget);
+            var onTargetKpis = KpisData.Count(k => k.Status == KpiStatusEnum.OnTarget);
             KpisOnTarget = TotalKpis > 0 ? (int)Math.Round((onTargetKpis / (double)TotalKpis) * 100) : 0;
             
             RaisePropertyChanged(nameof(TaskCompletionPercentage));
@@ -601,10 +594,10 @@ namespace Tracker.ViewModels
             var meetingCadenceDays = 14;
             var healthRows = new List<TeamHealthRow>();
 
-            foreach (var member in _teamMembers)
+            foreach (var member in TeamMembersData)
             {
                 // Last meeting
-                var lastMeeting = _oneOnOnes
+                var lastMeeting = OneOnOnesData
                     .Where(m => m.TeamMember?.Id == member.Id && m.Date <= today)
                     .OrderByDescending(m => m.Date)
                     .FirstOrDefault();
@@ -614,10 +607,10 @@ namespace Tracker.ViewModels
                     : 999;
 
                 // Tasks for this member
-                var memberTasks = _tasks.Where(t => t.Owner?.Id == member.Id && !t.IsCompleted).Count();
+                var memberTasks = TasksData.Where(t => t.Owner?.Id == member.Id && !t.IsCompleted).Count();
                 
                 // Goals for this member
-                var memberGoals = _goals.Where(g => g.TeamMember?.Id == member.Id && g.Status != GoalStatus.Completed).Count();
+                var memberGoals = GoalsData.Where(g => g.TeamMember?.Id == member.Id && g.Status != GoalStatus.Completed).Count();
 
                 // Determine health status
                 var isOverdue = daysSince > meetingCadenceDays;
@@ -682,8 +675,8 @@ namespace Tracker.ViewModels
 
         private void UpdateTaskCompletionChart()
         {
-            var completed = _tasks.Count(t => t.IsCompleted);
-            var incomplete = _tasks.Count - completed;
+            var completed = TasksData.Count(t => t.IsCompleted);
+            var incomplete = TasksData.Count - completed;
 
             // Create new SeriesCollection to avoid LiveCharts race condition
             TaskCompletionSeries = new SeriesCollection
@@ -707,9 +700,9 @@ namespace Tracker.ViewModels
 
         private void UpdateOkrProgressChart()
         {
-            var onTrack = _okrs.Count(o => o.Status == ObjectiveStatusEnum.OnTrack);
-            var atRisk = _okrs.Count(o => o.Status == ObjectiveStatusEnum.AtRisk);
-            var offTrack = _okrs.Count(o => o.Status == ObjectiveStatusEnum.OffTrack);
+            var onTrack = OkrsData.Count(o => o.Status == ObjectiveStatusEnum.OnTrack);
+            var atRisk = OkrsData.Count(o => o.Status == ObjectiveStatusEnum.AtRisk);
+            var offTrack = OkrsData.Count(o => o.Status == ObjectiveStatusEnum.OffTrack);
 
             // Create new SeriesCollection to avoid LiveCharts race condition
             OkrProgressSeries = new SeriesCollection
@@ -739,9 +732,9 @@ namespace Tracker.ViewModels
 
         private void UpdateKpiStatusChart()
         {
-            var onTarget = _kpis.Count(k => k.Status == KpiStatusEnum.OnTarget);
-            var offTarget = _kpis.Count(k => k.Status == KpiStatusEnum.OffTarget);
-            var closeToTarget = _kpis.Count(k => k.Status == KpiStatusEnum.CloseToTarget);
+            var onTarget = KpisData.Count(k => k.Status == KpiStatusEnum.OnTarget);
+            var offTarget = KpisData.Count(k => k.Status == KpiStatusEnum.OffTarget);
+            var closeToTarget = KpisData.Count(k => k.Status == KpiStatusEnum.CloseToTarget);
 
             // Create new SeriesCollection to avoid LiveCharts race condition
             KpiStatusSeries = new SeriesCollection
@@ -793,7 +786,7 @@ namespace Tracker.ViewModels
                 var analyticsService = PredictiveAnalyticsService.Instance;
 
                 // Check OKRs for at-risk trajectories
-                var activeOkrs = _okrs.Where(o => !o.IsDeleted).Take(10).ToList();
+                var activeOkrs = OkrsData.Where(o => !o.IsDeleted).Take(10).ToList();
                 foreach (var okr in activeOkrs)
                 {
                     try
@@ -826,7 +819,7 @@ namespace Tracker.ViewModels
                 }
 
                 // Check KPIs for at-risk trajectories
-                var activeKpis = _kpis.Where(k => !k.IsDeleted).Take(10).ToList();
+                var activeKpis = KpisData.Where(k => !k.IsDeleted).Take(10).ToList();
                 foreach (var kpi in activeKpis)
                 {
                     try
@@ -934,3 +927,4 @@ namespace Tracker.ViewModels
         public Brush StatusForeground { get; set; } = Brushes.Green;
     }
 }
+

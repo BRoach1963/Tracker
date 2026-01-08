@@ -567,7 +567,7 @@ namespace Tracker.ViewModels
         /// Resolves the DisplayName, CurrentProgress, and CurrentDisplayValue for each measurable.
         /// This requires looking up the actual KPI/Project/TaskCollection entities.
         /// </summary>
-        private async Task ResolveMeasurableDisplayPropertiesAsync(List<ObjectiveKeyResult> okrs)
+        private async Task ResolveMeasurableDisplayPropertiesAsync(IEnumerable<ObjectiveKeyResult> okrs)
         {
             // Load lookup dictionaries for each measurable type via TrackerDataManager
             var kpiList = await TrackerDataManager.Instance.GetKPIs();

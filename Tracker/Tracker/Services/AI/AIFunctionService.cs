@@ -521,14 +521,14 @@ namespace Tracker.Services.AI
         {
             var query = args.TryGetProperty("query", out var q) ? q.GetString() : "";
 
-            var projects = await TrackerDataManager.Instance.GetProjects();
+            var allProjects = await TrackerDataManager.Instance.GetProjects();
+            var projects = allProjects.AsEnumerable();
 
             if (!string.IsNullOrEmpty(query))
             {
                 projects = projects.Where(p =>
                     p.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    (p.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
-                    .ToList();
+                    (p.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false));
             }
 
             if (!projects.Any())
