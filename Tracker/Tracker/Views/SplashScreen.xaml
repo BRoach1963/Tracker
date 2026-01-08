@@ -19,14 +19,14 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/Themes/DefaultTheme.xaml"/>
+                <ResourceDictionary Source="/Resources/Themes/TrackerTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Glow effect for logo -->
             <DropShadowEffect x:Key="LogoGlow" 
                               BlurRadius="30" 
                               ShadowDepth="0" 
-                              Color="#FFB612" 
+                              Color="#C7A44F" 
                               Opacity="0.5"/>
             
             <!-- Subtle shadow for container -->
@@ -55,9 +55,9 @@
             
             <!-- TextBox style for login -->
             <Style x:Key="LoginTextBoxStyle" TargetType="TextBox">
-                <Setter Property="Background" Value="#252525"/>
+                <Setter Property="Background" Value="#2D3741"/>
                 <Setter Property="Foreground" Value="#FFFFFF"/>
-                <Setter Property="CaretBrush" Value="#FFB612"/>
+                <Setter Property="CaretBrush" Value="#C7A44F"/>
                 <Setter Property="BorderBrush" Value="#404040"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="12,10"/>
@@ -74,7 +74,7 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsFocused" Value="True">
-                                    <Setter Property="BorderBrush" Value="#FFB612"/>
+                                    <Setter Property="BorderBrush" Value="#C7A44F"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -84,9 +84,9 @@
             
             <!-- PasswordBox style for login -->
             <Style x:Key="LoginPasswordBoxStyle" TargetType="PasswordBox">
-                <Setter Property="Background" Value="#252525"/>
+                <Setter Property="Background" Value="#2D3741"/>
                 <Setter Property="Foreground" Value="#FFFFFF"/>
-                <Setter Property="CaretBrush" Value="#FFB612"/>
+                <Setter Property="CaretBrush" Value="#C7A44F"/>
                 <Setter Property="BorderBrush" Value="#404040"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="12,10"/>
@@ -103,7 +103,7 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsFocused" Value="True">
-                                    <Setter Property="BorderBrush" Value="#FFB612"/>
+                                    <Setter Property="BorderBrush" Value="#C7A44F"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -113,8 +113,8 @@
             
             <!-- Login Button style -->
             <Style x:Key="LoginButtonStyle" TargetType="Button">
-                <Setter Property="Background" Value="#FFB612"/>
-                <Setter Property="Foreground" Value="#101820"/>
+                <Setter Property="Background" Value="#C7A44F"/>
+                <Setter Property="Foreground" Value="#1A2028"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="Padding" Value="20,12"/>
@@ -161,9 +161,9 @@
         <!-- Subtle border -->
         <Border.BorderBrush>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#FFB612" Offset="0"/>
+                <GradientStop Color="#C7A44F" Offset="0"/>
                 <GradientStop Color="#806B0A" Offset="0.5"/>
-                <GradientStop Color="#FFB612" Offset="1"/>
+                <GradientStop Color="#C7A44F" Offset="1"/>
             </LinearGradientBrush>
         </Border.BorderBrush>
         <Border.BorderThickness>
@@ -188,7 +188,7 @@
                 <Viewbox Width="80" Height="80" Margin="0,0,0,12">
                     <Path x:Name="LogoPath"
                           Effect="{StaticResource LogoGlow}"
-                          Fill="#FFB612"
+                          Fill="#C7A44F"
                           Data="M22,5.5A3.5,3.5 0 0,0 18.5,2A3.5,3.5 0 0,0 15,5.5V6A3,3 0 0,1 12,9C10,9 9,6 6,6A4,4 0 0,0 2,10V11H4V10A2,2 0 0,1 6,8C6.86,8 7.42,8.45 8.32,9.24C9.28,10.27 10.6,10.9 12,11A5,5 0 0,0 17,6V5.5A1.5,1.5 0 0,1 18.5,4A1.5,1.5 0 0,1 20,5.5C19.86,6.35 19.58,7.18 19.17,7.94C18.5,9.2 18.11,10.58 18,12C18.09,13.37 18.5,14.71 19.21,15.89C19.6,16.54 19.87,17.25 20,18A2,2 0 0,1 18,20A2,2 0 0,1 16,18A3.75,3.75 0 0,0 12.25,14.25A3.75,3.75 0 0,0 8.5,18V18.5A1.5,1.5 0 0,1 7,20A3,3 0 0,1 4,17V15H6V13H0V15H2V17A5,5 0 0,0 7,22A3.5,3.5 0 0,0 10.5,18.5V18A1.75,1.75 0 0,1 12.25,16.25A1.75,1.75 0 0,1 14,18A4,4 0 0,0 18,22A4,4 0 0,0 22,18C22,16 20,14 20,12C20,10 22,7.5 22,5.5Z"/>
                 </Viewbox>
                 
@@ -196,11 +196,11 @@
                 <TextBlock Text="Tracker"
                            FontSize="32"
                            FontWeight="Bold"
-                           Foreground="#FFB612"
+                           Foreground="#C7A44F"
                            HorizontalAlignment="Center"
                            FontFamily="Segoe UI">
                     <TextBlock.Effect>
-                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="#FFB612" Opacity="0.3"/>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="#C7A44F" Opacity="0.3"/>
                     </TextBlock.Effect>
                 </TextBlock>
                 
@@ -231,14 +231,14 @@
                         </Canvas.RenderTransform>
                         
                         <!-- Spinner dots -->
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="14.5" Canvas.Top="0" Opacity="1"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="25" Canvas.Top="3.5" Opacity="0.875"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="29" Canvas.Top="14.5" Opacity="0.75"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="25" Canvas.Top="25.5" Opacity="0.625"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="14.5" Canvas.Top="29" Opacity="0.5"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="4" Canvas.Top="25.5" Opacity="0.375"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="0" Canvas.Top="14.5" Opacity="0.25"/>
-                        <Ellipse Width="7" Height="7" Fill="#FFB612" Canvas.Left="4" Canvas.Top="3.5" Opacity="0.125"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="14.5" Canvas.Top="0" Opacity="1"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="25" Canvas.Top="3.5" Opacity="0.875"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="29" Canvas.Top="14.5" Opacity="0.75"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="25" Canvas.Top="25.5" Opacity="0.625"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="14.5" Canvas.Top="29" Opacity="0.5"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="4" Canvas.Top="25.5" Opacity="0.375"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="0" Canvas.Top="14.5" Opacity="0.25"/>
+                        <Ellipse Width="7" Height="7" Fill="#C7A44F" Canvas.Left="4" Canvas.Top="3.5" Opacity="0.125"/>
                     </Canvas>
                     
                     <!-- Status Text -->
@@ -315,12 +315,12 @@
                         Width="200"
                         Margin="0,0,0,15"
                         CornerRadius="1.5"
-                        Background="#252525">
+                        Background="#2D3741">
                     <Border x:Name="ProgressFill"
                             HorizontalAlignment="Left"
                             Width="0"
                             CornerRadius="1.5"
-                            Background="#FFB612"/>
+                            Background="#C7A44F"/>
                 </Border>
                 
                 <TextBlock Text="© 2024 Prickly Cactus Software"

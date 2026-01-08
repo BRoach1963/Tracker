@@ -138,11 +138,19 @@ namespace Tracker.Managers
                 return;
             }
 
-            // Get the color palette from DeepEndControls for the selected theme
-            var palette = ThemePalette.GetPalette(theme);
+            ResourceDictionary newThemeDictionary;
             
-            // Create a new ResourceDictionary populated with all theme brushes
-            var newThemeDictionary = CreateThemeDictionary(palette, theme);
+            // For Tracker theme, use our custom professional theme instead of DeepEndControls palette
+            if (theme == DeepEndTheme.Tracker)
+            {
+                newThemeDictionary = LoadTrackerTheme();
+            }
+            else
+            {
+                // Get the color palette from DeepEndControls for other themes
+                var palette = ThemePalette.GetPalette(theme);
+                newThemeDictionary = CreateThemeDictionary(palette, theme);
+            }
 
             // Remove the previously applied theme dictionary (if any)
             if (_currentThemeDictionary != null)
@@ -223,7 +231,7 @@ namespace Tracker.Managers
             // Eagles, Capehart, Phillies are for CLEZ/CDB
             return new[]
             {
-                DeepEndTheme.Tracker,  // Default for Tracker - Gold on Black
+                DeepEndTheme.Tracker,  // Default for Tracker - Professional Bronze & Slate
                 DeepEndTheme.Light,    // Professional blue on white
                 DeepEndTheme.Modern,   // Contemporary indigo/purple
                 DeepEndTheme.Spicy     // Bold red/coral
@@ -233,6 +241,29 @@ namespace Tracker.Managers
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Loads the custom Tracker professional theme from XAML.
+        /// Uses Bronze Gold (#C7A44F) and Dark Slate (#2D3741) color scheme.
+        /// </summary>
+        private static ResourceDictionary LoadTrackerTheme()
+        {
+            var dictionary = new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/Resources/Themes/TrackerTheme.xaml", UriKind.Absolute)
+            };
+            
+            // Freeze all brushes for performance
+            foreach (var key in dictionary.Keys)
+            {
+                if (dictionary[key] is SolidColorBrush brush && !brush.IsFrozen)
+                {
+                    brush.Freeze();
+                }
+            }
+            
+            return dictionary;
+        }
 
         private static ResourceDictionary CreateThemeDictionary(ThemePalette palette, DeepEndTheme theme)
         {

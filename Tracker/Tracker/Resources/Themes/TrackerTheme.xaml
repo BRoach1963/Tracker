@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Tracker Theme - Professional Bronze & Slate -->
+    <!-- Primary: #2D3741 (Dark Slate) | Accent: #C7A44F (Bronze Gold) -->
+    
+    <Color x:Key="BackgroundColor">#1A2028</Color>
+    <Color x:Key="ForegroundColor">#C7A44F</Color>
+    
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#1A2028"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="#C7A44F"/>
+    <SolidColorBrush x:Key="WhiteBrush" Color="#F5F5F5"/>
+    <SolidColorBrush x:Key="HintTextBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="DisabledBrush" Color="#4B5563"/>
+    
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#C7A44F"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#D4B366"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#4A5568"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#F5F5F5"/>
+    
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#2D3741"/>
+    <SolidColorBrush x:Key="PopupBorderBrush" Color="#C7A44F"/>
+    
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#2D3741"/>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#C7A44F"/>
+    
+    <SolidColorBrush x:Key="ToolTipBackground" Color="#2D3741"/>
+    <SolidColorBrush x:Key="ToolTipForeground" Color="#F5F5F5"/>
+    
+    <SolidColorBrush x:Key="SelectionBrush" Color="#3D4A54"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#353F4A"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#2D3741"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#3A4550"/>
+    
+    <!-- DataGrid Specific -->
+    <SolidColorBrush x:Key="DataGridCellBackgroundBrush" Color="#1A2028"/>
+    <SolidColorBrush x:Key="DataGridCellForegroundBrush" Color="#E5E7EB"/>
+    <SolidColorBrush x:Key="DataGridCellBorderBrush" Color="#4A5568"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="#2D3741"/>
+    <SolidColorBrush x:Key="DataGridHeaderForegroundBrush" Color="#C7A44F"/>
+    <SolidColorBrush x:Key="DataGridRowAlternateBrush" Color="#232B33"/>
+    
+    <!-- Status Indicator Brushes -->
+    <SolidColorBrush x:Key="StatusDefaultBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="StatusOnTrackBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="StatusAtRiskBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="StatusOffTrackBrush" Color="#EF4444"/>
+    
+    <!-- Semantic Colors -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#3B82F6"/>
+    
+    <!-- Danger Button -->
+    <SolidColorBrush x:Key="DangerButtonBackgroundBrush" Color="#7F1D1D"/>
+    <SolidColorBrush x:Key="DangerButtonHoverBrush" Color="#991B1B"/>
+    <SolidColorBrush x:Key="DangerButtonForegroundBrush" Color="#FFFFFF"/>
+    
+    <!-- Warning Background (for alert boxes) -->
+    <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#2D2510"/>
+</ResourceDictionary>

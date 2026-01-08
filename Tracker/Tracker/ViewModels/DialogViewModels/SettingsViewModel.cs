@@ -613,6 +613,14 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private static Brush GetThemePreviewColor(DeepEndTheme theme)
         {
+            // Use our custom bronze gold for Tracker theme
+            if (theme == DeepEndTheme.Tracker)
+            {
+                var brush = new SolidColorBrush(Color.FromRgb(0xC7, 0xA4, 0x4F));
+                brush.Freeze();
+                return brush;
+            }
+            
             var palette = ThemePalette.GetPalette(theme);
             return palette.PrimaryBrush;
         }
