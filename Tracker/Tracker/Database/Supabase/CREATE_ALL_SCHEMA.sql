@@ -1,0 +1,65 @@
+-- ============================================================================
+-- TRACKER DATABASE - COMBINED SCHEMA CREATION
+-- ============================================================================
+-- Run this script to create all tables in the correct order.
+-- 
+-- This combines scripts: 00, 01-12, 19-23
+-- 
+-- INSTRUCTIONS:
+-- 1. Run 00_FULL_WIPE.sql first (if starting fresh)
+-- 2. Then run this script
+-- 3. Then run SEED_ALL_DATA.sql for test data
+-- ============================================================================
+
+-- Run scripts in this order:
+-- \i 00_FULL_WIPE.sql
+-- \i 01_EXTENSIONS_TYPES.sql
+-- \i 02_CORE_TABLES.sql
+-- \i 03_TEAMS.sql
+-- \i 04_GOALS.sql
+-- \i 05_METRICS.sql
+-- \i 06_PROJECTS_TASKS.sql
+-- \i 07_MEETINGS.sql
+-- \i 08_FEEDBACK.sql
+-- \i 09_NOTES.sql
+-- \i 10_AI_VECTORS.sql
+-- \i 11_ACTIVITY_NOTIFICATIONS.sql
+-- \i 12_RLS_POLICIES.sql
+-- \i 19_REVIEWS.sql
+-- \i 20_SURVEYS.sql
+-- \i 21_DEVELOPMENT_GOALS.sql
+-- \i 22_CALENDAR_REMINDERS.sql
+-- \i 23_PROGRESS_SNAPSHOTS.sql
+
+-- ============================================================================
+-- SCHEMA SCRIPT ORDER (for Supabase SQL Editor - run each individually)
+-- ============================================================================
+-- 
+-- STEP 1 - WIPE (if needed):
+--   00_FULL_WIPE.sql
+--
+-- STEP 2 - CORE SCHEMA (run in order):
+--   01_EXTENSIONS_TYPES.sql
+--   02_CORE_TABLES.sql
+--   03_TEAMS.sql
+--   04_GOALS.sql
+--   05_METRICS.sql
+--   06_PROJECTS_TASKS.sql
+--   07_MEETINGS.sql
+--   08_FEEDBACK.sql
+--   09_NOTES.sql
+--   10_AI_VECTORS.sql
+--   11_ACTIVITY_NOTIFICATIONS.sql
+--   12_RLS_POLICIES.sql
+--
+-- STEP 3 - ADDITIONAL FEATURES (run in order):
+--   19_REVIEWS.sql
+--   20_SURVEYS.sql
+--   21_DEVELOPMENT_GOALS.sql
+--   22_CALENDAR_REMINDERS.sql
+--   23_PROGRESS_SNAPSHOTS.sql
+--
+-- ============================================================================
+
+SELECT 'Schema creation order documented. Run scripts individually in Supabase.' AS status;
+SELECT 'Total schema scripts: 18 (00-12 + 19-23)' AS info;

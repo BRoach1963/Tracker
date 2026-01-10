@@ -53,7 +53,7 @@ namespace Tracker.Services
                 worksheet.Cells[row, 4].Value = member.Email;
                 worksheet.Cells[row, 5].Value = member.Role;
                 worksheet.Cells[row, 6].Value = member.Specialty;
-                worksheet.Cells[row, 7].Value = member.LinkedInProfile;
+                worksheet.Cells[row, 7].Value = member.LinkedInUrl;
                 worksheet.Cells[row, 8].Value = member.CreatedAt.ToString("yyyy-MM-dd");
             }
 
@@ -441,7 +441,7 @@ namespace Tracker.Services
                 worksheet.Cells[row, 4].Value = member.Email;
                 worksheet.Cells[row, 5].Value = member.Role;
                 worksheet.Cells[row, 6].Value = member.Specialty;
-                worksheet.Cells[row, 7].Value = member.LinkedInProfile;
+                worksheet.Cells[row, 7].Value = member.LinkedInUrl;
                 worksheet.Cells[row, 8].Value = member.CreatedAt.ToString("yyyy-MM-dd");
             }
 

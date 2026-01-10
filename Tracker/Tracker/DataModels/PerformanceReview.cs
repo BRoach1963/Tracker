@@ -237,7 +237,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// The team member being reviewed.
         /// </summary>
-        public int TeamMemberId { get; set; }
+        public Guid TeamMemberId { get; set; }
         public TeamMember TeamMember { get; set; } = null!;
 
         /// <summary>

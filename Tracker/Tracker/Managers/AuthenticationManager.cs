@@ -49,9 +49,9 @@ namespace Tracker.Managers
         #region Properties
 
         /// <summary>
-        /// Whether a user is currently signed in.
+        /// Whether a user is currently signed in (either via Supabase or local auth).
         /// </summary>
-        public bool IsSignedIn => _authService.IsSignedIn;
+        public bool IsSignedIn => _authService.IsSignedIn || Services.Backend.SupabaseService.Instance.IsSignedIn;
 
         /// <summary>
         /// The currently authenticated user.
@@ -61,7 +61,8 @@ namespace Tracker.Managers
         /// <summary>
         /// The current user's ID.
         /// </summary>
-        public Guid? CurrentUserId => _authService.CurrentUserId;
+        public Guid? CurrentUserId => _authService.CurrentUserId ?? 
+            (Guid.TryParse(Services.Backend.SupabaseService.Instance.CurrentUser?.Id, out var supabaseId) ? supabaseId : null);
 
         /// <summary>
         /// Whether PostgreSQL authentication is configured.

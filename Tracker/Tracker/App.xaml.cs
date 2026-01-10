@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -26,7 +26,6 @@ namespace Tracker
     {
         private Views.SplashScreen? _splashScreen;
         private Views.LoadingWindow? _loadingWindow;
-        private bool _emptyDatabaseDetected = false;
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string appId);
@@ -38,6 +37,9 @@ namespace Tracker
 
         public App()
         {
+            // Note: Npgsql.EnableLegacyTimestampBehavior is set in ModuleInitializer.cs
+            // It must run before any Npgsql types are loaded.
+            
             // Register Syncfusion license with error handling
             try
             {
@@ -232,10 +234,10 @@ namespace Tracker
                     NotificationManager.Instance.ShowWarning("Startup Warning", warningMessage, 10);
                 }
                 
-                var isSignedIn = Services.Backend.SupabaseService.Instance.IsSignedIn;
+                var isSignedIn = Managers.AuthenticationManager.Instance.IsSignedIn;
                 logger.Info(">>> IsSignedIn = {0}", isSignedIn);
                 
-                // Skip login if already authenticated with Supabase
+                // Skip login if already authenticated with PostgreSQL
                 if (isSignedIn)
                 {
                     logger.Info(">>> ALREADY AUTHENTICATED - Starting loading window flow");
@@ -462,41 +464,7 @@ namespace Tracker
                     logger.Info(">>> MainWindow created");
                     mainWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             
-            mainWindow.Loaded += async (s, e) =>
-            {
-                // Check if database is empty and prompt user to add sample data
-                if (_emptyDatabaseDetected)
-                {
-                    await Task.Delay(500); // Wait for main window to fully load
-                    var result = MessageBoxHelper.Show(
-                        "Your database is empty. Would you like to add sample data?\n\n" +
-                        "This will populate your database with:\n" +
-                        "• 7 team members (Steelers team)\n" +
-                        "• Sample 1:1 meetings\n" +
-                        "• Sample projects with OKRs and KPIs\n" +
-                        "• Sample tasks\n" +
-                        "• Linked items (Phase 1 features)",
-                        "Empty Database",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
 
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        var success = await TrackerDbManager.Instance!.SeedSampleDataAsync(forceReseed: false);
-                        if (success)
-                        {
-                            // Refresh the UI
-                            Messenger.Publish(new PropertyChangedMessage
-                            {
-                                ChangedProperty = PropertyChangedEnum.All,
-                                RefreshData = true
-                            });
-                            NotificationManager.Instance.ShowSuccess("Sample Data Added", "Sample data has been added to your database.");
-                        }
-                    }
-                    _emptyDatabaseDetected = false;
-                }
-            };
             
             mainWindow.Show();
             
@@ -530,15 +498,8 @@ namespace Tracker
             _splashScreen?.UpdateProgress(50);
             try
             {
-                // Initialize database (don't seed here - seeding happens in setup wizard or via Settings)
-                await TrackerDbManager.Instance!.InitializeAsync(dbSettings, createIfNotExists: false, seedSampleData: false);
-                
-                // Check if database is empty and flag for prompt after login
-                var hasData = await TrackerDbManager.Instance!.HasDataAsync();
-                if (!hasData)
-                {
-                    _emptyDatabaseDetected = true;
-                }
+                // Initialize database - create schema if needed (especially for PostgreSQL)
+                await TrackerDbManager.Instance!.InitializeAsync(dbSettings, createIfNotExists: true, seedSampleData: false);
             }
             catch (Exception ex)
             {
@@ -673,32 +634,18 @@ namespace Tracker
 
         private void ShowLoginDialog()
         {
-            LoginDialog? loginWindow = null;
-            LoginDialogViewModel? loginVm = null;
-            bool loginCompletedSuccessfully = false;
-
-            loginVm = new LoginDialogViewModel(() =>
+            var loginWindow = new LoginWindow
             {
-                // Mark as completed before closing window
-                loginCompletedSuccessfully = loginVm?.Result.Cancelled == false;
-                
-                // Close the login window
-                loginWindow?.Close();
-            });
-
-            loginWindow = new LoginDialog
-            {
-                DataContext = loginVm,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ShowInTaskbar = true
             };
 
             loginWindow.Closed += (s, e) =>
             {
-                if (loginCompletedSuccessfully)
+                if (loginWindow.LoginSuccessful)
                 {
                     var logger = LoggingManager.GetComponentLogger("App");
-                    logger.Info(">>> LOGIN DIALOG SUCCESS - Starting loading window flow");
+                    logger.Info(">>> LOGIN WINDOW SUCCESS - Starting loading window flow");
                     
                     ShutdownMode = ShutdownMode.OnLastWindowClose;
                     
@@ -726,16 +673,16 @@ namespace Tracker
                     Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
                     
                     // Launch main window after short delay
+                    // Note: Admin login is now determined by user roles in Supabase, not a checkbox
                     Task.Run(async () =>
                     {
                         await Task.Delay(500);
-                        await Dispatcher.InvokeAsync(() => LaunchMainWindow(loginVm.Result.IsAdminLogin));
+                        await Dispatcher.InvokeAsync(() => LaunchMainWindow(isAdminLogin: false));
                     });
                 }
                 else
                 {
                     // Login was cancelled (window closed without completing), shut down
-                    loginVm?.Dispose();
                     Shutdown();
                 }
             };

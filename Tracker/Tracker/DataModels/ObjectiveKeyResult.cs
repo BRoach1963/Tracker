@@ -172,7 +172,7 @@ namespace Tracker.DataModels
         /// </summary>
         public int LinkedKpiCount => KeyResults?
             .SelectMany(kr => kr.Measurables ?? Enumerable.Empty<KeyResultMeasurable>())
-            .Count(m => m.MeasurableType == Interfaces.MeasurableType.Kpi) ?? 0;
+            .Count(m => m.MeasurableType == Interfaces.MeasurableType.Metric) ?? 0;
 
         /// <summary>
         /// Count of linked Projects across all Key Results.

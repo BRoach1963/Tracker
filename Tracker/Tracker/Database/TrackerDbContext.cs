@@ -160,10 +160,25 @@ namespace Tracker.Database
         /// <summary>Feedback given to team members.</summary>
         public DbSet<Feedback> Feedbacks { get; set; } = null!;
 
-        /// <summary>Individual goals for team members.</summary>
-        public DbSet<IndividualGoal> IndividualGoals { get; set; } = null!;
+        /// <summary>Development goals for team members.</summary>
+        public DbSet<DevelopmentGoal> DevelopmentGoals { get; set; } = null!;
 
-        /// <summary>Milestones for individual goals.</summary>
+        /// <summary>Milestones for development goals.</summary>
+        public DbSet<DevelopmentGoalMilestone> DevelopmentGoalMilestones { get; set; } = null!;
+
+        /// <summary>Comments on development goals.</summary>
+        public DbSet<DevelopmentGoalComment> DevelopmentGoalComments { get; set; } = null!;
+
+        /// <summary>Goals (OKRs) for teams/organization.</summary>
+        public DbSet<Goal> Goals { get; set; } = null!;
+
+        /// <summary>Targets (Key Results) for goals.</summary>
+        public DbSet<Target> Targets { get; set; } = null!;
+
+        /// <summary>Target measurables linking targets to metrics/projects.</summary>
+        public DbSet<TargetMeasurable> TargetMeasurables { get; set; } = null!;
+
+        /// <summary>Milestones for goals.</summary>
         public DbSet<GoalMilestone> GoalMilestones { get; set; } = null!;
 
         /// <summary>Reminders and notifications.</summary>
@@ -665,26 +680,44 @@ namespace Tracker.Database
                 // Set reasonable max lengths for string fields
                 entity.Property(e => e.FirstName).HasMaxLength(100);
                 entity.Property(e => e.LastName).HasMaxLength(100);
-                entity.Property(e => e.NickName).HasMaxLength(50);
-                entity.Property(e => e.Email).HasMaxLength(200);
-                entity.Property(e => e.CellPhone).HasMaxLength(20);
-                entity.Property(e => e.JobTitle).HasMaxLength(100);
-                entity.Property(e => e.LinkedInProfile).HasMaxLength(500);
-                entity.Property(e => e.FacebookProfile).HasMaxLength(500);
-                entity.Property(e => e.InstagramProfile).HasMaxLength(500);
-                entity.Property(e => e.XProfile).HasMaxLength(500);
+                entity.Property(e => e.Nickname).HasMaxLength(50);
+                entity.Property(e => e.Email).HasMaxLength(255);
+                entity.Property(e => e.Phone).HasMaxLength(50);
+                entity.Property(e => e.JobTitle).HasMaxLength(200);
+                entity.Property(e => e.Department).HasMaxLength(200);
+                entity.Property(e => e.Location).HasMaxLength(200);
+                entity.Property(e => e.LinkedInUrl).HasMaxLength(500);
 
-                // Relationship: Each TeamMember belongs to one User (the manager who owns them)
-                entity.HasOne<User>()
+                // Ignore NotMapped properties that EF shouldn't track
+                entity.Ignore(e => e.LegacyId);
+                entity.Ignore(e => e.FacebookProfile);
+                entity.Ignore(e => e.InstagramProfile);
+                entity.Ignore(e => e.XProfile);
+                entity.Ignore(e => e.ProfileImage);
+                entity.Ignore(e => e.Specialty);
+                entity.Ignore(e => e.SkillLevel);
+                entity.Ignore(e => e.Role);
+                entity.Ignore(e => e.LegacyManagerId);
+                entity.Ignore(e => e.UpcomingMeetingCount);
+                entity.Ignore(e => e.NextOneOnOneDate);
+                entity.Ignore(e => e.LastOneOnOneDate);
+
+                // Relationships
+                entity.HasOne(e => e.Organization)
                     .WithMany()
-                    .HasForeignKey("UserId")
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Restrict); // Don't delete team members if user is deleted
+                    .HasForeignKey(e => e.OrganizationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Manager)
+                    .WithMany()
+                    .HasForeignKey(e => e.ManagerUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 // Indexes for common query patterns
                 entity.HasIndex(e => e.Email);
+                entity.HasIndex(e => e.OrganizationId);
+                entity.HasIndex(e => e.ManagerUserId);
                 entity.HasIndex(e => new { e.LastName, e.FirstName });
-                entity.HasIndex("UserId"); // Index for filtering by User
             });
         }
 

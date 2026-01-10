@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using DeepEndControls.Theming;
 using Tracker.Command;
+using Tracker.Eventing;
 using Tracker.Managers;
 using Tracker.Services;
 using Tracker.ViewModels;
@@ -54,10 +55,13 @@ namespace Tracker
             // Ensure data loads after window is fully loaded
             _loadedHandler = async (_, _) =>
             {
-                if (DataContext is TrackerMainViewModel vm)
-                {
-                    await vm.RefreshAllDataAsync();
-                }
+                // Load all data into the shared TrackerDataManager cache
+                // All ViewModels will bind to this single source of truth
+                await TrackerDataManager.Instance.RefreshAllDataAsync();
+                
+                // Notify all ViewModels that data is ready
+                // (Primarily needed for ViewModels that need to recalculate derived values)
+                DataMessenger.SendRefreshAll();
                 
                 // Capture progress snapshots for predictive analytics (runs in background)
                 _ = Services.Analytics.ProgressSnapshotService.Instance.CaptureSnapshotsIfNeededAsync();

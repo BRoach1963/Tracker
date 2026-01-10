@@ -33,12 +33,12 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 var today = DateTime.Today;
 
                 // Check for birthday
-                if (teamMember.BirthDay != DateTime.MinValue && teamMember.BirthDay.Year > 1900)
+                if (teamMember.Birthday.HasValue && teamMember.Birthday.Value.Year > 1900)
                 {
                     var nextBirthday = new DateTime(
                         today.Year,
-                        teamMember.BirthDay.Month,
-                        teamMember.BirthDay.Day
+                        teamMember.Birthday.Value.Month,
+                        teamMember.Birthday.Value.Day
                     );
 
                     // If birthday has passed this year, look at next year
@@ -62,12 +62,12 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 }
 
                 // Check for work anniversary
-                if (teamMember.HireDate != DateTime.MinValue && teamMember.HireDate.Year > 1900)
+                if (teamMember.HireDate.HasValue && teamMember.HireDate.Value.Year > 1900)
                 {
                     var nextAnniversary = new DateTime(
                         today.Year,
-                        teamMember.HireDate.Month,
-                        teamMember.HireDate.Day
+                        teamMember.HireDate.Value.Month,
+                        teamMember.HireDate.Value.Day
                     );
 
                     // If anniversary has passed this year, look at next year
@@ -75,7 +75,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                         nextAnniversary = nextAnniversary.AddYears(1);
 
                     var daysUntil = (nextAnniversary - today).Days;
-                    var years = nextAnniversary.Year - teamMember.HireDate.Year;
+                    var years = nextAnniversary.Year - teamMember.HireDate.Value.Year;
 
                     if (daysUntil <= settings.AnniversaryLookAheadDays)
                     {
@@ -85,7 +85,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                             Title = daysUntil == 0
                                 ? $"🎉 {yearText} Anniversary TODAY!"
                                 : $"🎉 {yearText} Anniversary in {daysUntil} day{(daysUntil != 1 ? "s" : "")}",
-                            Subtext = $"Joined {teamMember.HireDate:MMMM d, yyyy}",
+                            Subtext = $"Joined {teamMember.HireDate.Value:MMMM d, yyyy}",
                             Priority = daysUntil == 0 ? PrepItemPriority.High : PrepItemPriority.Normal,
                             Icon = "Trophy"
                         });
@@ -93,15 +93,15 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 }
 
                 // Add tenure info if no upcoming dates but a significant milestone
-                if (!section.HasItems && teamMember.HireDate != DateTime.MinValue && teamMember.HireDate.Year > 1900)
+                if (!section.HasItems && teamMember.HireDate.HasValue && teamMember.HireDate.Value.Year > 1900)
                 {
-                    var tenure = (today - teamMember.HireDate).Days / 365;
+                    var tenure = (today - teamMember.HireDate.Value).Days / 365;
                     if (tenure > 0)
                     {
                         section.Items.Add(new PrepItem
                         {
                             Title = $"Tenure: {tenure} year{(tenure != 1 ? "s" : "")}",
-                            Subtext = $"With the team since {teamMember.HireDate:MMMM yyyy}",
+                            Subtext = $"With the team since {teamMember.HireDate.Value:MMMM yyyy}",
                             Priority = PrepItemPriority.Low,
                             Icon = "Person"
                         });

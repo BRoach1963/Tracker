@@ -41,7 +41,7 @@ namespace Tracker.DataWrappers
 
         public EnumWrapper<EngineeringSpecialtyEnum>? Speciality => _speciality;
 
-        public string JobTitle
+        public string? JobTitle
         {
             get => _data.JobTitle;
             set
@@ -50,12 +50,13 @@ namespace Tracker.DataWrappers
                 RaisePropertyChanged();
             }
         }
-        public string NickName
+
+        public string? Nickname
         {
-            get => _data.NickName;
+            get => _data.Nickname;
             set
             {
-                _data.NickName = value;
+                _data.Nickname = value;
                 RaisePropertyChanged();
             }
         }
@@ -80,7 +81,7 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public string Email
+        public string? Email
         {
             get => _data.Email;
             set
@@ -90,19 +91,19 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public string CellPhone
+        public string? Phone
         {
-            get => _data.CellPhone;
+            get => _data.Phone;
             set
             {
-                _data.CellPhone = value;
+                _data.Phone = value;
                 RaisePropertyChanged();
             }
         }
 
         public string HireDateDisplay
         {
-            get => _data.HireDate == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.HireDate.ToString("MM/dd/yyyy");
+            get => _data.HireDate == null ? "MM/DD/YYYY" : _data.HireDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd/yyyy", null, DateTimeStyles.None, out DateTime date))
@@ -113,14 +114,14 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public string BirthDayDisplay
+        public string BirthdayDisplay
         {
-            get => _data.BirthDay == DateTime.MinValue ? "MM/DD" : _data.BirthDay.ToString("MM/dd");
+            get => _data.Birthday == null ? "MM/DD" : _data.Birthday.Value.ToString("MM/dd");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd", null, DateTimeStyles.None, out DateTime date))
                 {
-                    _data.BirthDay = date;
+                    _data.Birthday = date;
                 }
                 RaisePropertyChanged();
             }
@@ -128,7 +129,7 @@ namespace Tracker.DataWrappers
 
         public string TerminationDateDisplay
         {
-            get => _data.TerminationDate == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.TerminationDate.ToString("MM/dd/yyyy");
+            get => _data.TerminationDate == null ? "MM/DD/YYYY" : _data.TerminationDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd/yyyy", null, DateTimeStyles.None, out DateTime date))
@@ -139,18 +140,18 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public DateTime BirthDay
+        public DateTime? Birthday
         {
-            get => _data.BirthDay;
+            get => _data.Birthday;
             set
             {
-                _data.BirthDay = value;
+                _data.Birthday = value;
                 RaisePropertyChanged();
-                RaisePropertyChanged(nameof(BirthDayDisplay));
+                RaisePropertyChanged(nameof(BirthdayDisplay));
             }
         }
 
-        public DateTime HireDate
+        public DateTime? HireDate
         {
             get => _data.HireDate;
             set
@@ -161,7 +162,7 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public DateTime TerminationDate
+        public DateTime? TerminationDate
         {
             get => _data.TerminationDate;
             set
@@ -171,6 +172,7 @@ namespace Tracker.DataWrappers
                 RaisePropertyChanged(nameof(TerminationDateDisplay));
             }
         }
+
         public ImageSource? ProfileImage
         {
             get { return _profileImage; }
@@ -195,17 +197,17 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public string LinkedInProfile
+        public string? LinkedInUrl
         {
-            get => _data.LinkedInProfile;
+            get => _data.LinkedInUrl;
             set
             {
-                _data.LinkedInProfile = value;
+                _data.LinkedInUrl = value;
                 RaisePropertyChanged();
             }
         }
 
-        public string FacebookProfile
+        public string? FacebookProfile
         {
             get => _data.FacebookProfile;
             set
@@ -215,7 +217,7 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public string InstagramProfile
+        public string? InstagramProfile
         {
             get => _data.InstagramProfile;
             set
@@ -225,12 +227,42 @@ namespace Tracker.DataWrappers
             }
         }
 
-        public string XProfile
+        public string? XProfile
         {
             get => _data.XProfile;
             set
             {
                 _data.XProfile = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string? Department
+        {
+            get => _data.Department;
+            set
+            {
+                _data.Department = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string? Location
+        {
+            get => _data.Location;
+            set
+            {
+                _data.Location = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public string? Bio
+        {
+            get => _data.Bio;
+            set
+            {
+                _data.Bio = value;
                 RaisePropertyChanged();
             }
         }
@@ -244,7 +276,6 @@ namespace Tracker.DataWrappers
             _profileImage = await ImageHelper.GetImageSourceFromByteArrayAsync(_data.ProfileImage);
             RaisePropertyChanged(nameof(ProfileImage));
         }
-
 
         #endregion
     }

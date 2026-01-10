@@ -17,7 +17,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private readonly Feedback _data;
         private readonly bool _inEditMode;
-        private readonly int _teamMemberId;
+        private readonly Guid _teamMemberId;
 
         private ICommand? _saveCommand;
         private FeedbackType _selectedType;
@@ -26,7 +26,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Ctor
 
-        public FeedbackViewModel(Action? callback, Feedback? data, int teamMemberId, bool edit = false) : base(callback)
+        public FeedbackViewModel(Action? callback, Feedback? data, Guid teamMemberId, bool edit = false) : base(callback)
         {
             _teamMemberId = teamMemberId;
             _inEditMode = edit;

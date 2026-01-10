@@ -54,7 +54,7 @@
                                FontWeight="Bold"
                                Foreground="{DynamicResource BackgroundBrush}"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Manager's Performance Toolkit"
+                    <TextBlock Text="Team Performance, Simplified"
                                FontSize="11"
                                Foreground="{DynamicResource BackgroundBrush}"
                                Opacity="0.8"

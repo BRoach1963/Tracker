@@ -11,10 +11,8 @@ namespace Tracker.Managers
     /// dynamic resource dictionary updates for seamless theme changes without restart.
     /// 
     /// Supported Themes:
-    /// - Default (Black/Gold): Dark theme with gold accents - classic CLEZ styling
-    /// - Light: Clean white theme with blue accents - professional look
-    /// - Modern: Contemporary indigo/purple theme - trendy appearance
-    /// - Spicy: Bold red/coral on dark - high contrast, energetic
+    /// - Light: Clean white theme with gold accents - professional look (DEFAULT)
+    /// - Dark: Dark slate theme with gold accents - reduced eye strain
     /// 
     /// Theme Resources Generated:
     /// - Core brushes: BackgroundBrush, ForegroundBrush, AccentBrush, etc.
@@ -27,7 +25,7 @@ namespace Tracker.Managers
     /// ThemeManager.Instance.Initialize(savedTheme);
     /// 
     /// // Change theme at runtime
-    /// ThemeManager.Instance.ApplyTheme(DeepEndTheme.Modern);
+    /// ThemeManager.Instance.ApplyTheme(DeepEndTheme.Light);
     /// 
     /// // Listen for changes
     /// ThemeManager.Instance.ThemeChanged += (s, theme) => UpdateUI();
@@ -36,7 +34,7 @@ namespace Tracker.Managers
     /// XAML Usage:
     /// <code>
     /// &lt;Border Background="{DynamicResource BackgroundBrush}"&gt;
-    ///     &lt;TextBlock Foreground="{DynamicResource ForegroundBrush}"/&gt;
+    ///     &lt;TextBlock Foreground="{DynamicResource TextBrush}"/&gt;
     /// &lt;/Border&gt;
     /// </code>
     /// 
@@ -47,7 +45,7 @@ namespace Tracker.Managers
     {
         #region Fields
 
-        private DeepEndTheme _currentTheme = DeepEndTheme.Default;
+        private DeepEndTheme _currentTheme = DeepEndTheme.Light;
         private ResourceDictionary? _currentThemeDictionary;
 
         #endregion
@@ -83,9 +81,11 @@ namespace Tracker.Managers
         /// <summary>
         /// Initializes the theme manager with the specified theme.
         /// </summary>
-        /// <param name="theme">The theme to apply on startup. Defaults to Tracker theme.</param>
-        public void Initialize(DeepEndTheme theme = DeepEndTheme.Tracker)
+        /// <param name="theme">The theme to apply on startup. Defaults to Light theme.</param>
+        public void Initialize(DeepEndTheme theme = DeepEndTheme.Light)
         {
+            // Normalize old theme values to Light or Dark (Tracker)
+            theme = NormalizeTheme(theme);
             ApplyTheme(theme);
             
             // Subscribe to MainWindow changes to apply theme to new windows
@@ -130,6 +130,9 @@ namespace Tracker.Managers
         {
             if (Application.Current == null) return;
 
+            // Normalize to Light or Dark only
+            theme = NormalizeTheme(theme);
+
             // Theme changes must happen on the UI thread since we're modifying
             // WPF resources. Marshal the call if we're on a background thread.
             if (!Application.Current.Dispatcher.CheckAccess())
@@ -140,16 +143,15 @@ namespace Tracker.Managers
 
             ResourceDictionary newThemeDictionary;
             
-            // For Tracker theme, use our custom professional theme instead of DeepEndControls palette
-            if (theme == DeepEndTheme.Tracker)
+            // Load the appropriate theme XAML file
+            if (theme == DeepEndTheme.Light)
             {
-                newThemeDictionary = LoadTrackerTheme();
+                newThemeDictionary = LoadLightTheme();
             }
             else
             {
-                // Get the color palette from DeepEndControls for other themes
-                var palette = ThemePalette.GetPalette(theme);
-                newThemeDictionary = CreateThemeDictionary(palette, theme);
+                // Dark theme (Tracker) - use TrackerTheme.xaml
+                newThemeDictionary = LoadDarkTheme();
             }
 
             // Remove the previously applied theme dictionary (if any)
@@ -213,28 +215,36 @@ namespace Tracker.Managers
         /// </summary>
         public static string GetThemeDisplayName(DeepEndTheme theme) => theme switch
         {
-            DeepEndTheme.Tracker => "Default",
             DeepEndTheme.Light => "Light",
-            DeepEndTheme.Modern => "Modern", 
-            DeepEndTheme.Spicy => "Bold",
-            DeepEndTheme.Default => "Classic",
-            _ => theme.ToString()
+            DeepEndTheme.Dark => "Dark",
+            _ => "Light" // Default to Light for any other theme
         };
 
         /// <summary>
         /// Gets available themes for Tracker app.
-        /// Filters out themes intended for other applications (Eagles, Capehart, Phillies).
+        /// Only Light and Dark are supported.
         /// </summary>
         public static IEnumerable<DeepEndTheme> GetAvailableThemes()
         {
-            // Only expose themes relevant to Tracker
-            // Eagles, Capehart, Phillies are for CLEZ/CDB
             return new[]
             {
-                DeepEndTheme.Tracker,  // Default for Tracker - Professional Bronze & Slate
-                DeepEndTheme.Light,    // Professional blue on white
-                DeepEndTheme.Modern,   // Contemporary indigo/purple
-                DeepEndTheme.Spicy     // Bold red/coral
+                DeepEndTheme.Light,   // Professional light theme with gold accents (DEFAULT)
+                DeepEndTheme.Dark     // Dark slate theme with gold accents
+            };
+        }
+
+        /// <summary>
+        /// Normalizes any theme value to either Light or Dark.
+        /// Used to handle legacy theme values from old settings.
+        /// </summary>
+        private static DeepEndTheme NormalizeTheme(DeepEndTheme theme)
+        {
+            // Map all themes to either Light or Dark
+            return theme switch
+            {
+                DeepEndTheme.Light => DeepEndTheme.Light,
+                DeepEndTheme.Dark => DeepEndTheme.Dark,
+                _ => DeepEndTheme.Light // Everything else defaults to Light
             };
         }
 
@@ -243,10 +253,33 @@ namespace Tracker.Managers
         #region Private Methods
 
         /// <summary>
-        /// Loads the custom Tracker professional theme from XAML.
-        /// Uses Bronze Gold (#C7A44F) and Dark Slate (#2D3741) color scheme.
+        /// Loads the Light theme from XAML.
+        /// Uses White background with Gold (#C7A450) accents.
         /// </summary>
-        private static ResourceDictionary LoadTrackerTheme()
+        private static ResourceDictionary LoadLightTheme()
+        {
+            var dictionary = new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/Resources/Themes/LightTheme.xaml", UriKind.Absolute)
+            };
+            
+            // Freeze all brushes for performance
+            foreach (var key in dictionary.Keys)
+            {
+                if (dictionary[key] is SolidColorBrush brush && !brush.IsFrozen)
+                {
+                    brush.Freeze();
+                }
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// Loads the Dark theme from XAML.
+        /// Uses Dark Slate (#2E3843) background with Gold (#C7A450) accents.
+        /// </summary>
+        private static ResourceDictionary LoadDarkTheme()
         {
             var dictionary = new ResourceDictionary
             {
@@ -265,119 +298,6 @@ namespace Tracker.Managers
             return dictionary;
         }
 
-        private static ResourceDictionary CreateThemeDictionary(ThemePalette palette, DeepEndTheme theme)
-        {
-            var dictionary = new ResourceDictionary();
-
-            // Core colors (for backwards compatibility with existing styles)
-            dictionary["BackgroundColor"] = ((SolidColorBrush)palette.BackgroundBrush).Color;
-            dictionary["ForegroundColor"] = ((SolidColorBrush)palette.PrimaryBrush).Color;
-
-            // Core brushes (matching existing theme structure)
-            dictionary["BackgroundBrush"] = palette.BackgroundBrush;
-            dictionary["ForegroundBrush"] = palette.PrimaryBrush;
-            dictionary["WhiteBrush"] = palette.ForegroundBrush;
-            dictionary["HintTextBrush"] = palette.HintBrush;
-            dictionary["DisabledBrush"] = CreateFrozenBrush(Color.FromRgb(0x80, 0x80, 0x80));
-
-            // Extended brushes for more control
-            dictionary["PrimaryBrush"] = palette.PrimaryBrush;
-            dictionary["AccentBrush"] = palette.AccentBrush;
-            dictionary["BorderBrush"] = palette.BorderBrush;
-            dictionary["ErrorBrush"] = palette.ErrorBrush;
-            dictionary["TextBrush"] = palette.ForegroundBrush;
-
-            // Popup/dropdown brushes
-            dictionary["PopupBackgroundBrush"] = palette.PopupBackgroundBrush;
-            dictionary["PopupBorderBrush"] = palette.PopupBorderBrush;
-
-            // Button brushes
-            dictionary["ButtonBackgroundBrush"] = palette.ButtonBackgroundBrush;
-            dictionary["ButtonForegroundBrush"] = palette.ButtonForegroundBrush;
-
-            // ToolTip brushes (use popup colors)
-            dictionary["ToolTipBackground"] = palette.PopupBackgroundBrush;
-            dictionary["ToolTipForeground"] = palette.ForegroundBrush;
-
-            // Additional derived colors for UI elements
-            var bgColor = ((SolidColorBrush)palette.BackgroundBrush).Color;
-            var isDarkTheme = IsDarkColor(bgColor);
-            
-            // Selection and hover colors
-            dictionary["SelectionBrush"] = CreateFrozenBrush(
-                AdjustBrightness(((SolidColorBrush)palette.AccentBrush).Color, isDarkTheme ? 0.3 : -0.1));
-            dictionary["HoverBrush"] = CreateFrozenBrush(
-                AdjustBrightness(bgColor, isDarkTheme ? 0.15 : -0.05));
-
-            // Surface colors (slightly different from background for cards, etc.)
-            dictionary["SurfaceBrush"] = CreateFrozenBrush(
-                AdjustBrightness(bgColor, isDarkTheme ? 0.05 : -0.02));
-            dictionary["SurfaceAltBrush"] = CreateFrozenBrush(
-                AdjustBrightness(bgColor, isDarkTheme ? 0.1 : -0.05));
-
-            // DataGrid specific brushes - Dark themes keep dark cells, light themes get white cells
-            var primaryColor = ((SolidColorBrush)palette.PrimaryBrush).Color;
-            
-            if (theme == DeepEndTheme.Default || theme == DeepEndTheme.Tracker || theme == DeepEndTheme.Spicy)
-            {
-                // Dark themes - dark cells with accent text
-                dictionary["DataGridCellBackgroundBrush"] = palette.BackgroundBrush;
-                dictionary["DataGridCellForegroundBrush"] = palette.PrimaryBrush;
-                dictionary["DataGridCellBorderBrush"] = palette.PrimaryBrush;
-                dictionary["DataGridHeaderBackgroundBrush"] = CreateFrozenBrush(AdjustBrightness(bgColor, 0.1));
-                dictionary["DataGridHeaderForegroundBrush"] = palette.PrimaryBrush;
-                dictionary["DataGridRowAlternateBrush"] = CreateFrozenBrush(AdjustBrightness(bgColor, 0.05));
-            }
-            else
-            {
-                // Light themes - white cells with colored text, colored headers with white text
-                dictionary["DataGridCellBackgroundBrush"] = CreateFrozenBrush(Colors.White);
-                dictionary["DataGridCellForegroundBrush"] = palette.PrimaryBrush;
-                dictionary["DataGridCellBorderBrush"] = palette.PrimaryBrush;
-                dictionary["DataGridHeaderBackgroundBrush"] = palette.PrimaryBrush;
-                dictionary["DataGridHeaderForegroundBrush"] = CreateFrozenBrush(Colors.White);
-                dictionary["DataGridRowAlternateBrush"] = CreateFrozenBrush(Color.FromRgb(0xF8, 0xF8, 0xF8));
-            }
-
-            return dictionary;
-        }
-
-        private static bool IsDarkColor(Color color)
-        {
-            // Calculate relative luminance
-            var luminance = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255;
-            return luminance < 0.5;
-        }
-
-        private static Color AdjustBrightness(Color color, double factor)
-        {
-            int r, g, b;
-            if (factor > 0)
-            {
-                // Lighten
-                r = (int)Math.Min(255, color.R + (255 - color.R) * factor);
-                g = (int)Math.Min(255, color.G + (255 - color.G) * factor);
-                b = (int)Math.Min(255, color.B + (255 - color.B) * factor);
-            }
-            else
-            {
-                // Darken
-                factor = Math.Abs(factor);
-                r = (int)Math.Max(0, color.R * (1 - factor));
-                g = (int)Math.Max(0, color.G * (1 - factor));
-                b = (int)Math.Max(0, color.B * (1 - factor));
-            }
-            return Color.FromRgb((byte)r, (byte)g, (byte)b);
-        }
-
-        private static SolidColorBrush CreateFrozenBrush(Color color)
-        {
-            var brush = new SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
-        }
-
         #endregion
     }
 }
-

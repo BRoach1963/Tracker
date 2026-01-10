@@ -29,7 +29,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Foreign key to the team member receiving this kudos.
         /// </summary>
-        public int TeamMemberId { get; set; }
+        public Guid TeamMemberId { get; set; }
 
         /// <summary>
         /// Navigation property to the team member.

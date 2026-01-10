@@ -72,7 +72,7 @@ namespace Tracker.Services
         /// <param name="recurrenceIntervalDays">Days between recurrences</param>
         /// <returns>The ID of the created reminder, or 0 on failure</returns>
         Task<int> CreateCustomReminderAsync(string title, string message, DateTime dueDateTime,
-            int? teamMemberId = null, bool isRecurring = false, int? recurrenceIntervalDays = null);
+            Guid? teamMemberId = null, bool isRecurring = false, int? recurrenceIntervalDays = null);
 
         #endregion
     }

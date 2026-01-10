@@ -29,7 +29,7 @@ namespace Tracker.Managers
         private readonly ObservableCollection<ObjectiveKeyResult> _okrs = new();
         private readonly ObservableCollection<KeyPerformanceIndicator> _kpis = new();
         private readonly ObservableCollection<Feedback> _feedbacks = new();
-        private readonly ObservableCollection<IndividualGoal> _goals = new();
+        private readonly ObservableCollection<DevelopmentGoal> _goals = new();
         private readonly ObservableCollection<QuickNote> _quickNotes = new();
 
         // Specialized data collections (isolated - no cross-dependencies with core data)
@@ -45,7 +45,7 @@ namespace Tracker.Managers
         private readonly ReadOnlyObservableCollection<ObjectiveKeyResult> _okrsReadOnly;
         private readonly ReadOnlyObservableCollection<KeyPerformanceIndicator> _kpisReadOnly;
         private readonly ReadOnlyObservableCollection<Feedback> _feedbacksReadOnly;
-        private readonly ReadOnlyObservableCollection<IndividualGoal> _goalsReadOnly;
+        private readonly ReadOnlyObservableCollection<DevelopmentGoal> _goalsReadOnly;
         private readonly ReadOnlyObservableCollection<QuickNote> _quickNotesReadOnly;
 
         // Read-only wrappers for specialized data
@@ -107,7 +107,7 @@ namespace Tracker.Managers
             _okrsReadOnly = new ReadOnlyObservableCollection<ObjectiveKeyResult>(_okrs);
             _kpisReadOnly = new ReadOnlyObservableCollection<KeyPerformanceIndicator>(_kpis);
             _feedbacksReadOnly = new ReadOnlyObservableCollection<Feedback>(_feedbacks);
-            _goalsReadOnly = new ReadOnlyObservableCollection<IndividualGoal>(_goals);
+            _goalsReadOnly = new ReadOnlyObservableCollection<DevelopmentGoal>(_goals);
             _quickNotesReadOnly = new ReadOnlyObservableCollection<QuickNote>(_quickNotes);
 
             // Initialize read-only wrappers for specialized data
@@ -244,7 +244,7 @@ namespace Tracker.Managers
         /// <summary>
         /// Gets the read-only collection of goals. Bind directly to this in ViewModels.
         /// </summary>
-        public ReadOnlyObservableCollection<IndividualGoal> Goals => _goalsReadOnly;
+        public ReadOnlyObservableCollection<DevelopmentGoal> Goals => _goalsReadOnly;
 
         /// <summary>
         /// Gets the read-only collection of quick notes. Bind directly to this in ViewModels.
@@ -353,7 +353,7 @@ namespace Tracker.Managers
         public async Task<bool> AddTeamMember(TeamMember teamMember)
         {
             var id = await TrackerDbManager.Instance!.AddTeamMemberAsync(teamMember);
-            if (id > 0)
+            if (id != Guid.Empty)
             {
                 teamMember.Id = id;
                 await RefreshAllAndNotifyAsync();
@@ -372,7 +372,7 @@ namespace Tracker.Managers
             return success;
         }
 
-        public async Task<bool> DeleteTeamMember(int id)
+        public async Task<bool> DeleteTeamMember(Guid id)
         {
             var success = await TrackerDbManager.Instance!.DeleteTeamMemberAsync(id);
             if (success)
@@ -402,7 +402,7 @@ namespace Tracker.Managers
             return _oneOnOnesReadOnly;
         }
 
-        public async Task<int> AddOneOnOne(OneOnOne oneOnOne, int? teamMemberId = null)
+        public async Task<int> AddOneOnOne(OneOnOne oneOnOne, Guid? teamMemberId = null)
         {
             var id = await TrackerDbManager.Instance!.AddOneOnOneAsync(oneOnOne, teamMemberId);
             if (id > 0)
@@ -730,12 +730,12 @@ namespace Tracker.Managers
         /// <summary>
         /// Ensures goals are loaded and returns the collection.
         /// </summary>
-        public async Task<ReadOnlyObservableCollection<IndividualGoal>> GetGoals()
+        public async Task<ReadOnlyObservableCollection<DevelopmentGoal>> GetGoals()
         {
             if (!_goalsLoaded)
             {
                 _logger.Debug("Loading goals from database");
-                var goals = await TrackerDbManager.Instance!.GetAllGoalsAsync();
+                var goals = await TrackerDbManager.Instance!.GetAllDevelopmentGoalsAsync();
                 ReplaceCollectionItems(_goals, goals, _goalsLock);
                 _goalsLoaded = true;
                 _logger.Debug("Loaded {0} goals", _goals.Count);
@@ -743,10 +743,10 @@ namespace Tracker.Managers
             return _goalsReadOnly;
         }
 
-        public async Task<int> AddGoal(IndividualGoal goal)
+        public async Task<Guid> AddGoal(DevelopmentGoal goal)
         {
-            var id = await TrackerDbManager.Instance!.AddGoalAsync(goal);
-            if (id > 0)
+            var id = await TrackerDbManager.Instance!.AddDevelopmentGoalAsync(goal);
+            if (id != Guid.Empty)
             {
                 goal.Id = id;
                 await RefreshAllAndNotifyAsync();
@@ -754,9 +754,9 @@ namespace Tracker.Managers
             return id;
         }
 
-        public async Task DeleteGoalAsync(IndividualGoal goal)
+        public async Task DeleteGoalAsync(DevelopmentGoal goal)
         {
-            await TrackerDbManager.Instance!.DeleteGoalAsync(goal.Id);
+            await TrackerDbManager.Instance!.DeleteDevelopmentGoalAsync(goal.Id);
             await RefreshAllAndNotifyAsync();
         }
 

@@ -305,7 +305,7 @@ namespace Tracker.Controls
                 }
 
                 await client.From<Services.Backend.Models.UserProfile>()
-                    .Where(p => p.Id == userId)
+                    .Where(p => p.SupabaseAuthId == Guid.Parse(userId))
                     .Set(p => p.FirstName!, firstName)
                     .Set(p => p.LastName!, lastName)
                     .Set(p => p.DisplayName!, displayName)

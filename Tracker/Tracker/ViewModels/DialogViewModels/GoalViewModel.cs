@@ -11,24 +11,24 @@ using Tracker.Managers;
 namespace Tracker.ViewModels.DialogViewModels
 {
     /// <summary>
-    /// ViewModel for creating and editing individual goals.
+    /// ViewModel for creating and editing development goals.
     /// </summary>
     public class GoalViewModel : BaseDialogViewModel
     {
         #region Fields
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("GoalVM");
-        private readonly IndividualGoal _data;
+        private readonly DevelopmentGoal _data;
         private readonly bool _inEditMode;
-        private readonly int _teamMemberId;
+        private readonly Guid _teamMemberId;
 
         private ICommand? _saveCommand;
         private ICommand? _addMilestoneCommand;
         private ICommand? _removeMilestoneCommand;
 
-        private GoalCategory _selectedCategory;
-        private GoalStatus _selectedStatus;
-        private ObservableCollection<GoalMilestone> _milestones = new();
+        private DevelopmentGoalCategory _selectedCategory;
+        private DevelopmentGoalStatus _selectedStatus;
+        private ObservableCollection<DevelopmentGoalMilestone> _milestones = new();
 
         private string _newMilestoneDescription = string.Empty;
 
@@ -36,7 +36,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Ctor
 
-        public GoalViewModel(Action? callback, IndividualGoal? data, int teamMemberId, bool edit = false) : base(callback)
+        public GoalViewModel(Action? callback, DevelopmentGoal? data, Guid teamMemberId, bool edit = false) : base(callback)
         {
             _teamMemberId = teamMemberId;
             _inEditMode = edit;
@@ -55,15 +55,15 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             else
             {
-                _data = new IndividualGoal
+                _data = new DevelopmentGoal
                 {
                     TeamMemberId = teamMemberId,
-                    Status = GoalStatus.NotStarted,
-                    Category = GoalCategory.SkillDevelopment,
+                    Status = DevelopmentGoalStatus.Draft,
+                    Category = DevelopmentGoalCategory.SkillDevelopment,
                     TargetDate = DateTime.Now.AddMonths(3)
                 };
-                _selectedCategory = GoalCategory.SkillDevelopment;
-                _selectedStatus = GoalStatus.NotStarted;
+                _selectedCategory = DevelopmentGoalCategory.SkillDevelopment;
+                _selectedStatus = DevelopmentGoalStatus.Draft;
             }
         }
 
@@ -84,13 +84,13 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Public Properties
 
-        public IndividualGoal Data => _data;
+        public DevelopmentGoal Data => _data;
         public bool InEditMode => _inEditMode;
 
-        public Array GoalCategories => Enum.GetValues(typeof(GoalCategory));
-        public Array GoalStatuses => Enum.GetValues(typeof(GoalStatus));
+        public Array GoalCategories => Enum.GetValues(typeof(DevelopmentGoalCategory));
+        public Array GoalStatuses => Enum.GetValues(typeof(DevelopmentGoalStatus));
 
-        public GoalCategory SelectedCategory
+        public DevelopmentGoalCategory SelectedCategory
         {
             get => _selectedCategory;
             set
@@ -101,7 +101,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public GoalStatus SelectedStatus
+        public DevelopmentGoalStatus SelectedStatus
         {
             get => _selectedStatus;
             set
@@ -122,7 +122,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public string Description
+        public string? Description
         {
             get => _data.Description;
             set
@@ -152,17 +152,27 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public string Notes
+        public string? WhyImportant
         {
-            get => _data.Notes;
+            get => _data.WhyImportant;
             set
             {
-                _data.Notes = value;
+                _data.WhyImportant = value;
                 RaisePropertyChanged();
             }
         }
 
-        public ObservableCollection<GoalMilestone> Milestones => _milestones;
+        public string? SuccessCriteria
+        {
+            get => _data.SuccessCriteria;
+            set
+            {
+                _data.SuccessCriteria = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public ObservableCollection<DevelopmentGoalMilestone> Milestones => _milestones;
 
         public string NewMilestoneDescription
         {
@@ -192,7 +202,7 @@ namespace Tracker.ViewModels.DialogViewModels
             
             if (_inEditMode)
             {
-                success = await TrackerDbManager.Instance!.UpdateGoalAsync(_data);
+                success = await TrackerDbManager.Instance!.UpdateDevelopmentGoalAsync(_data);
                 if (success)
                 {
                     NotificationManager.Instance.ShowSuccess("Goal Updated", "Goal has been updated.");
@@ -200,8 +210,8 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             else
             {
-                var id = await TrackerDbManager.Instance!.AddGoalAsync(_data);
-                success = id > 0;
+                var id = await TrackerDbManager.Instance!.AddDevelopmentGoalAsync(_data);
+                success = id != Guid.Empty;
                 if (success)
                 {
                     _data.Id = id;
@@ -228,10 +238,10 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private void AddMilestoneExecuted(object? parameter)
         {
-            var milestone = new GoalMilestone
+            var milestone = new DevelopmentGoalMilestone
             {
-                Description = NewMilestoneDescription,
-                IsCompleted = false,
+                Title = NewMilestoneDescription,
+                Status = MilestoneStatus.NotStarted,
                 GoalId = _data.Id,
                 SortOrder = _milestones.Count
             };
@@ -244,7 +254,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private void RemoveMilestoneExecuted(object? parameter)
         {
-            if (parameter is GoalMilestone milestone)
+            if (parameter is DevelopmentGoalMilestone milestone)
             {
                 _milestones.Remove(milestone);
             }

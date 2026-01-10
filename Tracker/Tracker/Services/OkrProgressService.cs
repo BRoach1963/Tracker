@@ -263,7 +263,7 @@ namespace Tracker.Services
                     {
                         switch (m.MeasurableType)
                         {
-                            case MeasurableType.Kpi:
+                            case MeasurableType.Metric:
                                 summary.LinkedKpiCount++;
                                 break;
                             case MeasurableType.Project:

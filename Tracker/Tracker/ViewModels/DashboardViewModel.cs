@@ -37,7 +37,7 @@ namespace Tracker.ViewModels
         private ReadOnlyObservableCollection<KeyPerformanceIndicator> KpisData => TrackerDataManager.Instance.KPIs;
         private ReadOnlyObservableCollection<Project> ProjectsData => TrackerDataManager.Instance.Projects;
         private ReadOnlyObservableCollection<Feedback> FeedbacksData => TrackerDataManager.Instance.Feedbacks;
-        private ReadOnlyObservableCollection<IndividualGoal> GoalsData => TrackerDataManager.Instance.Goals;
+        private ReadOnlyObservableCollection<DevelopmentGoal> GoalsData => TrackerDataManager.Instance.Goals;
 
         // Summary statistics
         private int _totalTeamMembers;
@@ -73,7 +73,7 @@ namespace Tracker.ViewModels
         private ObservableCollection<TeamMemberCadenceInfo> _overdueMeetingMembers = new();
         private ObservableCollection<MeetingTask> _recentActionItems = new();
         private ObservableCollection<AgendaItem> _recentConcerns = new();
-        private ObservableCollection<IndividualGoal> GoalsDataDueSoon = new();
+        private ObservableCollection<DevelopmentGoal> GoalsDataDueSoon = new();
         private ObservableCollection<TeamHealthRow> _teamHealthRows = new();
         private ObservableCollection<TrajectoryAlertItem> _atRiskTrajectoryItems = new();
 
@@ -311,7 +311,7 @@ namespace Tracker.ViewModels
 
         public bool HasNoGoalsDueSoon => GoalsDueSoonCount == 0;
 
-        public ObservableCollection<IndividualGoal> GoalsDueSoon
+        public ObservableCollection<DevelopmentGoal> GoalsDueSoon
         {
             get => GoalsDataDueSoon;
             set { GoalsDataDueSoon = value; RaisePropertyChanged(); }
@@ -565,12 +565,12 @@ namespace Tracker.ViewModels
                 .Where(g => g.TargetDate.HasValue && 
                            g.TargetDate.Value >= today && 
                            g.TargetDate.Value <= endOfMonth &&
-                           g.Status != GoalStatus.Completed)
+                           g.Status != DevelopmentGoalStatus.Completed)
                 .OrderBy(g => g.TargetDate)
                 .ToList();
 
             GoalsDueSoonCount = goalsDue.Count;
-            GoalsDueSoon = new ObservableCollection<IndividualGoal>(goalsDue.Take(5));
+            GoalsDueSoon = new ObservableCollection<DevelopmentGoal>(goalsDue.Take(5));
 
             // =====================================================
             // PERFORMANCE: OKRs and KPIs
@@ -610,7 +610,7 @@ namespace Tracker.ViewModels
                 var memberTasks = TasksData.Where(t => t.Owner?.Id == member.Id && !t.IsCompleted).Count();
                 
                 // Goals for this member
-                var memberGoals = GoalsData.Where(g => g.TeamMember?.Id == member.Id && g.Status != GoalStatus.Completed).Count();
+                var memberGoals = GoalsData.Where(g => g.TeamMember?.Id == member.Id && g.Status != DevelopmentGoalStatus.Completed).Count();
 
                 // Determine health status
                 var isOverdue = daysSince > meetingCadenceDays;

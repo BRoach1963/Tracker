@@ -105,9 +105,15 @@ namespace Tracker.DataModels
         #region IMeasurable Implementation
 
         /// <summary>
-        /// IMeasurable.MeasurableId - returns the KPI Id.
+        /// IMeasurable.GuidId - returns Guid.Empty (legacy, will be updated later).
         /// </summary>
-        public int MeasurableId => KpiId;
+        Guid IMeasurable.GuidId => Guid.Empty;
+
+        /// <summary>
+        /// IMeasurable.Id - returns the KPI Id.
+        /// </summary>
+        [Obsolete("Use GuidId instead")]
+        int IMeasurable.Id => KpiId;
 
         /// <summary>
         /// IMeasurable.DisplayName - returns the KPI name.
@@ -115,21 +121,31 @@ namespace Tracker.DataModels
         public string DisplayName => Name;
 
         /// <summary>
-        /// IMeasurable.Progress - percentage towards target (0-100+).
+        /// IMeasurable.CurrentProgress - percentage towards target (0-100+).
+        /// </summary>
+        decimal IMeasurable.CurrentProgress => (decimal)PercentComplete;
+
+        /// <summary>
+        /// Legacy MeasurableId for backwards compatibility.
+        /// </summary>
+        public int MeasurableId => KpiId;
+
+        /// <summary>
+        /// Progress - percentage towards target (0-100+).
         /// </summary>
         public decimal Progress => (decimal)PercentComplete;
 
         /// <summary>
-        /// IMeasurable.DisplayValue - shows current value with unit.
+        /// DisplayValue - shows current value with unit.
         /// </summary>
         public string DisplayValue => string.IsNullOrEmpty(Unit) 
             ? $"{Value:N1}" 
             : $"{Value:N1} {Unit}";
 
         /// <summary>
-        /// IMeasurable.MeasurableType - always KPI.
+        /// MeasurableType - Metric (KPI is now Metric).
         /// </summary>
-        public MeasurableType MeasurableType => MeasurableType.Kpi;
+        public MeasurableType MeasurableType => MeasurableType.Metric;
 
         #endregion
 

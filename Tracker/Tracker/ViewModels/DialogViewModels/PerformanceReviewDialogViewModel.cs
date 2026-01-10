@@ -23,10 +23,8 @@ namespace Tracker.ViewModels.DialogViewModels
         protected void OnRequestClose(bool result)
         {
             RequestClose?.Invoke(this, result);
-            _closeCallback?.Invoke();
+            Callback?.Invoke();
         }
-
-        private Action? _closeCallback;
     }
 }
 

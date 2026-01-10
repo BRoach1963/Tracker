@@ -78,7 +78,7 @@ namespace Tracker.Services.Kudos
         /// Creates and optionally delivers a kudos to a team member.
         /// </summary>
         public async Task<DataModels.Kudos> SendKudosAsync(
-            int teamMemberId,
+            Guid teamMemberId,
             string message,
             KudosCategory category,
             DeliveryChannel channel,
@@ -193,7 +193,7 @@ namespace Tracker.Services.Kudos
         /// <summary>
         /// Gets all kudos for a specific team member.
         /// </summary>
-        public async Task<List<DataModels.Kudos>> GetKudosForTeamMemberAsync(int teamMemberId)
+        public async Task<List<DataModels.Kudos>> GetKudosForTeamMemberAsync(Guid teamMemberId)
         {
             return await TrackerDbManager.Instance.GetKudosForTeamMemberAsync(teamMemberId);
         }
@@ -210,7 +210,7 @@ namespace Tracker.Services.Kudos
         /// Gets kudos that should be mentioned in meeting prep for a team member.
         /// </summary>
         public async Task<List<DataModels.Kudos>> GetRecentKudosForMeetingPrepAsync(
-            int teamMemberId,
+            Guid teamMemberId,
             int daysSince = 30)
         {
             return await TrackerDbManager.Instance.GetRecentKudosForMeetingPrepAsync(teamMemberId, daysSince);
@@ -309,7 +309,7 @@ namespace Tracker.Services.Kudos
     /// </summary>
     public class KudosStats
     {
-        public int TeamMemberId { get; set; }
+        public Guid TeamMemberId { get; set; }
         public string TeamMemberName { get; set; } = string.Empty;
         public int TotalKudosCount { get; set; }
         public DateTime? LastKudosDate { get; set; }

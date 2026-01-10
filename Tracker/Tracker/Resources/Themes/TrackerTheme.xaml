@@ -1,56 +1,91 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Tracker Theme - Professional Bronze & Slate -->
-    <!-- Primary: #2D3741 (Dark Slate) | Accent: #C7A44F (Bronze Gold) -->
+    <!-- Tracker Professional Theme -->
+    <!-- Primary: #2E3843 (Deep Slate Blue) | Accent: #C7A450 (Copper Gold) -->
+    <!-- Built for accessibility and professional appearance -->
     
-    <Color x:Key="BackgroundColor">#1A2028</Color>
-    <Color x:Key="ForegroundColor">#C7A44F</Color>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- BASE COLORS (derived from #2E3843 primary, #C7A450 accent)     -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
     
-    <SolidColorBrush x:Key="BackgroundBrush" Color="#1A2028"/>
-    <SolidColorBrush x:Key="ForegroundBrush" Color="#C7A44F"/>
-    <SolidColorBrush x:Key="WhiteBrush" Color="#F5F5F5"/>
-    <SolidColorBrush x:Key="HintTextBrush" Color="#6B7280"/>
-    <SolidColorBrush x:Key="DisabledBrush" Color="#4B5563"/>
+    <!-- Background Scale (darkest to lightest from primary) -->
+    <Color x:Key="BackgroundColor">#1C232A</Color>          <!-- 15% darker than primary -->
+    <Color x:Key="SurfaceColor">#2E3843</Color>             <!-- Primary - main surface -->
+    <Color x:Key="SurfaceAltColor">#3A4652</Color>          <!-- 15% lighter - cards, panels -->
+    <Color x:Key="SurfaceHoverColor">#465361</Color>        <!-- 30% lighter - hover states -->
     
-    <SolidColorBrush x:Key="PrimaryBrush" Color="#C7A44F"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="#D4B366"/>
-    <SolidColorBrush x:Key="BorderBrush" Color="#4A5568"/>
-    <SolidColorBrush x:Key="ErrorBrush" Color="#EF4444"/>
-    <SolidColorBrush x:Key="TextBrush" Color="#F5F5F5"/>
+    <!-- Accent Scale (from #C7A450) -->
+    <Color x:Key="AccentColor">#C7A450</Color>              <!-- Main accent -->
+    <Color x:Key="AccentHoverColor">#D4B46A</Color>         <!-- Lighter for hover -->
+    <Color x:Key="AccentPressedColor">#B08F3A</Color>       <!-- Darker for pressed -->
+    <Color x:Key="AccentMutedColor">#9A8040</Color>         <!-- Muted for subtle accents -->
     
-    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#2D3741"/>
-    <SolidColorBrush x:Key="PopupBorderBrush" Color="#C7A44F"/>
+    <!-- Text Colors (WCAG AA compliant on dark backgrounds) -->
+    <Color x:Key="TextPrimaryColor">#F0F2F4</Color>         <!-- Primary text - high contrast -->
+    <Color x:Key="TextSecondaryColor">#A8B2BD</Color>       <!-- Secondary text -->
+    <Color x:Key="TextMutedColor">#6B7785</Color>           <!-- Muted/hint text -->
+    <Color x:Key="TextOnAccentColor">#1C232A</Color>        <!-- Text on accent backgrounds -->
     
-    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#2D3741"/>
-    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#C7A44F"/>
+    <!-- Border Colors -->
+    <Color x:Key="BorderColor">#3E4B58</Color>              <!-- Default borders -->
+    <Color x:Key="BorderFocusColor">#C7A450</Color>         <!-- Focused state borders -->
     
-    <SolidColorBrush x:Key="ToolTipBackground" Color="#2D3741"/>
-    <SolidColorBrush x:Key="ToolTipForeground" Color="#F5F5F5"/>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- BRUSH DEFINITIONS                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
     
-    <SolidColorBrush x:Key="SelectionBrush" Color="#3D4A54"/>
-    <SolidColorBrush x:Key="HoverBrush" Color="#353F4A"/>
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#2D3741"/>
-    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#3A4550"/>
+    <!-- Core Brushes -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="{StaticResource SurfaceAltColor}"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="{StaticResource SurfaceHoverColor}"/>
+    <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource SurfaceHoverColor}"/>
     
-    <!-- DataGrid Specific -->
-    <SolidColorBrush x:Key="DataGridCellBackgroundBrush" Color="#1A2028"/>
-    <SolidColorBrush x:Key="DataGridCellForegroundBrush" Color="#E5E7EB"/>
-    <SolidColorBrush x:Key="DataGridCellBorderBrush" Color="#4A5568"/>
-    <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="#2D3741"/>
-    <SolidColorBrush x:Key="DataGridHeaderForegroundBrush" Color="#C7A44F"/>
-    <SolidColorBrush x:Key="DataGridRowAlternateBrush" Color="#232B33"/>
+    <!-- Accent Brushes -->
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}"/>
     
-    <!-- Status Indicator Brushes -->
-    <SolidColorBrush x:Key="StatusDefaultBrush" Color="#6B7280"/>
-    <SolidColorBrush x:Key="StatusOnTrackBrush" Color="#10B981"/>
-    <SolidColorBrush x:Key="StatusAtRiskBrush" Color="#F59E0B"/>
-    <SolidColorBrush x:Key="StatusOffTrackBrush" Color="#EF4444"/>
+    <!-- Text Brushes -->
+    <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="HintTextBrush" Color="{StaticResource TextMutedColor}"/>
+    <SolidColorBrush x:Key="DisabledBrush" Color="{StaticResource TextMutedColor}"/>
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="{StaticResource TextOnAccentColor}"/>
     
-    <!-- Semantic Colors -->
-    <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+    <!-- Border Brushes -->
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="{StaticResource BorderFocusColor}"/>
+    
+    <!-- Button Brushes -->
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="{StaticResource SurfaceAltColor}"/>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="ButtonHoverBrush" Color="{StaticResource SurfaceHoverColor}"/>
+    
+    <!-- Popup/Tooltip Brushes -->
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="PopupBorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="ToolTipBackground" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="ToolTipForeground" Color="{StaticResource TextPrimaryColor}"/>
+    
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SEMANTIC COLORS (standard, not derived from theme)              -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <SolidColorBrush x:Key="SuccessBrush" Color="#22C55E"/>
     <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B"/>
     <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#EF4444"/>
     <SolidColorBrush x:Key="InfoBrush" Color="#3B82F6"/>
+    
+    <!-- Status Indicators -->
+    <SolidColorBrush x:Key="StatusDefaultBrush" Color="{StaticResource TextMutedColor}"/>
+    <SolidColorBrush x:Key="StatusOnTrackBrush" Color="#22C55E"/>
+    <SolidColorBrush x:Key="StatusAtRiskBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="StatusOffTrackBrush" Color="#EF4444"/>
     
     <!-- Danger Button -->
     <SolidColorBrush x:Key="DangerButtonBackgroundBrush" Color="#7F1D1D"/>
@@ -59,4 +94,16 @@
     
     <!-- Warning Background (for alert boxes) -->
     <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#2D2510"/>
+    
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- DATAGRID SPECIFIC                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <SolidColorBrush x:Key="DataGridCellBackgroundBrush" Color="{StaticResource BackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridCellForegroundBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="DataGridCellBorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="DataGridHeaderForegroundBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="DataGridRowAlternateBrush" Color="#242D36"/>
+    
 </ResourceDictionary>

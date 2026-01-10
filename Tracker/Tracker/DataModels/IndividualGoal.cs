@@ -19,7 +19,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// The team member this goal belongs to.
         /// </summary>
-        public int TeamMemberId { get; set; }
+        public Guid TeamMemberId { get; set; }
         public TeamMember TeamMember { get; set; } = null!;
 
         /// <summary>

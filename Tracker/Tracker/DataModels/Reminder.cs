@@ -53,7 +53,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Optional: Related team member ID.
         /// </summary>
-        public int? TeamMemberId { get; set; }
+        public Guid? TeamMemberId { get; set; }
 
         /// <summary>
         /// Optional: Related task ID.

@@ -52,7 +52,7 @@ namespace Tracker.DataModels
         /// Optional: Link to a team member this note is about.
         /// Populated when LinkedEntityType == TeamMember.
         /// </summary>
-        public int? TeamMemberId { get; set; }
+        public Guid? TeamMemberId { get; set; }
         public TeamMember? TeamMember { get; set; }
 
         /// <summary>
@@ -177,16 +177,29 @@ namespace Tracker.DataModels
         /// <summary>
         /// Sets the linked entity using the polymorphic approach.
         /// Also sets legacy FK for backward compatibility.
+        /// For TeamMember entities, use the overload that takes Guid?.
         /// </summary>
         public void SetLinkedEntity(NoteLinkedEntityType entityType, int? entityId)
         {
             LinkedEntityType = entityType;
             LinkedEntityId = entityId;
 
-            // Set legacy FKs for backward compatibility
-            TeamMemberId = entityType == NoteLinkedEntityType.TeamMember ? entityId : null;
+            // Set legacy FKs for backward compatibility (except TeamMemberId which is Guid)
+            TeamMemberId = null; // TeamMember uses Guid, not int
             ProjectId = entityType == NoteLinkedEntityType.Project ? entityId : null;
             OneOnOneId = entityType == NoteLinkedEntityType.OneOnOne ? entityId : null;
+        }
+
+        /// <summary>
+        /// Sets the linked entity for TeamMember (which uses Guid ID).
+        /// </summary>
+        public void SetLinkedTeamMember(Guid? teamMemberId)
+        {
+            LinkedEntityType = teamMemberId.HasValue ? NoteLinkedEntityType.TeamMember : NoteLinkedEntityType.None;
+            LinkedEntityId = null; // Can't store Guid in int?
+            TeamMemberId = teamMemberId;
+            ProjectId = null;
+            OneOnOneId = null;
         }
 
         /// <summary>

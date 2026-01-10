@@ -441,20 +441,19 @@ namespace Tracker.Services.AI
                 targetDate = parsed;
 
             // Parse category
-            if (!Enum.TryParse<GoalCategory>(categoryStr, true, out var category))
-                category = GoalCategory.SkillDevelopment;
+            if (!Enum.TryParse<DevelopmentGoalCategory>(categoryStr, true, out var category))
+                category = DevelopmentGoalCategory.SkillDevelopment;
 
             // Create goal - DO NOT set TeamMember navigation property
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 TeamMemberId = member.Id,
                 Title = title,
                 Description = description ?? "",
                 Category = category,
-                Status = GoalStatus.NotStarted,
+                Status = DevelopmentGoalStatus.Draft,
                 TargetDate = targetDate,
                 ProgressPercent = 0,
-                Notes = "",
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
             };
@@ -464,7 +463,7 @@ namespace Tracker.Services.AI
 
             var id = await TrackerDataManager.Instance.AddGoal(goal);
 
-            if (id > 0)
+            if (id != Guid.Empty)
             {
                 var dateInfo = targetDate.HasValue ? $" (target: {targetDate.Value:MMM d, yyyy})" : "";
                 _logger.Info("Created goal for {0}: {1}", member.FullName, title);

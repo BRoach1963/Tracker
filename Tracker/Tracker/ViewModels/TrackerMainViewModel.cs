@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,7 +13,6 @@ using Tracker.Helpers;
 using Tracker.Interfaces;
 using Tracker.Logging;
 using Tracker.Managers;
-using Tracker.MockData;
 using Tracker.Services.Analytics;
 
 namespace Tracker.ViewModels
@@ -28,15 +27,9 @@ namespace Tracker.ViewModels
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("MainVM");
         
-        private ObservableCollection<TeamMember> _teamMembers = new();
-        private ObservableCollection<OneOnOne> _oneOnOnes = new();
-        private ObservableCollection<ITask> _tasks = new();
-        private ObservableCollection<ObjectiveKeyResult> _okrs = new();
-        private ObservableCollection<KeyPerformanceIndicator> _kpis = new();
-        private ObservableCollection<Project> _projects = new();
+        // Data is sourced from TrackerDataManager - single source of truth
+        // Only keep filtered/selected collections that are specific to this ViewModel
         private ObservableCollection<OneOnOne> _selectedTeamMemberOneOnOneCollection = new();
-        private ObservableCollection<Feedback> _feedbacks = new();
-        private ObservableCollection<IndividualGoal> _goals = new();
 
         // Selected items
         private TeamMember? _teamMember;
@@ -48,7 +41,7 @@ namespace Tracker.ViewModels
         private PredictiveAnalyticsViewModel? _selectedKpiAnalytics;
         private OneOnOne? _selectedOneOnOne;
         private Feedback? _selectedFeedback;
-        private IndividualGoal? _selectedGoal;
+        private DevelopmentGoal? _selectedGoal;
         private TeamMember? _selectedMemberForMeetings;
         private Controls.MeetingTimeFilterEnum _meetingTimeFilter = Controls.MeetingTimeFilterEnum.Upcoming;
 
@@ -316,9 +309,10 @@ namespace Tracker.ViewModels
             try
             {
                 await TrackerDataManager.Instance.DeleteFeedbackAsync(feedback);
-                _feedbacks.Remove(feedback);
+                // Data is automatically updated in TrackerDataManager
                 if (_selectedFeedback == feedback) SelectedFeedback = null;
                 NotificationManager.Instance.ShowSuccess("Deleted", "Feedback has been removed.");
+                RaisePropertyChanged(nameof(Feedbacks));
                 RefreshFeedbackStatistics();
             }
             catch (Exception ex)
@@ -329,9 +323,8 @@ namespace Tracker.ViewModels
 
         private async Task RefreshFeedbacksAsync()
         {
-            var feedbacks = await TrackerDataManager.Instance.GetFeedbacks();
-            _feedbacks.Clear();
-            foreach (var f in feedbacks) _feedbacks.Add(f);
+            await TrackerDataManager.Instance.RefreshFeedbacksAsync();
+            RaisePropertyChanged(nameof(Feedbacks));
         }
 
         #endregion
@@ -356,11 +349,11 @@ namespace Tracker.ViewModels
             });
         }
 
-        private bool CanEditGoal(object? parameter) => parameter is IndividualGoal || _selectedGoal != null;
+        private bool CanEditGoal(object? parameter) => parameter is DevelopmentGoal || _selectedGoal != null;
 
         private void EditGoalExecuted(object? parameter)
         {
-            var goal = parameter as IndividualGoal ?? _selectedGoal;
+            var goal = parameter as DevelopmentGoal ?? _selectedGoal;
             if (goal != null)
             {
                 DialogManager.Instance.LaunchDialogByType(DialogType.AddGoal, true, async () =>
@@ -371,11 +364,11 @@ namespace Tracker.ViewModels
             }
         }
 
-        private bool CanDeleteGoal(object? parameter) => parameter is IndividualGoal || _selectedGoal != null;
+        private bool CanDeleteGoal(object? parameter) => parameter is DevelopmentGoal || _selectedGoal != null;
 
         private async Task DeleteGoalAsync(object? parameter)
         {
-            var goal = parameter as IndividualGoal ?? _selectedGoal;
+            var goal = parameter as DevelopmentGoal ?? _selectedGoal;
             if (goal == null) return;
 
             var result = MessageBoxHelper.Show(
@@ -389,10 +382,9 @@ namespace Tracker.ViewModels
             try
             {
                 await TrackerDataManager.Instance.DeleteGoalAsync(goal);
-                _goals.Remove(goal);
+                // Data is automatically refreshed by TrackerDataManager
                 if (_selectedGoal == goal) SelectedGoal = null;
                 NotificationManager.Instance.ShowSuccess("Deleted", "Goal has been removed.");
-                RefreshGoalStatistics();
             }
             catch (Exception ex)
             {
@@ -402,9 +394,9 @@ namespace Tracker.ViewModels
 
         private async Task RefreshGoalsAsync()
         {
-            var goals = await TrackerDataManager.Instance.GetGoals();
-            _goals.Clear();
-            foreach (var g in goals) _goals.Add(g);
+            await TrackerDataManager.Instance.RefreshGoalsAsync();
+            RaisePropertyChanged(nameof(Goals));
+            RefreshGoalStatistics();
         }
 
         #endregion
@@ -524,15 +516,17 @@ namespace Tracker.ViewModels
 
         #region Public Properties - Collections
 
-        public ObservableCollection<TeamMember> TeamMembers => _teamMembers;
+        // Data is sourced from TrackerDataManager - single source of truth
+        // These properties provide access to the shared data for binding
+        public ReadOnlyObservableCollection<TeamMember> TeamMembers => TrackerDataManager.Instance.TeamMembers;
         public ObservableCollection<OneOnOne> SelectedTeamMemberOneOnOneCollection => _selectedTeamMemberOneOnOneCollection;
-        public ObservableCollection<OneOnOne> OneOnOnes => _oneOnOnes;
-        public ObservableCollection<ITask> Tasks => _tasks;
-        public ObservableCollection<ObjectiveKeyResult> ObjectiveKeyResults => _okrs;
-        public ObservableCollection<KeyPerformanceIndicator> KeyPerformanceIndicators => _kpis;
-        public ObservableCollection<Project> Projects => _projects;
-        public ObservableCollection<Feedback> Feedbacks => _feedbacks;
-        public ObservableCollection<IndividualGoal> Goals => _goals;
+        public ReadOnlyObservableCollection<OneOnOne> OneOnOnes => TrackerDataManager.Instance.OneOnOnes;
+        public ReadOnlyObservableCollection<IndividualTask> Tasks => TrackerDataManager.Instance.Tasks;
+        public ReadOnlyObservableCollection<ObjectiveKeyResult> ObjectiveKeyResults => TrackerDataManager.Instance.OKRs;
+        public ReadOnlyObservableCollection<KeyPerformanceIndicator> KeyPerformanceIndicators => TrackerDataManager.Instance.KPIs;
+        public ReadOnlyObservableCollection<Project> Projects => TrackerDataManager.Instance.Projects;
+        public ReadOnlyObservableCollection<Feedback> Feedbacks => TrackerDataManager.Instance.Feedbacks;
+        public ReadOnlyObservableCollection<DevelopmentGoal> Goals => TrackerDataManager.Instance.Goals;
 
         #endregion
 
@@ -541,12 +535,12 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of active team members.
         /// </summary>
-        public int ActiveMemberCount => _teamMembers?.Count(m => m.IsActive) ?? 0;
+        public int ActiveMemberCount => TeamMembers?.Count(m => m.IsActive) ?? 0;
 
         /// <summary>
         /// Count of inactive team members.
         /// </summary>
-        public int InactiveMemberCount => _teamMembers?.Count(m => !m.IsActive) ?? 0;
+        public int InactiveMemberCount => TeamMembers?.Count(m => !m.IsActive) ?? 0;
 
         /// <summary>
         /// Average tenure of active team members.
@@ -555,10 +549,10 @@ namespace Tracker.ViewModels
         {
             get
             {
-                var activeMembers = _teamMembers?.Where(m => m.IsActive && m.HireDate.Year > 1901).ToList();
+                var activeMembers = TeamMembers?.Where(m => m.IsActive && m.HireDate.HasValue && m.HireDate.Value.Year > 1901).ToList();
                 if (activeMembers == null || activeMembers.Count == 0) return "—";
                 
-                var avgDays = activeMembers.Average(m => (DateTime.Now - m.HireDate).Days);
+                var avgDays = activeMembers.Average(m => (DateTime.Now - m.HireDate!.Value).Days);
                 var avgYears = avgDays / 365;
                 
                 if (avgYears < 1) return "< 1 yr";
@@ -569,17 +563,17 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Total open tasks across all team members.
         /// </summary>
-        public int TotalOpenTasks => _teamMembers?.Sum(m => m.OpenTaskCount) ?? 0;
+        public int TotalOpenTasks => TeamMembers?.Sum(m => m.OpenTaskCount) ?? 0;
 
         /// <summary>
         /// Count of team members who have open tasks assigned.
         /// </summary>
-        public int MembersWithOpenTasksCount => _teamMembers?.Count(m => m.IsActive && m.OpenTaskCount > 0) ?? 0;
+        public int MembersWithOpenTasksCount => TeamMembers?.Count(m => m.IsActive && m.OpenTaskCount > 0) ?? 0;
 
         /// <summary>
         /// Count of team members with on-track 1:1 cadence (within last 14 days).
         /// </summary>
-        public int OnTrack1on1Count => _teamMembers?.Count(m => 
+        public int OnTrack1on1Count => TeamMembers?.Count(m => 
             m.IsActive && 
             m.LastOneOnOneDate.HasValue && 
             (DateTime.Now - m.LastOneOnOneDate.Value).Days <= 14) ?? 0;
@@ -587,7 +581,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of team members due for 1:1 this week (15-21 days since last).
         /// </summary>
-        public int DueSoon1on1Count => _teamMembers?.Count(m =>
+        public int DueSoon1on1Count => TeamMembers?.Count(m =>
             m.IsActive &&
             m.LastOneOnOneDate.HasValue &&
             (DateTime.Now - m.LastOneOnOneDate.Value).Days > 14 &&
@@ -596,14 +590,14 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of team members overdue for 1:1 (more than 21 days since last).
         /// </summary>
-        public int Overdue1on1Count => _teamMembers?.Count(m =>
+        public int Overdue1on1Count => TeamMembers?.Count(m =>
             m.IsActive &&
             (!m.LastOneOnOneDate.HasValue || (DateTime.Now - m.LastOneOnOneDate.Value).Days > 21)) ?? 0;
 
         /// <summary>
         /// Team members who need attention (overdue for 1:1).
         /// </summary>
-        public IEnumerable<TeamMember> MembersNeedingAttention => _teamMembers?
+        public IEnumerable<TeamMember> MembersNeedingAttention => TeamMembers?
             .Where(m => m.IsActive && (!m.LastOneOnOneDate.HasValue || (DateTime.Now - m.LastOneOnOneDate.Value).Days > 21))
             .OrderByDescending(m => m.LastOneOnOneDate.HasValue ? (DateTime.Now - m.LastOneOnOneDate.Value).Days : 999)
             .Take(5) ?? Enumerable.Empty<TeamMember>();
@@ -652,24 +646,24 @@ namespace Tracker.ViewModels
         {
             get
             {
-                if (_teamMembers == null) return Enumerable.Empty<TeamMember>();
+                if (TeamMembers == null || TeamMembers.Count == 0) return Enumerable.Empty<TeamMember>();
 
                 // Apply stat card filter first
                 IEnumerable<TeamMember> filtered = _memberFilter switch
                 {
-                    TeamMemberFilterEnum.Active => _teamMembers.Where(m => m.IsActive),
-                    TeamMemberFilterEnum.Inactive => _teamMembers.Where(m => !m.IsActive),
-                    TeamMemberFilterEnum.OneOnOneOnTrack => _teamMembers.Where(m => 
+                    TeamMemberFilterEnum.Active => TeamMembers.Where(m => m.IsActive),
+                    TeamMemberFilterEnum.Inactive => TeamMembers.Where(m => !m.IsActive),
+                    TeamMemberFilterEnum.OneOnOneOnTrack => TeamMembers.Where(m => 
                         m.IsActive && m.LastOneOnOneDate.HasValue && 
                         (DateTime.Now - m.LastOneOnOneDate.Value).Days <= 14),
-                    TeamMemberFilterEnum.OneOnOneOverdue => _teamMembers.Where(m =>
+                    TeamMemberFilterEnum.OneOnOneOverdue => TeamMembers.Where(m =>
                         m.IsActive && (!m.LastOneOnOneDate.HasValue || 
                         (DateTime.Now - m.LastOneOnOneDate.Value).Days > 21)),
-                    TeamMemberFilterEnum.HasOpenTasks => _teamMembers.Where(m => m.OpenTaskCount > 0),
-                    TeamMemberFilterEnum.NeedsAttention => _teamMembers.Where(m =>
+                    TeamMemberFilterEnum.HasOpenTasks => TeamMembers.Where(m => m.OpenTaskCount > 0),
+                    TeamMemberFilterEnum.NeedsAttention => TeamMembers.Where(m =>
                         m.IsActive && (!m.LastOneOnOneDate.HasValue || 
                         (DateTime.Now - m.LastOneOnOneDate.Value).Days > 21)),
-                    _ => _teamMembers
+                    _ => TeamMembers
                 };
 
                 // Then apply search filter
@@ -748,7 +742,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Completed meetings this month.
         /// </summary>
-        public int CompletedMeetingsThisMonth => _oneOnOnes?
+        public int CompletedMeetingsThisMonth => OneOnOnes?
             .Count(m => m.Status == Common.Enums.MeetingStatusEnum.Completed && 
                         m.Date.Month == DateTime.Now.Month && 
                         m.Date.Year == DateTime.Now.Year) ?? 0;
@@ -756,7 +750,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Scheduled meetings this month.
         /// </summary>
-        public int ScheduledMeetingsThisMonth => _oneOnOnes?
+        public int ScheduledMeetingsThisMonth => OneOnOnes?
             .Count(m => m.Status == Common.Enums.MeetingStatusEnum.Scheduled && 
                         m.Date.Month == DateTime.Now.Month && 
                         m.Date.Year == DateTime.Now.Year) ?? 0;
@@ -764,7 +758,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Cancelled meetings this month.
         /// </summary>
-        public int CancelledMeetingsThisMonth => _oneOnOnes?
+        public int CancelledMeetingsThisMonth => OneOnOnes?
             .Count(m => m.Status == Common.Enums.MeetingStatusEnum.Canceled && 
                         m.Date.Month == DateTime.Now.Month && 
                         m.Date.Year == DateTime.Now.Year) ?? 0;
@@ -772,14 +766,14 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Open tasks from meetings.
         /// </summary>
-        public int OpenMeetingTasksCount => _oneOnOnes?
+        public int OpenMeetingTasksCount => OneOnOnes?
             .SelectMany(m => m.Tasks ?? Enumerable.Empty<MeetingTask>())
             .Count(t => !t.IsCompleted) ?? 0;
 
         /// <summary>
         /// Upcoming meetings this week.
         /// </summary>
-        public IEnumerable<OneOnOne> UpcomingMeetingsThisWeek => _oneOnOnes?
+        public IEnumerable<OneOnOne> UpcomingMeetingsThisWeek => OneOnOnes?
             .Where(m => m.Status == Common.Enums.MeetingStatusEnum.Scheduled &&
                         m.Date >= DateTime.Today &&
                         m.Date <= DateTime.Today.AddDays(7))
@@ -795,7 +789,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Whether there are no 1:1s at all.
         /// </summary>
-        public bool HasNoOneOnOnes => _oneOnOnes == null || _oneOnOnes.Count == 0;
+        public bool HasNoOneOnOnes => OneOnOnes == null || OneOnOnes.Count == 0;
 
         /// <summary>
         /// Gets 1:1 meetings grouped by team member.
@@ -806,18 +800,18 @@ namespace Tracker.ViewModels
             {
                 var groups = new ObservableCollection<TeamMemberMeetingGroup>();
                 
-                if (_oneOnOnes == null || _teamMembers == null)
+                if (OneOnOnes == null || OneOnOnes.Count == 0 || TeamMembers == null || TeamMembers.Count == 0)
                     return groups;
                 
                 // Group meetings by team member
-                var grouped = _oneOnOnes
+                var grouped = OneOnOnes
                     .Where(o => o.TeamMember != null)
                     .GroupBy(o => o.TeamMember.Id)
                     .OrderBy(g => g.First().TeamMemberName);
                 
                 foreach (var group in grouped)
                 {
-                    var member = _teamMembers.FirstOrDefault(m => m.Id == group.Key);
+                    var member = TeamMembers.FirstOrDefault(m => m.Id == group.Key);
                     if (member == null) continue;
                     
                     groups.Add(new TeamMemberMeetingGroup
@@ -869,36 +863,36 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Total feedback count.
         /// </summary>
-        public int FeedbackCount => _feedbacks?.Count ?? 0;
+        public int FeedbackCount => Feedbacks?.Count ?? 0;
 
         /// <summary>
         /// Feedback given this month.
         /// </summary>
-        public int FeedbackThisMonth => _feedbacks?
+        public int FeedbackThisMonth => Feedbacks?
             .Count(f => f.Date.Month == DateTime.Now.Month && f.Date.Year == DateTime.Now.Year) ?? 0;
 
         /// <summary>
         /// Positive feedback count.
         /// </summary>
-        public int PositiveFeedbackCount => _feedbacks?
+        public int PositiveFeedbackCount => Feedbacks?
             .Count(f => f.Type == Common.Enums.FeedbackType.Positive) ?? 0;
 
         /// <summary>
         /// Constructive feedback count.
         /// </summary>
-        public int ConstructiveFeedbackCount => _feedbacks?
+        public int ConstructiveFeedbackCount => Feedbacks?
             .Count(f => f.Type == Common.Enums.FeedbackType.Constructive) ?? 0;
 
         /// <summary>
         /// Recognition feedback count.
         /// </summary>
-        public int RecognitionFeedbackCount => _feedbacks?
+        public int RecognitionFeedbackCount => Feedbacks?
             .Count(f => f.Type == Common.Enums.FeedbackType.Recognition) ?? 0;
 
         /// <summary>
         /// Whether there is no feedback.
         /// </summary>
-        public bool HasNoFeedback => _feedbacks == null || _feedbacks.Count == 0;
+        public bool HasNoFeedback => Feedbacks == null || Feedbacks.Count == 0;
 
         /// <summary>
         /// Refresh feedback statistics.
@@ -920,27 +914,27 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Active goals count (not completed or cancelled).
         /// </summary>
-        public int ActiveGoalCount => _goals?
-            .Count(g => g.Status == Common.Enums.GoalStatus.InProgress || 
-                        g.Status == Common.Enums.GoalStatus.NotStarted) ?? 0;
+        public int ActiveGoalCount => Goals?
+            .Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Active || 
+                        g.Status == Common.Enums.DevelopmentGoalStatus.Draft) ?? 0;
 
         /// <summary>
         /// On-track goals count.
         /// </summary>
-        public int OnTrackGoalCount => _goals?
-            .Count(g => g.Status == Common.Enums.GoalStatus.InProgress && !g.IsOverdue) ?? 0;
+        public int OnTrackGoalCount => Goals?
+            .Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Active && !g.IsOverdue) ?? 0;
 
         /// <summary>
         /// At-risk goals count (overdue or on hold).
         /// </summary>
-        public int AtRiskGoalCount => _goals?
-            .Count(g => g.IsOverdue || g.Status == Common.Enums.GoalStatus.OnHold) ?? 0;
+        public int AtRiskGoalCount => Goals?
+            .Count(g => g.IsOverdue || g.Status == Common.Enums.DevelopmentGoalStatus.OnHold) ?? 0;
 
         /// <summary>
         /// Completed goals count.
         /// </summary>
-        public int CompletedGoalCount => _goals?
-            .Count(g => g.Status == Common.Enums.GoalStatus.Completed) ?? 0;
+        public int CompletedGoalCount => Goals?
+            .Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Completed) ?? 0;
 
         /// <summary>
         /// Average goal progress percentage.
@@ -949,8 +943,8 @@ namespace Tracker.ViewModels
         {
             get
             {
-                var activeGoals = _goals?.Where(g => g.Status != Common.Enums.GoalStatus.Completed && 
-                                                      g.Status != Common.Enums.GoalStatus.Cancelled).ToList();
+                var activeGoals = Goals?.Where(g => g.Status != Common.Enums.DevelopmentGoalStatus.Completed && 
+                                                      g.Status != Common.Enums.DevelopmentGoalStatus.Cancelled).ToList();
                 if (activeGoals == null || activeGoals.Count == 0) return 0;
                 return (int)activeGoals.Average(g => g.ProgressPercent);
             }
@@ -959,7 +953,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Whether there are no goals.
         /// </summary>
-        public bool HasNoGoals => _goals == null || _goals.Count == 0;
+        public bool HasNoGoals => Goals == null || Goals.Count == 0;
 
         /// <summary>
         /// Refresh goal statistics.
@@ -981,19 +975,19 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of active projects.
         /// </summary>
-        public int ActiveProjectCount => _projects?
+        public int ActiveProjectCount => Projects?
             .Count(p => p.Status?.ToLowerInvariant() is "active" or "in progress" or "inprogress") ?? 0;
 
         /// <summary>
         /// Count of completed projects.
         /// </summary>
-        public int CompletedProjectCount => _projects?
+        public int CompletedProjectCount => Projects?
             .Count(p => p.Status?.ToLowerInvariant() is "completed" or "done" or "finished") ?? 0;
 
         /// <summary>
         /// Count of at-risk projects.
         /// </summary>
-        public int AtRiskProjectCount => _projects?
+        public int AtRiskProjectCount => Projects?
             .Count(p => p.Status?.ToLowerInvariant() is "at risk" or "atrisk" or "delayed") ?? 0;
 
         /// <summary>
@@ -1045,7 +1039,7 @@ namespace Tracker.ViewModels
         /// </summary>
         private void ApplyProjectFilters()
         {
-            var filtered = _projects?.AsEnumerable() ?? Enumerable.Empty<Project>();
+            var filtered = Projects?.AsEnumerable() ?? Enumerable.Empty<Project>();
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(ProjectSearchText))
@@ -1089,17 +1083,17 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of open (incomplete) tasks.
         /// </summary>
-        public int OpenTaskCount => _tasks?.Count(t => !t.IsCompleted) ?? 0;
+        public int OpenTaskCount => Tasks?.Count(t => !t.IsCompleted) ?? 0;
 
         /// <summary>
         /// Count of overdue tasks.
         /// </summary>
-        public int OverdueTaskCount => _tasks?.Count(t => !t.IsCompleted && t.DueDate < DateTime.Today) ?? 0;
+        public int OverdueTaskCount => Tasks?.Count(t => !t.IsCompleted && t.DueDate < DateTime.Today) ?? 0;
 
         /// <summary>
         /// Count of completed tasks.
         /// </summary>
-        public int CompletedTaskCount => _tasks?.Count(t => t.IsCompleted) ?? 0;
+        public int CompletedTaskCount => Tasks?.Count(t => t.IsCompleted) ?? 0;
 
         /// <summary>
         /// Search text for filtering tasks.
@@ -1150,7 +1144,7 @@ namespace Tracker.ViewModels
         /// </summary>
         private void ApplyTaskFilters()
         {
-            var filtered = _tasks?.AsEnumerable() ?? Enumerable.Empty<ITask>();
+            var filtered = Tasks?.AsEnumerable() ?? Enumerable.Empty<IndividualTask>();
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(TaskSearchText))
@@ -1195,19 +1189,19 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of on-track OKRs.
         /// </summary>
-        public int OnTrackOkrCount => _okrs?
+        public int OnTrackOkrCount => ObjectiveKeyResults?
             .Count(o => o.Status == Common.Enums.ObjectiveStatusEnum.OnTrack) ?? 0;
 
         /// <summary>
         /// Count of at-risk OKRs.
         /// </summary>
-        public int AtRiskOkrCount => _okrs?
+        public int AtRiskOkrCount => ObjectiveKeyResults?
             .Count(o => o.Status == Common.Enums.ObjectiveStatusEnum.AtRisk) ?? 0;
 
         /// <summary>
         /// Count of off-track OKRs.
         /// </summary>
-        public int OffTrackOkrCount => _okrs?
+        public int OffTrackOkrCount => ObjectiveKeyResults?
             .Count(o => o.Status == Common.Enums.ObjectiveStatusEnum.OffTrack) ?? 0;
 
         /// <summary>
@@ -1231,13 +1225,13 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of KPIs meeting target (green).
         /// </summary>
-        public int OnTargetKpiCount => _kpis?
+        public int OnTargetKpiCount => KeyPerformanceIndicators?
             .Count(k => k.Status == Common.Enums.KpiStatusEnum.OnTarget) ?? 0;
 
         /// <summary>
         /// Count of KPIs below target (red/amber).
         /// </summary>
-        public int BelowTargetKpiCount => _kpis?
+        public int BelowTargetKpiCount => KeyPerformanceIndicators?
             .Count(k => k.Status != Common.Enums.KpiStatusEnum.OnTarget) ?? 0;
 
         /// <summary>
@@ -1289,7 +1283,7 @@ namespace Tracker.ViewModels
         /// </summary>
         private void ApplyKpiFilters()
         {
-            var filtered = _kpis?.AsEnumerable() ?? Enumerable.Empty<KeyPerformanceIndicator>();
+            var filtered = KeyPerformanceIndicators?.AsEnumerable() ?? Enumerable.Empty<KeyPerformanceIndicator>();
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(KpiSearchText))
@@ -1375,7 +1369,7 @@ namespace Tracker.ViewModels
         /// </summary>
         private void ApplyFeedbackFilters()
         {
-            var filtered = _feedbacks?.AsEnumerable() ?? Enumerable.Empty<Feedback>();
+            var filtered = Feedbacks?.AsEnumerable() ?? Enumerable.Empty<Feedback>();
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(FeedbackSearchText))
@@ -1432,8 +1426,8 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Filtered goals based on search and member filter.
         /// </summary>
-        private ObservableCollection<IndividualGoal> _filteredGoals = new();
-        public ObservableCollection<IndividualGoal> FilteredGoals
+        private ObservableCollection<DevelopmentGoal> _filteredGoals = new();
+        public ObservableCollection<DevelopmentGoal> FilteredGoals
         {
             get => _filteredGoals;
             set
@@ -1448,7 +1442,7 @@ namespace Tracker.ViewModels
         /// </summary>
         private void ApplyGoalFilters()
         {
-            var filtered = _goals?.AsEnumerable() ?? Enumerable.Empty<IndividualGoal>();
+            var filtered = Goals?.AsEnumerable() ?? Enumerable.Empty<DevelopmentGoal>();
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(GoalSearchText))
@@ -1465,7 +1459,7 @@ namespace Tracker.ViewModels
                 filtered = filtered.Where(g => g.TeamMemberId == SelectedGoalFilterMember.Id);
             }
 
-            FilteredGoals = new ObservableCollection<IndividualGoal>(filtered.ToList());
+            FilteredGoals = new ObservableCollection<DevelopmentGoal>(filtered.ToList());
         }
 
         #endregion
@@ -1570,7 +1564,7 @@ namespace Tracker.ViewModels
             }
         }
 
-        public IndividualGoal? SelectedGoal
+        public DevelopmentGoal? SelectedGoal
         {
             get => _selectedGoal;
             set
@@ -1615,10 +1609,10 @@ namespace Tracker.ViewModels
         {
             get
             {
-                if (_selectedMemberForMeetings == null || _oneOnOnes == null)
+                if (_selectedMemberForMeetings == null || OneOnOnes == null || OneOnOnes.Count == 0)
                     return Enumerable.Empty<OneOnOne>();
 
-                var meetings = _oneOnOnes.Where(o => o.TeamMember?.Id == _selectedMemberForMeetings.Id);
+                var meetings = OneOnOnes.Where(o => o.TeamMember?.Id == _selectedMemberForMeetings.Id);
 
                 // Apply time filter
                 var today = DateTime.Today;
@@ -1650,34 +1644,17 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Refreshes all data from the database and updates the UI.
         /// Can be called externally to refresh the UI after data changes.
+        /// Data is sourced from TrackerDataManager - we just ensure it's loaded and raise notifications.
         /// </summary>
         public async Task RefreshAllDataAsync()
         {
-            // Load data from database in parallel
-            var teamTask = TrackerDataManager.Instance.GetTeamData();
-            var oneOnOnesTask = TrackerDataManager.Instance.GetOneOnOnes();
-            var tasksTask = TrackerDataManager.Instance.GetTasks();
-            var kpisTask = TrackerDataManager.Instance.GetKPIs();
-            var okrsTask = TrackerDataManager.Instance.GetOKRs();
-            var projectsTask = TrackerDataManager.Instance.GetProjects();
-            var feedbacksTask = TrackerDataManager.Instance.GetFeedbacks();
-            var goalsTask = TrackerDataManager.Instance.GetGoals();
+            // Ensure data is loaded in TrackerDataManager (single source of truth)
+            await TrackerDataManager.Instance.RefreshAllDataAsync().ConfigureAwait(false);
 
-            await Task.WhenAll(teamTask, oneOnOnesTask, tasksTask, kpisTask, okrsTask, projectsTask, feedbacksTask, goalsTask).ConfigureAwait(false);
-
-            var team = await teamTask.ConfigureAwait(false);
-            var oneOnOnes = await oneOnOnesTask.ConfigureAwait(false);
-            var tasks = await tasksTask.ConfigureAwait(false);
-            var kpis = await kpisTask.ConfigureAwait(false);
-            var okrs = await okrsTask.ConfigureAwait(false);
-            var projects = await projectsTask.ConfigureAwait(false);
-            var feedbacks = await feedbacksTask.ConfigureAwait(false);
-            var goals = await goalsTask.ConfigureAwait(false);
-
-            // Update collections on UI thread
+            // Update UI on dispatcher thread
             await App.Current.Dispatcher.InvokeAsync(() =>
             {
-                UpdateAllCollections(team, oneOnOnes, tasks, kpis, okrs, projects, feedbacks, goals);
+                RefreshAllPropertyNotifications();
             });
 
             // Load presence and photos from Microsoft 365 (fire and forget)
@@ -1685,30 +1662,12 @@ namespace Tracker.ViewModels
         }
 
         /// <summary>
-        /// Updates all collections with new data and raises property changed notifications.
+        /// Raises property changed notifications for all collections and statistics.
         /// Must be called on the UI thread.
         /// </summary>
-        private void UpdateAllCollections(
-            IEnumerable<TeamMember> team,
-            IEnumerable<OneOnOne> oneOnOnes,
-            IEnumerable<ITask> tasks,
-            IEnumerable<KeyPerformanceIndicator> kpis,
-            IEnumerable<ObjectiveKeyResult> okrs,
-            IEnumerable<Project> projects,
-            IEnumerable<Feedback> feedbacks,
-            IEnumerable<IndividualGoal> goals)
+        private void RefreshAllPropertyNotifications()
         {
-            // Update collections
-            _teamMembers = new ObservableCollection<TeamMember>(team);
-            _oneOnOnes = new ObservableCollection<OneOnOne>(oneOnOnes);
-            _tasks = new ObservableCollection<ITask>(tasks);
-            _kpis = new ObservableCollection<KeyPerformanceIndicator>(kpis);
-            _okrs = new ObservableCollection<ObjectiveKeyResult>(okrs);
-            _projects = new ObservableCollection<Project>(projects);
-            _feedbacks = new ObservableCollection<Feedback>(feedbacks);
-            _goals = new ObservableCollection<IndividualGoal>(goals);
-
-            // Raise property changed notifications
+            // Raise property changed for collections (they reference TrackerDataManager)
             RaisePropertyChanged(nameof(TeamMembers));
             RaisePropertyChanged(nameof(OneOnOnes));
             RaisePropertyChanged(nameof(Tasks));
@@ -1745,7 +1704,7 @@ namespace Tracker.ViewModels
             if (!Services.Microsoft365.MicrosoftGraphAuthService.Instance.IsAuthenticated)
                 return;
 
-            var teamMembersWithEmail = _teamMembers.Where(t => !string.IsNullOrEmpty(t.Email)).ToList();
+            var teamMembersWithEmail = TeamMembers.Where(t => !string.IsNullOrEmpty(t.Email)).ToList();
             if (!teamMembersWithEmail.Any())
                 return;
 
@@ -1809,31 +1768,23 @@ namespace Tracker.ViewModels
                 return;
             }
 
+            // Data is now sourced from TrackerDataManager - just ensure it's refreshed and raise notifications
             switch (changedProperty)
             {
                 case PropertyChangedEnum.TeamMembers:
-                    var team = await TrackerDataManager.Instance.GetTeamData().ConfigureAwait(false);
+                    await TrackerDataManager.Instance.RefreshTeamMembersAsync().ConfigureAwait(false);
                     await App.Current.Dispatcher.InvokeAsync(() =>
                     {
                         SelectedTeamMemberWrapper = null;
-                        _teamMembers.Clear();
-                        foreach (var member in team)
-                        {
-                            _teamMembers.Add(member);
-                        }
-                        // Refresh stats after team data changes
+                        RaisePropertyChanged(nameof(TeamMembers));
                         RefreshTeamStatistics();
                     });
                     break;
                 case PropertyChangedEnum.OneOnOnes:
-                    var oneOnOnes = await TrackerDataManager.Instance.GetOneOnOnes().ConfigureAwait(false);
+                    await TrackerDataManager.Instance.RefreshOneOnOnesAsync().ConfigureAwait(false);
                     await App.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        _oneOnOnes.Clear();
-                        foreach (var meeting in oneOnOnes)
-                        {
-                            _oneOnOnes.Add(meeting);
-                        }
+                        RaisePropertyChanged(nameof(OneOnOnes));
                         if (_selectedTeamMemberWrapper != null)
                         {
                             SetTeamMemberOneOnOneCollection();
@@ -1841,47 +1792,34 @@ namespace Tracker.ViewModels
                     });
                     break;
                 case PropertyChangedEnum.Tasks:
-                    var tasks = await TrackerDataManager.Instance.GetTasks().ConfigureAwait(false);
+                    await TrackerDataManager.Instance.RefreshTasksAsync().ConfigureAwait(false);
                     await App.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        _tasks.Clear();
-                        foreach (var task in tasks.Cast<ITask>())
-                        {
-                            _tasks.Add(task);
-                        }
+                        RaisePropertyChanged(nameof(Tasks));
+                        ApplyTaskFilters();
                     });
                     break;
                 case PropertyChangedEnum.Projects:
-                    var projects = await TrackerDataManager.Instance.GetProjects().ConfigureAwait(false);
+                    await TrackerDataManager.Instance.RefreshProjectsAsync().ConfigureAwait(false);
                     await App.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        _projects.Clear();
-                        foreach (var project in projects)
-                        {
-                            _projects.Add(project);
-                        }
+                        RaisePropertyChanged(nameof(Projects));
+                        ApplyProjectFilters();
                     });
                     break;
                 case PropertyChangedEnum.OKRs:
-                    var okrs = await TrackerDataManager.Instance.GetOKRs().ConfigureAwait(false);
+                    await TrackerDataManager.Instance.RefreshOKRsAsync().ConfigureAwait(false);
                     await App.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        _okrs.Clear();
-                        foreach (var okr in okrs)
-                        {
-                            _okrs.Add(okr);
-                        }
+                        RaisePropertyChanged(nameof(ObjectiveKeyResults));
                     });
                     break;
                 case PropertyChangedEnum.KPIs:
-                    var kpis = await TrackerDataManager.Instance.GetKPIs().ConfigureAwait(false);
+                    await TrackerDataManager.Instance.RefreshKPIsAsync().ConfigureAwait(false);
                     await App.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        _kpis.Clear();
-                        foreach (var kpi in kpis)
-                        {
-                            _kpis.Add(kpi);
-                        }
+                        RaisePropertyChanged(nameof(KeyPerformanceIndicators));
+                        ApplyKpiFilters();
                     });
                     break;
             }
@@ -1965,7 +1903,7 @@ namespace Tracker.ViewModels
         private void SetTeamMemberOneOnOneCollection()
         {
             _selectedTeamMemberOneOnOneCollection.Clear();
-            foreach (var meeting in _oneOnOnes.Where(x => _teamMember != null && x.TeamMember.Id == _teamMember.Id))
+            foreach (var meeting in OneOnOnes.Where(x => _teamMember != null && x.TeamMember.Id == _teamMember.Id))
             {
                 _selectedTeamMemberOneOnOneCollection.Add(meeting);
             }
@@ -2041,15 +1979,18 @@ namespace Tracker.ViewModels
             if (result != MessageBoxResult.Yes)
                 return;
 
-            // Remove from local collection (database delete would go here when implemented)
-            var taskToRemove = _tasks.FirstOrDefault(t => t.Id == task.Id);
-            if (taskToRemove != null)
+            // Delete via TrackerDataManager (handles DB delete + refresh all)
+            var success = await TrackerDataManager.Instance.DeleteTask(task.Id);
+            
+            if (success)
             {
-                _tasks.Remove(taskToRemove);
+                if (_selectedTask?.Id == task.Id) SelectedTask = null;
                 NotificationManager.Instance.ShowSuccess("Deleted", "Task has been removed.");
-                RaisePropertyChanged(nameof(Tasks));
             }
-            await Task.CompletedTask;
+            else
+            {
+                NotificationManager.Instance.ShowError("Error", "Failed to delete task.");
+            }
         }
 
         #endregion
@@ -2099,9 +2040,9 @@ namespace Tracker.ViewModels
             
             if (success)
             {
-                _projects.Remove(project);
+                // Data is automatically refreshed by TrackerDataManager
+                if (_selectedProject == project) SelectedProject = null;
                 NotificationManager.Instance.ShowSuccess("Deleted", $"Project \"{project.Name}\" has been removed.");
-                RaisePropertyChanged(nameof(Projects));
             }
             else
             {
@@ -2151,11 +2092,18 @@ namespace Tracker.ViewModels
             if (result != MessageBoxResult.Yes)
                 return;
 
-            // Remove from local collection
-            _okrs.Remove(okr);
-            NotificationManager.Instance.ShowSuccess("Deleted", "OKR has been removed.");
-            RaisePropertyChanged(nameof(ObjectiveKeyResults));
-            await Task.CompletedTask;
+            // Delete via TrackerDataManager (handles DB delete + refresh all)
+            var success = await TrackerDataManager.Instance.DeleteOKR(okr.ObjectiveId);
+            
+            if (success)
+            {
+                if (_selectedOkr?.ObjectiveId == okr.ObjectiveId) SelectedOkr = null;
+                NotificationManager.Instance.ShowSuccess("Deleted", "OKR has been removed.");
+            }
+            else
+            {
+                NotificationManager.Instance.ShowError("Error", "Failed to delete OKR.");
+            }
         }
 
         #endregion
@@ -2200,11 +2148,18 @@ namespace Tracker.ViewModels
             if (result != MessageBoxResult.Yes)
                 return;
 
-            // Remove from local collection
-            _kpis.Remove(kpi);
-            NotificationManager.Instance.ShowSuccess("Deleted", "KPI has been removed.");
-            RaisePropertyChanged(nameof(KeyPerformanceIndicators));
-            await Task.CompletedTask;
+            // Delete via TrackerDataManager (handles DB delete + refresh all)
+            var success = await TrackerDataManager.Instance.DeleteKPI(kpi.KpiId);
+            
+            if (success)
+            {
+                if (_selectedKpi?.KpiId == kpi.KpiId) SelectedKpi = null;
+                NotificationManager.Instance.ShowSuccess("Deleted", "KPI has been removed.");
+            }
+            else
+            {
+                NotificationManager.Instance.ShowError("Error", "Failed to delete KPI.");
+            }
         }
 
         #endregion
@@ -2254,10 +2209,8 @@ namespace Tracker.ViewModels
             
             if (success)
             {
-                _oneOnOnes.Remove(oneOnOne);
-                _selectedTeamMemberOneOnOneCollection.Remove(oneOnOne);
+                if (_selectedOneOnOne?.Id == oneOnOne.Id) SelectedOneOnOne = null;
                 NotificationManager.Instance.ShowSuccess("Deleted", "1:1 meeting has been removed.");
-                RaisePropertyChanged(nameof(OneOnOnes));
             }
             else
             {

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
@@ -123,7 +123,7 @@ namespace Tracker.ViewModels.DialogViewModels
             LoadTemplates();
             
             // Initialize search text if team member already selected
-            if (_data?.TeamMember != null && _data.TeamMember.Id > 0)
+            if (_data?.TeamMember != null && _data.TeamMember.Id != Guid.Empty)
             {
                 _teamMemberSearchText = _data.TeamMember.FullName;
             }
@@ -947,7 +947,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanExecuteAddOneOnOne(object? obj)
         {
-            if (_data.TeamMember == null || _data.TeamMember.Id == 0) return false;
+            if (_data.TeamMember == null || _data.TeamMember.Id == Guid.Empty) return false;
             return !string.IsNullOrEmpty(Description);
         }
 
@@ -1064,7 +1064,8 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var members = await TrackerDbManager.Instance.GetTeamMembersAsync();
+                // Use TrackerDataManager as single source of truth
+                var members = await TrackerDataManager.Instance.GetTeamData();
                 _allTeamMembers.Clear();
                 _filteredTeamMembers.Clear();
                 
@@ -1085,7 +1086,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private async void LoadPreviousMeetingAndUncompletedTasks()
         {
-            if (_data?.TeamMember?.Id == null || _data.TeamMember.Id == 0) return;
+            if (_data?.TeamMember?.Id == null || _data.TeamMember.Id == Guid.Empty) return;
 
             try
             {

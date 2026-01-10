@@ -23,14 +23,21 @@ namespace Tracker.Services
         public Task<decimal> GetProgressAsync(IMeasurable measurable)
         {
             // Progress is computed directly on the entity
-            return Task.FromResult(measurable.Progress);
+            return Task.FromResult(measurable.CurrentProgress);
         }
 
         /// <inheritdoc />
         public Task<string> GetDisplayValueAsync(IMeasurable measurable)
         {
-            // DisplayValue is computed directly on the entity
-            return Task.FromResult(measurable.DisplayValue);
+            // DisplayValue is computed directly on the entity - access via concrete type
+            var displayValue = measurable switch
+            {
+                KeyPerformanceIndicator kpi => kpi.DisplayValue,
+                Project project => project.DisplayValue,
+                TaskCollection tc => tc.DisplayValue,
+                _ => string.Empty
+            };
+            return Task.FromResult(displayValue);
         }
 
         /// <inheritdoc />
@@ -48,8 +55,14 @@ namespace Tracker.Services
                 if (resolved != null)
                 {
                     measurable.DisplayName = resolved.DisplayName;
-                    measurable.CurrentProgress = resolved.Progress;
-                    measurable.CurrentDisplayValue = resolved.DisplayValue;
+                    measurable.CurrentProgress = resolved.CurrentProgress;
+                    measurable.CurrentDisplayValue = resolved switch
+                    {
+                        KeyPerformanceIndicator kpi => kpi.DisplayValue,
+                        Project project => project.DisplayValue,
+                        TaskCollection tc => tc.DisplayValue,
+                        _ => string.Empty
+                    };
                 }
             }
 
@@ -61,7 +74,7 @@ namespace Tracker.Services
         {
             return measurableLink.MeasurableType switch
             {
-                MeasurableType.Kpi => await GetKpiAsync(measurableLink.MeasurableId),
+                MeasurableType.Metric => await GetKpiAsync(measurableLink.MeasurableId),
                 MeasurableType.Project => await GetProjectAsync(measurableLink.MeasurableId),
                 MeasurableType.TaskCollection => await GetTaskCollectionAsync(measurableLink.MeasurableId),
                 _ => null
@@ -92,7 +105,7 @@ namespace Tracker.Services
         {
             return type switch
             {
-                MeasurableType.Kpi => (await _context.KeyPerformanceIndicators
+                MeasurableType.Metric => (await _context.KeyPerformanceIndicators
                     .Where(k => !k.IsDeleted)
                     .OrderBy(k => k.Name)
                     .ToListAsync())

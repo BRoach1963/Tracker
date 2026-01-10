@@ -314,8 +314,8 @@ Be concise and helpful. Reference the user's actual data when relevant.";
                         if (member.HireDate != default && member.HireDate != DateTime.MinValue)
                             details.Add($"Hired: {member.HireDate:MMM d, yyyy}");
                         
-                        if (member.BirthDay != default && member.BirthDay != DateTime.MinValue)
-                            details.Add($"Birthday: {member.BirthDay:MMM d}");
+                        if (member.Birthday.HasValue && member.Birthday.Value != DateTime.MinValue)
+                            details.Add($"Birthday: {member.Birthday.Value:MMM d}");
                         
                         if (!string.IsNullOrEmpty(member.Email))
                             details.Add($"Email: {member.Email}");

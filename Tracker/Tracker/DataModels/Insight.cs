@@ -69,9 +69,14 @@ namespace Tracker.DataModels
         public string? EntityType { get; set; }
 
         /// <summary>
-        /// The ID of the related entity for deep-linking.
+        /// The ID of the related entity for deep-linking (for non-TeamMember entities with int IDs).
         /// </summary>
         public int? EntityId { get; set; }
+
+        /// <summary>
+        /// The Guid ID of the related TeamMember entity (for TeamMember insights).
+        /// </summary>
+        public Guid? TeamMemberEntityId { get; set; }
 
         /// <summary>
         /// Checks if the insight is still active (not dismissed).

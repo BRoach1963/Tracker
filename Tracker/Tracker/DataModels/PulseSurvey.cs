@@ -163,7 +163,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// The team member who responded (null if anonymous).
         /// </summary>
-        public int? TeamMemberId { get; set; }
+        public Guid? TeamMemberId { get; set; }
         public TeamMember? TeamMember { get; set; }
 
         /// <summary>

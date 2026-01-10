@@ -14,7 +14,14 @@ namespace Tracker.Services
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Icon { get; set; } = string.Empty;
+        /// <summary>
+        /// Entity ID for non-TeamMember entities (int-based IDs).
+        /// </summary>
         public int EntityId { get; set; }
+        /// <summary>
+        /// Entity ID for TeamMember entities (Guid-based ID).
+        /// </summary>
+        public Guid? GuidEntityId { get; set; }
         public DateTime? Date { get; set; }
         public object? Entity { get; set; }
     }
@@ -185,7 +192,7 @@ namespace Tracker.Services
                     Title = $"{m.FirstName} {m.LastName}",
                     Description = m.JobTitle,
                     Icon = "👤",
-                    EntityId = m.Id,
+                    GuidEntityId = m.Id,
                     Entity = m
                 });
             }
@@ -355,7 +362,7 @@ namespace Tracker.Services
                     Title = g.Title,
                     Description = $"{member?.FirstName ?? "Unknown"}'s goal - {g.Category}",
                     Icon = "🏆",
-                    EntityId = g.Id,
+                    GuidEntityId = g.Id,
                     Date = g.TargetDate,
                     Entity = g
                 });

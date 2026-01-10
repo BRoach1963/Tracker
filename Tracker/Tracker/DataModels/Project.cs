@@ -89,9 +89,15 @@ namespace Tracker.DataModels
         #region IMeasurable Implementation
 
         /// <summary>
-        /// IMeasurable.MeasurableId - returns the project ID.
+        /// IMeasurable.GuidId - returns Guid.Empty (legacy, will be updated later).
         /// </summary>
-        public int MeasurableId => ID;
+        Guid IMeasurable.GuidId => Guid.Empty;
+
+        /// <summary>
+        /// IMeasurable.Id - returns the project ID.
+        /// </summary>
+        [Obsolete("Use GuidId instead")]
+        int IMeasurable.Id => ID;
 
         /// <summary>
         /// IMeasurable.DisplayName - returns the project name.
@@ -99,7 +105,17 @@ namespace Tracker.DataModels
         public string DisplayName => Name;
 
         /// <summary>
-        /// IMeasurable.Progress - percentage of completed tasks.
+        /// IMeasurable.CurrentProgress - percentage of completed tasks.
+        /// </summary>
+        decimal IMeasurable.CurrentProgress => Progress;
+
+        /// <summary>
+        /// Legacy MeasurableId for backwards compatibility.
+        /// </summary>
+        public int MeasurableId => ID;
+
+        /// <summary>
+        /// Progress - percentage of completed tasks (0-100).
         /// </summary>
         public decimal Progress
         {
@@ -112,7 +128,7 @@ namespace Tracker.DataModels
         }
 
         /// <summary>
-        /// IMeasurable.DisplayValue - shows completed/total tasks.
+        /// DisplayValue - shows completed/total tasks.
         /// </summary>
         public string DisplayValue
         {
@@ -125,7 +141,7 @@ namespace Tracker.DataModels
         }
 
         /// <summary>
-        /// IMeasurable.MeasurableType - always Project.
+        /// MeasurableType - always Project.
         /// </summary>
         public MeasurableType MeasurableType => MeasurableType.Project;
 

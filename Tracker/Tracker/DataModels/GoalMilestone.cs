@@ -1,38 +1,46 @@
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// A milestone within an individual goal.
-    /// Helps track incremental progress toward the goal.
+    /// A milestone within a Goal.
+    /// Maps to Supabase 'goal_milestones' table.
     /// </summary>
     public class GoalMilestone : AuditableEntity
     {
-        public int Id { get; set; }
+        /// <summary>
+        /// Primary key (UUID).
+        /// </summary>
+        public Guid Id { get; set; }
 
         /// <summary>
-        /// The organization this milestone belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
+        /// Parent goal this milestone belongs to.
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid GoalId { get; set; }
+        public Goal? Goal { get; set; }
 
         /// <summary>
-        /// The goal this milestone belongs to.
+        /// Milestone title.
         /// </summary>
-        public int GoalId { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         /// <summary>
-        /// Description of the milestone.
+        /// Detailed description.
         /// </summary>
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         /// <summary>
-        /// Whether the milestone is completed.
+        /// Target date for this milestone.
         /// </summary>
-        public bool IsCompleted { get; set; }
+        public DateTime TargetDate { get; set; }
 
         /// <summary>
         /// When the milestone was completed.
         /// </summary>
         public DateTime? CompletedDate { get; set; }
+
+        /// <summary>
+        /// Whether the milestone is completed.
+        /// </summary>
+        public bool IsCompleted { get; set; }
 
         /// <summary>
         /// Sort order for display.

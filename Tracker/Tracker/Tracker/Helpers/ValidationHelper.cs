@@ -90,7 +90,7 @@ namespace Tracker.Helpers
 
         private static void ValidateOneOnOne(OneOnOne oneOnOne, List<ValidationResult> results)
         {
-            if (oneOnOne.TeamMember == null || oneOnOne.TeamMember.Id <= 0)
+            if (oneOnOne.TeamMember == null || oneOnOne.TeamMember.Id == Guid.Empty)
                 results.Add(new ValidationResult("Team member is required", new[] { nameof(oneOnOne.TeamMember) }));
 
             if (oneOnOne.Duration <= TimeSpan.Zero)
@@ -126,7 +126,7 @@ namespace Tracker.Helpers
             if (string.IsNullOrWhiteSpace(feedback.Content))
                 results.Add(new ValidationResult("Content is required", new[] { nameof(feedback.Content) }));
 
-            if (feedback.TeamMemberId <= 0)
+            if (feedback.TeamMemberId == Guid.Empty)
                 results.Add(new ValidationResult("Team member is required", new[] { nameof(feedback.TeamMemberId) }));
         }
 
@@ -135,7 +135,7 @@ namespace Tracker.Helpers
             if (string.IsNullOrWhiteSpace(goal.Title))
                 results.Add(new ValidationResult("Title is required", new[] { nameof(goal.Title) }));
 
-            if (goal.TeamMemberId <= 0)
+            if (goal.TeamMemberId == Guid.Empty)
                 results.Add(new ValidationResult("Team member is required", new[] { nameof(goal.TeamMemberId) }));
 
             if (goal.ProgressPercent < 0 || goal.ProgressPercent > 100)

@@ -154,12 +154,7 @@ namespace Tracker.Database
                     await _context.Database.EnsureCreatedAsync();
                 }
 
-                // Seed sample data if requested
-                if (seedSampleData)
-                {
-                    await DatabaseSeeder.SeedSampleDataAsync(_context);
-                    _logger.Info("Sample data seeded to database");
-                }
+                // Note: Seed data is now managed via Supabase SQL scripts, not in-app seeding
 
                 _isInitialized = true;
                 
@@ -182,22 +177,13 @@ namespace Tracker.Database
 
         /// <summary>
         /// Clears all data from the database.
+        /// Note: This is now a no-op. Data is managed via Supabase.
         /// </summary>
         public async Task<bool> ClearAllDataAsync()
         {
-            if (_context == null) return false;
-
-            try
-            {
-                await DatabaseSeeder.ClearAllDataAsync(_context);
-                _logger.Info("All data cleared from database");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Failed to clear database data");
-                return false;
-            }
+            _logger.Warn("ClearAllDataAsync called but is now a no-op - data is managed via Supabase");
+            await Task.CompletedTask;
+            return false;
         }
 
         /// <summary>
@@ -221,65 +207,14 @@ namespace Tracker.Database
 
         /// <summary>
         /// Seeds sample data into the database.
+        /// Note: This is now a no-op. Data is managed via Supabase SQL scripts.
         /// </summary>
-        /// <param name="forceReseed">If true, clears existing data before seeding. If false, only seeds if database is empty.</param>
+        /// <param name="forceReseed">Ignored - seeding is now done via Supabase</param>
         public async Task<bool> SeedSampleDataAsync(bool forceReseed = false)
         {
-            if (_context == null) return false;
-
-            try
-            {
-                // Ensure schema is up to date before seeding (check for Phase 1 tables)
-                bool schemaOutdated = false;
-                try
-                {
-                    _ = await _context.OneOnOneLinkedTasks.AnyAsync();
-                    _ = await _context.OneOnOneLinkedOkrs.AnyAsync();
-                    _ = await _context.OneOnOneLinkedKpis.AnyAsync();
-                }
-                catch
-                {
-                    schemaOutdated = true;
-                }
-
-                if (schemaOutdated)
-                {
-                    _logger.Info("Database schema outdated - recreating database with Phase 1 tables before seeding");
-                    await _context.Database.EnsureDeletedAsync();
-                    await _context.Database.EnsureCreatedAsync();
-                }
-                else if (forceReseed)
-                {
-                    // Force reseed - recreate database to ensure schema matches current configuration
-                    // This is necessary because foreign key configurations may have changed
-                    _logger.Info("Force reseed requested - recreating database to ensure schema matches current configuration");
-                    await _context.Database.EnsureDeletedAsync();
-                    await _context.Database.EnsureCreatedAsync();
-                }
-                else
-                {
-                    // Ensure all tables exist (creates missing tables if any)
-                    await _context.Database.EnsureCreatedAsync();
-                }
-
-                var seeded = await DatabaseSeeder.SeedSampleDataAsync(_context, forceReseed);
-                if (seeded)
-                {
-                    _logger.Info("Sample data seeded to database (forceReseed={0})", forceReseed);
-                    return true;
-                }
-                else
-                {
-                    _logger.Warn("Sample data seeding skipped - database already contains data and forceReseed=false");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Failed to seed sample data: {0}", ex.Message);
-                // Re-throw with more context
-                throw;
-            }
+            _logger.Warn("SeedSampleDataAsync called but is now a no-op - data is managed via Supabase SQL scripts");
+            await Task.CompletedTask;
+            return false;
         }
 
         /// <summary>
@@ -836,7 +771,7 @@ namespace Tracker.Database
         /// <summary>
         /// Populates team member stats using parallel queries (for SQLite/SQL Server).
         /// </summary>
-        private async Task PopulateTeamMemberStatsParallelAsync(List<TeamMember> teamMembers, List<int> teamMemberIds, DateTime today)
+        private async Task PopulateTeamMemberStatsParallelAsync(List<TeamMember> teamMembers, List<Guid> teamMemberIds, DateTime today)
         {
             // Execute all stat queries in parallel for better performance
             // Global filters handle UserId/IsDeleted - we only add business logic filters
@@ -866,11 +801,11 @@ namespace Tracker.Database
                 .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
                 .ToListAsync();
 
-            var goalCountsTask = _context.IndividualGoals
+            var goalCountsTask = _context.DevelopmentGoals
                 .AsNoTracking()
                 .Where(g => teamMemberIds.Contains(g.TeamMemberId) &&
-                            g.Status != GoalStatus.Completed &&
-                            g.Status != GoalStatus.Cancelled)
+                            g.Status != DevelopmentGoalStatus.Completed &&
+                            g.Status != DevelopmentGoalStatus.Cancelled)
                 .GroupBy(g => g.TeamMemberId)
                 .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
                 .ToListAsync();
@@ -892,7 +827,7 @@ namespace Tracker.Database
         /// Populates team member stats using sequential queries (for PostgreSQL).
         /// Uses context factory to create a fresh context per query for true parallelism.
         /// </summary>
-        private async Task PopulateTeamMemberStatsSequentialAsync(List<TeamMember> teamMembers, List<int> teamMemberIds, DateTime today)
+        private async Task PopulateTeamMemberStatsSequentialAsync(List<TeamMember> teamMembers, List<Guid> teamMemberIds, DateTime today)
         {
             // For PostgreSQL, we can run TRUE parallel queries since each uses its own context
             var lastOneOnOnesTask = Task.Run(async () =>
@@ -936,11 +871,11 @@ namespace Tracker.Database
             var goalCountsTask = Task.Run(async () =>
             {
                 using var context = CreateContext();
-                return await context.IndividualGoals
+                return await context.DevelopmentGoals
                     .AsNoTracking()
                     .Where(g => teamMemberIds.Contains(g.TeamMemberId) &&
-                                g.Status != GoalStatus.Completed &&
-                                g.Status != GoalStatus.Cancelled)
+                                g.Status != DevelopmentGoalStatus.Completed &&
+                                g.Status != DevelopmentGoalStatus.Cancelled)
                     .GroupBy(g => g.TeamMemberId)
                     .Select(g => new { TeamMemberId = g.Key, Count = g.Count() })
                     .ToListAsync();
@@ -991,7 +926,7 @@ namespace Tracker.Database
             }
         }
 
-        public async Task<TeamMember?> GetTeamMemberByIdAsync(int id)
+        public async Task<TeamMember?> GetTeamMemberByIdAsync(Guid id)
         {
             if (_context == null) return null;
 
@@ -1015,15 +950,15 @@ namespace Tracker.Database
             }
         }
 
-        public async Task<int> AddTeamMemberAsync(TeamMember teamMember)
+        public async Task<Guid> AddTeamMemberAsync(TeamMember teamMember)
         {
-            if (_context == null) return 0;
+            if (_context == null) return Guid.Empty;
 
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
                 _logger.Error("AddTeamMemberAsync called but CurrentUserId is not set");
-                return 0;
+                return Guid.Empty;
             }
 
             try
@@ -1038,7 +973,7 @@ namespace Tracker.Database
             catch (Exception ex)
             {
                 _logger.Exception(ex, "Error adding team member");
-                return 0;
+                return Guid.Empty;
             }
         }
 
@@ -1070,7 +1005,7 @@ namespace Tracker.Database
             }
         }
 
-        public async Task<bool> DeleteTeamMemberAsync(int id)
+        public async Task<bool> DeleteTeamMemberAsync(Guid id)
         {
             if (_context == null) return false;
 
@@ -1245,7 +1180,7 @@ namespace Tracker.Database
             }
         }
 
-        public async Task<int> AddOneOnOneAsync(OneOnOne oneOnOne, int? teamMemberId = null)
+        public async Task<int> AddOneOnOneAsync(OneOnOne oneOnOne, Guid? teamMemberId = null)
         {
             if (_context == null)
             {
@@ -1300,7 +1235,7 @@ namespace Tracker.Database
                     _context.Entry(oneOnOne).Property("TeamMemberId").CurrentValue = teamMemberId.Value;
                     _logger.Info("AddOneOnOneAsync: Setting TeamMemberId={0}, UserId={1}", teamMemberId.Value, currentUserId.Value);
                 }
-                else if (oneOnOne.TeamMember?.Id > 0)
+                else if (oneOnOne.TeamMember?.Id != Guid.Empty)
                 {
                     _context.Entry(oneOnOne).Property("TeamMemberId").CurrentValue = oneOnOne.TeamMember.Id;
                     _logger.Info("AddOneOnOneAsync: Setting TeamMemberId={0} from navigation, UserId={1}", oneOnOne.TeamMember.Id, currentUserId.Value);
@@ -1375,7 +1310,7 @@ namespace Tracker.Database
         /// Gets the most recent OneOnOne meeting for a specific team member (excluding the current meeting if provided).
         /// Used to show previous meeting summary and rollover uncompleted items.
         /// </summary>
-        public async Task<OneOnOne?> GetPreviousOneOnOneAsync(int teamMemberId, int? excludeOneOnOneId = null)
+        public async Task<OneOnOne?> GetPreviousOneOnOneAsync(Guid teamMemberId, int? excludeOneOnOneId = null)
         {
             if (_context == null) return null;
 
@@ -1415,7 +1350,7 @@ namespace Tracker.Database
         /// Gets all OneOnOne meetings for a specific team member.
         /// Used to show meeting history in the team member view.
         /// </summary>
-        public async Task<List<OneOnOne>> GetMeetingsForTeamMemberAsync(int teamMemberId)
+        public async Task<List<OneOnOne>> GetMeetingsForTeamMemberAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<OneOnOne>();
 
@@ -1502,7 +1437,7 @@ namespace Tracker.Database
         /// Gets all uncompleted MeetingTasks for a specific team member from previous meetings.
         /// Used to rollover unfinished items into the next meeting.
         /// </summary>
-        public async Task<List<OneOnOne>> GetCompletedMeetingsForTeamMemberAsync(int teamMemberId)
+        public async Task<List<OneOnOne>> GetCompletedMeetingsForTeamMemberAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<OneOnOne>();
 
@@ -1616,7 +1551,7 @@ namespace Tracker.Database
                 {
                     meeting.CalendarEventId = externalEventId;
                     meeting.CalendarEventEtag = externalEtag;
-                    meeting.SyncStatus = syncStatus;
+                    meeting.SyncStatus = syncStatus ?? meeting.SyncStatus;
                     meeting.LastSyncedAt = DateTime.UtcNow;
                     
                     _context.OneOnOnes.Update(meeting);
@@ -1634,7 +1569,7 @@ namespace Tracker.Database
         /// Gets all uncompleted MeetingTasks for a specific team member from previous meetings.
         /// Used to rollover unfinished items into the next meeting.
         /// </summary>
-        public async Task<List<MeetingTask>> GetUncompletedMeetingTasksAsync(int teamMemberId)
+        public async Task<List<MeetingTask>> GetUncompletedMeetingTasksAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<MeetingTask>();
 
@@ -2878,7 +2813,7 @@ namespace Tracker.Database
         /// <summary>
         /// Gets all feedback for a specific team member.
         /// </summary>
-        public async Task<List<Feedback>> GetFeedbackForTeamMemberAsync(int teamMemberId)
+        public async Task<List<Feedback>> GetFeedbackForTeamMemberAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<Feedback>();
 
@@ -3019,64 +2954,64 @@ namespace Tracker.Database
 
         #endregion
 
-        #region Individual Goal Operations
+        #region Development Goal Operations
 
         /// <summary>
-        /// Gets all goals for a specific team member.
+        /// Gets all development goals for a specific team member.
         /// </summary>
-        public async Task<List<IndividualGoal>> GetGoalsForTeamMemberAsync(int teamMemberId)
+        public async Task<List<DevelopmentGoal>> GetDevelopmentGoalsForTeamMemberAsync(Guid teamMemberId)
         {
-            if (_context == null) return new List<IndividualGoal>();
+            if (_context == null) return new List<DevelopmentGoal>();
 
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
-                _logger.Warn("GetGoalsForTeamMemberAsync called but CurrentUserId is not set");
-                return new List<IndividualGoal>();
+                _logger.Warn("GetDevelopmentGoalsForTeamMemberAsync called but CurrentUserId is not set");
+                return new List<DevelopmentGoal>();
             }
 
             try
             {
-                return await _context.IndividualGoals
+                return await _context.DevelopmentGoals
                     .Where(g => !g.IsDeleted && EF.Property<int>(g, "UserId") == currentUserId.Value && g.TeamMemberId == teamMemberId)
                     .Include(g => g.TeamMember)
                     .Include(g => g.Milestones.Where(m => !m.IsDeleted))
-                    .OrderByDescending(g => g.Status == GoalStatus.InProgress)
+                    .OrderByDescending(g => g.Status == DevelopmentGoalStatus.Active)
                     .ThenBy(g => g.TargetDate)
                     .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error retrieving goals for team member {0}", teamMemberId);
-                return new List<IndividualGoal>();
+                _logger.Exception(ex, "Error retrieving development goals for team member {0}", teamMemberId);
+                return new List<DevelopmentGoal>();
             }
         }
 
         /// <summary>
-        /// Gets all goals (for reports/dashboard).
+        /// Gets all development goals (for reports/dashboard).
         /// </summary>
-        public async Task<List<IndividualGoal>> GetAllGoalsAsync()
+        public async Task<List<DevelopmentGoal>> GetAllDevelopmentGoalsAsync()
         {
             var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue) return new List<IndividualGoal>();
+            if (!currentUserId.HasValue) return new List<DevelopmentGoal>();
 
             var context = GetReadContext();
-            if (context == null) return new List<IndividualGoal>();
+            if (context == null) return new List<DevelopmentGoal>();
 
             try
             {
-                return await context.IndividualGoals
+                return await context.DevelopmentGoals
                     .Where(g => !g.IsDeleted && EF.Property<int>(g, "UserId") == currentUserId.Value)
                     .Include(g => g.TeamMember)
                     .Include(g => g.Milestones.Where(m => !m.IsDeleted))
-                    .OrderByDescending(g => g.Status == GoalStatus.InProgress)
+                    .OrderByDescending(g => g.Status == DevelopmentGoalStatus.Active)
                     .ThenBy(g => g.TargetDate)
                     .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error retrieving all goals");
-                return new List<IndividualGoal>();
+                _logger.Exception(ex, "Error retrieving all development goals");
+                return new List<DevelopmentGoal>();
             }
             finally
             {
@@ -3085,22 +3020,22 @@ namespace Tracker.Database
         }
 
         /// <summary>
-        /// Adds a new goal.
+        /// Adds a new development goal.
         /// </summary>
-        public async Task<int> AddGoalAsync(IndividualGoal goal)
+        public async Task<Guid> AddDevelopmentGoalAsync(DevelopmentGoal goal)
         {
-            if (_context == null) return 0;
+            if (_context == null) return Guid.Empty;
 
             var currentUserId = GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
-                _logger.Error("AddGoalAsync called but CurrentUserId is not set");
-                return 0;
+                _logger.Error("AddDevelopmentGoalAsync called but CurrentUserId is not set");
+                return Guid.Empty;
             }
 
             try
             {
-                _context.IndividualGoals.Add(goal);
+                _context.DevelopmentGoals.Add(goal);
                 _context.Entry(goal).Property("UserId").CurrentValue = currentUserId.Value;
                 
                 // Set UserId for milestones too
@@ -3110,20 +3045,20 @@ namespace Tracker.Database
                 }
                 
                 await _context.SaveChangesAsync();
-                _logger.Info("Added goal ID: {0}", goal.Id);
+                _logger.Info("Added development goal ID: {0}", goal.Id);
                 return goal.Id;
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error adding goal");
-                return 0;
+                _logger.Exception(ex, "Error adding development goal");
+                return Guid.Empty;
             }
         }
 
         /// <summary>
-        /// Updates an existing goal.
+        /// Updates an existing development goal.
         /// </summary>
-        public async Task<bool> UpdateGoalAsync(IndividualGoal goal)
+        public async Task<bool> UpdateDevelopmentGoalAsync(DevelopmentGoal goal)
         {
             if (_context == null) return false;
 
@@ -3132,74 +3067,74 @@ namespace Tracker.Database
 
             try
             {
-                var existing = await _context.IndividualGoals.FindAsync(goal.Id);
+                var existing = await _context.DevelopmentGoals.FindAsync(goal.Id);
                 if (existing == null)
                 {
-                    _logger.Error("UpdateGoalAsync: Goal ID {0} not found", goal.Id);
+                    _logger.Error("UpdateDevelopmentGoalAsync: Goal ID {0} not found", goal.Id);
                     return false;
                 }
 
                 _context.Entry(existing).CurrentValues.SetValues(goal);
                 
                 // Handle milestones - set UserId for new ones
-                foreach (var milestone in goal.Milestones.Where(m => m.Id == 0))
+                foreach (var milestone in goal.Milestones.Where(m => m.Id == Guid.Empty))
                 {
                     _context.Entry(milestone).Property("UserId").CurrentValue = currentUserId.Value;
                 }
                 
                 await _context.SaveChangesAsync();
-                _logger.Info("Updated goal ID: {0}", goal.Id);
+                _logger.Info("Updated development goal ID: {0}", goal.Id);
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error updating goal ID: {0}", goal.Id);
+                _logger.Exception(ex, "Error updating development goal ID: {0}", goal.Id);
                 return false;
             }
         }
 
         /// <summary>
-        /// Deletes a goal (soft delete).
+        /// Deletes a development goal (soft delete).
         /// </summary>
-        public async Task<bool> DeleteGoalAsync(int id)
+        public async Task<bool> DeleteDevelopmentGoalAsync(Guid id)
         {
             if (_context == null) return false;
 
             try
             {
-                var goal = await _context.IndividualGoals.FindAsync(id);
+                var goal = await _context.DevelopmentGoals.FindAsync(id);
                 if (goal != null)
                 {
-                    _context.IndividualGoals.Remove(goal);
+                    _context.DevelopmentGoals.Remove(goal);
                     await _context.SaveChangesAsync();
-                    _logger.Info("Deleted goal ID: {0}", id);
+                    _logger.Info("Deleted development goal ID: {0}", id);
                     return true;
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error deleting goal ID: {0}", id);
+                _logger.Exception(ex, "Error deleting development goal ID: {0}", id);
                 return false;
             }
         }
 
         /// <summary>
-        /// Updates a goal's progress percentage.
+        /// Updates a development goal's progress percentage.
         /// </summary>
-        public async Task<bool> UpdateGoalProgressAsync(int goalId, int progressPercent)
+        public async Task<bool> UpdateDevelopmentGoalProgressAsync(Guid goalId, int progressPercent)
         {
             if (_context == null) return false;
 
             try
             {
-                var goal = await _context.IndividualGoals.FindAsync(goalId);
+                var goal = await _context.DevelopmentGoals.FindAsync(goalId);
                 if (goal != null)
                 {
                     goal.ProgressPercent = Math.Clamp(progressPercent, 0, 100);
-                    if (goal.ProgressPercent == 100 && goal.Status != GoalStatus.Completed)
+                    if (goal.ProgressPercent == 100 && goal.Status != DevelopmentGoalStatus.Completed)
                     {
-                        goal.Status = GoalStatus.Completed;
+                        goal.Status = DevelopmentGoalStatus.Completed;
                     }
                     await _context.SaveChangesAsync();
                     return true;
@@ -3208,25 +3143,25 @@ namespace Tracker.Database
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error updating goal progress");
+                _logger.Exception(ex, "Error updating development goal progress");
                 return false;
             }
         }
 
         /// <summary>
-        /// Toggles a milestone's completion status.
+        /// Toggles a development goal milestone's completion status.
         /// </summary>
-        public async Task<bool> ToggleMilestoneAsync(int milestoneId)
+        public async Task<bool> ToggleDevelopmentGoalMilestoneAsync(Guid milestoneId)
         {
             if (_context == null) return false;
 
             try
             {
-                var milestone = await _context.GoalMilestones.FindAsync(milestoneId);
+                var milestone = await _context.DevelopmentGoalMilestones.FindAsync(milestoneId);
                 if (milestone != null)
                 {
-                    milestone.IsCompleted = !milestone.IsCompleted;
-                    milestone.CompletedDate = milestone.IsCompleted ? DateTime.Now : null;
+                    milestone.Status = milestone.Status == MilestoneStatus.Completed ? MilestoneStatus.NotStarted : MilestoneStatus.Completed;
+                    milestone.CompletedAt = milestone.Status == MilestoneStatus.Completed ? DateTime.UtcNow : null;
                     await _context.SaveChangesAsync();
                     return true;
                 }
@@ -3234,7 +3169,7 @@ namespace Tracker.Database
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error toggling milestone");
+                _logger.Exception(ex, "Error toggling development goal milestone");
                 return false;
             }
         }
@@ -3819,7 +3754,7 @@ namespace Tracker.Database
         /// <summary>
         /// Gets quick notes for a specific team member.
         /// </summary>
-        public async Task<List<QuickNote>> GetQuickNotesForTeamMemberAsync(int teamMemberId)
+        public async Task<List<QuickNote>> GetQuickNotesForTeamMemberAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<QuickNote>();
 
@@ -4614,7 +4549,7 @@ namespace Tracker.Database
         /// <summary>
         /// Gets all reviews for a team member.
         /// </summary>
-        public async Task<List<PerformanceReview>> GetReviewsForTeamMemberAsync(int teamMemberId)
+        public async Task<List<PerformanceReview>> GetReviewsForTeamMemberAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<PerformanceReview>();
 
@@ -4871,7 +4806,7 @@ namespace Tracker.Database
         /// <summary>
         /// Gets all kudos for a specific team member.
         /// </summary>
-        public async Task<List<Kudos>> GetKudosForTeamMemberAsync(int teamMemberId)
+        public async Task<List<Kudos>> GetKudosForTeamMemberAsync(Guid teamMemberId)
         {
             if (_context == null) return new List<Kudos>();
 
@@ -4893,7 +4828,7 @@ namespace Tracker.Database
         /// <summary>
         /// Gets recent kudos that should be mentioned in meeting prep.
         /// </summary>
-        public async Task<List<Kudos>> GetRecentKudosForMeetingPrepAsync(int teamMemberId, int daysSince = 30)
+        public async Task<List<Kudos>> GetRecentKudosForMeetingPrepAsync(Guid teamMemberId, int daysSince = 30)
         {
             if (_context == null) return new List<Kudos>();
 

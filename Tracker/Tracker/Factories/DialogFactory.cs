@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Syncfusion.Windows.Shared;
 using Tracker.Common.Enums;
 using Tracker.Controls;
@@ -146,7 +146,7 @@ namespace Tracker.Factories
                 case DialogType.AddFeedback:
                     var feedbackVm = dataObject is Feedback existingFeedback
                         ? new FeedbackViewModel(callback, existingFeedback, existingFeedback.TeamMemberId, true)
-                        : new FeedbackViewModel(callback, new Feedback(), 0, false);
+                        : new FeedbackViewModel(callback, new Feedback(), Guid.Empty, false);
                     window = new AddFeedbackDialog(feedbackVm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -155,9 +155,9 @@ namespace Tracker.Factories
                     };
                     return true;
                 case DialogType.AddGoal:
-                    var goalVm = dataObject is IndividualGoal existingGoal
+                    var goalVm = dataObject is DevelopmentGoal existingGoal
                         ? new GoalViewModel(callback, existingGoal, existingGoal.TeamMemberId, true)
-                        : new GoalViewModel(callback, new IndividualGoal(), 0, false);
+                        : new GoalViewModel(callback, new DevelopmentGoal(), Guid.Empty, false);
                     window = new AddGoalDialog(goalVm)
                     {
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,

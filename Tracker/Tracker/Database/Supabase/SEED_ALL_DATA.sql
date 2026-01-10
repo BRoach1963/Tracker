@@ -1,0 +1,77 @@
+-- ============================================================================
+-- TRACKER DATABASE - COMBINED SEED DATA
+-- ============================================================================
+-- Run this script AFTER all schema scripts to populate test data.
+-- 
+-- This combines scripts: 13-18, 24-28
+-- 
+-- INSTRUCTIONS:
+-- 1. Run CREATE_ALL_SCHEMA.sql scripts first
+-- 2. Then run seed scripts in order below
+-- ============================================================================
+
+-- ============================================================================
+-- SEED SCRIPT ORDER (for Supabase SQL Editor - run each individually)
+-- ============================================================================
+--
+-- STEP 1 - CORE SEED DATA (run in order):
+--   13_SEED_ROLES.sql          - System roles (admin, manager, etc.)
+--   14_SEED_TEST_ORG.sql       - Prickly Cactus Software organization
+--   15_SEED_TEST_USERS.sql     - Test users, teams, team members
+--   16_SEED_GOALS_METRICS.sql  - Sample goals and metrics
+--   17_SEED_TASKS_PROJECTS.sql - Sample projects and tasks
+--   18_SEED_MEETINGS_FEEDBACK.sql - Sample meetings, feedback, recognition
+--
+-- STEP 2 - ADDITIONAL SEED DATA (run in order):
+--   24_SEED_REVIEWS.sql        - Performance review templates & data
+--   25_SEED_SURVEYS.sql        - Pulse surveys & responses
+--   26_SEED_DEV_GOALS.sql      - Personal development goals
+--   27_SEED_CALENDAR_REMINDERS.sql - Calendar links & reminders
+--   28_SEED_SNAPSHOTS.sql      - Historical analytics snapshots
+--
+-- ============================================================================
+
+-- ============================================================================
+-- TEST DATA REFERENCE GUIDE
+-- ============================================================================
+-- Organization: Prickly Cactus Software
+--   ID: '11111111-1111-1111-1111-111111111111'
+--
+-- Teams:
+--   Engineering: '00000000-0000-2000-0000-000000000001'
+--   Product:     '00000000-0000-2000-0000-000000000002'
+--
+-- Users (app login accounts):
+--   Sarah Johnson (CEO):    'a0000000-0000-0000-0000-000000000001'
+--   Mark Thompson (CTO):    'a0000000-0000-0000-0000-000000000002'
+--   Emily Chen (VP Eng):    'a0000000-0000-0000-0000-000000000003'
+--   David Kim (Sr Lead):    'a0000000-0000-0000-0000-000000000004'
+--   Jessica Lee (Sr Eng):   'a0000000-0000-0000-0000-000000000005'
+--   Alex Rivera (Eng):      'a0000000-0000-0000-0000-000000000006'
+--   Rachel Park (PM):       'a0000000-0000-0000-0000-000000000007'
+--   Michael Brown (Design): 'a0000000-0000-0000-0000-000000000008'
+--
+-- Team Members (people being tracked):
+--   Emily:   '00000000-0000-1000-0000-000000000003'
+--   David:   '00000000-0000-1000-0000-000000000004'
+--   Jessica: '00000000-0000-1000-0000-000000000005'
+--   Alex:    '00000000-0000-1000-0000-000000000006'
+--   Rachel:  '00000000-0000-1000-0000-000000000007'
+--   Michael: '00000000-0000-1000-0000-000000000008'
+--
+-- Goals:     '00000000-0000-3000-0000-00000000000X'
+-- Targets:   '00000000-0000-4000-0000-00000000000X'
+-- Metrics:   '00000000-0000-5000-0000-00000000000X'
+-- Projects:  '00000000-0000-6000-0000-00000000000X'
+-- Tasks:     '00000000-0000-7000-0000-00000000000X'
+-- Meetings:  '00000000-0000-8000-0000-00000000000X'
+-- Feedback:  '00000000-0000-9000-0000-00000000000X'
+-- Reviews:   '00000000-0000-a000-0000-00000000000X'
+-- Surveys:   '00000000-0000-b000-0000-00000000000X'
+-- Dev Goals: '00000000-0000-c000-0000-00000000000X'
+-- Calendar:  '00000000-0000-d000-0000-00000000000X'
+--
+-- ============================================================================
+
+SELECT 'Seed data order documented. Run scripts individually in Supabase.' AS status;
+SELECT 'Total seed scripts: 11 (13-18 + 24-28)' AS info;

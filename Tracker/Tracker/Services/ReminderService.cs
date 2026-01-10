@@ -270,7 +270,7 @@ namespace Tracker.Services
         /// Creates a custom reminder.
         /// </summary>
         public async Task<int> CreateCustomReminderAsync(string title, string message, DateTime dueDateTime, 
-            int? teamMemberId = null, bool isRecurring = false, int? recurrenceIntervalDays = null)
+            Guid? teamMemberId = null, bool isRecurring = false, int? recurrenceIntervalDays = null)
         {
             try
             {

@@ -414,7 +414,7 @@ namespace Tracker.Services
         {
             public string? Status { get; set; }
             public int? ProjectId { get; set; }
-            public int? AssigneeId { get; set; }
+            public Guid? AssigneeId { get; set; }
             public DateTime? DueBefore { get; set; }
             public DateTime? DueAfter { get; set; }
         }

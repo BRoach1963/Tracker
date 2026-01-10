@@ -39,10 +39,18 @@
     <None Remove="Images\profile.png" />
     <None Remove="Views\TrackerSplash.png" />
     <None Remove="Images\Tracker.ico" />
+    <None Remove="Assets\tracker.ico" />
+    <None Remove="Assets\tracker-icon.png" />
+    <None Remove="Resources\tracer-new.png" />
+    <None Remove="Resources\trackernobg.png" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Images\Tracker.ico" />
+    <Resource Include="Assets\tracker.ico" />
+    <Resource Include="Assets\tracker-icon.png" />
+    <Resource Include="Resources\tracer-new.png" />
+    <Resource Include="Resources\trackernobg.png" />
     <Content Include="Images\Tracker.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

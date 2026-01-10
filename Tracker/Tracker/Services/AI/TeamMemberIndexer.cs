@@ -40,17 +40,17 @@ namespace Tracker.Services.AI
                 if (member.HireDate != default && member.HireDate != DateTime.MinValue)
                     sb.AppendLine($"Hire Date: {member.HireDate:MMMM d, yyyy}");
                 
-                if (member.BirthDay != default && member.BirthDay != DateTime.MinValue)
-                    sb.AppendLine($"Birthday: {member.BirthDay:MMMM d}");
+                if (member.Birthday.HasValue && member.Birthday.Value != DateTime.MinValue)
+                    sb.AppendLine($"Birthday: {member.Birthday.Value:MMMM d}");
                 
                 if (!string.IsNullOrEmpty(member.Email))
                     sb.AppendLine($"Email: {member.Email}");
                 
-                if (!string.IsNullOrEmpty(member.CellPhone))
-                    sb.AppendLine($"Phone: {member.CellPhone}");
+                if (!string.IsNullOrEmpty(member.Phone))
+                    sb.AppendLine($"Phone: {member.Phone}");
                 
-                if (!string.IsNullOrEmpty(member.NickName))
-                    sb.AppendLine($"Nickname: {member.NickName}");
+                if (!string.IsNullOrEmpty(member.Nickname))
+                    sb.AppendLine($"Nickname: {member.Nickname}");
                 
                 sb.AppendLine($"Status: {(member.IsActive ? "Active" : "Inactive")}");
                 

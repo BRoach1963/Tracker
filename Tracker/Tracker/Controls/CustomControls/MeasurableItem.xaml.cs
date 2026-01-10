@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Tracker.DataModels;
 using Tracker.Interfaces;
 
 namespace Tracker.Controls.CustomControls
@@ -185,8 +186,27 @@ namespace Tracker.Controls.CustomControls
             if (d is MeasurableItem item && e.NewValue is IMeasurable measurable)
             {
                 item.DisplayName = measurable.DisplayName;
-                item.DisplayValue = measurable.DisplayValue;
-                item.MeasurableType = measurable.MeasurableType;
+                
+                // Get DisplayValue and MeasurableType from concrete types
+                switch (measurable)
+                {
+                    case KeyPerformanceIndicator kpi:
+                        item.DisplayValue = kpi.DisplayValue;
+                        item.MeasurableType = Interfaces.MeasurableType.Metric;
+                        break;
+                    case Project project:
+                        item.DisplayValue = project.DisplayValue;
+                        item.MeasurableType = Interfaces.MeasurableType.Project;
+                        break;
+                    case TaskCollection tc:
+                        item.DisplayValue = tc.DisplayValue;
+                        item.MeasurableType = Interfaces.MeasurableType.TaskCollection;
+                        break;
+                    default:
+                        item.DisplayValue = string.Empty;
+                        item.MeasurableType = Interfaces.MeasurableType.Metric;
+                        break;
+                }
             }
         }
 
@@ -212,7 +232,7 @@ namespace Tracker.Controls.CustomControls
         {
             switch (MeasurableType)
             {
-                case Interfaces.MeasurableType.Kpi:
+                case Interfaces.MeasurableType.Metric:
                     TypeLabel = "KPI";
                     TypeIconPath = KpiIconPath;
                     TypeIconBackground = KpiBrush;

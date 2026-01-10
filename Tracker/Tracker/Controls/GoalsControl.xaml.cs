@@ -18,7 +18,7 @@ namespace Tracker.Controls
         /// </summary>
         private void GoalItem_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is IndividualGoal goal)
+            if (sender is FrameworkElement fe && fe.Tag is DevelopmentGoal goal)
             {
                 if (DataContext is TrackerMainViewModel vm)
                 {

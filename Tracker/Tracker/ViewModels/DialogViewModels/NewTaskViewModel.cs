@@ -227,7 +227,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
 
             // Set selected owner if editing
-            if (_inEditMode && _data.Owner?.Id > 0)
+            if (_inEditMode && _data.Owner?.Id != Guid.Empty)
             {
                 _selectedOwner = _teamMembers.FirstOrDefault(t => t.Id == _data.Owner.Id);
             }

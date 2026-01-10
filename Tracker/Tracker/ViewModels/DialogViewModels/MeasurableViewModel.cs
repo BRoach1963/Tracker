@@ -29,7 +29,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private ObservableCollection<MeasurableItemWrapper> _availableTaskCollections = new();
 
         private MeasurableItemWrapper? _selectedItem;
-        private Interfaces.MeasurableType _selectedType = Interfaces.MeasurableType.Kpi;
+        private Interfaces.MeasurableType _selectedType = Interfaces.MeasurableType.Metric;
         private AggregationTypeEnum _selectedAggregation = AggregationTypeEnum.Latest;
 
         private ObservableCollection<EnumWrapper<AggregationTypeEnum>> _aggregationTypes = new();
@@ -117,7 +117,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 return SelectedType switch
                 {
-                    Interfaces.MeasurableType.Kpi => _availableKpis,
+                    Interfaces.MeasurableType.Metric => _availableKpis,
                     Interfaces.MeasurableType.Project => _availableProjects,
                     Interfaces.MeasurableType.TaskCollection => _availableTaskCollections,
                     _ => _availableKpis
@@ -178,7 +178,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 _availableKpis.Clear();
                 foreach (var kpi in kpis.Where(k => !k.IsDeleted))
                 {
-                    _availableKpis.Add(new MeasurableItemWrapper(kpi.KpiId, kpi.Name, Interfaces.MeasurableType.Kpi));
+                    _availableKpis.Add(new MeasurableItemWrapper(kpi.KpiId, kpi.Name, Interfaces.MeasurableType.Metric));
                 }
 
                 // Load Projects

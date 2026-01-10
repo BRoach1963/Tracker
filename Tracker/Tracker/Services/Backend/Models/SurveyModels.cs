@@ -121,7 +121,7 @@ namespace Tracker.Services.Backend.Models
 
         [Column("team_member_id")]
         [JsonPropertyName("team_member_id")]
-        public int? TeamMemberId { get; set; }
+        public Guid? TeamMemberId { get; set; }
 
         [Column("expires_at")]
         [JsonPropertyName("expires_at")]

@@ -380,16 +380,22 @@ namespace Tracker.ViewModels
                 note.Category = EditCategory;
                 note.Tags = EditTags?.Trim() ?? string.Empty;
                 
-                // Set linked entity
-                int? linkedEntityId = EditLinkedEntity switch
+                // Set linked entity - handle TeamMember differently since its ID is Guid
+                if (EditLinkedEntity is TeamMember tm)
                 {
-                    TeamMember tm => tm.Id,
-                    Project p => p.ID,
-                    KeyPerformanceIndicator kpi => kpi.KpiId,
-                    ObjectiveKeyResult okr => okr.ObjectiveId,
-                    _ => null
-                };
-                note.SetLinkedEntity(EditLinkedEntityType, linkedEntityId);
+                    note.SetLinkedTeamMember(tm.Id);
+                }
+                else
+                {
+                    int? linkedEntityId = EditLinkedEntity switch
+                    {
+                        Project p => p.ID,
+                        KeyPerformanceIndicator kpi => kpi.KpiId,
+                        ObjectiveKeyResult okr => okr.ObjectiveId,
+                        _ => null
+                    };
+                    note.SetLinkedEntity(EditLinkedEntityType, linkedEntityId);
+                }
 
                 if (IsNewNote)
                 {
@@ -607,9 +613,10 @@ namespace Tracker.ViewModels
             EditLinkedEntityType = note.LinkedEntityType;
             
             // Set the linked entity object
+            // TeamMember uses Guid (TeamMemberId), others use int (LinkedEntityId)
             EditLinkedEntity = note.LinkedEntityType switch
             {
-                NoteLinkedEntityType.TeamMember => _teamMembers.FirstOrDefault(t => t.Id == note.LinkedEntityId),
+                NoteLinkedEntityType.TeamMember => _teamMembers.FirstOrDefault(t => t.Id == note.TeamMemberId),
                 NoteLinkedEntityType.Project => _projects.FirstOrDefault(p => p.ID == note.LinkedEntityId),
                 NoteLinkedEntityType.KPI => _kpis.FirstOrDefault(k => k.KpiId == note.LinkedEntityId),
                 NoteLinkedEntityType.OKR => _okrs.FirstOrDefault(o => o.ObjectiveId == note.LinkedEntityId),

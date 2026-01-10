@@ -74,8 +74,8 @@ namespace Tracker.ViewModels.DialogViewModels
         private Feedback? _selectedFeedback;
 
         // Individual goals
-        private ObservableCollection<IndividualGoal> _goals = new();
-        private IndividualGoal? _selectedGoal;
+        private ObservableCollection<DevelopmentGoal> _goals = new();
+        private DevelopmentGoal? _selectedGoal;
 
         #endregion
 
@@ -87,7 +87,7 @@ namespace Tracker.ViewModels.DialogViewModels
             _data = data;
             if (!_inEditMode)
             {
-                _data.BirthDay = DateTime.Now;
+                _data.Birthday = DateTime.Now;
                 _data.HireDate = DateTime.Now;
             } 
          
@@ -109,7 +109,7 @@ namespace Tracker.ViewModels.DialogViewModels
             SelectedSpeciality = _specialties.FirstOrDefault(x => x.EnumValue == _data.Specialty);
             
             // Load data for existing team members
-            if (_inEditMode && _data.Id > 0)
+            if (_inEditMode && _data.Id != Guid.Empty)
             {
                 LoadMeetingHistory();
                 LoadFeedbackHistory();
@@ -229,9 +229,9 @@ namespace Tracker.ViewModels.DialogViewModels
         public bool HasNoFeedback => _feedbacks.Count == 0;
 
         // Individual Goals Properties
-        public ObservableCollection<IndividualGoal> Goals => _goals;
+        public ObservableCollection<DevelopmentGoal> Goals => _goals;
         
-        public IndividualGoal? SelectedGoal
+        public DevelopmentGoal? SelectedGoal
         {
             get => _selectedGoal;
             set
@@ -242,7 +242,7 @@ namespace Tracker.ViewModels.DialogViewModels
         }
         
         public int GoalCount => _goals.Count;
-        public int ActiveGoalCount => _goals.Count(g => g.Status == GoalStatus.InProgress);
+        public int ActiveGoalCount => _goals.Count(g => g.Status == DevelopmentGoalStatus.Active);
         public bool HasGoals => _goals.Count > 0;
         public bool HasNoGoals => _goals.Count == 0;
 
@@ -306,12 +306,12 @@ namespace Tracker.ViewModels.DialogViewModels
                 UpdateChangedValues(TrackerConstants.TeamMemberJobTitle, value);
             }
         }
-        public string NickName
+        public string Nickname
         {
-            get => _data.NickName;
+            get => _data.Nickname;
             set
             {
-                _data.NickName = value;
+                _data.Nickname = value;
                 RaisePropertyChanged();
                 UpdateChangedValues(TrackerConstants.TeamMemberNickname, value);
             }
@@ -350,12 +350,12 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public string CellPhone
+        public string Phone
         {
-            get => _data.CellPhone;
+            get => _data.Phone;
             set
             {
-                _data.CellPhone = value;
+                _data.Phone = value;
                 RaisePropertyChanged();
                 UpdateChangedValues(TrackerConstants.TeamMemberCell, value);
             }
@@ -363,7 +363,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public string HireDateDisplay
         {
-            get => _data.HireDate == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.HireDate.ToString("MM/dd/yyyy");
+            get => _data.HireDate == null || _data.HireDate == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.HireDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd/yyyy", null, DateTimeStyles.None, out DateTime date))
@@ -375,23 +375,23 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public string BirthDayDisplay
+        public string BirthdayDisplay
         {
-            get => _data.BirthDay == DateTime.MinValue ? "MM/DD" : _data.BirthDay.ToString("MM/dd");
+            get => _data.Birthday == null || _data.Birthday == DateTime.MinValue ? "MM/DD" : _data.Birthday.Value.ToString("MM/dd");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd", null, DateTimeStyles.None, out DateTime date))
                 {
-                    _data.BirthDay = date;
+                    _data.Birthday = date;
                 }
                 RaisePropertyChanged();
-                UpdateChangedValues(TrackerConstants.TeamMemberBirthday, _data.BirthDay);
+                UpdateChangedValues(TrackerConstants.TeamMemberBirthday, _data.Birthday);
             }
         }
 
         public string TerminationDateDisplay
         {
-            get => _data.TerminationDate == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.TerminationDate.ToString("MM/dd/yyyy");
+            get => _data.TerminationDate == null || _data.TerminationDate == new DateTime(1900, 1, 1) ? "MM/DD/YYYY" : _data.TerminationDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParseExact(value, "MM/dd/yyyy", null, DateTimeStyles.None, out DateTime date))
@@ -403,18 +403,18 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public DateTime BirthDay
+        public DateTime? Birthday
         {
-            get => _data.BirthDay;
+            get => _data.Birthday;
             set
             {
-                _data.BirthDay = value;
+                _data.Birthday = value;
                 RaisePropertyChanged();
-                RaisePropertyChanged(nameof(BirthDayDisplay));
+                RaisePropertyChanged(nameof(BirthdayDisplay));
             }
         }
 
-        public DateTime HireDate
+        public DateTime? HireDate
         {
             get => _data.HireDate;
             set
@@ -425,7 +425,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public DateTime TerminationDate
+        public DateTime? TerminationDate
         {
             get => _data.TerminationDate;
             set
@@ -461,14 +461,14 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public string LinkedInProfile
+        public string LinkedInUrl
         {
-            get => _data.LinkedInProfile;
+            get => _data.LinkedInUrl;
             set
             {
-                _data.LinkedInProfile = value;
+                _data.LinkedInUrl = value;
                 RaisePropertyChanged();
-                UpdateChangedValues(TrackerConstants.TeamMemberLinkedInProfile, _data.LinkedInProfile);
+                UpdateChangedValues(TrackerConstants.TeamMemberLinkedInProfile, _data.LinkedInUrl);
             }
         }
 
@@ -557,14 +557,14 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanLaunchLinkedInProfile(object? obj)
         {
-            return !string.IsNullOrEmpty(_data.LinkedInProfile);
+            return !string.IsNullOrEmpty(_data.LinkedInUrl);
         }
 
         private void LaunchLinkedInProfileExecuted(object? obj)
         {
-            if (string.IsNullOrEmpty(_data.LinkedInProfile)) return;
+            if (string.IsNullOrEmpty(_data.LinkedInUrl)) return;
              
-            Process.Start(FormatUrl(_data.LinkedInProfile));
+            Process.Start(FormatUrl(_data.LinkedInUrl));
         }
 
         private ProcessStartInfo FormatUrl(string url)
@@ -677,7 +677,7 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var goals = await TrackerDbManager.Instance.GetGoalsForTeamMemberAsync(_data.Id);
+                var goals = await TrackerDbManager.Instance.GetDevelopmentGoalsForTeamMemberAsync(_data.Id);
                 _goals.Clear();
                 foreach (var goal in goals)
                 {
@@ -824,7 +824,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 
             if (result == System.Windows.MessageBoxResult.OK)
             {
-                var success = await TrackerDbManager.Instance!.DeleteGoalAsync(SelectedGoal.Id);
+                var success = await TrackerDbManager.Instance!.DeleteDevelopmentGoalAsync(SelectedGoal.Id);
                 if (success)
                 {
                     _goals.Remove(SelectedGoal);

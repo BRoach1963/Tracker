@@ -9,8 +9,9 @@ namespace Tracker.Classes
     {
         /// <summary>
         /// The selected application theme.
+        /// Defaults to Light theme for professional appearance.
         /// </summary>
-        public DeepEndTheme Theme { get; set; } = DeepEndTheme.Tracker;
+        public DeepEndTheme Theme { get; set; } = DeepEndTheme.Light;
 
         /// <summary>
         /// Database connection settings.

@@ -101,12 +101,12 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
         private void CheckBirthday(TeamMember member, DateTime today, List<Insight> insights)
         {
-            // Skip if no birthday set (Year < 1901 means not set)
-            if (member.BirthDay.Year < 1901)
+            // Skip if no birthday set
+            if (!member.Birthday.HasValue || member.Birthday.Value.Year < 1901)
                 return;
 
             // Get this year's birthday
-            var thisYearBirthday = new DateTime(today.Year, member.BirthDay.Month, member.BirthDay.Day);
+            var thisYearBirthday = new DateTime(today.Year, member.Birthday.Value.Month, member.Birthday.Value.Day);
 
             // If birthday already passed this year, check next year
             if (thisYearBirthday < today)
@@ -118,7 +118,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             if (daysUntilBirthday <= BirthdayLookAheadDays)
             {
-                var age = thisYearBirthday.Year - member.BirthDay.Year;
+                var age = thisYearBirthday.Year - member.Birthday.Value.Year;
                 var dayText = daysUntilBirthday == 0 ? "today" :
                               daysUntilBirthday == 1 ? "tomorrow" :
                               $"in {daysUntilBirthday} days";
@@ -132,7 +132,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     Description = $"{member.FullName} is turning {age} on {thisYearBirthday:MMMM d}. Consider sending a birthday message or recognition!",
                     ActionSuggestion = "Send Kudos",
                     EntityType = "TeamMember",
-                    EntityId = member.Id,
+                    TeamMemberEntityId = member.Id,
                     GeneratedAt = DateTime.Now
                 });
             }
@@ -140,12 +140,12 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
         private void CheckAnniversary(TeamMember member, DateTime today, List<Insight> insights)
         {
-            // Skip if no hire date set (Year < 1901 means not set)
-            if (member.HireDate.Year < 1901)
+            // Skip if no hire date set
+            if (!member.HireDate.HasValue || member.HireDate.Value.Year < 1901)
                 return;
 
             // Get this year's anniversary
-            var thisYearAnniversary = new DateTime(today.Year, member.HireDate.Month, member.HireDate.Day);
+            var thisYearAnniversary = new DateTime(today.Year, member.HireDate.Value.Month, member.HireDate.Value.Day);
 
             // If anniversary already passed this year, check next year
             if (thisYearAnniversary < today)
@@ -157,7 +157,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             if (daysUntilAnniversary <= AnniversaryLookAheadDays)
             {
-                var yearsAtCompany = thisYearAnniversary.Year - member.HireDate.Year;
+                var yearsAtCompany = thisYearAnniversary.Year - member.HireDate.Value.Year;
                 var dayText = daysUntilAnniversary == 0 ? "today" :
                               daysUntilAnniversary == 1 ? "tomorrow" :
                               $"in {daysUntilAnniversary} days";
@@ -174,7 +174,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     Description = $"{member.FullName} will celebrate {yearsAtCompany} year{(yearsAtCompany != 1 ? "s" : "")} with the company on {thisYearAnniversary:MMMM d}. {(isMilestone ? "This is a milestone worth celebrating!" : "Consider acknowledging their dedication.")}",
                     ActionSuggestion = "Send Kudos",
                     EntityType = "TeamMember",
-                    EntityId = member.Id,
+                    TeamMemberEntityId = member.Id,
                     GeneratedAt = DateTime.Now
                 });
             }

@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Tracker.DataModels
 {
     /// <summary>
@@ -14,57 +17,54 @@ namespace Tracker.DataModels
     /// 
     /// The current manager relationship has EndDate = null.
     /// </summary>
+    [Table("manager_history")]
     public class ManagerHistory : AuditableEntity
     {
         /// <summary>
         /// Primary key - GUID for PostgreSQL compatibility.
         /// </summary>
+        [Column("id")]
         public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>
         /// The organization this history record belongs to.
         /// Required for RLS filtering.
         /// </summary>
+        [Column("organization_id")]
         public Guid OrganizationId { get; set; }
 
         /// <summary>
         /// The team member whose manager assignment is being tracked.
         /// </summary>
-        public int TeamMemberId { get; set; }
+        [Column("team_member_id")]
+        public Guid TeamMemberId { get; set; }
 
         /// <summary>
         /// The manager (user) who was assigned to the team member.
-        /// References User.Id for the local database user.
         /// </summary>
-        public int ManagerUserId { get; set; }
-
-        /// <summary>
-        /// The Supabase/PostgreSQL manager ID (for PostgreSQL databases).
-        /// Null for SQLite/SQL Server local databases.
-        /// </summary>
-        public Guid? ManagerSupabaseId { get; set; }
+        [Column("manager_user_id")]
+        public Guid ManagerUserId { get; set; }
 
         /// <summary>
         /// Date when this manager assignment started.
         /// </summary>
+        [Column("start_date")]
         public DateTime StartDate { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// Date when this manager assignment ended.
         /// Null indicates this is the current manager.
         /// </summary>
+        [Column("end_date")]
         public DateTime? EndDate { get; set; }
 
         /// <summary>
         /// Reason for the manager change.
         /// Examples: "reorg", "promotion", "manager_departure", "initial_assignment", "transfer"
         /// </summary>
-        public string? Reason { get; set; }
-
-        /// <summary>
-        /// Optional notes about the change.
-        /// </summary>
-        public string? Notes { get; set; }
+        [Column("change_reason")]
+        [MaxLength(500)]
+        public string? ChangeReason { get; set; }
 
         #region Navigation Properties
 

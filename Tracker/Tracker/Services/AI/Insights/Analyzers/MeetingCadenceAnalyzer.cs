@@ -144,7 +144,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                 Description = description,
                 ActionSuggestion = action,
                 EntityType = "TeamMember",
-                EntityId = member.Id,
+                TeamMemberEntityId = member.Id,
                 GeneratedAt = DateTime.Now
             };
         }

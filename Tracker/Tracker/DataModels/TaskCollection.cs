@@ -41,9 +41,15 @@ namespace Tracker.DataModels
         #region IMeasurable Implementation
 
         /// <summary>
-        /// IMeasurable.MeasurableId - returns the collection Id.
+        /// IMeasurable.GuidId - returns Guid.Empty (legacy, will be updated later).
         /// </summary>
-        public int MeasurableId => Id;
+        Guid IMeasurable.GuidId => Guid.Empty;
+
+        /// <summary>
+        /// IMeasurable.Id - returns the collection Id.
+        /// </summary>
+        [Obsolete("Use GuidId instead")]
+        int IMeasurable.Id => Id;
 
         /// <summary>
         /// IMeasurable.DisplayName - returns the collection name.
@@ -51,7 +57,17 @@ namespace Tracker.DataModels
         public string DisplayName => Name;
 
         /// <summary>
-        /// IMeasurable.Progress - percentage of completed tasks.
+        /// IMeasurable.CurrentProgress - percentage of completed tasks.
+        /// </summary>
+        decimal IMeasurable.CurrentProgress => Progress;
+
+        /// <summary>
+        /// Legacy MeasurableId for backwards compatibility.
+        /// </summary>
+        public int MeasurableId => Id;
+
+        /// <summary>
+        /// Progress - percentage of completed tasks (0-100).
         /// </summary>
         public decimal Progress
         {
@@ -64,7 +80,7 @@ namespace Tracker.DataModels
         }
 
         /// <summary>
-        /// IMeasurable.DisplayValue - shows completed/total tasks.
+        /// DisplayValue - shows completed/total tasks.
         /// </summary>
         public string DisplayValue
         {
@@ -77,7 +93,7 @@ namespace Tracker.DataModels
         }
 
         /// <summary>
-        /// IMeasurable.MeasurableType - always TaskCollection.
+        /// MeasurableType - always TaskCollection.
         /// </summary>
         public MeasurableType MeasurableType => MeasurableType.TaskCollection;
 

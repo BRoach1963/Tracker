@@ -588,7 +588,7 @@ namespace Tracker.ViewModels
                     {
                         switch (measurable.MeasurableType)
                         {
-                            case MeasurableType.Kpi:
+                            case MeasurableType.Metric:
                                 if (kpis.TryGetValue(measurable.MeasurableId, out var kpi))
                                 {
                                     measurable.DisplayName = kpi.DisplayName;

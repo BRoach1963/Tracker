@@ -62,7 +62,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private List<KeyPerformanceIndicator> _kpis = new();
         private List<Project> _projects = new();
         private List<Feedback> _feedbacks = new();
-        private List<IndividualGoal> _goals = new();
+        private List<DevelopmentGoal> _goals = new();
 
         // Report 1: 1:1 Effectiveness
         private int _r1_totalMeetings;
@@ -200,7 +200,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private double _r11_goalCompletionRate;
         private ObservableCollection<OneOnOne> _r11_meetingHistory = new();
         private ObservableCollection<FeedbackRow> _r11_feedbackHistory = new();
-        private ObservableCollection<IndividualGoal> _r11_goalsList = new();
+        private ObservableCollection<DevelopmentGoal> _r11_goalsList = new();
         private SeriesCollection _r11_performanceTrendSeries = new();
         private ObservableCollection<string> _r11_performanceTrendLabels = new();
 
@@ -1278,7 +1278,7 @@ namespace Tracker.ViewModels.DialogViewModels
             set { _r11_feedbackHistory = value; RaisePropertyChanged(); }
         }
 
-        public ObservableCollection<IndividualGoal> R11_GoalsList
+        public ObservableCollection<DevelopmentGoal> R11_GoalsList
         {
             get => _r11_goalsList;
             set { _r11_goalsList = value; RaisePropertyChanged(); }
@@ -1365,13 +1365,13 @@ namespace Tracker.ViewModels.DialogViewModels
                 }
                 catch
                 {
-                    _goals = new List<IndividualGoal>();
+                    _goals = new List<DevelopmentGoal>();
                 }
 
                 // Initialize team member filter
                 var filterOptions = new List<TeamMemberFilterItem>
                 {
-                    new TeamMemberFilterItem { Id = 0, FullName = "All Team Members" }
+                    new TeamMemberFilterItem { Id = Guid.Empty, FullName = "All Team Members" }
                 };
                 filterOptions.AddRange(_teamMembers.Select(tm => new TeamMemberFilterItem { Id = tm.Id, FullName = tm.FullName }));
                 TeamMemberFilterOptions = new ObservableCollection<TeamMemberFilterItem>(filterOptions);
@@ -1481,7 +1481,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     .ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredMeetings = filteredMeetings
                         .Where(m => m.TeamMember?.Id == SelectedTeamMemberFilter.Id)
@@ -1737,7 +1737,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     .ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredTasks = filteredTasks
                         .Where(t => t.Owner?.Id == SelectedTeamMemberFilter.Id)
@@ -1883,7 +1883,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     .ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredMeetings = filteredMeetings
                         .Where(m => m.TeamMember?.Id == SelectedTeamMemberFilter.Id)
@@ -2049,7 +2049,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     .ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredOkrs = filteredOkrs
                         .Where(o => o.Owner?.Id == SelectedTeamMemberFilter.Id)
@@ -2229,7 +2229,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 var filteredKpis = _kpis.ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredKpis = filteredKpis
                         .Where(k => k.Owner?.Id == SelectedTeamMemberFilter.Id)
@@ -2414,7 +2414,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 var filteredGoals = _goals.ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredGoals = filteredGoals
                         .Where(g => g.TeamMemberId == SelectedTeamMemberFilter.Id)
@@ -2422,8 +2422,8 @@ namespace Tracker.ViewModels.DialogViewModels
                 }
 
                 // Calculate KPIs
-                var completed = filteredGoals.Count(g => g.Status == Common.Enums.GoalStatus.Completed);
-                var inProgress = filteredGoals.Count(g => g.Status == Common.Enums.GoalStatus.InProgress);
+                var completed = filteredGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Completed);
+                var inProgress = filteredGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Active);
                 var overdue = filteredGoals.Count(g => g.IsOverdue);
                 var avgProgress = filteredGoals.Count > 0 ? filteredGoals.Average(g => g.ProgressPercent) : 0;
                 var completionPercent = filteredGoals.Count > 0 ? (int)((double)completed / filteredGoals.Count * 100) : 0;
@@ -2438,8 +2438,8 @@ namespace Tracker.ViewModels.DialogViewModels
                     R7_CompletionPercent = completionPercent;
 
                     // Status distribution pie chart
-                    var notStarted = filteredGoals.Count(g => g.Status == Common.Enums.GoalStatus.NotStarted);
-                    var onHold = filteredGoals.Count(g => g.Status == Common.Enums.GoalStatus.OnHold);
+                    var notStarted = filteredGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Draft);
+                    var onHold = filteredGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.OnHold);
 
                     R7_StatusDistributionSeries = new SeriesCollection
                     {
@@ -2482,7 +2482,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     // Goals list (prioritize overdue and in-progress)
                     var goalRows = filteredGoals
                         .OrderByDescending(g => g.IsOverdue)
-                        .ThenByDescending(g => g.Status == Common.Enums.GoalStatus.InProgress)
+                        .ThenByDescending(g => g.Status == Common.Enums.DevelopmentGoalStatus.Active)
                         .ThenBy(g => g.TargetDate)
                         .Take(15)
                         .Select(g => new GoalRow
@@ -2504,7 +2504,7 @@ namespace Tracker.ViewModels.DialogViewModels
             });
         }
 
-        private void UpdateGoalsByCategoryChart(List<IndividualGoal> goals)
+        private void UpdateGoalsByCategoryChart(List<DevelopmentGoal> goals)
         {
             var categoryGroups = goals
                 .GroupBy(g => g.Category)
@@ -2512,8 +2512,8 @@ namespace Tracker.ViewModels.DialogViewModels
                 {
                     Category = g.Key.ToString(),
                     Total = g.Count(),
-                    Completed = g.Count(goal => goal.Status == Common.Enums.GoalStatus.Completed),
-                    InProgress = g.Count(goal => goal.Status == Common.Enums.GoalStatus.InProgress)
+                    Completed = g.Count(goal => goal.Status == Common.Enums.DevelopmentGoalStatus.Completed),
+                    InProgress = g.Count(goal => goal.Status == Common.Enums.DevelopmentGoalStatus.Active)
                 })
                 .OrderByDescending(g => g.Total)
                 .ToList();
@@ -2547,7 +2547,7 @@ namespace Tracker.ViewModels.DialogViewModels
             };
         }
 
-        private void UpdateGoalsProgressByMemberChart(List<IndividualGoal> goals)
+        private void UpdateGoalsProgressByMemberChart(List<DevelopmentGoal> goals)
         {
             var memberGroups = goals
                 .Where(g => g.TeamMember != null)
@@ -2556,7 +2556,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 {
                     Name = g.Key,
                     AvgProgress = g.Average(goal => goal.ProgressPercent),
-                    CompletedCount = g.Count(goal => goal.Status == Common.Enums.GoalStatus.Completed),
+                    CompletedCount = g.Count(goal => goal.Status == Common.Enums.DevelopmentGoalStatus.Completed),
                     TotalCount = g.Count()
                 })
                 .OrderByDescending(g => g.AvgProgress)
@@ -2579,18 +2579,18 @@ namespace Tracker.ViewModels.DialogViewModels
             };
         }
 
-        private Brush GetGoalStatusBrush(Common.Enums.GoalStatus status, bool isOverdue)
+        private Brush GetGoalStatusBrush(Common.Enums.DevelopmentGoalStatus status, bool isOverdue)
         {
             if (isOverdue)
                 return new SolidColorBrush(Color.FromRgb(239, 68, 68));
 
             return status switch
             {
-                Common.Enums.GoalStatus.Completed => new SolidColorBrush(Color.FromRgb(16, 185, 129)),
-                Common.Enums.GoalStatus.InProgress => new SolidColorBrush(Color.FromRgb(59, 130, 246)),
-                Common.Enums.GoalStatus.NotStarted => new SolidColorBrush(Color.FromRgb(107, 114, 128)),
-                Common.Enums.GoalStatus.OnHold => new SolidColorBrush(Color.FromRgb(245, 158, 11)),
-                Common.Enums.GoalStatus.Cancelled => new SolidColorBrush(Color.FromRgb(107, 114, 128)),
+                Common.Enums.DevelopmentGoalStatus.Completed => new SolidColorBrush(Color.FromRgb(16, 185, 129)),
+                Common.Enums.DevelopmentGoalStatus.Active => new SolidColorBrush(Color.FromRgb(59, 130, 246)),
+                Common.Enums.DevelopmentGoalStatus.Draft => new SolidColorBrush(Color.FromRgb(107, 114, 128)),
+                Common.Enums.DevelopmentGoalStatus.OnHold => new SolidColorBrush(Color.FromRgb(245, 158, 11)),
+                Common.Enums.DevelopmentGoalStatus.Cancelled => new SolidColorBrush(Color.FromRgb(107, 114, 128)),
                 _ => new SolidColorBrush(Color.FromRgb(107, 114, 128))
             };
         }
@@ -2606,7 +2606,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 var filteredProjects = _projects.ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredProjects = filteredProjects
                         .Where(p => p.Owner?.Id == SelectedTeamMemberFilter.Id)
@@ -2748,7 +2748,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     .ToList();
 
                 // Apply team member filter
-                if (SelectedTeamMemberFilter?.Id > 0)
+                if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                 {
                     filteredFeedback = filteredFeedback
                         .Where(f => f.TeamMemberId == SelectedTeamMemberFilter.Id)
@@ -3058,7 +3058,7 @@ namespace Tracker.ViewModels.DialogViewModels
             await Task.Run(() =>
             {
                 // This report requires a specific team member to be selected
-                if (SelectedTeamMemberFilter == null || SelectedTeamMemberFilter.Id == 0)
+                if (SelectedTeamMemberFilter == null || SelectedTeamMemberFilter.Id == Guid.Empty)
                 {
                     Application.Current?.Dispatcher.Invoke(() =>
                     {
@@ -3074,7 +3074,7 @@ namespace Tracker.ViewModels.DialogViewModels
                         R11_GoalCompletionRate = 0;
                         R11_MeetingHistory = new ObservableCollection<OneOnOne>();
                         R11_FeedbackHistory = new ObservableCollection<FeedbackRow>();
-                        R11_GoalsList = new ObservableCollection<IndividualGoal>();
+                        R11_GoalsList = new ObservableCollection<DevelopmentGoal>();
                         R11_PerformanceTrendSeries = new SeriesCollection();
                         R11_PerformanceTrendLabels = new ObservableCollection<string>();
                     });
@@ -3091,7 +3091,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 var memberFeedback = _feedbacks.Where(f => f.TeamMemberId == memberId).OrderByDescending(f => f.Date).ToList();
 
                 var completedTasks = memberTasks.Count(t => t.IsCompleted);
-                var completedGoals = memberGoals.Count(g => g.Status == Common.Enums.GoalStatus.Completed);
+                var completedGoals = memberGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Completed);
                 var taskCompletionRate = memberTasks.Count > 0 ? (double)completedTasks / memberTasks.Count * 100 : 0;
                 var goalCompletionRate = memberGoals.Count > 0 ? (double)completedGoals / memberGoals.Count * 100 : 0;
                 var positiveFeedback = memberFeedback.Count(f => f.Type == Common.Enums.FeedbackType.Positive || f.Type == Common.Enums.FeedbackType.Recognition);
@@ -3125,7 +3125,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     R11_FeedbackHistory = new ObservableCollection<FeedbackRow>(feedbackRows);
 
                     // Goals list
-                    R11_GoalsList = new ObservableCollection<IndividualGoal>(memberGoals.OrderByDescending(g => g.Status == Common.Enums.GoalStatus.InProgress));
+                    R11_GoalsList = new ObservableCollection<DevelopmentGoal>(memberGoals.OrderByDescending(g => g.Status == Common.Enums.DevelopmentGoalStatus.Active));
 
                     // Performance trend chart (task completion by month)
                     UpdatePerformanceTrendChart(memberTasks, memberMeetings);
@@ -3235,7 +3235,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 // Goal completion
                 var goals = _goals.ToList();
                 R12_GoalsTotal = goals.Count;
-                R12_GoalsCompleted = goals.Count(g => g.Status == Common.Enums.GoalStatus.Completed);
+                R12_GoalsCompleted = goals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Completed);
                 R12_GoalCompletionPercent = goals.Count > 0 
                     ? (int)(R12_GoalsCompleted / (double)goals.Count * 100) 
                     : 0;
@@ -3415,7 +3415,7 @@ namespace Tracker.ViewModels.DialogViewModels
             if (offTargetKpis > 0)
                 concerns.Add(new ExecutiveSummaryItem("KPIs below target", $"{offTargetKpis} KPIs significantly below target", "⚠", Brushes.Red));
             
-            var overdueGoals = _goals.Count(g => g.TargetDate.HasValue && g.TargetDate.Value < DateTime.Today && g.Status != Common.Enums.GoalStatus.Completed);
+            var overdueGoals = _goals.Count(g => g.TargetDate.HasValue && g.TargetDate.Value < DateTime.Today && g.Status != Common.Enums.DevelopmentGoalStatus.Completed);
             if (overdueGoals > 0)
                 concerns.Add(new ExecutiveSummaryItem("Overdue goals", $"{overdueGoals} goals past due date", "⚠", Brushes.Orange));
             
@@ -3470,7 +3470,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     var filteredMeetings = _oneOnOnes
                         .Where(m => m.Date >= dateRange.Start && m.Date <= dateRange.End);
 
-                    if (SelectedTeamMemberFilter?.Id > 0)
+                    if (SelectedTeamMemberFilter?.Id != Guid.Empty)
                     {
                         filteredMeetings = filteredMeetings.Where(m => m.TeamMember?.Id == SelectedTeamMemberFilter.Id);
                     }
@@ -3637,7 +3637,7 @@ namespace Tracker.ViewModels.DialogViewModels
     /// </summary>
     public class TeamMemberFilterItem
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string FullName { get; set; } = string.Empty;
     }
 
