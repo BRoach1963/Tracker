@@ -65,7 +65,7 @@ namespace Tracker.Helpers
                 case Feedback feedback:
                     ValidateFeedback(feedback, results);
                     break;
-                case IndividualGoal goal:
+                case DevelopmentGoal goal:
                     ValidateGoal(goal, results);
                     break;
             }
@@ -114,8 +114,8 @@ namespace Tracker.Helpers
             if (string.IsNullOrWhiteSpace(project.Name))
                 results.Add(new ValidationResult("Project name is required", new[] { nameof(project.Name) }));
 
-            if (project.EndDate.HasValue && project.StartDate > project.EndDate)
-                results.Add(new ValidationResult("End date must be after start date", new[] { nameof(project.EndDate) }));
+            if (project.TargetEndDate.HasValue && project.StartDate > project.TargetEndDate)
+                results.Add(new ValidationResult("End date must be after start date", new[] { nameof(project.TargetEndDate) }));
         }
 
         private static void ValidateFeedback(Feedback feedback, List<ValidationResult> results)
@@ -130,7 +130,7 @@ namespace Tracker.Helpers
                 results.Add(new ValidationResult("Team member is required", new[] { nameof(feedback.TeamMemberId) }));
         }
 
-        private static void ValidateGoal(IndividualGoal goal, List<ValidationResult> results)
+        private static void ValidateGoal(DevelopmentGoal goal, List<ValidationResult> results)
         {
             if (string.IsNullOrWhiteSpace(goal.Title))
                 results.Add(new ValidationResult("Title is required", new[] { nameof(goal.Title) }));

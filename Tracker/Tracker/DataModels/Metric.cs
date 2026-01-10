@@ -113,13 +113,6 @@ namespace Tracker.DataModels
         public decimal? CriticalThreshold { get; set; }
 
         /// <summary>
-        /// Soft delete flag.
-        /// </summary>
-        public bool IsDeleted { get; set; }
-        public DateTime? DeletedAt { get; set; }
-        public Guid? DeletedBy { get; set; }
-
-        /// <summary>
         /// Child metrics for composite calculations.
         /// </summary>
         public List<Metric> ChildMetrics { get; set; } = new();

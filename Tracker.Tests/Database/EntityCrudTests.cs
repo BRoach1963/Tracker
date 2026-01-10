@@ -377,24 +377,24 @@ namespace Tracker.Tests.Database
             var user = await CreateTestUser(context, $"goal_create_{uid}");
             var teamMember = await CreateTeamMember(context, user, $"GoalCreate_{uid}", "Member");
 
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = $"Learn Kubernetes {uid}",
                 Description = "Complete K8s certification",
                 TeamMemberId = teamMember.Id,
-                Category = GoalCategory.Certification,
+                Category = DevelopmentGoalCategory.Certification,
                 Status = GoalStatus.InProgress,
                 ProgressPercent = 25
             };
             goal.TeamMember = null!; // Clear default navigation property
 
             // Act
-            context.IndividualGoals.Add(goal);
+            context.DevelopmentGoals.Add(goal);
             context.Entry(goal).Property("UserId").CurrentValue = user.Id;
             await context.SaveChangesAsync();
 
             // Assert
-            goal.Id.Should().BeGreaterThan(0);
+            goal.Id.Should().NotBeEmpty();
         }
 
         [Fact]
@@ -406,7 +406,7 @@ namespace Tracker.Tests.Database
             var user = await CreateTestUser(context, $"goal_progress_{uid}");
             var teamMember = await CreateTeamMember(context, user, $"GoalProgress_{uid}", "Member");
 
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = $"Progress Test {uid}",
                 TeamMemberId = teamMember.Id,
@@ -414,20 +414,20 @@ namespace Tracker.Tests.Database
                 ProgressPercent = 0
             };
             goal.TeamMember = null!; // Clear default navigation property
-            context.IndividualGoals.Add(goal);
+            context.DevelopmentGoals.Add(goal);
             context.Entry(goal).Property("UserId").CurrentValue = user.Id;
             await context.SaveChangesAsync();
             var goalId = goal.Id;
 
             // Act
             await using var context2 = _fixture.CreateContext();
-            var toUpdate = await context2.IndividualGoals.FindAsync(goalId);
+            var toUpdate = await context2.DevelopmentGoals.FindAsync(goalId);
             toUpdate!.ProgressPercent = 75;
             await context2.SaveChangesAsync();
 
             // Assert
             await using var context3 = _fixture.CreateContext();
-            var updated = await context3.IndividualGoals.FindAsync(goalId);
+            var updated = await context3.DevelopmentGoals.FindAsync(goalId);
             updated!.ProgressPercent.Should().Be(75);
         }
 

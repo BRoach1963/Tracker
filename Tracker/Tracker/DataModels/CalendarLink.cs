@@ -1,94 +1,188 @@
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// Links a Tracker OneOnOne meeting to an external calendar event.
-    /// Supports multiple calendar providers (Google, Outlook) per meeting.
+    /// Represents a user's connection to an external calendar provider (Google, Microsoft, Apple, etc.).
+    /// Stores authentication tokens and sync preferences for a specific calendar account.
+    /// Maps to calendar_links table in Supabase.
     /// </summary>
     public class CalendarLink : AuditableEntity
     {
         /// <summary>
-        /// Primary key.
+        /// Unique identifier for this calendar account link (UUID).
         /// </summary>
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>
-        /// The organization this calendar link belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
+        /// FK to the user who owns this calendar account connection.
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid UserId { get; set; }
 
         /// <summary>
-        /// The Tracker meeting this link belongs to.
+        /// The calendar provider for this link (google, microsoft, apple, other).
         /// </summary>
-        public int OneOnOneId { get; set; }
+        public CalendarProviderType Provider { get; set; } = CalendarProviderType.Google;
 
         /// <summary>
-        /// Navigation property to the linked meeting.
+        /// The email address of the calendar account (e.g., user@gmail.com or user@outlook.com).
+        /// Helps identify which account this link represents.
         /// </summary>
-        public OneOnOne? OneOnOne { get; set; }
+        public string? AccountEmail { get; set; }
 
         /// <summary>
-        /// The calendar provider identifier: "google", "outlook", "ics".
+        /// Display name for this calendar account (e.g., "John Doe" or "Work Calendar").
         /// </summary>
-        public string ProviderId { get; set; } = string.Empty;
+        public string? AccountName { get; set; }
+
+        #region Authentication
 
         /// <summary>
-        /// The event ID in the external calendar system.
-        /// For Google: event ID string.
-        /// For Outlook: Microsoft Graph event ID.
+        /// OAuth access token for this calendar provider.
+        /// Should be encrypted at rest in the database.
         /// </summary>
-        public string ExternalEventId { get; set; } = string.Empty;
+        public string? AccessToken { get; set; }
 
         /// <summary>
-        /// ETag or change key for conflict detection.
-        /// Used to detect if the event was modified externally.
+        /// OAuth refresh token for obtaining new access tokens.
+        /// Should be encrypted at rest in the database.
         /// </summary>
-        public string? ETag { get; set; }
+        public string? RefreshToken { get; set; }
 
         /// <summary>
-        /// When this link was last synchronized.
+        /// When the current access token expires.
+        /// Used to determine if token refresh is needed.
         /// </summary>
-        public DateTime LastSyncedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? TokenExpiresAt { get; set; }
 
         /// <summary>
-        /// Direction of the last sync operation.
+        /// Delta sync token from the provider for incremental synchronization.
+        /// For Google Calendar: syncToken from Events.list response
+        /// For Outlook: deltaLink from delta query
+        /// Enables fetching only NEW/CHANGED events instead of all events.
+        /// Null if not yet synced or if provider doesn't support delta sync.
         /// </summary>
-        public SyncDirection LastSyncDirection { get; set; } = SyncDirection.Push;
+        public string? SyncToken { get; set; }
+
+        #endregion
+
+        #region Sync Settings
 
         /// <summary>
-        /// Current sync status for this link.
+        /// Whether this calendar link is currently active/enabled.
+        /// Inactive links won't sync events.
         /// </summary>
-        public CalendarLinkStatus Status { get; set; } = CalendarLinkStatus.Synced;
+        public bool IsActive { get; set; } = true;
 
         /// <summary>
-        /// Error message if last sync failed.
+        /// Whether syncing is enabled for this provider.
+        /// Can be disabled to pause sync without deactivating the link.
         /// </summary>
-        public string? LastError { get; set; }
+        public bool SyncEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Whether to sync Tracker meetings to this provider's calendar.
+        /// </summary>
+        public bool SyncMeetingsToCalendar { get; set; } = true;
+
+        /// <summary>
+        /// Whether to sync Tracker tasks to this provider's calendar.
+        /// </summary>
+        public bool SyncTasksToCalendar { get; set; } = false;
+
+        /// <summary>
+        /// Whether to auto-create Tracker meetings from calendar events.
+        /// </summary>
+        public bool CreateMeetingFromCalendar { get; set; } = false;
+
+        #endregion
+
+        #region Calendar Selection
+
+        /// <summary>
+        /// The default calendar ID in this provider to sync to.
+        /// Null if using the provider's default calendar.
+        /// </summary>
+        public string? DefaultCalendarId { get; set; }
+
+        /// <summary>
+        /// Display name of the default calendar.
+        /// </summary>
+        public string? DefaultCalendarName { get; set; }
+
+        #endregion
+
+        #region Sync State
+
+        /// <summary>
+        /// When this calendar link was last synchronized.
+        /// Null if never synced.
+        /// </summary>
+        public DateTime? LastSyncAt { get; set; }
+
+        /// <summary>
+        /// Overall sync status for this calendar provider connection.
+        /// pending = Initial sync not yet attempted
+        /// synced = Successfully synced
+        /// failed = Last sync failed
+        /// cancelled = Sync was cancelled
+        /// </summary>
+        public CalendarSyncStatusType? LastSyncStatus { get; set; }
+
+        /// <summary>
+        /// Error message from the last failed sync attempt.
+        /// Null if last sync was successful.
+        /// </summary>
+        public string? LastSyncError { get; set; }
+
+        #endregion
+
+        #region Computed Properties
+
+        /// <summary>
+        /// Whether the access token is expired or about to expire (within 5 minutes).
+        /// </summary>
+        public bool IsTokenExpired => TokenExpiresAt == null || TokenExpiresAt <= DateTime.UtcNow.AddMinutes(5);
+
+        /// <summary>
+        /// Whether this link is ready to sync (active, enabled, and auth valid).
+        /// </summary>
+        public bool IsReadyToSync => IsActive && SyncEnabled && !IsTokenExpired && !string.IsNullOrEmpty(AccessToken);
+
+        /// <summary>
+        /// Whether the last sync was successful.
+        /// </summary>
+        public bool LastSyncSuccessful => LastSyncStatus == CalendarSyncStatusType.Synced;
+
+        #endregion
     }
 
     /// <summary>
-    /// Direction of calendar sync operations.
+    /// Calendar provider types.
     /// </summary>
-    public enum SyncDirection
+    public enum CalendarProviderType
     {
-        /// <summary>Tracker → Calendar</summary>
-        Push,
-        /// <summary>Calendar → Tracker</summary>
-        Pull
+        /// <summary>Google Calendar</summary>
+        Google,
+        /// <summary>Microsoft Outlook / Microsoft 365</summary>
+        Microsoft,
+        /// <summary>Apple Calendar</summary>
+        Apple,
+        /// <summary>Other provider</summary>
+        Other
     }
 
     /// <summary>
-    /// Status of a calendar link.
+    /// Overall sync status for a calendar provider connection.
+    /// Note: Individual meeting sync status is tracked on Meeting.calendar_sync_status.
     /// </summary>
-    public enum CalendarLinkStatus
+    public enum CalendarSyncStatusType
     {
+        /// <summary>Sync pending - not yet synced</summary>
+        Pending,
         /// <summary>Successfully synced</summary>
         Synced,
-        /// <summary>Pending sync (queued)</summary>
-        Pending,
         /// <summary>Sync failed</summary>
-        Error,
-        /// <summary>External event was deleted</summary>
-        Orphaned
+        Failed,
+        /// <summary>Sync was cancelled</summary>
+        Cancelled
     }
 }

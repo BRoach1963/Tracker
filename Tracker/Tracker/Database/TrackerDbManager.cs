@@ -3191,13 +3191,14 @@ namespace Tracker.Database
             try
             {
                 var now = DateTime.Now;
+                var userId = _context.PostgresUserId ?? throw new InvalidOperationException("PostgresUserId not set");
                 return await _context.Reminders
                     .Where(r => !r.IsDeleted && 
-                                EF.Property<int>(r, "UserId") == currentUserId.Value &&
+                                r.UserId == userId &&
                                 r.Status == ReminderStatus.Pending &&
-                                r.DueDateTime <= now &&
+                                r.RemindAt <= now &&
                                 (r.SnoozedUntil == null || r.SnoozedUntil <= now))
-                    .OrderBy(r => r.DueDateTime)
+                    .OrderBy(r => r.RemindAt)
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -3214,14 +3215,12 @@ namespace Tracker.Database
         {
             if (_context == null) return new List<Reminder>();
 
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue) return new List<Reminder>();
-
             try
             {
+                var userId = _context.PostgresUserId ?? throw new InvalidOperationException("PostgresUserId not set");
                 return await _context.Reminders
-                    .Where(r => !r.IsDeleted && EF.Property<int>(r, "UserId") == currentUserId.Value)
-                    .OrderBy(r => r.DueDateTime)
+                    .Where(r => !r.IsDeleted && r.UserId == userId)
+                    .OrderBy(r => r.RemindAt)
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -3238,16 +3237,14 @@ namespace Tracker.Database
         {
             if (_context == null) return new List<Reminder>();
 
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue) return new List<Reminder>();
-
             try
             {
+                var userId = _context.PostgresUserId ?? throw new InvalidOperationException("PostgresUserId not set");
                 return await _context.Reminders
                     .Where(r => !r.IsDeleted && 
-                                EF.Property<int>(r, "UserId") == currentUserId.Value &&
+                                r.UserId == userId &&
                                 (r.Status == ReminderStatus.Pending || r.Status == ReminderStatus.Snoozed))
-                    .OrderBy(r => r.DueDateTime)
+                    .OrderBy(r => r.RemindAt)
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -3260,21 +3257,20 @@ namespace Tracker.Database
         /// <summary>
         /// Adds a new reminder.
         /// </summary>
-        public async Task<int> AddReminderAsync(Reminder reminder)
+        public async Task<Guid> AddReminderAsync(Reminder reminder)
         {
-            if (_context == null) return 0;
-
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue)
-            {
-                _logger.Error("AddReminderAsync called but CurrentUserId is not set");
-                return 0;
-            }
+            if (_context == null) return Guid.Empty;
 
             try
             {
                 _context.Reminders.Add(reminder);
-                _context.Entry(reminder).Property("UserId").CurrentValue = currentUserId.Value;
+                
+                // Set the Supabase user ID if available, otherwise use a placeholder
+                if (_context.PostgresUserId.HasValue)
+                {
+                    reminder.UserId = _context.PostgresUserId.Value;
+                }
+                
                 await _context.SaveChangesAsync();
                 _logger.Info("Added reminder ID: {0}", reminder.Id);
                 return reminder.Id;
@@ -3282,7 +3278,7 @@ namespace Tracker.Database
             catch (Exception ex)
             {
                 _logger.Exception(ex, "Error adding reminder");
-                return 0;
+                return Guid.Empty;
             }
         }
 
@@ -3316,7 +3312,7 @@ namespace Tracker.Database
         /// <summary>
         /// Marks a reminder as triggered.
         /// </summary>
-        public async Task<bool> MarkReminderTriggeredAsync(int reminderId)
+        public async Task<bool> MarkReminderTriggeredAsync(Guid reminderId)
         {
             if (_context == null) return false;
 
@@ -3341,7 +3337,7 @@ namespace Tracker.Database
         /// <summary>
         /// Snoozes a reminder.
         /// </summary>
-        public async Task<bool> SnoozeReminderAsync(int reminderId, int snoozeMinutes)
+        public async Task<bool> SnoozeReminderAsync(Guid reminderId, int snoozeMinutes)
         {
             if (_context == null) return false;
 

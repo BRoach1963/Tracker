@@ -1,133 +1,126 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Tracker.Common.Enums;
 
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// An agenda item for 1:1 meetings - topics, concerns, questions to discuss.
-    /// Can be linked to Tasks, OKRs, KPIs, or Projects for context.
+    /// Agenda item for a meeting - topics, questions, items to discuss.
+    /// Maps to meeting_agenda_items table in Supabase.
     /// </summary>
     public class AgendaItem : AuditableEntity, INotifyPropertyChanged
     {
-        private string _description = string.Empty;
-        private AgendaItemCategory _category = AgendaItemCategory.Topic;
-        private Severity _priority = Severity.Medium;
-        private bool _isCompleted;
-        private ObservableCollection<LinkedItem> _linkedItems = new();
-
-        public int Id { get; set; }
-
-        /// <summary>
-        /// The organization this agenda item belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
-        /// </summary>
-        public Guid? OrganizationId { get; set; }
+        private string _title = string.Empty;
+        private string? _notes;
+        private int _sortOrder = 0;
+        private bool _isDiscussed = false;
+        private DateTime? _discussedAt;
+        private int? _timeEstimateMinutes;
+        private int? _actualDurationMinutes;
 
         /// <summary>
-        /// Brief description of the agenda item.
+        /// Unique identifier for this agenda item (UUID).
         /// </summary>
-        public string Description
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        /// <summary>
+        /// FK to the meeting this item belongs to.
+        /// </summary>
+        public Guid MeetingId { get; set; }
+
+        /// <summary>
+        /// FK to the team member who added this item.
+        /// Null if added by system or unknown.
+        /// </summary>
+        public Guid? AddedByTeamMemberId { get; set; }
+
+        /// <summary>
+        /// The agenda item title/topic to discuss.
+        /// </summary>
+        public string Title
         {
-            get => _description;
-            set { _description = value; OnPropertyChanged(); }
+            get => _title;
+            set { _title = value; OnPropertyChanged(); }
         }
 
         /// <summary>
-        /// Category of this agenda item.
+        /// Additional notes or context for this agenda item.
         /// </summary>
-        public AgendaItemCategory Category
+        public string? Notes
         {
-            get => _category;
-            set { _category = value; OnPropertyChanged(); OnPropertyChanged(nameof(CategoryDisplay)); }
+            get => _notes;
+            set { _notes = value; OnPropertyChanged(); }
         }
 
         /// <summary>
-        /// Priority level (Low, Medium, High).
+        /// Sort order within the meeting agenda.
         /// </summary>
-        public Severity Priority
+        public int SortOrder
         {
-            get => _priority;
-            set { _priority = value; OnPropertyChanged(); }
+            get => _sortOrder;
+            set { _sortOrder = value; OnPropertyChanged(); }
         }
 
         /// <summary>
-        /// Resolution notes - how this item was addressed.
+        /// Whether this item was discussed in the meeting.
         /// </summary>
-        public string Resolution { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Whether this item has been completed/addressed.
-        /// </summary>
-        public bool IsCompleted
+        public bool IsDiscussed
         {
-            get => _isCompleted;
-            set { _isCompleted = value; OnPropertyChanged(); }
+            get => _isDiscussed;
+            set { _isDiscussed = value; OnPropertyChanged(); }
         }
 
         /// <summary>
-        /// Optional link to a MeetingTask if a task was created from this item.
+        /// When this item was discussed.
+        /// Null if not yet discussed.
         /// </summary>
-        public int? LinkedTaskId { get; set; }
-
-        /// <summary>
-        /// FK to the 1:1 meeting this item belongs to.
-        /// </summary>
-        public int OneOnOneId { get; set; }
-
-        #region Entity Linking
-
-        /// <summary>
-        /// Collection of linked items (Tasks, OKRs, KPIs, Projects).
-        /// </summary>
-        public ObservableCollection<LinkedItem> LinkedItems
+        public DateTime? DiscussedAt
         {
-            get => _linkedItems;
-            set 
-            { 
-                _linkedItems = value; 
-                OnPropertyChanged(); 
-                OnPropertyChanged(nameof(HasLinkedItems)); 
+            get => _discussedAt;
+            set { _discussedAt = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// Estimated time to discuss this item (minutes).
+        /// Null if no estimate.
+        /// </summary>
+        public int? TimeEstimateMinutes
+        {
+            get => _timeEstimateMinutes;
+            set { _timeEstimateMinutes = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// Actual time spent discussing this item (minutes).
+        /// Null if not yet discussed.
+        /// </summary>
+        public int? ActualDurationMinutes
+        {
+            get => _actualDurationMinutes;
+            set { _actualDurationMinutes = value; OnPropertyChanged(); }
+        }
+
+        #region Computed Properties
+
+        /// <summary>
+        /// Whether this item is ready to be discussed (has a title and hasn't been discussed yet).
+        /// </summary>
+        public bool IsPending => !IsDiscussed && !string.IsNullOrWhiteSpace(Title);
+
+        /// <summary>
+        /// Time variance - how the actual duration compares to estimate.
+        /// Returns the difference in minutes, null if no estimate or not discussed.
+        /// </summary>
+        public int? TimeVarianceMinutes
+        {
+            get
+            {
+                if (!TimeEstimateMinutes.HasValue || !ActualDurationMinutes.HasValue)
+                    return null;
+                return ActualDurationMinutes.Value - TimeEstimateMinutes.Value;
             }
         }
 
-        /// <summary>
-        /// Whether this agenda item has any linked entities.
-        /// </summary>
-        public bool HasLinkedItems => LinkedItems?.Count > 0;
-
-        /// <summary>
-        /// Adds a linked item to this agenda item.
-        /// </summary>
-        public void AddLinkedItem(LinkedItemType type, int itemId, string title)
-        {
-            LinkedItems.Add(new LinkedItem { Type = type, ItemId = itemId, Title = title });
-            OnPropertyChanged(nameof(HasLinkedItems));
-            OnPropertyChanged(nameof(LinkedItems));
-        }
-
-        /// <summary>
-        /// Removes a linked item from this agenda item.
-        /// </summary>
-        public void RemoveLinkedItem(LinkedItem item)
-        {
-            LinkedItems.Remove(item);
-            OnPropertyChanged(nameof(HasLinkedItems));
-            OnPropertyChanged(nameof(LinkedItems));
-        }
-
-        /// <summary>
-        /// Display text for the category badge.
-        /// </summary>
-        public string CategoryDisplay => Category.ToString();
-
         #endregion
-
-        /// <summary>
-        /// Computed property - resolved if completed, has resolution text, or linked task.
-        /// </summary>
-        public bool IsResolved => IsCompleted || !string.IsNullOrEmpty(Resolution) || LinkedTaskId.HasValue;
 
         #region INotifyPropertyChanged
 

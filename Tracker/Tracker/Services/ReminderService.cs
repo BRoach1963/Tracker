@@ -164,8 +164,9 @@ namespace Tracker.Services
                     Status = ReminderStatus.Pending,
                     Title = $"1:1 with {meeting.TeamMemberName}",
                     Message = $"Your meeting starts in {_settings.MeetingReminderMinutes} minutes",
-                    DueDateTime = reminderTime,
-                    OneOnOneId = meeting.Id,
+                    RemindAt = reminderTime,
+                    EntityType = "meeting",
+                    EntityId = GuidFromInt(meeting.Id),
                     TeamMemberId = meeting.TeamMember?.Id
                 };
 
@@ -184,8 +185,9 @@ namespace Tracker.Services
                             Status = ReminderStatus.Pending,
                             Title = $"Upcoming: 1:1 with {meeting.TeamMemberName}",
                             Message = $"Tomorrow at {meeting.StartTime:hh\\:mm}",
-                            DueDateTime = dayBeforeTime,
-                            OneOnOneId = meeting.Id,
+                            RemindAt = dayBeforeTime,
+                            EntityType = "meeting",
+                            EntityId = GuidFromInt(meeting.Id),
                             TeamMemberId = meeting.TeamMember?.Id
                         };
                         await TrackerDbManager.Instance.AddReminderAsync(dayBeforeReminder);
@@ -218,8 +220,9 @@ namespace Tracker.Services
                     Status = ReminderStatus.Pending,
                     Title = $"Task Due Soon: {task.Description}",
                     Message = $"Due {task.DueDate:MMM dd} - Assigned to {task.OwnerName}",
-                    DueDateTime = reminderTime,
-                    TaskId = task.Id,
+                    RemindAt = reminderTime,
+                    EntityType = "task",
+                    EntityId = GuidFromInt(task.Id),
                     TeamMemberId = task.Owner?.Id
                 };
 
@@ -235,7 +238,7 @@ namespace Tracker.Services
         /// <summary>
         /// Creates a reminder for a goal deadline.
         /// </summary>
-        public async Task CreateGoalReminderAsync(IndividualGoal goal)
+        public async Task CreateGoalReminderAsync(DevelopmentGoal goal)
         {
             if (!_settings.ShowGoalReminders || !goal.TargetDate.HasValue) return;
 
@@ -252,8 +255,9 @@ namespace Tracker.Services
                     Status = ReminderStatus.Pending,
                     Title = $"Goal Deadline Approaching",
                     Message = $"\"{goal.Title}\" - Target date: {goal.TargetDate:MMM dd}",
-                    DueDateTime = reminderTime,
-                    GoalId = goal.Id,
+                    RemindAt = reminderTime,
+                    EntityType = "development_goal",
+                    EntityId = goal.Id,
                     TeamMemberId = goal.TeamMemberId
                 };
 
@@ -269,8 +273,8 @@ namespace Tracker.Services
         /// <summary>
         /// Creates a custom reminder.
         /// </summary>
-        public async Task<int> CreateCustomReminderAsync(string title, string message, DateTime dueDateTime, 
-            Guid? teamMemberId = null, bool isRecurring = false, int? recurrenceIntervalDays = null)
+        public async Task<Guid> CreateCustomReminderAsync(string title, string message, DateTime remindAt, 
+            Guid? teamMemberId = null, bool isRecurring = false, string? recurrenceRule = null)
         {
             try
             {
@@ -280,10 +284,12 @@ namespace Tracker.Services
                     Status = ReminderStatus.Pending,
                     Title = title,
                     Message = message,
-                    DueDateTime = dueDateTime,
+                    RemindAt = remindAt,
+                    EntityType = "custom",
+                    EntityId = Guid.NewGuid(),
                     TeamMemberId = teamMemberId,
                     IsRecurring = isRecurring,
-                    RecurrenceIntervalDays = recurrenceIntervalDays
+                    RecurrenceRule = recurrenceRule
                 };
 
                 var id = await TrackerDbManager.Instance.AddReminderAsync(reminder);
@@ -293,13 +299,24 @@ namespace Tracker.Services
             catch (Exception ex)
             {
                 _logger.Exception(ex, "Error creating custom reminder");
-                return 0;
+                return Guid.Empty;
             }
         }
 
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Converts a 32-bit integer ID to a deterministic Guid.
+        /// Used for polymorphic entity references where int IDs need to be stored as UUIDs.
+        /// </summary>
+        private static Guid GuidFromInt(int id)
+        {
+            var bytes = new byte[16];
+            BitConverter.GetBytes(id).CopyTo(bytes, 0);
+            return new Guid(bytes);
+        }
 
         private async void CheckRemindersCallback(object? state)
         {
@@ -321,7 +338,7 @@ namespace Tracker.Services
                     ReminderTriggered?.Invoke(this, reminder);
 
                     // Handle recurring reminders
-                    if (reminder.IsRecurring && reminder.RecurrenceIntervalDays.HasValue)
+                    if (reminder.IsRecurring)
                     {
                         var nextReminder = new Reminder
                         {
@@ -329,13 +346,12 @@ namespace Tracker.Services
                             Status = ReminderStatus.Pending,
                             Title = reminder.Title,
                             Message = reminder.Message,
-                            DueDateTime = DateTime.Now.AddDays(reminder.RecurrenceIntervalDays.Value),
+                            RemindAt = reminder.RemindAt.AddDays(1), // Default: daily recurrence
+                            EntityType = reminder.EntityType,
+                            EntityId = reminder.EntityId,
                             TeamMemberId = reminder.TeamMemberId,
-                            OneOnOneId = reminder.OneOnOneId,
-                            TaskId = reminder.TaskId,
-                            GoalId = reminder.GoalId,
                             IsRecurring = true,
-                            RecurrenceIntervalDays = reminder.RecurrenceIntervalDays
+                            RecurrenceRule = reminder.RecurrenceRule
                         };
                         await TrackerDbManager.Instance.AddReminderAsync(nextReminder);
                     }

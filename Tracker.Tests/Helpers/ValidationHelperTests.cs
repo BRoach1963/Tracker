@@ -182,7 +182,7 @@ namespace Tracker.Tests.Helpers
             // Arrange
             var teamMember = new TeamMember
             {
-                Id = 1,
+                Id = Guid.NewGuid(),
                 FirstName = "John",
                 LastName = "Doe",
                 Email = "john.doe@company.com",
@@ -226,7 +226,7 @@ namespace Tracker.Tests.Helpers
         public void ValidateOneOnOne_WithZeroDuration_ShouldReturnError()
         {
             // Arrange
-            var teamMember = new TeamMember { Id = 1, FirstName = "John", LastName = "Doe", Email = "test@test.com" };
+            var teamMember = new TeamMember { Id = Guid.NewGuid(), FirstName = "John", LastName = "Doe", Email = "test@test.com" };
             var oneOnOne = new OneOnOne
             {
                 TeamMember = teamMember,
@@ -245,7 +245,7 @@ namespace Tracker.Tests.Helpers
         public void ValidateOneOnOne_WithExcessiveDuration_ShouldReturnError()
         {
             // Arrange
-            var teamMember = new TeamMember { Id = 1, FirstName = "John", LastName = "Doe", Email = "test@test.com" };
+            var teamMember = new TeamMember { Id = Guid.NewGuid(), FirstName = "John", LastName = "Doe", Email = "test@test.com" };
             var oneOnOne = new OneOnOne
             {
                 TeamMember = teamMember,
@@ -428,7 +428,7 @@ namespace Tracker.Tests.Helpers
             {
                 Title = "Great work on the presentation",
                 Content = "The presentation was clear and well-organized.",
-                TeamMemberId = 1,
+                TeamMemberId = Guid.NewGuid(),
                 Date = DateTime.Today,
                 Type = FeedbackType.Positive
             };
@@ -448,7 +448,7 @@ namespace Tracker.Tests.Helpers
             {
                 Title = "",
                 Content = "Some content",
-                TeamMemberId = 1
+                TeamMemberId = Guid.NewGuid()
             };
 
             // Act
@@ -466,7 +466,7 @@ namespace Tracker.Tests.Helpers
             {
                 Title = "Feedback Title",
                 Content = "",
-                TeamMemberId = 1
+                TeamMemberId = Guid.NewGuid()
             };
 
             // Act
@@ -484,7 +484,7 @@ namespace Tracker.Tests.Helpers
             {
                 Title = "Feedback Title",
                 Content = "Some content",
-                TeamMemberId = 0
+                TeamMemberId = Guid.Empty
             };
 
             // Act
@@ -502,13 +502,13 @@ namespace Tracker.Tests.Helpers
         public void ValidateGoal_WithValidData_ShouldReturnNoErrors()
         {
             // Arrange
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = "Learn Kubernetes",
                 Description = "Complete K8s certification",
-                TeamMemberId = 1,
+                TeamMemberId = Guid.NewGuid(),
                 ProgressPercent = 50,
-                Category = GoalCategory.Certification,
+                Category = DevelopmentGoalCategory.Certification,
                 Status = GoalStatus.InProgress
             };
 
@@ -523,10 +523,10 @@ namespace Tracker.Tests.Helpers
         public void ValidateGoal_WithEmptyTitle_ShouldReturnError()
         {
             // Arrange
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = "",
-                TeamMemberId = 1
+                TeamMemberId = Guid.NewGuid()
             };
 
             // Act
@@ -540,10 +540,10 @@ namespace Tracker.Tests.Helpers
         public void ValidateGoal_WithInvalidTeamMemberId_ShouldReturnError()
         {
             // Arrange
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = "Learn something",
-                TeamMemberId = 0
+                TeamMemberId = Guid.Empty
             };
 
             // Act
@@ -561,10 +561,10 @@ namespace Tracker.Tests.Helpers
         public void ValidateGoal_WithInvalidProgressPercent_ShouldReturnError(int invalidProgress)
         {
             // Arrange
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = "Learn something",
-                TeamMemberId = 1,
+                TeamMemberId = Guid.NewGuid(),
                 ProgressPercent = invalidProgress
             };
 
@@ -582,10 +582,10 @@ namespace Tracker.Tests.Helpers
         public void ValidateGoal_WithValidProgressPercent_ShouldNotReturnProgressError(int validProgress)
         {
             // Arrange
-            var goal = new IndividualGoal
+            var goal = new DevelopmentGoal
             {
                 Title = "Learn something",
-                TeamMemberId = 1,
+                TeamMemberId = Guid.NewGuid(),
                 ProgressPercent = validProgress
             };
 

@@ -102,10 +102,10 @@ namespace Tracker.Views.Dialogs
                 ReminderDateTime,
                 null,
                 IsRecurring,
-                IsRecurring ? RecurrenceIntervalDays : null
+                IsRecurring ? $"FREQ=DAILY;INTERVAL={RecurrenceIntervalDays}" : null
             );
 
-            if (id > 0)
+            if (id != Guid.Empty)
             {
                 DialogResult = true;
                 Close();

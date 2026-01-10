@@ -97,13 +97,7 @@ namespace Tracker.DataModels
         public Project? Project { get; set; }
 
         /// <summary>
-        /// Soft delete flag.
-        /// </summary>
-        public bool IsDeleted { get; set; }
-        public DateTime? DeletedAt { get; set; }
-        public Guid? DeletedBy { get; set; }
 
-        /// <summary>
         /// Targets (Key Results) that measure progress.
         /// </summary>
         public List<Target> Targets { get; set; } = new();

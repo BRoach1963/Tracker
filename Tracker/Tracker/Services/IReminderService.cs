@@ -59,20 +59,20 @@ namespace Tracker.Services
         /// <summary>
         /// Creates a reminder for a goal deadline.
         /// </summary>
-        Task CreateGoalReminderAsync(IndividualGoal goal);
+        Task CreateGoalReminderAsync(DevelopmentGoal goal);
 
         /// <summary>
         /// Creates a custom reminder.
         /// </summary>
         /// <param name="title">Reminder title</param>
         /// <param name="message">Reminder message</param>
-        /// <param name="dueDateTime">When to trigger the reminder</param>
+        /// <param name="remindAt">When to trigger the reminder</param>
         /// <param name="teamMemberId">Optional associated team member</param>
         /// <param name="isRecurring">Whether the reminder repeats</param>
-        /// <param name="recurrenceIntervalDays">Days between recurrences</param>
-        /// <returns>The ID of the created reminder, or 0 on failure</returns>
-        Task<int> CreateCustomReminderAsync(string title, string message, DateTime dueDateTime,
-            Guid? teamMemberId = null, bool isRecurring = false, int? recurrenceIntervalDays = null);
+        /// <param name="recurrenceRule">RRULE format recurrence rule</param>
+        /// <returns>The ID of the created reminder, or Guid.Empty on failure</returns>
+        Task<Guid> CreateCustomReminderAsync(string title, string message, DateTime remindAt,
+            Guid? teamMemberId = null, bool isRecurring = false, string? recurrenceRule = null);
 
         #endregion
     }

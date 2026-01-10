@@ -1,203 +1,97 @@
 ﻿using Tracker.Common.Enums;
-using Tracker.Interfaces;
 
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// A deliverable with defined scope and timeline.
-    /// 
-    /// Projects can be:
-    /// - Standalone: Not linked to any OKR/KPI
-    /// - Linked: Feeds into Key Results via IMeasurable interface
-    /// - KPI Source: Provides completion % to KPIs via IKpiSource interface
-    /// 
-    /// Progress is calculated as: (Completed Tasks / Total Tasks) × 100
+    /// A work initiative with defined scope and timeline.
+    /// Maps directly to Supabase 'projects' table.
     /// </summary>
-    public class Project : AuditableEntity, IMeasurable, IKpiSource
+    public class Project : AuditableEntity
     {
         /// <summary>
-        /// Primary key for the project.
+        /// UUID Primary key
         /// </summary>
-        public int ID { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
-        /// The organization this project belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
+        /// Organization this project belongs to (UUID FK to organizations)
         /// </summary>
-        public Guid? OrganizationId { get; set; }
-        
+        public Guid OrganizationId { get; set; }
+
         /// <summary>
-        /// Project name.
+        /// Team member who owns/leads this project (UUID FK to team_members, nullable)
+        /// </summary>
+        public Guid? OwnerTeamMemberId { get; set; }
+        public TeamMember? Owner { get; set; }
+
+        /// <summary>
+        /// User who created this project (UUID FK to users)
+        /// </summary>
+        public Guid CreatedByUserId { get; set; }
+
+        /// <summary>
+        /// Project name (VARCHAR 300)
         /// </summary>
         public string Name { get; set; } = string.Empty;
-        
+
         /// <summary>
-        /// Extended description of the project.
+        /// Project description (TEXT, nullable)
         /// </summary>
-        public string Description { get; set; } = string.Empty;
-        
+        public string? Description { get; set; }
+
         /// <summary>
-        /// Planned start date.
+        /// Hex color code for UI (VARCHAR 7, nullable) - e.g., "#FF5733"
         /// </summary>
-        public DateTime StartDate { get; set; }
-        
+        public string? Color { get; set; }
+
         /// <summary>
-        /// Planned end date.
+        /// Planned start date (DATE, nullable)
         /// </summary>
-        public DateTime? EndDate { get; set; }
-        
+        public DateTime? StartDate { get; set; }
+
         /// <summary>
-        /// Current status (NotStarted, InProgress, OnHold, Completed, Cancelled).
+        /// Target end date (DATE, nullable)
         /// </summary>
-        public string Status { get; set; } = string.Empty;
-        
+        public DateTime? TargetEndDate { get; set; }
+
         /// <summary>
-        /// Team member who owns/leads the project.
+        /// Actual end date when completed (DATE, nullable)
         /// </summary>
-        public TeamMember Owner { get; set; } = null!;
-        
+        public DateTime? ActualEndDate { get; set; }
+
         /// <summary>
-        /// Tasks within this project.
+        /// Current status - maps to task_status enum
+        /// </summary>
+        public WorkItemStatus Status { get; set; } = WorkItemStatus.NotStarted;
+
+        /// <summary>
+        /// Progress percentage 0-100 (DECIMAL 5,2)
+        /// </summary>
+        public decimal ProgressPercent { get; set; } = 0m;
+
+        /// <summary>
+        /// Priority level - maps to task_priority enum
+        /// </summary>
+        public WorkItemPriority Priority { get; set; } = WorkItemPriority.Medium;
+
+        /// <summary>
+        /// Whether visible to the team (BOOLEAN)
+        /// </summary>
+        public bool IsTeamVisible { get; set; } = true;
+
+        /// <summary>
+        /// Tasks within this project
         /// </summary>
         public List<IndividualTask> Tasks { get; set; } = new();
-        
+
         /// <summary>
-        /// Team members assigned to this project.
-        /// </summary>
-        public List<TeamMember> TeamMembers { get; set; } = new();
-        
-        /// <summary>
-        /// Budget allocated for the project.
-        /// </summary>
-        public decimal Budget { get; set; } = decimal.MinValue;
-        
-        /// <summary>
-        /// Project milestones.
+        /// Milestones within this project
         /// </summary>
         public List<Milestone> Milestones { get; set; } = new();
-        
-        /// <summary>
-        /// Dependencies on other projects.
-        /// </summary>
-        public List<ProjectDependency> Dependencies { get; set; } = new();
-        
-        /// <summary>
-        /// Identified risks.
-        /// </summary>
-        public List<Risk> Risks { get; set; } = new();
-
-        #region IMeasurable Implementation
 
         /// <summary>
-        /// IMeasurable.GuidId - returns Guid.Empty (legacy, will be updated later).
+        /// Team members assigned to this project
         /// </summary>
-        Guid IMeasurable.GuidId => Guid.Empty;
-
-        /// <summary>
-        /// IMeasurable.Id - returns the project ID.
-        /// </summary>
-        [Obsolete("Use GuidId instead")]
-        int IMeasurable.Id => ID;
-
-        /// <summary>
-        /// IMeasurable.DisplayName - returns the project name.
-        /// </summary>
-        public string DisplayName => Name;
-
-        /// <summary>
-        /// IMeasurable.CurrentProgress - percentage of completed tasks.
-        /// </summary>
-        decimal IMeasurable.CurrentProgress => Progress;
-
-        /// <summary>
-        /// Legacy MeasurableId for backwards compatibility.
-        /// </summary>
-        public int MeasurableId => ID;
-
-        /// <summary>
-        /// Progress - percentage of completed tasks (0-100).
-        /// </summary>
-        public decimal Progress
-        {
-            get
-            {
-                if (Tasks == null || Tasks.Count == 0) return 0m;
-                var completed = Tasks.Count(t => t.IsCompleted);
-                return Math.Round((decimal)completed / Tasks.Count * 100m, 1);
-            }
-        }
-
-        /// <summary>
-        /// DisplayValue - shows completed/total tasks.
-        /// </summary>
-        public string DisplayValue
-        {
-            get
-            {
-                if (Tasks == null || Tasks.Count == 0) return "0/0 tasks";
-                var completed = Tasks.Count(t => t.IsCompleted);
-                return $"{completed}/{Tasks.Count} tasks";
-            }
-        }
-
-        /// <summary>
-        /// MeasurableType - always Project.
-        /// </summary>
-        public MeasurableType MeasurableType => MeasurableType.Project;
-
-        #endregion
-
-        #region IKpiSource Implementation
-
-        /// <summary>
-        /// IKpiSource.SourceId - returns the project ID.
-        /// </summary>
-        public int SourceId => ID;
-
-        /// <summary>
-        /// IKpiSource.SourceDisplayName - returns the project name.
-        /// </summary>
-        public string SourceDisplayName => Name;
-
-        /// <summary>
-        /// IKpiSource.GetValue - returns the completion percentage.
-        /// </summary>
-        public decimal GetValue() => Progress;
-
-        /// <summary>
-        /// IKpiSource.SourceType - always Project.
-        /// </summary>
-        public KpiSourceType SourceType => KpiSourceType.Project;
-
-        #endregion
-
-        #region Computed Properties
-
-        /// <summary>
-        /// Total number of tasks in the project.
-        /// </summary>
-        public int TotalTasks => Tasks?.Count ?? 0;
-
-        /// <summary>
-        /// Number of completed tasks.
-        /// </summary>
-        public int CompletedTasks => Tasks?.Count(t => t.IsCompleted) ?? 0;
-
-        /// <summary>
-        /// Number of incomplete tasks.
-        /// </summary>
-        public int IncompleteTasks => TotalTasks - CompletedTasks;
-
-        /// <summary>
-        /// Whether the project is overdue (past end date and not completed).
-        /// </summary>
-        public bool IsOverdue => EndDate.HasValue && EndDate.Value < DateTime.Today && Status != "Completed";
-
-        /// <summary>
-        /// Days until the project end date (negative if overdue).
-        /// </summary>
-        public int? DaysRemaining => EndDate.HasValue ? (int)(EndDate.Value - DateTime.Today).TotalDays : null;
-
-        #endregion
+        public List<TeamMember> TeamMembers { get; set; } = new();
     }
 }

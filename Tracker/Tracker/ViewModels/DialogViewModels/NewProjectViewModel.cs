@@ -69,7 +69,7 @@ namespace Tracker.ViewModels.DialogViewModels
             if (!_inEditMode)
             {
                 _data.StartDate = DateTime.Now;
-                _data.EndDate = DateTime.Now.AddMonths(3); // Default 3-month duration
+                _data.TargetEndDate = DateTime.Now.AddMonths(3); // Default 3-month duration
                 _data.Status = "Not Started";
             }
             else
@@ -230,17 +230,17 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         /// <summary>
-        /// Gets or sets the project end date.
+        /// Gets or sets the project target end date.
         /// </summary>
         public DateTime? EndDate
         {
-            get => _data.EndDate;
+            get => _data.TargetEndDate;
             set
             {
-                _data.EndDate = value;
+                _data.TargetEndDate = value;
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(EndDateDisplay));
-                UpdateChangedValues("@EndDate", value);
+                UpdateChangedValues("@TargetEndDate", value);
             }
         }
 
@@ -249,14 +249,14 @@ namespace Tracker.ViewModels.DialogViewModels
         /// </summary>
         public string EndDateDisplay
         {
-            get => _data.EndDate == null || _data.EndDate == DateTime.MinValue 
+            get => _data.TargetEndDate == null || _data.TargetEndDate == DateTime.MinValue 
                 ? "MM/DD/YYYY" 
-                : _data.EndDate.Value.ToString("MM/dd/yyyy");
+                : _data.TargetEndDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParse(value, out DateTime date))
                 {
-                    _data.EndDate = date;
+                    _data.TargetEndDate = date;
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(EndDate));
                     UpdateChangedValues("@EndDate", date);

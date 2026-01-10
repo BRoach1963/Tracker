@@ -4,26 +4,42 @@ namespace Tracker.DataModels
 {
     /// <summary>
     /// Represents a reminder/notification that will alert the user.
+    /// Maps to Supabase 'reminders' table.
+    /// Uses polymorphic entity references: entity_type + entity_id instead of separate FKs.
     /// </summary>
     public class Reminder : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this reminder belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid OrganizationId { get; set; }
 
         /// <summary>
-        /// Type of reminder (Meeting, Task, Goal, Engagement, Custom).
+        /// Who gets reminded.
+        /// </summary>
+        public Guid UserId { get; set; }
+
+        /// <summary>
+        /// Optional: Related team member.
+        /// </summary>
+        public Guid? TeamMemberId { get; set; }
+
+        /// <summary>
+        /// Type of reminder (e.g., Meeting, Task, Goal, Engagement, Custom).
         /// </summary>
         public ReminderType Type { get; set; }
 
         /// <summary>
-        /// Current status of the reminder.
+        /// The type of entity being reminded about (meeting, task, goal, development_goal, etc.).
         /// </summary>
-        public ReminderStatus Status { get; set; } = ReminderStatus.Pending;
+        public string EntityType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The ID of the entity being reminded about.
+        /// </summary>
+        public Guid EntityId { get; set; }
 
         /// <summary>
         /// Title shown in the notification.
@@ -33,12 +49,32 @@ namespace Tracker.DataModels
         /// <summary>
         /// Detailed message shown in the notification.
         /// </summary>
-        public string Message { get; set; } = string.Empty;
+        public string? Message { get; set; }
 
         /// <summary>
         /// When the reminder should fire.
         /// </summary>
-        public DateTime DueDateTime { get; set; }
+        public DateTime RemindAt { get; set; }
+
+        /// <summary>
+        /// For relative reminders (e.g., "15 min before meeting").
+        /// </summary>
+        public int? MinutesBefore { get; set; }
+
+        /// <summary>
+        /// Current status of the reminder (scheduled, sent, dismissed, snoozed).
+        /// </summary>
+        public ReminderStatus Status { get; set; } = ReminderStatus.Pending;
+
+        /// <summary>
+        /// When the reminder was sent.
+        /// </summary>
+        public DateTime? SentAt { get; set; }
+
+        /// <summary>
+        /// When the reminder was dismissed.
+        /// </summary>
+        public DateTime? DismissedAt { get; set; }
 
         /// <summary>
         /// If snoozed, when to remind again.
@@ -46,40 +82,35 @@ namespace Tracker.DataModels
         public DateTime? SnoozedUntil { get; set; }
 
         /// <summary>
-        /// Optional: Related 1:1 meeting ID.
+        /// Send as push notification.
         /// </summary>
-        public int? OneOnOneId { get; set; }
+        public bool SendPush { get; set; } = true;
 
         /// <summary>
-        /// Optional: Related team member ID.
+        /// Send via email.
         /// </summary>
-        public Guid? TeamMemberId { get; set; }
+        public bool SendEmail { get; set; } = false;
 
         /// <summary>
-        /// Optional: Related task ID.
+        /// Send in-app notification.
         /// </summary>
-        public int? TaskId { get; set; }
+        public bool SendInApp { get; set; } = true;
 
         /// <summary>
-        /// Optional: Related goal ID.
-        /// </summary>
-        public int? GoalId { get; set; }
-
-        /// <summary>
-        /// Whether this is a recurring reminder (e.g., engagement checks).
+        /// Is this a recurring reminder.
         /// </summary>
         public bool IsRecurring { get; set; }
 
         /// <summary>
-        /// For recurring reminders, how often to repeat (in days).
+        /// Recurrence rule in RRULE format (if recurring).
         /// </summary>
-        public int? RecurrenceIntervalDays { get; set; }
+        public string? RecurrenceRule { get; set; }
 
         /// <summary>
         /// Computed: Is the reminder due now or overdue?
         /// </summary>
         public bool IsDue => Status == ReminderStatus.Pending && 
-                            DueDateTime <= DateTime.Now &&
+                            RemindAt <= DateTime.Now &&
                             (SnoozedUntil == null || SnoozedUntil <= DateTime.Now);
 
         /// <summary>
@@ -90,4 +121,3 @@ namespace Tracker.DataModels
                                  SnoozedUntil > DateTime.Now;
     }
 }
-

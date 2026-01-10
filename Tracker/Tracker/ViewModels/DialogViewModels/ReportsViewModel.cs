@@ -2045,7 +2045,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 var dateRange = GetDateRange();
                 var filteredOkrs = _okrs
-                    .Where(o => o.EndDate >= dateRange.Start || o.StartDate <= dateRange.End)
+                    .Where(o => o.TargetEndDate >= dateRange.Start || o.StartDate <= dateRange.End)
                     .ToList();
 
                 // Apply team member filter
@@ -2672,7 +2672,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     var projectRows = filteredProjects
                         .OrderByDescending(p => p.IsOverdue)
                         .ThenByDescending(p => p.Status == "InProgress" || p.Status == "In Progress")
-                        .ThenBy(p => p.EndDate)
+                        .ThenBy(p => p.TargetEndDate)
                         .Take(15)
                         .Select(p => new ProjectRow
                         {
@@ -2683,7 +2683,7 @@ namespace Tracker.ViewModels.DialogViewModels
                             CompletedTasks = p.CompletedTasks,
                             Status = p.Status,
                             StatusColor = GetProjectStatusBrush(p.Status, p.IsOverdue),
-                            EndDate = p.EndDate?.ToString("MMM d, yyyy") ?? "—",
+                            EndDate = p.TargetEndDate?.ToString("MMM d, yyyy") ?? "—",
                             IsOverdue = p.IsOverdue,
                             DaysRemaining = p.DaysRemaining
                         })

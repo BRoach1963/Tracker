@@ -101,12 +101,6 @@ namespace Tracker.DataModels
         public Guid? ReviewId { get; set; }
 
         /// <summary>
-        /// Soft delete flag.
-        /// </summary>
-        public bool IsDeleted { get; set; }
-        public DateTime? DeletedAt { get; set; }
-
-        /// <summary>
         /// Milestones to track progress.
         /// </summary>
         public List<DevelopmentGoalMilestone> Milestones { get; set; } = new();

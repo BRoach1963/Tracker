@@ -36,6 +36,11 @@ Track dead code identified during the Supabase migration. Delete when encountere
 - [ ] `Tracker/DataModels/KeyPerformanceIndicator.cs` - Replaced by `Metric.cs`
 - [ ] `Tracker/DataModels/KpiDataSource.cs` - Replaced by `MetricDataSource.cs`
 
+### Old Project/Task Models to Consolidate:
+- [ ] `Tracker/DataModels/IndividualTask.cs` - New `TrackerTask.cs` created (keep old until consumers updated)
+- [ ] `Tracker/DataModels/Project.cs` - Needs ID→Guid update (keep for now, update later)
+- [ ] `Tracker/DataModels/TaskCollection.cs` - Needs ID→Guid update (keep for now)
+
 ### Related Files to Update:
 - [ ] Rename `GoalCategory.cs` to `DevelopmentGoalEnums.cs` (contains multiple enums now)
 - [ ] Rename `ObjectiveStatusEnum.cs` to `OkrStatusEnum.cs` or merge into enums file

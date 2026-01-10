@@ -1710,7 +1710,7 @@ namespace Tracker.ViewModels
 
             try
             {
-                var emails = teamMembersWithEmail.Select(t => t.Email).ToList();
+                var emails = teamMembersWithEmail.Select(t => t.Email).Where(e => !string.IsNullOrEmpty(e)).Cast<string>().ToList();
 
                 // Fetch presence in batch
                 var presenceTask = Services.Microsoft365.Microsoft365EnhancedService.Instance.GetPresenceBatchAsync(emails);

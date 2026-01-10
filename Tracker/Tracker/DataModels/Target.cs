@@ -66,12 +66,7 @@ namespace Tracker.DataModels
         public int SortOrder { get; set; }
 
         /// <summary>
-        /// Soft delete flag.
-        /// </summary>
-        public bool IsDeleted { get; set; }
-        public DateTime? DeletedAt { get; set; }
 
-        /// <summary>
         /// Linked measurable sources that feed this target.
         /// </summary>
         public List<TargetMeasurable> Measurables { get; set; } = new();

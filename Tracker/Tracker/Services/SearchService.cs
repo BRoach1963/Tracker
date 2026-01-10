@@ -190,7 +190,7 @@ namespace Tracker.Services
                 {
                     Type = "Team Member",
                     Title = $"{m.FirstName} {m.LastName}",
-                    Description = m.JobTitle,
+                    Description = m.JobTitle ?? string.Empty,
                     Icon = "👤",
                     GuidEntityId = m.Id,
                     Entity = m

@@ -333,7 +333,6 @@ namespace Tracker.Database
             ConfigureChangeTracking(modelBuilder);
             ConfigureOneOnOneLinkedEntities(modelBuilder);
             ConfigureFeedback(modelBuilder);
-            ConfigureIndividualGoal(modelBuilder);
             ConfigureGoalMilestone(modelBuilder);
             ConfigureReminder(modelBuilder);
             ConfigureMeetingTemplate(modelBuilder);
@@ -451,10 +450,6 @@ namespace Tracker.Database
             
             // Feedback: Filter by UserId and IsDeleted
             modelBuilder.Entity<Feedback>().HasQueryFilter(e => 
-                !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
-            
-            // IndividualGoal: Filter by UserId and IsDeleted
-            modelBuilder.Entity<IndividualGoal>().HasQueryFilter(e => 
                 !e.IsDeleted && (CurrentUserId == null || EF.Property<int>(e, "UserId") == CurrentUserId));
             
             // GoalMilestone: Filter by UserId and IsDeleted
@@ -1342,8 +1337,8 @@ namespace Tracker.Database
         {
             modelBuilder.Entity<Milestone>(entity =>
             {
-                entity.HasKey(e => e.ID);
-                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(2000);
                 
                 // User ownership: Each Milestone belongs to one User (via Project owner)
@@ -1539,49 +1534,6 @@ namespace Tracker.Database
         }
 
         /// <summary>
-        /// Configures IndividualGoal - personal goals for team members.
-        /// </summary>
-        private void ConfigureIndividualGoal(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<IndividualGoal>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Title).HasMaxLength(200);
-                entity.Property(e => e.Description).HasMaxLength(2000);
-                entity.Property(e => e.Notes).HasMaxLength(2000);
-
-                // Computed properties - ignore
-                entity.Ignore(e => e.IsOverdue);
-                entity.Ignore(e => e.DaysRemaining);
-
-                // User ownership
-                entity.HasOne<User>()
-                    .WithMany()
-                    .HasForeignKey("UserId")
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                // Goal belongs to a TeamMember
-                entity.HasOne(e => e.TeamMember)
-                    .WithMany()
-                    .HasForeignKey(e => e.TeamMemberId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Goal has many Milestones
-                entity.HasMany(e => e.Milestones)
-                    .WithOne()
-                    .HasForeignKey(m => m.GoalId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasIndex(e => e.TeamMemberId);
-                entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.Category);
-                entity.HasIndex("UserId");
-            });
-        }
-
-        /// <summary>
         /// Configures GoalMilestone - milestones for individual goals.
         /// </summary>
         private void ConfigureGoalMilestone(ModelBuilder modelBuilder)
@@ -1611,25 +1563,27 @@ namespace Tracker.Database
             modelBuilder.Entity<Reminder>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Title).HasMaxLength(200);
-                entity.Property(e => e.Message).HasMaxLength(1000);
+                entity.Property(e => e.Title).HasMaxLength(300);
+                entity.Property(e => e.Message).HasMaxLength(2000);
+                entity.Property(e => e.EntityType).HasMaxLength(50);
+                entity.Property(e => e.RecurrenceRule).HasMaxLength(200);
 
                 // Computed properties - ignore
                 entity.Ignore(e => e.IsDue);
                 entity.Ignore(e => e.IsSnoozed);
 
+                // Organization
+                entity.HasOne<Organization>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OrganizationId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 // User ownership
                 entity.HasOne<User>()
                     .WithMany()
-                    .HasForeignKey("UserId")
+                    .HasForeignKey(e => e.UserId)
                     .IsRequired()
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                // Optional FK to OneOnOne
-                entity.HasOne<OneOnOne>()
-                    .WithMany()
-                    .HasForeignKey(e => e.OneOnOneId)
-                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // Optional FK to TeamMember
@@ -1639,24 +1593,12 @@ namespace Tracker.Database
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Optional FK to IndividualTask
-                entity.HasOne<IndividualTask>()
-                    .WithMany()
-                    .HasForeignKey(e => e.TaskId)
-                    .IsRequired(false)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Optional FK to IndividualGoal
-                entity.HasOne<IndividualGoal>()
-                    .WithMany()
-                    .HasForeignKey(e => e.GoalId)
-                    .IsRequired(false)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasIndex(e => e.DueDateTime);
+                // Indexes
+                entity.HasIndex(e => e.RemindAt);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.Type);
-                entity.HasIndex("UserId");
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => new { e.EntityType, e.EntityId });
             });
         }
 
