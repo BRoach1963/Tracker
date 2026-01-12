@@ -35,7 +35,9 @@ namespace Tracker.Infrastructure
             services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
             services.AddScoped<IMeetingRepository, MeetingRepository>();
             services.AddScoped<ITaskRepository, TaskRepository>();
-            // TODO: Add remaining repositories as they are created
+            services.AddScoped<IGoalRepository, GoalRepository>();
+            services.AddScoped<IMetricRepository, MetricRepository>();
+            // TODO: Add remaining repositories as they are created (Phase 2)
 
             // Register logging
             services.AddSingleton<ILogger>(_ => LoggingManager.GetComponentLogger("DI"));
