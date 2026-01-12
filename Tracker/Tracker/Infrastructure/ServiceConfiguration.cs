@@ -39,7 +39,9 @@ namespace Tracker.Infrastructure
             services.AddScoped<IMetricRepository, MetricRepository>();
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
             services.AddScoped<IProjectRepository, ProjectRepository>();
-            // TODO: Add remaining repositories as they are created (Phase 2)
+            services.AddScoped<IQuickNoteRepository, QuickNoteRepository>();
+            services.AddScoped<IDevelopmentGoalRepository, DevelopmentGoalRepository>();
+            // TODO: Add PerformanceReview & PulseSurvey (Phase 2.3)
 
             // Register logging
             services.AddSingleton<ILogger>(_ => LoggingManager.GetComponentLogger("DI"));
