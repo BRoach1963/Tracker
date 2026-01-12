@@ -33,6 +33,8 @@ namespace Tracker.Infrastructure
             services.AddScoped<IDapperConnectionFactory, DapperConnectionFactory>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
+            services.AddScoped<IMeetingRepository, MeetingRepository>();
+            services.AddScoped<ITaskRepository, TaskRepository>();
             // TODO: Add remaining repositories as they are created
 
             // Register logging
