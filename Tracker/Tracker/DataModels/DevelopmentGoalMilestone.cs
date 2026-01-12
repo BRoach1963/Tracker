@@ -1,4 +1,4 @@
-using Tracker.Common.Enums;
+using System;
 
 namespace Tracker.DataModels
 {
@@ -12,6 +12,12 @@ namespace Tracker.DataModels
         /// Primary key (UUID).
         /// </summary>
         public Guid Id { get; set; }
+
+        /// <summary>
+        /// The organization this milestone belongs to.
+        /// </summary>
+        public Guid OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
 
         /// <summary>
         /// Parent development goal.
@@ -40,9 +46,9 @@ namespace Tracker.DataModels
         public DateTime? CompletedAt { get; set; }
 
         /// <summary>
-        /// Current status.
+        /// Current status: not_started, in_progress, completed, cancelled.
         /// </summary>
-        public MilestoneStatus Status { get; set; } = MilestoneStatus.NotStarted;
+        public string Status { get; set; } = "not_started";
 
         /// <summary>
         /// Sort order for display.
@@ -53,5 +59,15 @@ namespace Tracker.DataModels
         /// Additional notes.
         /// </summary>
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// When created.
+        /// </summary>
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// When last updated.
+        /// </summary>
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

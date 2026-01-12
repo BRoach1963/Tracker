@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Interfaces;
 using Tracker.Logging;
@@ -153,8 +154,8 @@ Keep it under 3 paragraphs.";
         /// </summary>
         public async Task<string> GenerateMeetingPrepAsync(
             TeamMember teamMember,
-            IEnumerable<OneOnOne> recentMeetings,
-            IEnumerable<IndividualTask> openTasks,
+            IEnumerable<Meeting> recentMeetings,
+            IEnumerable<TrackerTask> openTasks,
             CancellationToken cancellationToken = default)
         {
             try
@@ -215,21 +216,21 @@ Be concise and actionable.";
                 sb.AppendLine("## Overdue Tasks");
                 foreach (var task in ctx.OverdueTasks.Take(10))
                 {
-                    var daysPastDue = task.DueDate != default 
-                        ? (DateTime.Now - task.DueDate).Days 
+                    var daysPastDue = task.DueDate.HasValue 
+                        ? (DateTime.Now - task.DueDate.Value).Days 
                         : 0;
-                    sb.AppendLine($"- {task.Description} (owned by {task.Owner?.FullName ?? "Unassigned"}, {daysPastDue} days overdue)");
+                    sb.AppendLine($"- {task.Title ?? task.Description ?? "Untitled"} (owned by {task.Owner?.FullName ?? "Unassigned"}, {daysPastDue} days overdue)");
                 }
                 sb.AppendLine();
             }
 
-            // At-risk OKRs
-            if (ctx.AtRiskOkrs?.Any() == true)
+            // At-risk Goals
+            if (ctx.AtRiskGoals?.Any() == true)
             {
-                sb.AppendLine("## At-Risk OKRs");
-                foreach (var okr in ctx.AtRiskOkrs.Take(5))
+                sb.AppendLine("## At-Risk Goals");
+                foreach (var goal in ctx.AtRiskGoals.Take(5))
                 {
-                    sb.AppendLine($"- {okr.Title}: {okr.CompletionPercentage}% complete");
+                    sb.AppendLine($"- {goal.Title}: {goal.ProgressPercent}% complete");
                 }
                 sb.AppendLine();
             }
@@ -266,8 +267,8 @@ Be concise and actionable.";
 
         private string BuildMeetingPrepPrompt(
             TeamMember member,
-            IEnumerable<OneOnOne> recentMeetings,
-            IEnumerable<IndividualTask> openTasks)
+            IEnumerable<Meeting> recentMeetings,
+            IEnumerable<TrackerTask> openTasks)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Prepare for 1:1 meeting with {member.FullName} ({member.JobTitle ?? "Team Member"})");
@@ -280,7 +281,7 @@ Be concise and actionable.";
                 sb.AppendLine("## Recent 1:1 Notes");
                 foreach (var meeting in meetings)
                 {
-                    sb.AppendLine($"- {meeting.Date:MMM d}: {meeting.Notes?.Substring(0, Math.Min(200, meeting.Notes?.Length ?? 0))}...");
+                    sb.AppendLine($"- {meeting.ScheduledAt:MMM d}: {meeting.Notes?.Substring(0, Math.Min(200, meeting.Notes?.Length ?? 0))}...");
                 }
                 sb.AppendLine();
             }
@@ -352,9 +353,9 @@ Be concise and actionable.";
         {
             "meeting_gap" => InsightType.MeetingGap,
             "task_overdue" => InsightType.TaskOverdue,
-            "okr_risk" or "okr_at_risk" => InsightType.OkrAtRisk,
-            "kpi_gap" or "kpi_off_target" => InsightType.KpiOffTarget,
-            "recognition_needed" or "kudos" => InsightType.KudosSuggestion,
+            "goal_risk" or "goal_at_risk" or "okr_risk" or "okr_at_risk" => InsightType.GoalAtRisk,
+            "metric_gap" or "metric_off_target" or "kpi_gap" or "kpi_off_target" => InsightType.MetricOffTarget,
+            "recognition_needed" or "kudos" => InsightType.Recommendation,
             "followup_needed" or "stale_action" => InsightType.StaleActionItem,
             "birthday" => InsightType.UpcomingBirthday,
             "anniversary" => InsightType.UpcomingAnniversary,
@@ -365,7 +366,9 @@ Be concise and actionable.";
         private InsightSeverity ParseSeverity(string? severity) => severity?.ToLower() switch
         {
             "critical" => InsightSeverity.Critical,
-            "warning" => InsightSeverity.Warning,
+            "warning" => InsightSeverity.Medium,
+            "high" => InsightSeverity.High,
+            "low" => InsightSeverity.Low,
             "info" => InsightSeverity.Info,
             _ => InsightSeverity.Info
         };
@@ -399,8 +402,8 @@ Be concise and actionable.";
     public class TeamDataContext
     {
         public List<TeamMember>? TeamMembers { get; set; }
-        public List<IndividualTask>? OverdueTasks { get; set; }
-        public List<ObjectiveKeyResult>? AtRiskOkrs { get; set; }
+        public List<TrackerTask>? OverdueTasks { get; set; }
+        public List<Goal>? AtRiskGoals { get; set; }
         public string? RecentFeedbackSummary { get; set; }
     }
 }

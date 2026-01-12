@@ -3,6 +3,7 @@ using System.Windows.Input;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
@@ -19,13 +20,14 @@ namespace Tracker.ViewModels
         #region Fields
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("QuickNotesVM");
+        private readonly IQuickNoteRepository _quickNoteRepository;
         
         private ObservableCollection<QuickNote> _notes = new();
         private ObservableCollection<QuickNote> _filteredNotes = new();
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<Project> _projects = new();
-        private ObservableCollection<KeyPerformanceIndicator> _kpis = new();
-        private ObservableCollection<ObjectiveKeyResult> _okrs = new();
+        private ObservableCollection<Goal> _goals = new();
+        private ObservableCollection<Metric> _metrics = new();
         
         private QuickNote? _selectedNote;
         private bool _isEditing;
@@ -50,8 +52,9 @@ namespace Tracker.ViewModels
 
         #region Constructor
 
-        public QuickNotesViewModel()
+        public QuickNotesViewModel(IQuickNoteRepository quickNoteRepository)
         {
+            _quickNoteRepository = quickNoteRepository ?? throw new ArgumentNullException(nameof(quickNoteRepository));
             _ = LoadDataAsync(); // Fire and forget
             
             // Subscribe to data change messages
@@ -104,8 +107,7 @@ namespace Tracker.ViewModels
 
         public ObservableCollection<TeamMember> TeamMembers => _teamMembers;
         public ObservableCollection<Project> Projects => _projects;
-        public ObservableCollection<KeyPerformanceIndicator> Kpis => _kpis;
-        public ObservableCollection<ObjectiveKeyResult> Okrs => _okrs;
+        public ObservableCollection<Goal> Goals => _goals;
 
         public Array Categories => Enum.GetValues(typeof(NoteCategory));
         public Array LinkedEntityTypes => Enum.GetValues(typeof(NoteLinkedEntityType));
@@ -387,19 +389,19 @@ namespace Tracker.ViewModels
                 }
                 else
                 {
-                    int? linkedEntityId = EditLinkedEntity switch
+                    Guid? linkedEntityId = EditLinkedEntity switch
                     {
-                        Project p => p.ID,
-                        KeyPerformanceIndicator kpi => kpi.KpiId,
-                        ObjectiveKeyResult okr => okr.ObjectiveId,
+                        Project p => p.Id,
+                        Metric m => m.Id,
+                        Goal g => g.Id,
                         _ => null
                     };
-                    note.SetLinkedEntity(EditLinkedEntityType, linkedEntityId);
+                    note.SetLinkedEntity(EditLinkedEntityType, linkedEntityId.HasValue ? (int?)linkedEntityId.GetHashCode() : null);
                 }
 
                 if (IsNewNote)
                 {
-                    var id = await TrackerDbManager.Instance.AddQuickNoteAsync(note);
+                    var id = await _quickNoteRepository.AddQuickNoteAsync(note);
                     if (id > 0)
                     {
                         note.Id = id;
@@ -409,7 +411,7 @@ namespace Tracker.ViewModels
                 }
                 else
                 {
-                    var success = await TrackerDbManager.Instance.UpdateQuickNoteAsync(note);
+                    var success = await _quickNoteRepository.UpdateQuickNoteAsync(note);
                     if (success)
                     {
                         NotificationManager.Instance.ShowSuccess("Note Updated", "Your changes have been saved.");
@@ -449,7 +451,7 @@ namespace Tracker.ViewModels
         {
             if (SelectedNote == null) return;
 
-            var result = await TrackerDbManager.Instance.DeleteQuickNoteAsync(SelectedNote.Id);
+            var result = await _quickNoteRepository.DeleteQuickNoteAsync(SelectedNote.Id);
             if (result)
             {
                 var index = _notes.IndexOf(SelectedNote);
@@ -475,7 +477,7 @@ namespace Tracker.ViewModels
         {
             if (SelectedNote == null) return;
 
-            var result = await TrackerDbManager.Instance.ToggleNotePinnedAsync(SelectedNote.Id);
+            var result = await _quickNoteRepository.ToggleNotePinnedAsync(SelectedNote.Id);
             if (result)
             {
                 SelectedNote.IsPinned = !SelectedNote.IsPinned;
@@ -488,7 +490,7 @@ namespace Tracker.ViewModels
         {
             if (SelectedNote == null) return;
 
-            var result = await TrackerDbManager.Instance.ArchiveNoteAsync(SelectedNote.Id);
+            var result = await _quickNoteRepository.ArchiveNoteAsync(SelectedNote.Id);
             if (result)
             {
                 SelectedNote.IsArchived = true;
@@ -526,7 +528,7 @@ namespace Tracker.ViewModels
 
         private async Task LoadNotesAsync()
         {
-            var notes = await TrackerDbManager.Instance.GetQuickNotesAsync(ShowArchived);
+            var notes = await _quickNoteRepository.GetQuickNotesAsync(ShowArchived);
             _notes.Clear();
             foreach (var note in notes)
             {
@@ -554,13 +556,13 @@ namespace Tracker.ViewModels
             _projects.Clear();
             foreach (var p in projects) _projects.Add(p);
 
-            var kpis = await TrackerDataManager.Instance.GetKPIs();
-            _kpis.Clear();
-            foreach (var k in kpis) _kpis.Add(k);
+            var goals = await TrackerDataManager.Instance.GetStrategicGoals();
+            _goals.Clear();
+            foreach (var g in goals) _goals.Add(g);
 
-            var okrs = await TrackerDataManager.Instance.GetOKRs();
-            _okrs.Clear();
-            foreach (var o in okrs) _okrs.Add(o);
+            var metrics = await TrackerDataManager.Instance.GetMetrics();
+            _metrics.Clear();
+            foreach (var m in metrics) _metrics.Add(m);
         }
 
         private void ApplyFilters()
@@ -617,9 +619,9 @@ namespace Tracker.ViewModels
             EditLinkedEntity = note.LinkedEntityType switch
             {
                 NoteLinkedEntityType.TeamMember => _teamMembers.FirstOrDefault(t => t.Id == note.TeamMemberId),
-                NoteLinkedEntityType.Project => _projects.FirstOrDefault(p => p.ID == note.LinkedEntityId),
-                NoteLinkedEntityType.KPI => _kpis.FirstOrDefault(k => k.KpiId == note.LinkedEntityId),
-                NoteLinkedEntityType.OKR => _okrs.FirstOrDefault(o => o.ObjectiveId == note.LinkedEntityId),
+                NoteLinkedEntityType.Project => _projects.FirstOrDefault(p => p.Id.GetHashCode() == note.LinkedEntityId),
+                NoteLinkedEntityType.KPI => _metrics.FirstOrDefault(m => m.Id.GetHashCode() == note.LinkedEntityId),
+                NoteLinkedEntityType.OKR => _goals.FirstOrDefault(g => g.Id.GetHashCode() == note.LinkedEntityId),
                 _ => null
             };
         }

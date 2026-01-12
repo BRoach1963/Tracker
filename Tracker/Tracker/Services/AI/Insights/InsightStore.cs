@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Logging;
 
@@ -363,7 +364,7 @@ namespace Tracker.Services.AI.Insights
                 EntityId = reader.IsDBNull(reader.GetOrdinal("entity_id")) ? null : reader.GetInt32(reader.GetOrdinal("entity_id")),
                 GeneratedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("generated_at"))),
                 DismissedAt = reader.IsDBNull(reader.GetOrdinal("dismissed_at")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("dismissed_at"))),
-                ActedOnAt = reader.IsDBNull(reader.GetOrdinal("acted_on_at")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("acted_on_at"))),
+                ActionedAt = reader.IsDBNull(reader.GetOrdinal("acted_on_at")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("acted_on_at"))),
                 IsRead = reader.GetInt32(reader.GetOrdinal("is_read")) == 1
             };
         }

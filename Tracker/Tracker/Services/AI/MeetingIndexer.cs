@@ -23,19 +23,19 @@ namespace Tracker.Services.AI
 
         protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
         {
-            var meetings = await TrackerDataManager.Instance.GetOneOnOnes();
+            var meetings = await TrackerDataManager.Instance.GetOneOnOneMeetings();
             return meetings.Where(m => !m.IsDeleted).Cast<object>();
         }
 
         protected override async Task IndexSingleEntityAsync(object entity)
         {
-            var meeting = (DataModels.OneOnOne)entity;
+            var meeting = (DataModels.Meeting)entity;
             try
             {
                 // Create rich text representation
                 var sb = new StringBuilder();
-                sb.AppendLine($"1:1 Meeting with {meeting.TeamMember?.FullName ?? "Unknown"}");
-                sb.AppendLine($"Date: {meeting.Date:MMMM d, yyyy}");
+                sb.AppendLine($"1:1 Meeting with {meeting.Report?.FullName ?? "Unknown"}");
+                sb.AppendLine($"Date: {meeting.ScheduledAt:MMMM d, yyyy}");
                 sb.AppendLine($"Status: {meeting.Status}");
                 
                 if (!string.IsNullOrEmpty(meeting.Notes))
@@ -49,9 +49,9 @@ namespace Tracker.Services.AI
                     sb.AppendLine($"Agenda Items ({meeting.AgendaItems.Count}):");
                     foreach (var item in meeting.AgendaItems.Take(10))
                     {
-                        sb.AppendLine($"  - {item.Description}");
-                        if (!string.IsNullOrEmpty(item.Resolution))
-                            sb.AppendLine($"    Resolution: {item.Resolution}");
+                        sb.AppendLine($"  - {item.Title}");
+                        if (!string.IsNullOrEmpty(item.Notes))
+                            sb.AppendLine($"    Notes: {item.Notes}");
                     }
                 }
 
@@ -62,8 +62,8 @@ namespace Tracker.Services.AI
                 {
                     ["type"] = "meeting",
                     ["id"] = meeting.Id,
-                    ["team_member_name"] = meeting.TeamMember?.FullName ?? "Unknown",
-                    ["date"] = meeting.Date.ToString("yyyy-MM-dd"),
+                    ["team_member_name"] = meeting.Report?.FullName ?? "Unknown",
+                    ["date"] = meeting.ScheduledAt.ToString("yyyy-MM-dd"),
                     ["status"] = meeting.Status.ToString()
                 };
 

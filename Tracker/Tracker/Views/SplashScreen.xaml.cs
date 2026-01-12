@@ -1,7 +1,11 @@
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using Microsoft.EntityFrameworkCore;
+using Tracker.Classes;
 using Tracker.Database;
+using Tracker.DataModels;
 using Tracker.Helpers;
 using Tracker.Managers;
 
@@ -236,7 +240,7 @@ namespace Tracker.Views
                 // For local SQLite auth, generate a deterministic UUID from username
                 // This ensures the same user always gets the same UUID
                 var localUserId = GenerateLocalUserId(username);
-                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(localUserId, $"{username}@local", username);
+                var user = await GetOrCreateLocalUserAsync(localUserId, $"{username}@local", username, username);
                 
                 if (user != null)
                 {
@@ -261,6 +265,56 @@ namespace Tracker.Views
                 ShowError($"Login failed: {ex.Message}");
                 SetLoginEnabled(true);
             }
+        }
+
+        /// <summary>
+        /// Gets or creates a local user record for SQLite authentication.
+        /// Mirrors the behavior of the legacy TrackerDbManager user bootstrap logic
+        /// using the modern TrackerDbContextFactory pattern.
+        /// </summary>
+        private static async Task<User?> GetOrCreateLocalUserAsync(Guid localUserId, string email, string displayName, string username)
+        {
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            // Try to find an existing user by Supabase/local GUID, username, or email
+            var existingUser = await context.Users
+                .FirstOrDefaultAsync(u =>
+                    (u.SupabaseUserId.HasValue && u.SupabaseUserId.Value == localUserId) ||
+                    u.Username == username ||
+                    u.Email == email);
+
+            if (existingUser != null)
+            {
+                // Update basic fields to keep the record fresh
+                if (!existingUser.SupabaseUserId.HasValue)
+                {
+                    existingUser.SupabaseUserId = localUserId;
+                }
+
+                existingUser.Email = email;
+                existingUser.DisplayName = displayName;
+                existingUser.Username = username;
+                existingUser.IsActive = true;
+
+                await context.SaveChangesAsync();
+                return existingUser;
+            }
+
+            var newUser = new User
+            {
+                SupabaseUserId = localUserId,
+                Username = username,
+                Email = email,
+                DisplayName = displayName,
+                IsActive = true,
+                IsAdmin = false,
+                Role = "manager"
+            };
+
+            context.Users.Add(newUser);
+            await context.SaveChangesAsync();
+            return newUser;
         }
 
         /// <summary>

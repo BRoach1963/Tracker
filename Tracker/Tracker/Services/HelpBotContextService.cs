@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using Tracker.Common.Enums;
 using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Logging;
@@ -338,10 +339,10 @@ Be concise and helpful. Reference the user's actual data when relevant.";
         {
             try
             {
-                var meetings = await TrackerDataManager.Instance.GetOneOnOnes();
+                var meetings = await TrackerDataManager.Instance.GetOneOnOneMeetings();
                 var upcoming = meetings
-                    .Where(m => m.Date >= DateTime.Today && !m.IsDeleted)
-                    .OrderBy(m => m.Date)
+                    .Where(m => m.ScheduledAt >= DateTime.Today && !m.IsDeleted)
+                    .OrderBy(m => m.ScheduledAt)
                     .Take(15)
                     .ToList();
 
@@ -349,7 +350,7 @@ Be concise and helpful. Reference the user's actual data when relevant.";
                 {
                     foreach (var meeting in upcoming)
                     {
-                        var details = $"{meeting.Date:MMM dd}: 1:1 with {meeting.TeamMember?.FullName ?? "Unknown"} ({meeting.Status})";
+                        var details = $"{meeting.ScheduledAt:MMM dd}: 1:1 with {meeting.Report?.FullName ?? "Unknown"} ({meeting.Status})";
                         
                         // Add agenda items if present
                         if (meeting.AgendaItems?.Any() == true)
@@ -418,14 +419,14 @@ Be concise and helpful. Reference the user's actual data when relevant.";
         {
             try
             {
-                var okrs = await TrackerDataManager.Instance.GetOKRs();
-                var activeOkrs = okrs.Where(o => !o.IsDeleted).Take(10).ToList();
+                var goals = await TrackerDataManager.Instance.GetStrategicGoals();
+                var activeGoals = goals.Where(o => !o.IsDeleted).Take(10).ToList();
 
-                if (activeOkrs.Any())
+                if (activeGoals.Any())
                 {
-                    foreach (var okr in activeOkrs)
+                    foreach (var goal in activeGoals)
                     {
-                        sb.AppendLine($"  - {okr.Title} ({okr.CompletionPercentage:P0} complete, {okr.Status})");
+                        sb.AppendLine($"  - {goal.Title} ({goal.ProgressPercent:P0} complete, {goal.Status})");
                     }
                 }
                 else
@@ -444,25 +445,25 @@ Be concise and helpful. Reference the user's actual data when relevant.";
             try
             {
                 var analyticsService = PredictiveAnalyticsService.Instance;
-                var okrs = await TrackerDataManager.Instance.GetOKRs();
-                var activeOkrs = okrs.Where(o => !o.IsDeleted).Take(5).ToList();
+                var goals = await TrackerDataManager.Instance.GetStrategicGoals();
+                var activeGoals = goals.Where(g => !g.IsDeleted).Take(5).ToList();
 
-                if (!activeOkrs.Any())
+                if (!activeGoals.Any())
                 {
-                    sb.AppendLine("  No active OKRs to analyze.");
+                    sb.AppendLine("  No active Goals to analyze.");
                     return;
                 }
 
                 var predictionsAdded = 0;
-                foreach (var okr in activeOkrs)
+                foreach (var goal in activeGoals)
                 {
                     try
                     {
-                        var prediction = await analyticsService.AnalyzeOkrAsync(
-                            okr.ObjectiveId, 
-                            okr.Title,
-                            okr.StartDate,
-                            okr.EndDate);
+                        var prediction = await analyticsService.AnalyzeGoalAsync(
+                            goal.Id, 
+                            goal.Title,
+                            goal.StartDate,
+                            goal.EndDate);
 
                         if (prediction.IsValid && prediction.Trajectory != null)
                         {
@@ -471,13 +472,13 @@ Be concise and helpful. Reference the user's actual data when relevant.";
                             var predictedDate = prediction.Trajectory.PredictedCompletionDate?.ToString("MMM d, yyyy") ?? "N/A";
                             var confidence = prediction.DataSufficiency?.Confidence.ToString() ?? "Unknown";
 
-                            sb.AppendLine($"  - {okr.Title}:");
+                            sb.AppendLine($"  - {goal.Title}:");
                             sb.AppendLine($"      Risk: {risk}, Trend: {trend}");
                             sb.AppendLine($"      Predicted completion: {predictedDate} (Confidence: {confidence})");
                             
                             if (prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.Critical)
                             {
-                                sb.AppendLine($"      ⚠️ CRITICAL: This OKR may not meet its target deadline");
+                                sb.AppendLine($"      ⚠️ CRITICAL: This Goal may not meet its target deadline");
                             }
                             else if (prediction.Trajectory.Risk == TrajectoryPredictor.RiskLevel.AtRisk)
                             {
@@ -508,15 +509,15 @@ Be concise and helpful. Reference the user's actual data when relevant.";
         {
             try
             {
-                var kpis = await TrackerDataManager.Instance.GetKPIs();
-                var activeKpis = kpis.Where(k => !k.IsDeleted).Take(10).ToList();
+                var metrics = await TrackerDataManager.Instance.GetMetrics();
+                var activeMetrics = metrics.Where(k => !k.IsDeleted).Take(10).ToList();
 
-                if (activeKpis.Any())
+                if (activeMetrics.Any())
                 {
-                    foreach (var kpi in activeKpis)
+                    foreach (var metric in activeMetrics)
                     {
-                        var status = kpi.Value >= kpi.TargetValue ? "✓ On Target" : "⚠ Below Target";
-                        sb.AppendLine($"  - {kpi.Name}: {kpi.Value:N0}/{kpi.TargetValue:N0} {kpi.Unit} ({status})");
+                        var status = metric.CurrentValue >= (metric.TargetValue ?? 0) ? "✓ On Target" : "⚠ Below Target";
+                        sb.AppendLine($"  - {metric.Name}: {metric.CurrentValue:N0}/{metric.TargetValue:N0} {metric.Unit} ({status})");
                     }
                 }
                 else
@@ -536,7 +537,7 @@ Be concise and helpful. Reference the user's actual data when relevant.";
             {
                 var projects = await TrackerDataManager.Instance.GetProjects();
                 var activeProjects = projects
-                    .Where(p => !p.IsDeleted && p.Status != "Completed")
+                    .Where(p => !p.IsDeleted && p.Status != WorkItemStatus.Completed)
                     .Take(10)
                     .ToList();
 
@@ -544,7 +545,7 @@ Be concise and helpful. Reference the user's actual data when relevant.";
                 {
                     foreach (var project in activeProjects)
                     {
-                        sb.AppendLine($"  - {project.Name} ({project.Status}, {project.Progress:P0} complete)");
+                        sb.AppendLine($"  - {project.Name} ({project.Status}, {project.ProgressPercent:P0} complete)");
                     }
                 }
                 else

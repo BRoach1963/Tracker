@@ -324,9 +324,9 @@ namespace Tracker.Services.Microsoft365
         /// <summary>
         /// Gets a pre-meeting reminder message for Teams.
         /// </summary>
-        public static string GetPreMeetingTeamsMessage(OneOnOne meeting, TeamMember member)
+        public static string GetPreMeetingTeamsMessage(Meeting meeting, TeamMember member)
         {
-            var time = meeting.Date.ToString("dddd") + " at " + meeting.StartTime.ToString(@"h\:mm tt");
+            var time = meeting.ScheduledAt.ToString("dddd") + " at " + meeting.ScheduledAt.ToString(@"h\:mm tt");
             return $"Hey {member.FirstName}! 👋\n\n" +
                    $"Quick reminder - we have our 1:1 coming up on {time}.\n\n" +
                    $"Anything you'd like to add to the agenda? Let me know!";
@@ -355,9 +355,9 @@ namespace Tracker.Services.Microsoft365
         /// <summary>
         /// Gets a meeting rescheduled message for Teams.
         /// </summary>
-        public static string GetRescheduleTeamsMessage(TeamMember member, OneOnOne meeting)
+        public static string GetRescheduleTeamsMessage(TeamMember member, Meeting meeting)
         {
-            var newTime = meeting.Date.ToString("dddd, MMM d") + " at " + meeting.StartTime.ToString(@"h\:mm tt");
+            var newTime = meeting.ScheduledAt.ToString("dddd, MMM d") + " at " + meeting.ScheduledAt.ToString(@"h\:mm tt");
             return $"Hey {member.FirstName}! 📅\n\n" +
                    $"Heads up - I've moved our 1:1 to **{newTime}**.\n\n" +
                    $"Let me know if that doesn't work for you!";
@@ -367,14 +367,14 @@ namespace Tracker.Services.Microsoft365
         /// Gets a 1:1 summary email.
         /// </summary>
         public static (string Subject, string Body) GetSummaryEmail(
-            OneOnOne meeting, TeamMember member, string managerName)
+            Meeting meeting, TeamMember member, string managerName)
         {
-            var subject = $"1:1 Summary - {meeting.Date:MMMM d, yyyy}";
+            var subject = $"1:1 Summary - {meeting.ScheduledAt:MMMM d, yyyy}";
 
             var agendaHtml = "";
             if (meeting.AgendaItems?.Any() == true)
             {
-                agendaHtml = "<ul>" + string.Join("", meeting.AgendaItems.Select(a => $"<li>{a.Description}</li>")) + "</ul>";
+                agendaHtml = "<ul>" + string.Join("", meeting.AgendaItems.Select(a => $"<li>{a.Title}</li>")) + "</ul>";
             }
             else
             {
@@ -412,7 +412,7 @@ namespace Tracker.Services.Microsoft365
 <body>
     <div class='header'>
         <h2 style='margin:0;'>1:1 Summary</h2>
-        <p style='margin:5px 0 0 0;'>{meeting.Date:dddd, MMMM d, yyyy}</p>
+        <p style='margin:5px 0 0 0;'>{meeting.ScheduledAt:dddd, MMMM d, yyyy}</p>
     </div>
     <div class='content'>
         <p>Hi {member.FirstName},</p>
@@ -449,10 +449,10 @@ namespace Tracker.Services.Microsoft365
         /// Gets a pre-meeting prep request email.
         /// </summary>
         public static (string Subject, string Body) GetPrepRequestEmail(
-            OneOnOne meeting, TeamMember member, string managerName)
+            Meeting meeting, TeamMember member, string managerName)
         {
-            var meetingTime = meeting.Date.ToString("dddd, MMMM d") + " at " + meeting.StartTime.ToString(@"h\:mm tt");
-            var subject = $"Prep for our 1:1 on {meeting.Date:MMM d}";
+            var meetingTime = meeting.ScheduledAt.ToString("dddd, MMMM d") + " at " + meeting.ScheduledAt.ToString(@"h\:mm tt");
+            var subject = $"Prep for our 1:1 on {meeting.ScheduledAt:MMM d}";
 
             var body = $@"
 <!DOCTYPE html>

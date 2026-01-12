@@ -130,19 +130,19 @@ namespace Tracker.Services.Google
         /// <summary>
         /// Creates a calendar event for a 1:1 meeting.
         /// </summary>
-        public async Task<Event?> CreateEventAsync(OneOnOne meeting, bool createGoogleMeet = false)
+        public async Task<Event?> CreateEventAsync(Meeting meeting, bool createGoogleMeet = false)
         {
             if (!await EnsureServiceAsync()) return null;
-            if (meeting.TeamMember == null) return null;
+            if (meeting.Report == null) return null;
 
             try
             {
-                var startDateTime = meeting.Date.Date.Add(meeting.StartTime);
-                var endDateTime = meeting.Date.Date.Add(meeting.EndTime);
+                var startDateTime = meeting.ScheduledAt;
+                var endDateTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
 
                 var newEvent = new Event
                 {
-                    Summary = $"1:1 with {meeting.TeamMember.FullName}",
+                    Summary = $"1:1 with {meeting.Report.FullName}",
                     Description = BuildEventDescription(meeting),
                     Start = new EventDateTime
                     {
@@ -158,8 +158,8 @@ namespace Tracker.Services.Google
                     {
                         new EventAttendee
                         {
-                            Email = meeting.TeamMember.Email,
-                            DisplayName = meeting.TeamMember.FullName,
+                            Email = meeting.Report.Email,
+                            DisplayName = meeting.Report.FullName,
                             ResponseStatus = "needsAction"
                         }
                     },
@@ -221,10 +221,10 @@ namespace Tracker.Services.Google
         /// <summary>
         /// Updates an existing calendar event.
         /// </summary>
-        public async Task<Event?> UpdateEventAsync(string eventId, OneOnOne meeting)
+        public async Task<Event?> UpdateEventAsync(string eventId, Meeting meeting)
         {
             if (!await EnsureServiceAsync()) return null;
-            if (meeting.TeamMember == null || string.IsNullOrEmpty(eventId)) return null;
+            if (meeting.Report == null || string.IsNullOrEmpty(eventId)) return null;
 
             try
             {
@@ -232,10 +232,10 @@ namespace Tracker.Services.Google
                 var existingEvent = await _service!.Events.Get("primary", eventId).ExecuteAsync();
                 if (existingEvent == null) return null;
 
-                var startDateTime = meeting.Date.Date.Add(meeting.StartTime);
-                var endDateTime = meeting.Date.Date.Add(meeting.EndTime);
+                var startDateTime = meeting.ScheduledAt;
+                var endDateTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
 
-                existingEvent.Summary = $"1:1 with {meeting.TeamMember.FullName}";
+                existingEvent.Summary = $"1:1 with {meeting.Report.FullName}";
                 existingEvent.Description = BuildEventDescription(meeting);
                 existingEvent.Start = new EventDateTime
                 {
@@ -373,10 +373,10 @@ namespace Tracker.Services.Google
 
         #region Helper Methods
 
-        private string BuildEventDescription(OneOnOne meeting)
+        private string BuildEventDescription(Meeting meeting)
         {
             var description = new System.Text.StringBuilder();
-            description.AppendLine($"1:1 Meeting - {meeting.TeamMember?.FullName}");
+            description.AppendLine($"1:1 Meeting - {meeting.Report?.FullName}");
             description.AppendLine();
 
             if (!string.IsNullOrEmpty(meeting.Description))
@@ -390,7 +390,7 @@ namespace Tracker.Services.Google
                 description.AppendLine("Agenda:");
                 foreach (var item in meeting.AgendaItems.Where(a => !a.IsDeleted))
                 {
-                    description.AppendLine($"• {item.Description}");
+                    description.AppendLine($"• {item.Title}");
                 }
                 description.AppendLine();
             }

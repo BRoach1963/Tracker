@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Tracker.Command;
 using Tracker.Common.Enums;
-using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Logging;
+using Tracker.Services;
 using Tracker.Services.Kudos;
 
 namespace Tracker.ViewModels.DialogViewModels
@@ -18,7 +18,6 @@ namespace Tracker.ViewModels.DialogViewModels
         #region Fields
 
         private readonly ILogger _logger;
-        private readonly TrackerDbManager _db;
         private readonly KudosService _kudosService;
 
         private TeamMember? _selectedTeamMember;
@@ -50,7 +49,6 @@ namespace Tracker.ViewModels.DialogViewModels
         public SendKudosViewModel(Action? callback, TeamMember? preselectedMember) : base(callback)
         {
             _logger = LoggingManager.GetComponentLogger("SendKudos");
-            _db = TrackerDbManager.Instance;
             _kudosService = KudosService.Instance;
 
             // Load team members and optionally preselect
@@ -317,7 +315,7 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var members = await _db.GetTeamMembersAsync();
+                var members = await Managers.TrackerDataManager.Instance.GetTeamData();
                 foreach (var member in members.Where(m => m.IsActive).OrderBy(m => m.FullName))
                 {
                     TeamMembers.Add(member);
@@ -341,44 +339,47 @@ namespace Tracker.ViewModels.DialogViewModels
 
             IsSending = true;
             HasError = false;
-            StatusMessage = "Sending kudos...";
+            StatusMessage = "Saving kudos...";
 
             try
             {
+                // Get the current user's team member ID (sender)
+                var fromTeamMemberId = OrganizationContext.Current.UserIdOrNull;
+                if (!fromTeamMemberId.HasValue)
+                {
+                    StatusMessage = "❌ Error: User context not available";
+                    HasError = true;
+                    return;
+                }
+
                 var options = new KudosOptions
                 {
                     Title = string.IsNullOrWhiteSpace(Title) ? null : Title,
-                    IsPublic = IsPublic,
-                    MentionInMeetingPrep = true
+                    BadgeType = MapCategoryToBadgeType(SelectedCategory),
+                    IsPublic = IsPublic
                 };
 
-                var kudos = await _kudosService.SendKudosAsync(
+                var kudos = await _kudosService.CreateKudosAsync(
+                    fromTeamMemberId.Value,
                     SelectedTeamMember.Id,
                     Message,
-                    SelectedCategory,
-                    _selectedChannel,
                     options);
 
-                if (kudos.DeliveryStatus == DeliveryStatus.Delivered)
+                if (kudos != null)
                 {
                     StatusMessage = $"✅ Kudos sent to {SelectedTeamMember.FullName}!";
                     HasError = false;
-                    _logger.Info("Kudos sent successfully to {0}", SelectedTeamMember.FullName);
+                    _logger.Info("Kudos created successfully for {0}", SelectedTeamMember.FullName);
 
                     // Close after a short delay
                     await Task.Delay(1500);
                     Callback?.Invoke();
                 }
-                else if (kudos.DeliveryStatus == DeliveryStatus.Failed)
-                {
-                    StatusMessage = $"❌ Delivery failed: {kudos.DeliveryError}";
-                    HasError = true;
-                    _logger.Warn("Kudos delivery failed: {0}", kudos.DeliveryError);
-                }
                 else
                 {
-                    StatusMessage = $"📝 Kudos saved (Status: {kudos.StatusDisplayName})";
-                    HasError = false;
+                    StatusMessage = "❌ Failed to save kudos";
+                    HasError = true;
+                    _logger.Warn("Failed to create kudos");
                 }
             }
             catch (Exception ex)
@@ -391,6 +392,27 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 IsSending = false;
             }
+        }
+
+        /// <summary>
+        /// Maps the legacy KudosCategory enum to the new BadgeType string.
+        /// </summary>
+        private static string MapCategoryToBadgeType(KudosCategory category)
+        {
+            return category switch
+            {
+                KudosCategory.TeamWork => "team_player",
+                KudosCategory.Innovation => "innovator",
+                KudosCategory.Leadership => "leader",
+                KudosCategory.CustomerFocus => "customer_focus",
+                KudosCategory.GoingAboveBeyond => "above_and_beyond",
+                KudosCategory.ProblemSolving => "problem_solver",
+                KudosCategory.LearningGrowth => "learner",
+                KudosCategory.Reliability => "reliable",
+                KudosCategory.Communication => "communicator",
+                KudosCategory.Other => "other",
+                _ => "other"
+            };
         }
 
         private async Task TestTeamsAsync()

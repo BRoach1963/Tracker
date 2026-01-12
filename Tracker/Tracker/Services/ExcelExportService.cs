@@ -66,7 +66,7 @@ namespace Tracker.Services
         /// <summary>
         /// Exports 1:1 meetings to an Excel file.
         /// </summary>
-        public static void ExportOneOnOnes(List<OneOnOne> oneOnOnes, string filePath)
+        public static void ExportMeetings(List<Meeting> meetings, string filePath)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             
@@ -79,14 +79,11 @@ namespace Tracker.Services
             worksheet.Cells[1, 3].Value = "Team Member";
             worksheet.Cells[1, 4].Value = "Status";
             worksheet.Cells[1, 5].Value = "Description";
-            worksheet.Cells[1, 6].Value = "Action Items";
-            worksheet.Cells[1, 7].Value = "Follow-up Items";
-            worksheet.Cells[1, 8].Value = "Linked Tasks";
-            worksheet.Cells[1, 9].Value = "Linked OKRs";
-            worksheet.Cells[1, 10].Value = "Linked KPIs";
+            worksheet.Cells[1, 6].Value = "Tasks";
+            worksheet.Cells[1, 7].Value = "Agenda Items";
 
             // Style headers
-            using (var range = worksheet.Cells[1, 1, 1, 10])
+            using (var range = worksheet.Cells[1, 1, 1, 7])
             {
                 range.Style.Font.Bold = true;
                 range.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -95,22 +92,19 @@ namespace Tracker.Services
             }
 
             // Data
-            for (int i = 0; i < oneOnOnes.Count; i++)
+            for (int i = 0; i < meetings.Count; i++)
             {
-                var meeting = oneOnOnes[i];
+                var meeting = meetings[i];
                 int row = i + 2;
                 worksheet.Cells[row, 1].Value = meeting.Id;
-                worksheet.Cells[row, 2].Value = meeting.Date.ToString("yyyy-MM-dd");
-                worksheet.Cells[row, 3].Value = meeting.TeamMember != null 
-                    ? $"{meeting.TeamMember.FirstName} {meeting.TeamMember.LastName}".Trim() 
+                worksheet.Cells[row, 2].Value = meeting.ScheduledAt.ToString("yyyy-MM-dd");
+                worksheet.Cells[row, 3].Value = meeting.Report != null 
+                    ? $"{meeting.Report.FirstName} {meeting.Report.LastName}".Trim() 
                     : "N/A";
                 worksheet.Cells[row, 4].Value = meeting.Status.ToString();
                 worksheet.Cells[row, 5].Value = meeting.Description;
                 worksheet.Cells[row, 6].Value = meeting.Tasks?.Count(t => !t.IsDeleted) ?? 0;
                 worksheet.Cells[row, 7].Value = meeting.AgendaItems?.Count(a => !a.IsDeleted) ?? 0;
-                worksheet.Cells[row, 8].Value = meeting.LinkedTasks?.Count(lt => !lt.IsDeleted) ?? 0;
-                worksheet.Cells[row, 9].Value = meeting.LinkedOkrs?.Count(lo => !lo.IsDeleted) ?? 0;
-                worksheet.Cells[row, 10].Value = meeting.LinkedKpis?.Count(lk => !lk.IsDeleted) ?? 0;
             }
 
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
@@ -120,7 +114,7 @@ namespace Tracker.Services
         /// <summary>
         /// Exports tasks to an Excel file.
         /// </summary>
-        public static void ExportTasks(List<IndividualTask> tasks, string filePath)
+        public static void ExportTasks(List<TrackerTask> tasks, string filePath)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             
@@ -153,8 +147,8 @@ namespace Tracker.Services
                 worksheet.Cells[row, 1].Value = task.Id;
                 worksheet.Cells[row, 2].Value = task.Description;
                 worksheet.Cells[row, 3].Value = task.Status.ToString();
-                worksheet.Cells[row, 4].Value = task.DueDate != default(DateTime) 
-                    ? task.DueDate.ToString("yyyy-MM-dd") 
+                worksheet.Cells[row, 4].Value = task.DueDate.HasValue 
+                    ? task.DueDate.Value.ToString("yyyy-MM-dd") 
                     : "N/A";
                 worksheet.Cells[row, 5].Value = task.Owner != null 
                     ? $"{task.Owner.FirstName} {task.Owner.LastName}".Trim() 
@@ -183,8 +177,8 @@ namespace Tracker.Services
             worksheet.Cells[1, 3].Value = "Description";
             worksheet.Cells[1, 4].Value = "Status";
             worksheet.Cells[1, 5].Value = "Start Date";
-            worksheet.Cells[1, 6].Value = "End Date";
-            worksheet.Cells[1, 7].Value = "Budget";
+            worksheet.Cells[1, 6].Value = "Target End Date";
+            worksheet.Cells[1, 7].Value = "Progress";
             worksheet.Cells[1, 8].Value = "Owner";
 
             // Style headers
@@ -201,17 +195,15 @@ namespace Tracker.Services
             {
                 var project = projects[i];
                 int row = i + 2;
-                worksheet.Cells[row, 1].Value = project.ID;
+                worksheet.Cells[row, 1].Value = project.Id;
                 worksheet.Cells[row, 2].Value = project.Name;
                 worksheet.Cells[row, 3].Value = project.Description;
                 worksheet.Cells[row, 4].Value = project.Status.ToString();
-                worksheet.Cells[row, 5].Value = project.StartDate != default(DateTime) 
-                    ? project.StartDate.ToString("yyyy-MM-dd") 
+                worksheet.Cells[row, 5].Value = project.StartDate.HasValue 
+                    ? project.StartDate.Value.ToString("yyyy-MM-dd") 
                     : "N/A";
-                worksheet.Cells[row, 6].Value = project.EndDate?.ToString("yyyy-MM-dd") ?? "N/A";
-                worksheet.Cells[row, 7].Value = project.Budget != decimal.MinValue 
-                    ? project.Budget.ToString("C") 
-                    : "N/A";
+                worksheet.Cells[row, 6].Value = project.TargetEndDate?.ToString("yyyy-MM-dd") ?? "N/A";
+                worksheet.Cells[row, 7].Value = project.ProgressPercent.ToString("F1") + "%";
                 worksheet.Cells[row, 8].Value = project.Owner != null 
                     ? $"{project.Owner.FirstName} {project.Owner.LastName}".Trim() 
                     : "N/A";
@@ -222,9 +214,9 @@ namespace Tracker.Services
         }
 
         /// <summary>
-        /// Exports OKRs to an Excel file.
+        /// Exports goals to an Excel file.
         /// </summary>
-        public static void ExportOKRs(List<ObjectiveKeyResult> okrs, string filePath)
+        public static void ExportGoals(List<Goal> goals, string filePath)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             
@@ -236,14 +228,11 @@ namespace Tracker.Services
             worksheet.Cells[1, 2].Value = "Title";
             worksheet.Cells[1, 3].Value = "Description";
             worksheet.Cells[1, 4].Value = "Status";
-            worksheet.Cells[1, 5].Value = "Start Date";
-            worksheet.Cells[1, 6].Value = "End Date";
-            worksheet.Cells[1, 7].Value = "Completion %";
-            worksheet.Cells[1, 8].Value = "Owner";
-            worksheet.Cells[1, 9].Value = "Discussed In Meetings";
+            worksheet.Cells[1, 5].Value = "Progress";
+            worksheet.Cells[1, 6].Value = "Key Results";
 
             // Style headers
-            using (var range = worksheet.Cells[1, 1, 1, 9])
+            using (var range = worksheet.Cells[1, 1, 1, 6])
             {
                 range.Style.Font.Bold = true;
                 range.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -252,25 +241,16 @@ namespace Tracker.Services
             }
 
             // Data
-            for (int i = 0; i < okrs.Count; i++)
+            for (int i = 0; i < goals.Count; i++)
             {
-                var okr = okrs[i];
+                var goal = goals[i];
                 int row = i + 2;
-                worksheet.Cells[row, 1].Value = okr.ObjectiveId;
-                worksheet.Cells[row, 2].Value = okr.Title;
-                worksheet.Cells[row, 3].Value = okr.Description;
-                worksheet.Cells[row, 4].Value = okr.Status.ToString();
-                worksheet.Cells[row, 5].Value = okr.StartDate != default(DateTime) 
-                    ? okr.StartDate.ToString("yyyy-MM-dd") 
-                    : "N/A";
-                worksheet.Cells[row, 6].Value = okr.EndDate != default(DateTime) 
-                    ? okr.EndDate.ToString("yyyy-MM-dd") 
-                    : "N/A";
-                worksheet.Cells[row, 7].Value = okr.CompletionPercentage;
-                worksheet.Cells[row, 8].Value = okr.Owner != null 
-                    ? $"{okr.Owner.FirstName} {okr.Owner.LastName}".Trim() 
-                    : "N/A";
-                worksheet.Cells[row, 9].Value = okr.MeetingCount;
+                worksheet.Cells[row, 1].Value = goal.Id;
+                worksheet.Cells[row, 2].Value = goal.Title;
+                worksheet.Cells[row, 3].Value = goal.Description;
+                worksheet.Cells[row, 4].Value = goal.Status.ToString();
+                worksheet.Cells[row, 5].Value = goal.EffectiveProgress.ToString("F1") + "%";
+                worksheet.Cells[row, 6].Value = goal.Targets?.Count ?? 0;
             }
 
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
@@ -278,9 +258,9 @@ namespace Tracker.Services
         }
 
         /// <summary>
-        /// Exports KPIs to an Excel file.
+        /// Exports metrics to an Excel file.
         /// </summary>
-        public static void ExportKPIs(List<KeyPerformanceIndicator> kpis, string filePath)
+        public static void ExportMetrics(List<Metric> metrics, string filePath)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             
@@ -291,15 +271,12 @@ namespace Tracker.Services
             worksheet.Cells[1, 1].Value = "ID";
             worksheet.Cells[1, 2].Value = "Name";
             worksheet.Cells[1, 3].Value = "Description";
-            worksheet.Cells[1, 4].Value = "Value";
+            worksheet.Cells[1, 4].Value = "Current Value";
             worksheet.Cells[1, 5].Value = "Target Value";
-            worksheet.Cells[1, 6].Value = "Status";
-            worksheet.Cells[1, 7].Value = "Last Updated";
-            worksheet.Cells[1, 8].Value = "Owner";
-            worksheet.Cells[1, 9].Value = "Discussed In Meetings";
+            worksheet.Cells[1, 6].Value = "Data Sources";
 
             // Style headers
-            using (var range = worksheet.Cells[1, 1, 1, 9])
+            using (var range = worksheet.Cells[1, 1, 1, 6])
             {
                 range.Style.Font.Bold = true;
                 range.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -308,23 +285,16 @@ namespace Tracker.Services
             }
 
             // Data
-            for (int i = 0; i < kpis.Count; i++)
+            for (int i = 0; i < metrics.Count; i++)
             {
-                var kpi = kpis[i];
+                var metric = metrics[i];
                 int row = i + 2;
-                worksheet.Cells[row, 1].Value = kpi.KpiId;
-                worksheet.Cells[row, 2].Value = kpi.Name;
-                worksheet.Cells[row, 3].Value = kpi.Description;
-                worksheet.Cells[row, 4].Value = kpi.Value;
-                worksheet.Cells[row, 5].Value = kpi.TargetValue;
-                worksheet.Cells[row, 6].Value = kpi.Status.ToString();
-                worksheet.Cells[row, 7].Value = kpi.LastUpdated != default(DateTime) 
-                    ? kpi.LastUpdated.ToString("yyyy-MM-dd") 
-                    : "N/A";
-                worksheet.Cells[row, 8].Value = kpi.Owner != null 
-                    ? $"{kpi.Owner.FirstName} {kpi.Owner.LastName}".Trim() 
-                    : "N/A";
-                worksheet.Cells[row, 9].Value = kpi.MeetingCount;
+                worksheet.Cells[row, 1].Value = metric.Id;
+                worksheet.Cells[row, 2].Value = metric.Name;
+                worksheet.Cells[row, 3].Value = metric.Description;
+                worksheet.Cells[row, 4].Value = metric.CurrentValue.ToString("F2");
+                worksheet.Cells[row, 5].Value = metric.TargetValue?.ToString("F2") ?? "N/A";
+                worksheet.Cells[row, 6].Value = metric.DataSources?.Count ?? 0;
             }
 
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
@@ -336,48 +306,15 @@ namespace Tracker.Services
         /// </summary>
         public static void ExportAllData(
             List<TeamMember> teamMembers,
-            List<OneOnOne> oneOnOnes,
-            List<IndividualTask> tasks,
+            List<Meeting> meetings,
+            List<TrackerTask> tasks,
             List<Project> projects,
-            List<ObjectiveKeyResult> okrs,
-            List<KeyPerformanceIndicator> kpis,
+            List<Goal> goals,
+            List<Metric> metrics,
             string filePath)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             
-            using var package = new ExcelPackage();
-            
-            // Create summary sheet
-            var summarySheet = package.Workbook.Worksheets.Add("Summary");
-            summarySheet.Cells[1, 1].Value = "Tracker Report";
-            summarySheet.Cells[1, 1].Style.Font.Bold = true;
-            summarySheet.Cells[1, 1].Style.Font.Size = 16;
-            summarySheet.Cells[3, 1].Value = "Generated:";
-            summarySheet.Cells[3, 2].Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            summarySheet.Cells[5, 1].Value = "Team Members:";
-            summarySheet.Cells[5, 2].Value = teamMembers.Count;
-            summarySheet.Cells[6, 1].Value = "1:1 Meetings:";
-            summarySheet.Cells[6, 2].Value = oneOnOnes.Count;
-            summarySheet.Cells[7, 1].Value = "Tasks:";
-            summarySheet.Cells[7, 2].Value = tasks.Count;
-            summarySheet.Cells[8, 1].Value = "Projects:";
-            summarySheet.Cells[8, 2].Value = projects.Count;
-            summarySheet.Cells[9, 1].Value = "OKRs:";
-            summarySheet.Cells[9, 2].Value = okrs.Count;
-            summarySheet.Cells[10, 1].Value = "KPIs:";
-            summarySheet.Cells[10, 2].Value = kpis.Count;
-            summarySheet.Cells.AutoFitColumns();
-
-            // Export each data type to separate sheets
-            ExportTeamMembers(teamMembers, filePath); // This creates a new file, so we'll recreate
-            ExportOneOnOnes(oneOnOnes, filePath);
-            ExportTasks(tasks, filePath);
-            ExportProjects(projects, filePath);
-            ExportOKRs(okrs, filePath);
-            ExportKPIs(kpis, filePath);
-
-            // Actually, let's do it properly - add all sheets to one package
-            package.Dispose();
             using var allPackage = new ExcelPackage();
             
             // Summary
@@ -389,27 +326,57 @@ namespace Tracker.Services
             summary.Cells[3, 2].Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             summary.Cells[5, 1].Value = "Team Members:";
             summary.Cells[5, 2].Value = teamMembers.Count;
-            summary.Cells[6, 1].Value = "1:1 Meetings:";
-            summary.Cells[6, 2].Value = oneOnOnes.Count;
+            summary.Cells[6, 1].Value = "Meetings:";
+            summary.Cells[6, 2].Value = meetings.Count;
             summary.Cells[7, 1].Value = "Tasks:";
             summary.Cells[7, 2].Value = tasks.Count;
             summary.Cells[8, 1].Value = "Projects:";
             summary.Cells[8, 2].Value = projects.Count;
-            summary.Cells[9, 1].Value = "OKRs:";
-            summary.Cells[9, 2].Value = okrs.Count;
-            summary.Cells[10, 1].Value = "KPIs:";
-            summary.Cells[10, 2].Value = kpis.Count;
+            summary.Cells[9, 1].Value = "Goals:";
+            summary.Cells[9, 2].Value = goals.Count;
+            summary.Cells[10, 1].Value = "Metrics:";
+            summary.Cells[10, 2].Value = metrics.Count;
             summary.Cells.AutoFitColumns();
 
-            // Add data sheets using helper methods
+            // Add data sheets
             AddTeamMembersSheet(allPackage, teamMembers);
-            AddOneOnOnesSheet(allPackage, oneOnOnes);
+            AddMeetingsSheet(allPackage, meetings);
             AddTasksSheet(allPackage, tasks);
             AddProjectsSheet(allPackage, projects);
-            AddOKRsSheet(allPackage, okrs);
-            AddKPIsSheet(allPackage, kpis);
 
             allPackage.SaveAs(new FileInfo(filePath));
+        }
+
+        private static void AddMeetingsSheet(ExcelPackage package, List<Meeting> meetings)
+        {
+            var worksheet = package.Workbook.Worksheets.Add("Meetings");
+            worksheet.Cells[1, 1].Value = "ID";
+            worksheet.Cells[1, 2].Value = "Date";
+            worksheet.Cells[1, 3].Value = "Team Member";
+            worksheet.Cells[1, 4].Value = "Status";
+            worksheet.Cells[1, 5].Value = "Description";
+
+            using (var range = worksheet.Cells[1, 1, 1, 5])
+            {
+                range.Style.Font.Bold = true;
+                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+            }
+
+            for (int i = 0; i < meetings.Count; i++)
+            {
+                var meeting = meetings[i];
+                int row = i + 2;
+                worksheet.Cells[row, 1].Value = meeting.Id;
+                worksheet.Cells[row, 2].Value = meeting.ScheduledAt.ToString("yyyy-MM-dd");
+                worksheet.Cells[row, 3].Value = meeting.Report != null 
+                    ? $"{meeting.Report.FirstName} {meeting.Report.LastName}".Trim() 
+                    : "N/A";
+                worksheet.Cells[row, 4].Value = meeting.Status.ToString();
+                worksheet.Cells[row, 5].Value = meeting.Description;
+            }
+
+            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
         }
 
         private static void AddTeamMembersSheet(ExcelPackage package, List<TeamMember> teamMembers)
@@ -448,49 +415,7 @@ namespace Tracker.Services
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
         }
 
-        private static void AddOneOnOnesSheet(ExcelPackage package, List<OneOnOne> oneOnOnes)
-        {
-            var worksheet = package.Workbook.Worksheets.Add("1:1 Meetings");
-            worksheet.Cells[1, 1].Value = "ID";
-            worksheet.Cells[1, 2].Value = "Date";
-            worksheet.Cells[1, 3].Value = "Team Member";
-            worksheet.Cells[1, 4].Value = "Status";
-            worksheet.Cells[1, 5].Value = "Description";
-            worksheet.Cells[1, 6].Value = "Action Items";
-            worksheet.Cells[1, 7].Value = "Follow-up Items";
-            worksheet.Cells[1, 8].Value = "Linked Tasks";
-            worksheet.Cells[1, 9].Value = "Linked OKRs";
-            worksheet.Cells[1, 10].Value = "Linked KPIs";
-
-            using (var range = worksheet.Cells[1, 1, 1, 10])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-            }
-
-            for (int i = 0; i < oneOnOnes.Count; i++)
-            {
-                var meeting = oneOnOnes[i];
-                int row = i + 2;
-                worksheet.Cells[row, 1].Value = meeting.Id;
-                worksheet.Cells[row, 2].Value = meeting.Date.ToString("yyyy-MM-dd");
-                worksheet.Cells[row, 3].Value = meeting.TeamMember != null 
-                    ? $"{meeting.TeamMember.FirstName} {meeting.TeamMember.LastName}".Trim() 
-                    : "N/A";
-                worksheet.Cells[row, 4].Value = meeting.Status.ToString();
-                worksheet.Cells[row, 5].Value = meeting.Description;
-                worksheet.Cells[row, 6].Value = meeting.Tasks?.Count(t => !t.IsDeleted) ?? 0;
-                worksheet.Cells[row, 7].Value = meeting.AgendaItems?.Count(a => !a.IsDeleted) ?? 0;
-                worksheet.Cells[row, 8].Value = meeting.LinkedTasks?.Count(lt => !lt.IsDeleted) ?? 0;
-                worksheet.Cells[row, 9].Value = meeting.LinkedOkrs?.Count(lo => !lo.IsDeleted) ?? 0;
-                worksheet.Cells[row, 10].Value = meeting.LinkedKpis?.Count(lk => !lk.IsDeleted) ?? 0;
-            }
-
-            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
-        }
-
-        private static void AddTasksSheet(ExcelPackage package, List<IndividualTask> tasks)
+        private static void AddTasksSheet(ExcelPackage package, List<TrackerTask> tasks)
         {
             var worksheet = package.Workbook.Worksheets.Add("Tasks");
             worksheet.Cells[1, 1].Value = "ID";
@@ -499,9 +424,8 @@ namespace Tracker.Services
             worksheet.Cells[1, 4].Value = "Due Date";
             worksheet.Cells[1, 5].Value = "Owner";
             worksheet.Cells[1, 6].Value = "Is Completed";
-            worksheet.Cells[1, 7].Value = "Discussed In Meetings";
 
-            using (var range = worksheet.Cells[1, 1, 1, 7])
+            using (var range = worksheet.Cells[1, 1, 1, 6])
             {
                 range.Style.Font.Bold = true;
                 range.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -515,14 +439,13 @@ namespace Tracker.Services
                 worksheet.Cells[row, 1].Value = task.Id;
                 worksheet.Cells[row, 2].Value = task.Description;
                 worksheet.Cells[row, 3].Value = task.Status.ToString();
-                worksheet.Cells[row, 4].Value = task.DueDate != default(DateTime) 
-                    ? task.DueDate.ToString("yyyy-MM-dd") 
+                worksheet.Cells[row, 4].Value = task.DueDate.HasValue 
+                    ? task.DueDate.Value.ToString("yyyy-MM-dd") 
                     : "N/A";
                 worksheet.Cells[row, 5].Value = task.Owner != null 
                     ? $"{task.Owner.FirstName} {task.Owner.LastName}".Trim() 
                     : "N/A";
                 worksheet.Cells[row, 6].Value = task.IsCompleted ? "Yes" : "No";
-                worksheet.Cells[row, 7].Value = task.MeetingCount;
             }
 
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
@@ -536,8 +459,8 @@ namespace Tracker.Services
             worksheet.Cells[1, 3].Value = "Description";
             worksheet.Cells[1, 4].Value = "Status";
             worksheet.Cells[1, 5].Value = "Start Date";
-            worksheet.Cells[1, 6].Value = "End Date";
-            worksheet.Cells[1, 7].Value = "Budget";
+            worksheet.Cells[1, 6].Value = "Target End Date";
+            worksheet.Cells[1, 7].Value = "Progress";
             worksheet.Cells[1, 8].Value = "Owner";
 
             using (var range = worksheet.Cells[1, 1, 1, 8])
@@ -551,108 +474,19 @@ namespace Tracker.Services
             {
                 var project = projects[i];
                 int row = i + 2;
-                worksheet.Cells[row, 1].Value = project.ID;
+                worksheet.Cells[row, 1].Value = project.Id;
                 worksheet.Cells[row, 2].Value = project.Name;
                 worksheet.Cells[row, 3].Value = project.Description;
                 worksheet.Cells[row, 4].Value = project.Status.ToString();
-                worksheet.Cells[row, 5].Value = project.StartDate != default(DateTime) 
-                    ? project.StartDate.ToString("yyyy-MM-dd") 
+                worksheet.Cells[row, 5].Value = project.StartDate.HasValue 
+                    ? project.StartDate.Value.ToString("yyyy-MM-dd") 
                     : "N/A";
-                worksheet.Cells[row, 6].Value = project.EndDate?.ToString("yyyy-MM-dd") ?? "N/A";
-                worksheet.Cells[row, 7].Value = project.Budget != decimal.MinValue 
-                    ? project.Budget.ToString("C") 
-                    : "N/A";
+                worksheet.Cells[row, 6].Value = project.TargetEndDate?.ToString("yyyy-MM-dd") ?? "N/A";
+                worksheet.Cells[row, 7].Value = project.ProgressPercent.ToString("F1") + "%";
                 worksheet.Cells[row, 8].Value = project.Owner != null 
                     ? $"{project.Owner.FirstName} {project.Owner.LastName}".Trim() 
                     : "N/A";
             }
-
-            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
-        }
-
-        private static void AddOKRsSheet(ExcelPackage package, List<ObjectiveKeyResult> okrs)
-        {
-            var worksheet = package.Workbook.Worksheets.Add("OKRs");
-            worksheet.Cells[1, 1].Value = "ID";
-            worksheet.Cells[1, 2].Value = "Title";
-            worksheet.Cells[1, 3].Value = "Description";
-            worksheet.Cells[1, 4].Value = "Status";
-            worksheet.Cells[1, 5].Value = "Start Date";
-            worksheet.Cells[1, 6].Value = "End Date";
-            worksheet.Cells[1, 7].Value = "Completion %";
-            worksheet.Cells[1, 8].Value = "Owner";
-            worksheet.Cells[1, 9].Value = "Discussed In Meetings";
-
-            using (var range = worksheet.Cells[1, 1, 1, 9])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-            }
-
-            for (int i = 0; i < okrs.Count; i++)
-            {
-                var okr = okrs[i];
-                int row = i + 2;
-                worksheet.Cells[row, 1].Value = okr.ObjectiveId;
-                worksheet.Cells[row, 2].Value = okr.Title;
-                worksheet.Cells[row, 3].Value = okr.Description;
-                worksheet.Cells[row, 4].Value = okr.Status.ToString();
-                worksheet.Cells[row, 5].Value = okr.StartDate != default(DateTime) 
-                    ? okr.StartDate.ToString("yyyy-MM-dd") 
-                    : "N/A";
-                worksheet.Cells[row, 6].Value = okr.EndDate != default(DateTime) 
-                    ? okr.EndDate.ToString("yyyy-MM-dd") 
-                    : "N/A";
-                worksheet.Cells[row, 7].Value = okr.CompletionPercentage;
-                worksheet.Cells[row, 8].Value = okr.Owner != null 
-                    ? $"{okr.Owner.FirstName} {okr.Owner.LastName}".Trim() 
-                    : "N/A";
-                worksheet.Cells[row, 9].Value = okr.MeetingCount;
-            }
-
-            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
-        }
-
-        private static void AddKPIsSheet(ExcelPackage package, List<KeyPerformanceIndicator> kpis)
-        {
-            var worksheet = package.Workbook.Worksheets.Add("KPIs");
-            worksheet.Cells[1, 1].Value = "ID";
-            worksheet.Cells[1, 2].Value = "Name";
-            worksheet.Cells[1, 3].Value = "Description";
-            worksheet.Cells[1, 4].Value = "Value";
-            worksheet.Cells[1, 5].Value = "Target Value";
-            worksheet.Cells[1, 6].Value = "Status";
-            worksheet.Cells[1, 7].Value = "Last Updated";
-            worksheet.Cells[1, 8].Value = "Owner";
-            worksheet.Cells[1, 9].Value = "Discussed In Meetings";
-
-            using (var range = worksheet.Cells[1, 1, 1, 9])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-            }
-
-            for (int i = 0; i < kpis.Count; i++)
-            {
-                var kpi = kpis[i];
-                int row = i + 2;
-                worksheet.Cells[row, 1].Value = kpi.KpiId;
-                worksheet.Cells[row, 2].Value = kpi.Name;
-                worksheet.Cells[row, 3].Value = kpi.Description;
-                worksheet.Cells[row, 4].Value = kpi.Value;
-                worksheet.Cells[row, 5].Value = kpi.TargetValue;
-                worksheet.Cells[row, 6].Value = kpi.Status.ToString();
-                worksheet.Cells[row, 7].Value = kpi.LastUpdated != default(DateTime) 
-                    ? kpi.LastUpdated.ToString("yyyy-MM-dd") 
-                    : "N/A";
-                worksheet.Cells[row, 8].Value = kpi.Owner != null 
-                    ? $"{kpi.Owner.FirstName} {kpi.Owner.LastName}".Trim() 
-                    : "N/A";
-                worksheet.Cells[row, 9].Value = kpi.MeetingCount;
-            }
-
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
         }
     }

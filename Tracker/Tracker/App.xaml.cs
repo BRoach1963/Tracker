@@ -114,7 +114,6 @@ namespace Tracker
             UserSettingsManager.Instance.Shutdown();
             LoggingManager.Instance.Shutdown();
             TrackerDataManager.Instance.Shutdown();
-            TrackerDbManager.Instance?.Shutdown();
         }
 
         private void RegisterAppForToastNotifications()
@@ -493,13 +492,17 @@ namespace Tracker
             }
             await Task.Delay(150);
 
-            // Stage 2: Initialize database manager (50%)
+            // Stage 2: Initialize database (50%)
             _splashScreen?.UpdateStatus("Connecting to database...");
             _splashScreen?.UpdateProgress(50);
             try
             {
-                // Initialize database - create schema if needed (especially for PostgreSQL)
-                await TrackerDbManager.Instance!.InitializeAsync(dbSettings, createIfNotExists: true, seedSampleData: false);
+                // Initialize database context factory and ensure database/schema exist
+                var contextFactory = Tracker.Classes.TrackerDbContextFactory.Instance;
+                contextFactory.UpdateSettings(dbSettings);
+
+                using var context = contextFactory.CreateContext();
+                await context.Database.EnsureCreatedAsync();
             }
             catch (Exception ex)
             {

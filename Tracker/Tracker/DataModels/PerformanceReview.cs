@@ -8,13 +8,13 @@ namespace Tracker.DataModels
     /// </summary>
     public class ReviewTemplate : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this template belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
 
         /// <summary>
         /// Template name (e.g., "Annual Performance Review", "Quarterly Check-In").
@@ -52,12 +52,12 @@ namespace Tracker.DataModels
     /// </summary>
     public class ReviewTemplateSection : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The template this section belongs to.
         /// </summary>
-        public int ReviewTemplateId { get; set; }
+        public Guid ReviewTemplateId { get; set; }
         public ReviewTemplate ReviewTemplate { get; set; } = null!;
 
         /// <summary>
@@ -86,12 +86,12 @@ namespace Tracker.DataModels
     /// </summary>
     public class ReviewTemplateQuestion : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The section this question belongs to.
         /// </summary>
-        public int ReviewTemplateSectionId { get; set; }
+        public Guid ReviewTemplateSectionId { get; set; }
         public ReviewTemplateSection ReviewTemplateSection { get; set; } = null!;
 
         /// <summary>
@@ -135,13 +135,13 @@ namespace Tracker.DataModels
     /// </summary>
     public class PerformanceReviewCycle : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this review cycle belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
 
         /// <summary>
         /// Cycle name (e.g., "Q4 2024 Reviews", "2024 Annual Performance Review").
@@ -156,7 +156,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// The template used for this cycle.
         /// </summary>
-        public int ReviewTemplateId { get; set; }
+        public Guid ReviewTemplateId { get; set; }
         public ReviewTemplate ReviewTemplate { get; set; } = null!;
 
         /// <summary>
@@ -220,18 +220,18 @@ namespace Tracker.DataModels
     /// </summary>
     public class PerformanceReview : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this review belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
 
         /// <summary>
         /// The review cycle this review belongs to.
         /// </summary>
-        public int PerformanceReviewCycleId { get; set; }
+        public Guid PerformanceReviewCycleId { get; set; }
         public PerformanceReviewCycle PerformanceReviewCycle { get; set; } = null!;
 
         /// <summary>
@@ -281,10 +281,10 @@ namespace Tracker.DataModels
         public DateTime? DiscussionDate { get; set; }
 
         /// <summary>
-        /// Link to the 1:1 where the review was discussed.
+        /// Link to the meeting where the review was discussed.
         /// </summary>
-        public int? OneOnOneId { get; set; }
-        public OneOnOne? OneOnOne { get; set; }
+        public Guid? MeetingId { get; set; }
+        public Meeting? Meeting { get; set; }
 
         /// <summary>
         /// Individual section responses.
@@ -323,18 +323,18 @@ namespace Tracker.DataModels
     /// </summary>
     public class PerformanceReviewSection
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The review this section belongs to.
         /// </summary>
-        public int PerformanceReviewId { get; set; }
+        public Guid PerformanceReviewId { get; set; }
         public PerformanceReview PerformanceReview { get; set; } = null!;
 
         /// <summary>
         /// The template section this corresponds to.
         /// </summary>
-        public int ReviewTemplateSectionId { get; set; }
+        public Guid ReviewTemplateSectionId { get; set; }
         public ReviewTemplateSection ReviewTemplateSection { get; set; } = null!;
 
         /// <summary>
@@ -348,18 +348,18 @@ namespace Tracker.DataModels
     /// </summary>
     public class PerformanceReviewAnswer
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The section this answer belongs to.
         /// </summary>
-        public int PerformanceReviewSectionId { get; set; }
+        public Guid PerformanceReviewSectionId { get; set; }
         public PerformanceReviewSection PerformanceReviewSection { get; set; } = null!;
 
         /// <summary>
         /// The template question being answered.
         /// </summary>
-        public int ReviewTemplateQuestionId { get; set; }
+        public Guid ReviewTemplateQuestionId { get; set; }
         public ReviewTemplateQuestion ReviewTemplateQuestion { get; set; } = null!;
 
         /// <summary>

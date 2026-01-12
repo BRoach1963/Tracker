@@ -5,11 +5,12 @@ namespace Tracker.Views.Dialogs
 {
     /// <summary>
     /// Interaction logic for AddOkrDialog.xaml
+    /// Dialog for creating/editing Goals.
     /// </summary>
-    [HelpContext("dialogs/add-okr")]
+    [HelpContext("dialogs/add-goal")]
     public partial class AddOkrDialog 
     {
-        public AddOkrDialog(NewOkrViewModel vm)
+        public AddOkrDialog(NewGoalViewModel vm)
         {
             InitializeComponent();
             DataContext = vm;

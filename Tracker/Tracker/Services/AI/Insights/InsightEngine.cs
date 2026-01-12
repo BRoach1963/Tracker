@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Tracker.Classes;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
+using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 
@@ -96,8 +100,8 @@ namespace Tracker.Services.AI.Insights
             RegisterAnalyzer(new Analyzers.MeetingCadenceAnalyzer());
             RegisterAnalyzer(new Analyzers.PersonalDateAnalyzer());
             RegisterAnalyzer(new Analyzers.ActionItemStalenessAnalyzer());
-            RegisterAnalyzer(new Analyzers.OkrTrajectoryAnalyzer());
-            RegisterAnalyzer(new Analyzers.KpiGapAnalyzer());
+            RegisterAnalyzer(new Analyzers.GoalTrajectoryAnalyzer(new Database.TrackerDbContext()));
+            RegisterAnalyzer(new Analyzers.MetricGapAnalyzer());
             RegisterAnalyzer(new Analyzers.SurveySentimentAnalyzer());
         }
 
@@ -304,8 +308,11 @@ namespace Tracker.Services.AI.Insights
         {
             try
             {
-                var dbManager = Database.TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var teamMemberRepository = CreateTeamMemberRepository();
+                var taskRepository = CreateTaskRepository();
+                var goalRepository = CreateGoalRepository();
+
+                if (teamMemberRepository == null || taskRepository == null || goalRepository == null)
                 {
                     return new List<Insight>();
                 }
@@ -319,18 +326,18 @@ namespace Tracker.Services.AI.Insights
                 }
 
                 // Gather data for AI analysis
-                var teamMembers = await dbManager.GetTeamMembersAsync();
-                var allTasks = await dbManager.GetTasksAsync();
+                var teamMembers = await teamMemberRepository.GetTeamMembersAsync();
+                var allTasks = await taskRepository.GetTasksAsync();
                 var overdueTasks = allTasks?.Where(t => 
                     !t.IsCompleted && 
                     t.DueDate < DateTime.Now).ToList();
-                var atRiskOkrs = await GetAtRiskOkrsAsync(dbManager);
+                var atRiskGoals = await GetAtRiskGoalsAsync(goalRepository);
 
                 var context = new TeamDataContext
                 {
                     TeamMembers = teamMembers,
                     OverdueTasks = overdueTasks,
-                    AtRiskOkrs = atRiskOkrs
+                    AtRiskGoals = atRiskGoals
                 };
 
                 // Generate AI insights
@@ -344,33 +351,72 @@ namespace Tracker.Services.AI.Insights
         }
 
         /// <summary>
-        /// Gets OKRs that are at risk of missing their targets.
+        /// Gets goals that are at risk of missing their targets.
         /// </summary>
-        private async Task<List<DataModels.ObjectiveKeyResult>> GetAtRiskOkrsAsync(Database.TrackerDbManager dbManager)
+        private async Task<List<DataModels.Goal>> GetAtRiskGoalsAsync(GoalRepository goalRepository)
         {
             try
             {
-                var okrs = await dbManager.GetOkrsAsync();
-                if (okrs == null) return new List<DataModels.ObjectiveKeyResult>();
+                var goals = await goalRepository.GetGoalsAsync();
+                if (goals == null) return new List<DataModels.Goal>();
 
                 var today = DateTime.Now;
-                return okrs.Where(o => 
+                return goals.Where(g => 
                 {
-                    // OKR is at risk if progress is significantly behind where it should be
-                    if (o.EndDate < today) return false;
+                    // Goal is at risk if progress is significantly behind where it should be
+                    if (g.EndDate < today) return false;
                     
-                    var totalDays = (o.EndDate - o.StartDate).TotalDays;
-                    var elapsedDays = (today - o.StartDate).TotalDays;
+                    var totalDays = (g.EndDate - g.StartDate).TotalDays;
+                    var elapsedDays = (today - g.StartDate).TotalDays;
                     if (totalDays <= 0) return false;
                     
                     var expectedProgress = (elapsedDays / totalDays) * 100;
-                    return o.CompletionPercentage < (expectedProgress - 15); // More than 15% behind expected
+                    return (double)g.ProgressPercent < (expectedProgress - 15); // More than 15% behind expected
                 }).ToList();
             }
             catch
             {
-                return new List<DataModels.ObjectiveKeyResult>();
+                return new List<DataModels.Goal>();
             }
+        }
+
+        private static TeamMemberRepository? CreateTeamMemberRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
+
+        private static TrackerTaskRepository? CreateTaskRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TrackerTaskRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
+
+        private static GoalRepository? CreateGoalRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new GoalRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private static string GetCurrentUserName()

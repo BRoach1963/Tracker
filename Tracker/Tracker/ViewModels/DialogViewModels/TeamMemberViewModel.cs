@@ -13,6 +13,7 @@ using Tracker.Helpers;
 using Tracker.Managers;
 using Tracker.Controls;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Logging;
@@ -24,6 +25,9 @@ namespace Tracker.ViewModels.DialogViewModels
         #region Fields 
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("TeamMemberVM");
+        private readonly IMeetingRepository _meetingRepository;
+        private readonly IFeedbackRepository _feedbackRepository;
+        private readonly IDevelopmentGoalRepository _developmentGoalRepository;
         
         private TeamMember _data;
         private bool _inEditMode; 
@@ -66,8 +70,8 @@ namespace Tracker.ViewModels.DialogViewModels
         private Dictionary<string, object> _changedProperties = new();
 
         // Meeting history
-        private ObservableCollection<OneOnOne> _meetings = new();
-        private OneOnOne? _selectedMeeting;
+        private ObservableCollection<Meeting> _meetings = new();
+        private Meeting? _selectedMeeting;
 
         // Feedback history
         private ObservableCollection<Feedback> _feedbacks = new();
@@ -81,8 +85,18 @@ namespace Tracker.ViewModels.DialogViewModels
 
         #region Ctor
 
-        public TeamMemberViewModel(Action? callback, TeamMember data, bool edit = false) : base(callback)
+        public TeamMemberViewModel(
+            Action? callback, 
+            TeamMember data, 
+            bool edit = false,
+            IMeetingRepository? meetingRepository = null,
+            IFeedbackRepository? feedbackRepository = null,
+            IDevelopmentGoalRepository? developmentGoalRepository = null) : base(callback)
         {
+            _meetingRepository = meetingRepository;
+            _feedbackRepository = feedbackRepository;
+            _developmentGoalRepository = developmentGoalRepository;
+            
             _inEditMode = edit;
             _data = data;
             if (!_inEditMode)
@@ -195,9 +209,9 @@ namespace Tracker.ViewModels.DialogViewModels
         #region Public Properties
 
         // Meeting History Properties
-        public ObservableCollection<OneOnOne> Meetings => _meetings;
+        public ObservableCollection<Meeting> Meetings => _meetings;
         
-        public OneOnOne? SelectedMeeting
+        public Meeting? SelectedMeeting
         {
             get => _selectedMeeting;
             set
@@ -635,9 +649,9 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var meetings = await TrackerDbManager.Instance.GetMeetingsForTeamMemberAsync(_data.Id);
+                var meetings = await (_meetingRepository?.GetMeetingsForTeamMemberAsync(_data.Id) ?? Task.FromResult(new List<Meeting>()));
                 _meetings.Clear();
-                foreach (var meeting in meetings.OrderByDescending(m => m.Date))
+                foreach (var meeting in meetings.OrderByDescending(m => m.ScheduledAt))
                 {
                     _meetings.Add(meeting);
                 }
@@ -656,7 +670,7 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var feedbacks = await TrackerDbManager.Instance.GetFeedbackForTeamMemberAsync(_data.Id);
+                var feedbacks = await (_feedbackRepository?.GetFeedbackForTeamMemberAsync(_data.Id) ?? Task.FromResult(new List<Feedback>()));
                 _feedbacks.Clear();
                 foreach (var feedback in feedbacks)
                 {
@@ -677,7 +691,7 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var goals = await TrackerDbManager.Instance.GetDevelopmentGoalsForTeamMemberAsync(_data.Id);
+                var goals = await (_developmentGoalRepository?.GetDevelopmentGoalsForTeamMemberAsync(_data.Id) ?? Task.FromResult(new List<DevelopmentGoal>()));
                 _goals.Clear();
                 foreach (var goal in goals)
                 {
@@ -768,7 +782,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 
             if (result == System.Windows.MessageBoxResult.OK)
             {
-                var success = await TrackerDbManager.Instance!.DeleteFeedbackAsync(SelectedFeedback.Id);
+                var success = await (_feedbackRepository?.DeleteFeedbackAsync(SelectedFeedback.Id) ?? Task.FromResult(false));
                 if (success)
                 {
                     _feedbacks.Remove(SelectedFeedback);
@@ -824,7 +838,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 
             if (result == System.Windows.MessageBoxResult.OK)
             {
-                var success = await TrackerDbManager.Instance!.DeleteDevelopmentGoalAsync(SelectedGoal.Id);
+                var success = await (_developmentGoalRepository?.DeleteDevelopmentGoalAsync(SelectedGoal.Id) ?? Task.FromResult(false));
                 if (success)
                 {
                     _goals.Remove(SelectedGoal);
@@ -843,15 +857,14 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         #endregion
-
         #region Meeting Methods
 
         private void ViewMeetingDetailsExecuted(object? parameter)
         {
-            if (parameter is OneOnOne meeting)
+            if (parameter is Meeting meeting)
             {
                 // Launch the 1:1 dialog in edit mode
-                var vm = new OneOnOneViewModel(null, meeting, true);
+                var vm = new MeetingViewModel(null, meeting, true);
                 var dialog = new Views.Dialogs.AddOneOnOneDialog(vm)
                 {
                     Owner = System.Windows.Application.Current.MainWindow

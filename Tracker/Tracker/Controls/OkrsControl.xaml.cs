@@ -14,18 +14,18 @@ namespace Tracker.Controls
     /// - Top-right panel: Key Results for selected OKR  
     /// - Bottom-right panel: KR details with linked measurables
     /// 
-    /// Uses OkrsViewModel for data and commands.
+    /// Uses GoalsViewModel for data and commands.
     /// </summary>
     public partial class OkrsControl : UserControl
     {
-        private OkrsViewModel? _viewModel;
+        private GoalsViewModel? _viewModel;
 
         public OkrsControl()
         {
             InitializeComponent();
             
             // Create and set ViewModel
-            _viewModel = new OkrsViewModel();
+            _viewModel = new GoalsViewModel();
             DataContext = _viewModel;
         }
 
@@ -34,26 +34,26 @@ namespace Tracker.Controls
         private void StatCard_OnTrack_Click(object sender, MouseButtonEventArgs e)
         {
             // Toggle: if already selected, go back to All
-            if (_viewModel?.StatusFilter == ObjectiveStatusEnum.OnTrack)
+            if (_viewModel?.StatusFilter == OkrStatus.OnTrack)
                 _viewModel.StatusFilter = null;
             else if (_viewModel != null)
-                _viewModel.StatusFilter = ObjectiveStatusEnum.OnTrack;
+                _viewModel.StatusFilter = OkrStatus.OnTrack;
         }
 
         private void StatCard_AtRisk_Click(object sender, MouseButtonEventArgs e)
         {
-            if (_viewModel?.StatusFilter == ObjectiveStatusEnum.AtRisk)
+            if (_viewModel?.StatusFilter == OkrStatus.AtRisk)
                 _viewModel.StatusFilter = null;
             else if (_viewModel != null)
-                _viewModel.StatusFilter = ObjectiveStatusEnum.AtRisk;
+                _viewModel.StatusFilter = OkrStatus.AtRisk;
         }
 
         private void StatCard_OffTrack_Click(object sender, MouseButtonEventArgs e)
         {
-            if (_viewModel?.StatusFilter == ObjectiveStatusEnum.OffTrack)
+            if (_viewModel?.StatusFilter == OkrStatus.OffTrack)
                 _viewModel.StatusFilter = null;
             else if (_viewModel != null)
-                _viewModel.StatusFilter = ObjectiveStatusEnum.OffTrack;
+                _viewModel.StatusFilter = OkrStatus.OffTrack;
         }
 
         private void StatCard_All_Click(object sender, MouseButtonEventArgs e)
@@ -73,17 +73,17 @@ namespace Tracker.Controls
 
         private void FilterOnTrack_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel != null) _viewModel.StatusFilter = ObjectiveStatusEnum.OnTrack;
+            if (_viewModel != null) _viewModel.StatusFilter = OkrStatus.OnTrack;
         }
 
         private void FilterAtRisk_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel != null) _viewModel.StatusFilter = ObjectiveStatusEnum.AtRisk;
+            if (_viewModel != null) _viewModel.StatusFilter = OkrStatus.AtRisk;
         }
 
         private void FilterOffTrack_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel != null) _viewModel.StatusFilter = ObjectiveStatusEnum.OffTrack;
+            if (_viewModel != null) _viewModel.StatusFilter = OkrStatus.OffTrack;
         }
 
         #endregion
@@ -164,7 +164,7 @@ namespace Tracker.Controls
 
         private void MeasurableItem_RemoveClicked(object sender, RoutedEventArgs e)
         {
-            if (sender is MeasurableItem item && item.DataContext is KeyResultMeasurable measurable)
+            if (sender is MeasurableItem item && item.DataContext is TargetMeasurable measurable)
             {
                 _viewModel?.RemoveMeasurableCommand.Execute(measurable);
             }

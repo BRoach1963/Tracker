@@ -12,7 +12,7 @@
              mc:Ignorable="d"
              d:DesignHeight="800"
              d:DesignWidth="1400"
-             d:DataContext="{d:DesignInstance Type=viewModels:OkrsViewModel}"
+             d:DataContext="{d:DesignInstance Type=viewModels:GoalsViewModel}"
              AutomationProperties.Name="OKRs - Objectives and Key Results"
              AutomationProperties.HelpText="Create and track team objectives with measurable key results">
     

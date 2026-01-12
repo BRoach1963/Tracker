@@ -53,10 +53,10 @@ namespace Tracker.Helpers
                 case TeamMember tm:
                     ValidateTeamMember(tm, results);
                     break;
-                case OneOnOne oneOnOne:
-                    ValidateOneOnOne(oneOnOne, results);
+                case Meeting oneOnOne:
+                    ValidateMeeting(oneOnOne, results);
                     break;
-                case IndividualTask task:
+                case TrackerTask task:
                     ValidateTask(task, results);
                     break;
                 case Project project:
@@ -88,19 +88,19 @@ namespace Tracker.Helpers
                 results.Add(new ValidationResult("Hire date cannot be in the future", new[] { nameof(tm.HireDate) }));
         }
 
-        private static void ValidateOneOnOne(OneOnOne oneOnOne, List<ValidationResult> results)
+        private static void ValidateMeeting(Meeting meeting, List<ValidationResult> results)
         {
-            if (oneOnOne.TeamMember == null || oneOnOne.TeamMember.Id == Guid.Empty)
-                results.Add(new ValidationResult("Team member is required", new[] { nameof(oneOnOne.TeamMember) }));
+            if (!meeting.ReportTeamMemberId.HasValue || meeting.ReportTeamMemberId == Guid.Empty)
+                results.Add(new ValidationResult("Team member is required", new[] { nameof(meeting.ReportTeamMemberId) }));
 
-            if (oneOnOne.Duration <= TimeSpan.Zero)
-                results.Add(new ValidationResult("Duration must be positive", new[] { nameof(oneOnOne.Duration) }));
+            if (meeting.DurationMinutes <= 0)
+                results.Add(new ValidationResult("Duration must be positive", new[] { nameof(meeting.DurationMinutes) }));
 
-            if (oneOnOne.Duration > TimeSpan.FromHours(4))
-                results.Add(new ValidationResult("Duration seems unreasonably long", new[] { nameof(oneOnOne.Duration) }));
+            if (meeting.DurationMinutes > 240)
+                results.Add(new ValidationResult("Duration seems unreasonably long (over 4 hours)", new[] { nameof(meeting.DurationMinutes) }));
         }
 
-        private static void ValidateTask(IndividualTask task, List<ValidationResult> results)
+        private static void ValidateTask(TrackerTask task, List<ValidationResult> results)
         {
             if (string.IsNullOrWhiteSpace(task.Description))
                 results.Add(new ValidationResult("Description is required", new[] { nameof(task.Description) }));
@@ -120,14 +120,14 @@ namespace Tracker.Helpers
 
         private static void ValidateFeedback(Feedback feedback, List<ValidationResult> results)
         {
-            if (string.IsNullOrWhiteSpace(feedback.Title))
-                results.Add(new ValidationResult("Title is required", new[] { nameof(feedback.Title) }));
-
             if (string.IsNullOrWhiteSpace(feedback.Content))
                 results.Add(new ValidationResult("Content is required", new[] { nameof(feedback.Content) }));
 
-            if (feedback.TeamMemberId == Guid.Empty)
-                results.Add(new ValidationResult("Team member is required", new[] { nameof(feedback.TeamMemberId) }));
+            if (feedback.ToTeamMemberId == Guid.Empty)
+                results.Add(new ValidationResult("Recipient team member is required", new[] { nameof(feedback.ToTeamMemberId) }));
+
+            if (feedback.FromTeamMemberId == Guid.Empty)
+                results.Add(new ValidationResult("Sender team member is required", new[] { nameof(feedback.FromTeamMemberId) }));
         }
 
         private static void ValidateGoal(DevelopmentGoal goal, List<ValidationResult> results)

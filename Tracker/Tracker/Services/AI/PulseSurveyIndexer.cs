@@ -1,5 +1,7 @@
 using System.Text;
+using Tracker.Classes;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 
@@ -22,9 +24,28 @@ namespace Tracker.Services.AI
 
         protected override string EntityTypeName => "pulse surveys";
 
+        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
+
         protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
         {
-            var surveys = await TrackerDbManager.Instance.GetPulseSurveysAsync();
+            var repository = CreatePulseSurveyRepository();
+            if (repository == null)
+            {
+                return Enumerable.Empty<object>();
+            }
+
+            var surveys = await repository.GetPulseSurveysAsync();
             return surveys.Where(s => !s.IsDeleted).Cast<object>();
         }
 

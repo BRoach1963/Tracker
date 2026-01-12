@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Tracker.Classes;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 
@@ -56,15 +59,15 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var teamMemberRepository = CreateTeamMemberRepository();
+                if (teamMemberRepository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping personal date analysis");
+                    _logger.Debug("No current user or database context available, skipping personal date analysis");
                     return insights;
                 }
 
                 // Get all active team members
-                var teamMembers = await dbManager.GetTeamMembersAsync();
+                var teamMembers = await teamMemberRepository.GetTeamMembersAsync();
                 if (teamMembers == null || teamMembers.Count == 0)
                 {
                     _logger.Debug("No team members found");
@@ -97,6 +100,19 @@ namespace Tracker.Services.AI.Insights.Analyzers
             }
 
             return insights;
+        }
+
+        private static TeamMemberRepository? CreateTeamMemberRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private void CheckBirthday(TeamMember member, DateTime today, List<Insight> insights)
@@ -132,7 +148,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     Description = $"{member.FullName} is turning {age} on {thisYearBirthday:MMMM d}. Consider sending a birthday message or recognition!",
                     ActionSuggestion = "Send Kudos",
                     EntityType = "TeamMember",
-                    TeamMemberEntityId = member.Id,
+                    TargetTeamMemberId = member.Id,
                     GeneratedAt = DateTime.Now
                 });
             }
@@ -174,7 +190,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     Description = $"{member.FullName} will celebrate {yearsAtCompany} year{(yearsAtCompany != 1 ? "s" : "")} with the company on {thisYearAnniversary:MMMM d}. {(isMilestone ? "This is a milestone worth celebrating!" : "Consider acknowledging their dedication.")}",
                     ActionSuggestion = "Send Kudos",
                     EntityType = "TeamMember",
-                    TeamMemberEntityId = member.Id,
+                    TargetTeamMemberId = member.Id,
                     GeneratedAt = DateTime.Now
                 });
             }

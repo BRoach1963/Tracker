@@ -19,7 +19,7 @@ namespace Tracker.ViewModels
         private readonly MeetingPrepService _prepService;
         
         private DataModels.MeetingPrep? _meetingPrep;
-        private OneOnOne? _meeting;
+        private Meeting? _meeting;
         private bool _isLoading;
         private Action<string>? _onAgendaItemAdded;
         private Action? _onClose;
@@ -49,7 +49,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// The meeting being prepared for.
         /// </summary>
-        public OneOnOne? Meeting
+        public Meeting? Meeting
         {
             get => _meeting;
             set
@@ -137,7 +137,7 @@ namespace Tracker.ViewModels
         /// <param name="meeting">The meeting to prepare for.</param>
         /// <param name="onAgendaItemAdded">Callback when an item is added to the agenda.</param>
         /// <param name="onClose">Callback when the panel should close.</param>
-        public void Initialize(OneOnOne meeting, Action<string>? onAgendaItemAdded = null, Action? onClose = null)
+        public void Initialize(Meeting meeting, Action<string>? onAgendaItemAdded = null, Action? onClose = null)
         {
             Meeting = meeting;
             _onAgendaItemAdded = onAgendaItemAdded;
@@ -151,11 +151,12 @@ namespace Tracker.ViewModels
         /// </summary>
         public void Initialize(TeamMember teamMember, DateTime meetingDate, Action<string>? onAgendaItemAdded = null, Action? onClose = null)
         {
-            Meeting = new OneOnOne
+            Meeting = new Meeting
             {
-                Id = 0,
-                TeamMember = teamMember,
-                Date = meetingDate
+                Id = Guid.Empty,
+                ReportTeamMemberId = teamMember.Id,
+                Report = teamMember,
+                ScheduledAt = meetingDate
             };
             _onAgendaItemAdded = onAgendaItemAdded;
             _onClose = onClose;
@@ -179,7 +180,7 @@ namespace Tracker.ViewModels
 
             try
             {
-                _logger.Info("Generating meeting prep for {0}", Meeting.TeamMemberName);
+                _logger.Info("Generating meeting prep for {0}", Meeting.Report?.FullName ?? "Unknown");
                 var prep = await _prepService.GeneratePrepAsync(Meeting);
                 MeetingPrep = prep;
                 _logger.Info("Meeting prep generated: {0} items", prep.TotalItemCount);

@@ -2,6 +2,7 @@ using System.Windows;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -146,51 +147,65 @@ namespace Tracker.Services
         /// <summary>
         /// Creates a reminder for an upcoming meeting.
         /// </summary>
-        public async Task CreateMeetingReminderAsync(OneOnOne meeting)
+        public async Task CreateMeetingReminderAsync(Meeting meeting)
         {
             if (!_settings.ShowMeetingReminders) return;
 
             try
             {
-                var meetingDateTime = meeting.Date.Date.Add(meeting.StartTime);
-                var reminderTime = meetingDateTime.AddMinutes(-_settings.MeetingReminderMinutes);
+                var reminderTime = meeting.ScheduledAt.AddMinutes(-_settings.MeetingReminderMinutes);
 
                 // Don't create if meeting is in the past
                 if (reminderTime <= DateTime.Now) return;
+
+                // Get meeting title based on meeting type
+                string meetingTitle = meeting.Title;
+                if (string.IsNullOrWhiteSpace(meetingTitle))
+                {
+                    // Fallback for 1:1 meetings if title is empty
+                    if (meeting.Type == MeetingType.OneOnOne && meeting.Report != null)
+                    {
+                        meetingTitle = $"1:1 with {meeting.Report.FirstName} {meeting.Report.LastName}".Trim();
+                    }
+                    else
+                    {
+                        meetingTitle = "Upcoming Meeting";
+                    }
+                }
 
                 var reminder = new Reminder
                 {
                     Type = ReminderType.Meeting,
                     Status = ReminderStatus.Pending,
-                    Title = $"1:1 with {meeting.TeamMemberName}",
+                    Title = $"Meeting: {meetingTitle}",
                     Message = $"Your meeting starts in {_settings.MeetingReminderMinutes} minutes",
                     RemindAt = reminderTime,
                     EntityType = "meeting",
-                    EntityId = GuidFromInt(meeting.Id),
-                    TeamMemberId = meeting.TeamMember?.Id
+                    EntityId = meeting.Id,
+                    TeamMemberId = meeting.Type == MeetingType.OneOnOne ? meeting.ReportTeamMemberId : null
                 };
 
-                await TrackerDbManager.Instance.AddReminderAsync(reminder);
-                _logger.Info("Created meeting reminder for OneOnOne ID: {0}", meeting.Id);
+                await AddReminderAsync(reminder);
+                _logger.Info("Created meeting reminder for Meeting ID: {0}", meeting.Id);
 
                 // Also create day-before reminder if enabled
                 if (_settings.ShowMeetingReminderDayBefore)
                 {
-                    var dayBeforeTime = meetingDateTime.AddDays(-1);
+                    var dayBeforeTime = meeting.ScheduledAt.AddDays(-1);
                     if (dayBeforeTime > DateTime.Now)
                     {
                         var dayBeforeReminder = new Reminder
                         {
                             Type = ReminderType.Meeting,
                             Status = ReminderStatus.Pending,
-                            Title = $"Upcoming: 1:1 with {meeting.TeamMemberName}",
-                            Message = $"Tomorrow at {meeting.StartTime:hh\\:mm}",
+                            Title = $"Upcoming: {meetingTitle}",
+                            Message = $"Tomorrow at {meeting.ScheduledAt:hh\\:mm}",
                             RemindAt = dayBeforeTime,
                             EntityType = "meeting",
-                            EntityId = GuidFromInt(meeting.Id),
-                            TeamMemberId = meeting.TeamMember?.Id
+                            EntityId = meeting.Id,
+                            TeamMemberId = meeting.Type == MeetingType.OneOnOne ? meeting.ReportTeamMemberId : null
                         };
-                        await TrackerDbManager.Instance.AddReminderAsync(dayBeforeReminder);
+                        await AddReminderAsync(dayBeforeReminder);
                     }
                 }
             }
@@ -203,13 +218,13 @@ namespace Tracker.Services
         /// <summary>
         /// Creates a reminder for a task deadline.
         /// </summary>
-        public async Task CreateTaskReminderAsync(IndividualTask task)
+        public async Task CreateTaskReminderAsync(TrackerTask task)
         {
             if (!_settings.ShowTaskReminders) return;
 
             try
             {
-                var reminderTime = task.DueDate.AddDays(-_settings.TaskReminderDays);
+                var reminderTime = task.DueDate.Value.AddDays(-_settings.TaskReminderDays);
 
                 // Don't create if already past
                 if (reminderTime <= DateTime.Now) return;
@@ -218,15 +233,15 @@ namespace Tracker.Services
                 {
                     Type = ReminderType.Task,
                     Status = ReminderStatus.Pending,
-                    Title = $"Task Due Soon: {task.Description}",
-                    Message = $"Due {task.DueDate:MMM dd} - Assigned to {task.OwnerName}",
+                    Title = $"Task Due Soon: {task.Title ?? task.Description}",
+                    Message = $"Due {task.DueDate:MMM dd} - Assigned to {task.Owner?.FullName ?? "Unassigned"}",
                     RemindAt = reminderTime,
                     EntityType = "task",
-                    EntityId = GuidFromInt(task.Id),
-                    TeamMemberId = task.Owner?.Id
+                    EntityId = task.Id,
+                    TeamMemberId = task.OwnerTeamMemberId
                 };
 
-                await TrackerDbManager.Instance.AddReminderAsync(reminder);
+                await AddReminderAsync(reminder);
                 _logger.Info("Created task reminder for Task ID: {0}", task.Id);
             }
             catch (Exception ex)
@@ -261,7 +276,7 @@ namespace Tracker.Services
                     TeamMemberId = goal.TeamMemberId
                 };
 
-                await TrackerDbManager.Instance.AddReminderAsync(reminder);
+                await AddReminderAsync(reminder);
                 _logger.Info("Created goal reminder for Goal ID: {0}", goal.Id);
             }
             catch (Exception ex)
@@ -292,7 +307,7 @@ namespace Tracker.Services
                     RecurrenceRule = recurrenceRule
                 };
 
-                var id = await TrackerDbManager.Instance.AddReminderAsync(reminder);
+                var id = await AddReminderAsync(reminder);
                 _logger.Info("Created custom reminder ID: {0}", id);
                 return id;
             }
@@ -318,18 +333,53 @@ namespace Tracker.Services
             return new Guid(bytes);
         }
 
+        private async Task<Guid> AddReminderAsync(Reminder reminder)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue || userId.Value == Guid.Empty)
+            {
+                _logger.Warn("AddReminderAsync called but no current user is set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reminderRepository = new ReminderRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            return await reminderRepository.AddReminderAsync(reminder);
+        }
+
         private async void CheckRemindersCallback(object? state)
         {
             if (!_isRunning || !_settings.EnableReminders) return;
 
             try
             {
-                var dueReminders = await TrackerDbManager.Instance.GetDueRemindersAsync();
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue || userId.Value == Guid.Empty)
+                {
+                    _logger.Warn("CheckRemindersCallback called but no current user is set");
+                    return;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var reminderRepository = new ReminderRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var dueReminders = await reminderRepository.GetDueRemindersAsync();
 
                 foreach (var reminder in dueReminders)
                 {
                     // Mark as triggered first to prevent duplicate notifications
-                    await TrackerDbManager.Instance.MarkReminderTriggeredAsync(reminder.Id);
+                    await reminderRepository.MarkReminderTriggeredAsync(reminder.Id);
 
                     // Show notification
                     ShowReminderNotification(reminder);
@@ -353,7 +403,7 @@ namespace Tracker.Services
                             IsRecurring = true,
                             RecurrenceRule = reminder.RecurrenceRule
                         };
-                        await TrackerDbManager.Instance.AddReminderAsync(nextReminder);
+                        await reminderRepository.AddReminderAsync(nextReminder);
                     }
                 }
             }
@@ -369,7 +419,22 @@ namespace Tracker.Services
 
             try
             {
-                var teamMembersWithoutMeeting = await TrackerDbManager.Instance
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue || userId.Value == Guid.Empty)
+                {
+                    _logger.Warn("CheckEngagementCallback called but no current user is set");
+                    return;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var teamMemberRepository = new TeamMemberRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var teamMembersWithoutMeeting = await teamMemberRepository
                     .GetTeamMembersWithoutRecentOneOnOneAsync(_settings.EngagementAlertWeeks);
 
                 if (teamMembersWithoutMeeting.Count > 0)

@@ -1,6 +1,7 @@
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -30,15 +31,15 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var repository = CreateMeetingRepository();
+                if (repository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping previous meeting data");
+                    _logger.Debug("No current user context, skipping previous meeting data");
                     return null;
                 }
 
                 // Get previous meetings with this team member
-                var meetings = await dbManager.GetMeetingsForTeamMemberAsync(teamMember.Id);
+                var meetings = await repository.GetMeetingsAsync();
                 if (meetings == null || meetings.Count == 0)
                 {
                     section.Items.Add(new PrepItem
@@ -52,8 +53,8 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
                 // Get the most recent completed meeting before the upcoming one
                 var lastMeeting = meetings
-                    .Where(m => m.Date.Date < meetingDate.Date && m.Status == MeetingStatusEnum.Completed)
-                    .OrderByDescending(m => m.Date)
+                    .Where(m => m.ScheduledAt.Date < meetingDate.Date && m.Status == MeetingStatus.Completed)
+                    .OrderByDescending(m => m.ScheduledAt)
                     .FirstOrDefault();
 
                 if (lastMeeting == null)
@@ -67,8 +68,8 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 }
 
                 // Add meeting context
-                var daysSince = (meetingDate.Date - lastMeeting.Date.Date).Days;
-                section.Description = $"Last meeting: {lastMeeting.Date:MMM d, yyyy} ({daysSince} days ago)";
+                var daysSince = (meetingDate.Date - lastMeeting.ScheduledAt.Date).Days;
+                section.Description = $"Last meeting: {lastMeeting.ScheduledAt:MMM d, yyyy} ({daysSince} days ago)";
 
                 // Check for open action items (MeetingTasks)
                 if (lastMeeting.Tasks != null && lastMeeting.Tasks.Any())
@@ -79,14 +80,14 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     // Add open action items first (higher priority)
                     foreach (var task in openTasks)
                     {
-                        var isOverdue = task.DueDate != DateTime.MinValue && task.DueDate.Date < DateTime.Today;
+                        var isOverdue = task.DueDate.HasValue && task.DueDate.Value.Date < DateTime.Today;
                         section.Items.Add(new PrepItem
                         {
                             Title = task.Description,
                             Subtext = isOverdue 
-                                ? $"⚠️ Overdue since {task.DueDate:MMM d}" 
-                                : task.DueDate != DateTime.MinValue 
-                                    ? $"Due {task.DueDate:MMM d}" 
+                                ? $"⚠️ Overdue since {task.DueDate.Value:MMM d}" 
+                                : task.DueDate.HasValue 
+                                    ? $"Due {task.DueDate.Value:MMM d}" 
                                     : "No due date",
                             Priority = isOverdue ? PrepItemPriority.Critical : PrepItemPriority.High,
                             LinkType = PrepItemLinkType.MeetingTask,
@@ -115,12 +116,12 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 // Check agenda items that might need follow-up
                 if (lastMeeting.AgendaItems != null && lastMeeting.AgendaItems.Any())
                 {
-                    var discussedItems = lastMeeting.AgendaItems
-                        .Where(a => a.Category == AgendaItemCategory.Blocker || 
-                                   a.Category == AgendaItemCategory.Concern)
+                    // Show items that haven't been discussed yet
+                    var undiscussedItems = lastMeeting.AgendaItems
+                        .Where(a => !a.IsDiscussed)
                         .Take(3);
 
-                    foreach (var item in discussedItems)
+                    foreach (var item in undiscussedItems)
                     {
                         section.Items.Add(new PrepItem
                         {
@@ -156,6 +157,19 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             }
 
             return section.HasItems ? section : null;
+        }
+
+        private static MeetingRepository? CreateMeetingRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private MeetingPrepSettings GetSettings()

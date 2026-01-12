@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using Tracker.Classes;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services;
 
 namespace Tracker.Services.AI.Insights.Analyzers
 {
@@ -52,31 +55,23 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var taskRepository = CreateTaskRepository();
+                if (taskRepository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping action item analysis");
+                    _logger.Debug("No current user or database context available, skipping action item analysis");
                     return insights;
                 }
 
-                var context = dbManager.GetDbContext();
-                if (context == null)
-                {
-                    _logger.Debug("No database context available");
-                    return insights;
-                }
-
-                var today = DateTime.Now.Date;
+                var today = DateTime.Today;
                 var staleDate = today.AddDays(-StaleThresholdDays);
 
-                // Get all uncompleted meeting tasks that are either:
+                // Get all uncompleted tasks that are either:
                 // 1. Overdue (past due date)
                 // 2. Stale (created more than X days ago with no due date or future due date)
-                var uncompletedTasks = await context.MeetingTasks
-                    .AsNoTracking()
-                    .Where(t => !t.IsDeleted && !t.IsCompleted)
-                    .Include(t => t.Owner)
-                    .ToListAsync(cancellationToken);
+                var allTasks = await taskRepository.GetTasksAsync();
+                var uncompletedTasks = allTasks
+                    .Where(t => !t.IsCompleted)
+                    .ToList();
 
                 foreach (var task in uncompletedTasks)
                 {
@@ -84,10 +79,10 @@ namespace Tracker.Services.AI.Insights.Analyzers
                         break;
 
                     // Check if overdue
-                    if (task.DueDate != default && task.DueDate.Date < today)
+                    if (task.DueDate.HasValue && task.DueDate.Value.Date < today)
                     {
-                        var daysOverdue = (today - task.DueDate.Date).Days;
-                        var severity = daysOverdue > 7 ? InsightSeverity.Critical : InsightSeverity.Warning;
+                        var daysOverdue = (today - task.DueDate.Value.Date).Days;
+                        var severity = daysOverdue > 7 ? InsightSeverity.Critical : InsightSeverity.High;
 
                         insights.Add(CreateOverdueInsight(task, daysOverdue, severity));
                     }
@@ -109,7 +104,20 @@ namespace Tracker.Services.AI.Insights.Analyzers
             return insights;
         }
 
-        private static Insight CreateOverdueInsight(MeetingTask task, int daysOverdue, InsightSeverity severity)
+        private static TrackerTaskRepository? CreateTaskRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue || userId.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TrackerTaskRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
+
+        private static Insight CreateOverdueInsight(TrackerTask task, int daysOverdue, InsightSeverity severity)
         {
             var ownerName = task.Owner?.FullName ?? "Unknown";
             var truncatedDesc = TruncateDescription(task.Description, 50);
@@ -121,14 +129,14 @@ namespace Tracker.Services.AI.Insights.Analyzers
                 Severity = severity,
                 Title = $"⚠️ Overdue: \"{truncatedDesc}\"",
                 Description = $"Action item for {ownerName} was due {daysOverdue} day{(daysOverdue != 1 ? "s" : "")} ago ({task.DueDate:MMM d}). Consider following up or rescheduling.",
-                ActionSuggestion = "View Meeting",
-                EntityType = "MeetingTask",
-                EntityId = task.Id,
+                ActionSuggestion = "View Task",
+                EntityType = "TrackerTask",
+                // EntityId not set - task.Id is Guid, EntityId is int?
                 GeneratedAt = DateTime.Now
             };
         }
 
-        private static Insight CreateStaleInsight(MeetingTask task, int daysOld)
+        private static Insight CreateStaleInsight(TrackerTask task, int daysOld)
         {
             var ownerName = task.Owner?.FullName ?? "Unknown";
             var truncatedDesc = TruncateDescription(task.Description, 50);
@@ -137,12 +145,12 @@ namespace Tracker.Services.AI.Insights.Analyzers
             {
                 UniqueKey = $"task_stale_{task.Id}_{DateTime.Now:yyyy-MM}",
                 Type = InsightType.StaleActionItem,
-                Severity = InsightSeverity.Warning,
+                Severity = InsightSeverity.Low,
                 Title = $"📋 Stale action item: \"{truncatedDesc}\"",
                 Description = $"Action item for {ownerName} has been open for {daysOld} days. Consider completing it, updating status, or removing if no longer relevant.",
-                ActionSuggestion = "View Meeting",
-                EntityType = "MeetingTask",
-                EntityId = task.Id,
+                ActionSuggestion = "View Task",
+                EntityType = "TrackerTask",
+                // EntityId not set - task.Id is Guid, EntityId is int?
                 GeneratedAt = DateTime.Now
             };
         }

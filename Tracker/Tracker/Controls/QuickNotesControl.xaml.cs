@@ -1,7 +1,12 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Tracker.Classes;
 using Tracker.DataModels;
+using Tracker.Database;
+using Tracker.Database.Repositories;
+using Tracker.Logging;
+using Tracker.Services;
 using Tracker.ViewModels;
 
 namespace Tracker.Controls
@@ -14,7 +19,31 @@ namespace Tracker.Controls
         public QuickNotesControl()
         {
             InitializeComponent();
-            DataContext = new QuickNotesViewModel();
+            try
+            {
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue || userId.Value == Guid.Empty)
+                {
+                    var logger = LoggingManager.GetComponentLogger("QuickNotesControl");
+                    logger.Warn("Cannot initialize QuickNotesViewModel: no current user in OrganizationContext");
+                    return;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                var context = contextFactory.CreateContext();
+
+                var quickNoteRepository = new QuickNoteRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                DataContext = new QuickNotesViewModel(quickNoteRepository);
+            }
+            catch (Exception ex)
+            {
+                var logger = LoggingManager.GetComponentLogger("QuickNotesControl");
+                logger.Exception(ex, "Failed to initialize QuickNotesViewModel");
+            }
         }
 
         private void Note_Click(object sender, MouseButtonEventArgs e)

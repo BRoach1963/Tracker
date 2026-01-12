@@ -6,12 +6,15 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services;
 
 namespace Tracker.Controls
 {
@@ -24,7 +27,7 @@ namespace Tracker.Controls
         
         private DateTime _currentDate = DateTime.Today;
         private CalendarViewMode _viewMode = CalendarViewMode.Month;
-        private ObservableCollection<OneOnOne> _meetings = new();
+        private ObservableCollection<Meeting> _meetings = new();
         private ObservableCollection<TeamMember> _teamMembers = new();
         private TeamMember? _selectedTeamMember;
 
@@ -71,7 +74,7 @@ namespace Tracker.Controls
             }
         }
 
-        public ObservableCollection<OneOnOne> Meetings
+        public ObservableCollection<Meeting> Meetings
         {
             get => _meetings;
             set
@@ -146,17 +149,30 @@ namespace Tracker.Controls
 
                 _logger.Info($"Loading meetings from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
                 
-                var meetings = await TrackerDbManager.Instance.GetMeetingsInRangeAsync(startDate, endDate);
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("Cannot load meetings: organization context has no current user");
+                    _meetings = new ObservableCollection<Meeting>();
+                    OnPropertyChanged(nameof(Meetings));
+                    return;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+                var repository = new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
+
+                var meetings = await repository.GetMeetingsInRangeAsync(startDate, endDate);
                 _logger.Info($"Retrieved {meetings.Count} meetings from database");
                 
                 // Filter by team member if selected
                 if (_selectedTeamMember != null)
                 {
-                    meetings = meetings.Where(m => m.TeamMember?.Id == _selectedTeamMember.Id).ToList();
+                    meetings = meetings.Where(m => m.ReportTeamMemberId == _selectedTeamMember.Id || m.ManagerTeamMemberId == _selectedTeamMember.Id).ToList();
                     _logger.Info($"Filtered to {meetings.Count} meetings for team member {_selectedTeamMember.FullName}");
                 }
 
-                _meetings = new ObservableCollection<OneOnOne>(meetings);
+                _meetings = new ObservableCollection<Meeting>(meetings);
                 OnPropertyChanged(nameof(Meetings));
                 _logger.Info($"_meetings collection updated with {_meetings.Count} items");
             }
@@ -382,8 +398,8 @@ namespace Tracker.Controls
             
             // Meetings for this day
             var dayMeetings = _meetings
-                .Where(m => m.Date.Date == date.Date)
-                .OrderBy(m => m.StartTime)
+                .Where(m => m.ScheduledAt.Date == date.Date)
+                .OrderBy(m => m.ScheduledAt.TimeOfDay)
                 .Take(3) // Show max 3, then "+X more"
                 .ToList();
             
@@ -393,7 +409,7 @@ namespace Tracker.Controls
                 stack.Children.Add(meetingBlock);
             }
             
-            var totalMeetings = _meetings.Count(m => m.Date.Date == date.Date);
+            var totalMeetings = _meetings.Count(m => m.ScheduledAt.Date == date.Date);
             if (totalMeetings > 3)
             {
                 var moreText = new TextBlock
@@ -497,18 +513,19 @@ namespace Tracker.Controls
             for (int day = 0; day < 7; day++)
             {
                 var date = startOfWeek.AddDays(day);
-                var dayMeetings = _meetings.Where(m => m.Date.Date == date.Date).ToList();
+                var dayMeetings = _meetings.Where(m => m.ScheduledAt.Date == date.Date).ToList();
                 
                 foreach (var meeting in dayMeetings)
                 {
-                    var startTime = meeting.StartTime;
-                    var startHour = startTime.Hours;
+                    var startTime = meeting.ScheduledAt;
+                    var startHour = startTime.Hour;
                     if (startHour >= 6 && startHour <= 20)
                     {
                         var block = CreateMeetingBlock(meeting, false);
-                        var duration = (meeting.EndTime - startTime).TotalHours;
+                        var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
+                        var duration = (endTime - startTime).TotalHours;
                         block.Height = Math.Max(duration * 60 - 4, 20);
-                        block.Margin = new Thickness(2, startTime.Minutes + 2, 2, 0);
+                        block.Margin = new Thickness(2, startTime.Minute + 2, 2, 0);
                         block.VerticalAlignment = VerticalAlignment.Top;
                         
                         Grid.SetRow(block, startHour - 6);
@@ -566,18 +583,19 @@ namespace Tracker.Controls
             }
             
             // Add meeting blocks
-            var dayMeetings = _meetings.Where(m => m.Date.Date == _currentDate.Date).ToList();
+            var dayMeetings = _meetings.Where(m => m.ScheduledAt.Date == _currentDate.Date).ToList();
             
             foreach (var meeting in dayMeetings)
             {
-                var startTime = meeting.StartTime;
-                var startHour = startTime.Hours;
+                var startTime = meeting.ScheduledAt;
+                var startHour = startTime.Hour;
                 if (startHour >= 6 && startHour <= 20)
                 {
                     var block = CreateMeetingBlock(meeting, false);
-                    var duration = (meeting.EndTime - startTime).TotalHours;
+                    var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
+                    var duration = (endTime - startTime).TotalHours;
                     block.Height = Math.Max(duration * 60 - 4, 20);
-                    block.Margin = new Thickness(2, startTime.Minutes + 2, 2, 0);
+                    block.Margin = new Thickness(2, startTime.Minute + 2, 2, 0);
                     block.VerticalAlignment = VerticalAlignment.Top;
                     
                     Grid.SetRow(block, startHour - 6);
@@ -591,7 +609,7 @@ namespace Tracker.Controls
 
         #region Meeting Block Creation
 
-        private Border CreateMeetingBlock(OneOnOne meeting, bool compact)
+        private Border CreateMeetingBlock(Meeting meeting, bool compact)
         {
             var block = new Border
             {
@@ -602,8 +620,8 @@ namespace Tracker.Controls
             // Color based on status
             block.Background = meeting.Status switch
             {
-                MeetingStatusEnum.Completed => TryFindResource("SuccessBrush") as Brush ?? (TryFindResource("AccentBrush") as Brush ?? Brushes.Green),
-                MeetingStatusEnum.Canceled => TryFindResource("ErrorBrush") as Brush ?? Brushes.Gray,
+                MeetingStatus.Completed => TryFindResource("SuccessBrush") as Brush ?? (TryFindResource("AccentBrush") as Brush ?? Brushes.Green),
+                MeetingStatus.Cancelled => TryFindResource("ErrorBrush") as Brush ?? Brushes.Gray,
                 _ => TryFindResource("AccentBrush") as Brush ?? Brushes.Blue
             };
             
@@ -614,7 +632,7 @@ namespace Tracker.Controls
                 // Compact mode for month view
                 var title = new TextBlock
                 {
-                    Text = $"{meeting.StartTime:hh\\:mm} {meeting.TeamMemberName}",
+                    Text = $"{meeting.ScheduledAt:hh\\:mm} {meeting.Report?.FullName ?? "Unknown"}",
                     FontSize = 10,
                     Foreground = TryFindResource("BackgroundBrush") as Brush ?? Brushes.White,
                     TextTrimming = TextTrimming.CharacterEllipsis
@@ -624,9 +642,10 @@ namespace Tracker.Controls
             else
             {
                 // Full mode for week/day view
+                var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
                 var timeText = new TextBlock
                 {
-                    Text = $"{meeting.StartTime:hh\\:mm} - {meeting.EndTime:hh\\:mm}",
+                    Text = $"{meeting.ScheduledAt:hh\\:mm} - {endTime:hh\\:mm}",
                     FontSize = 10,
                     Foreground = TryFindResource("BackgroundBrush") as Brush ?? Brushes.White,
                     Opacity = 0.8
@@ -635,7 +654,7 @@ namespace Tracker.Controls
                 
                 var title = new TextBlock
                 {
-                    Text = meeting.TeamMemberName,
+                    Text = meeting.Report?.FullName ?? "Unknown",
                     FontSize = 12,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = TryFindResource("BackgroundBrush") as Brush ?? Brushes.White,
@@ -671,7 +690,7 @@ namespace Tracker.Controls
 
         #region Events
 
-        private void OnMeetingClicked(OneOnOne meeting)
+        private void OnMeetingClicked(Meeting meeting)
         {
             MeetingClicked?.Invoke(this, new MeetingClickedEventArgs(meeting));
         }
@@ -721,8 +740,8 @@ namespace Tracker.Controls
 
     public class MeetingClickedEventArgs : EventArgs
     {
-        public OneOnOne Meeting { get; }
-        public MeetingClickedEventArgs(OneOnOne meeting) => Meeting = meeting;
+        public Meeting Meeting { get; }
+        public MeetingClickedEventArgs(Meeting meeting) => Meeting = meeting;
     }
 
     public class DateClickedEventArgs : EventArgs

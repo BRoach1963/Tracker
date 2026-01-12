@@ -20,9 +20,9 @@ namespace Tracker.DataModels
         public string Greeting { get; set; } = string.Empty;
 
         /// <summary>
-        /// 1:1 meetings scheduled for today.
+        /// Meetings scheduled for today.
         /// </summary>
-        public List<OneOnOne> MeetingsToday { get; set; } = new();
+        public List<Meeting> MeetingsToday { get; set; } = new();
 
         /// <summary>
         /// Critical insights requiring immediate attention.
@@ -50,19 +50,19 @@ namespace Tracker.DataModels
         public List<TeamMember> UpcomingAnniversaries { get; set; } = new();
 
         /// <summary>
-        /// Count of active OKRs.
+        /// Count of active Goals.
         /// </summary>
-        public int ActiveOkrCount { get; set; }
+        public int ActiveGoalCount { get; set; }
 
         /// <summary>
-        /// Count of OKRs currently on track.
+        /// Count of Goals currently on track.
         /// </summary>
-        public int OkrsOnTrack { get; set; }
+        public int GoalsOnTrack { get; set; }
 
         /// <summary>
-        /// Count of OKRs at risk of missing target.
+        /// Count of Goals at risk of missing target.
         /// </summary>
-        public int OkrsAtRisk { get; set; }
+        public int GoalsAtRisk { get; set; }
 
         /// <summary>
         /// Count of overdue tasks.

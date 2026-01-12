@@ -1,44 +1,13 @@
-using System.IO;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using Tracker.Classes;
-using Tracker.Common.Enums;
-using Tracker.DataModels;
-using Tracker.Logging;
-using Tracker.Managers;
+// THIS FILE HAS BEEN INTENTIONALLY DISABLED.
+// TrackerDbManager has been removed in favor of:
+// - TrackerDbContextFactory (short-lived DbContexts)
+// - Repository classes (MeetingRepository, GoalRepository, etc.)
+//
+// The entire legacy implementation is now wrapped in #if false so it
+// does not compile. Any remaining references to TrackerDbManager will
+// therefore fail to compile and must be migrated.
 
-namespace Tracker.Database
-{
-    /// <summary>
-    /// Result of a connection test.
-    /// </summary>
-    public class ConnectionTestResult
-    {
-        public bool Success { get; set; }
-        public bool DatabaseExists { get; set; }
-        public string? ErrorMessage { get; set; }
-    }
-
-    /// <summary>
-    /// Manages database operations using Entity Framework Core.
-    /// Supports SQLite (local), SQL Server (remote), and PostgreSQL providers.
-    /// Uses a context factory pattern for PostgreSQL to enable parallel operations.
-    /// </summary>
-    public class TrackerDbManager
-    {
-        #region Fields
-
-        private bool _isInitialized;
-        private TrackerDbContext? _context;
-        private DatabaseSettings? _settings;
-        
-        // Context factory state for PostgreSQL
-        private Guid? _supabaseUserId;
-        private int? _localUserId;
-
-        private readonly LoggingManager.Logger _logger = new(nameof(TrackerDbManager), "DatabaseLog");
-
-        #endregion
+#if false
 
         #region Singleton Instance
 
@@ -1628,38 +1597,6 @@ namespace Tracker.Database
         }
 
         /// <summary>
-        /// Gets the count of OneOnOne meetings where a specific OKR was discussed.
-        /// </summary>
-        public async Task<int> GetOkrMeetingCountAsync(int okrId)
-        {
-            if (_context == null) return 0;
-
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue)
-            {
-                return 0;
-            }
-
-            try
-            {
-                return await _context.OneOnOneLinkedOkrs
-                    .Where(link => !link.IsDeleted && link.OkrId == okrId)
-                    .Join(_context.OneOnOnes.Where(o => EF.Property<int>(o, "UserId") == currentUserId.Value),
-                        link => link.OneOnOneId,
-                        meeting => meeting.Id,
-                        (link, meeting) => link)
-                    .Select(link => link.OneOnOneId)
-                    .Distinct()
-                    .CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error counting meetings for OKR {0}", okrId);
-                return 0;
-            }
-        }
-
-        /// <summary>
         /// Gets the count of OneOnOne meetings where a specific KPI was discussed.
         /// </summary>
         public async Task<int> GetKpiMeetingCountAsync(int kpiId)
@@ -1723,42 +1660,6 @@ namespace Tracker.Database
             catch (Exception ex)
             {
                 _logger.Exception(ex, "Error counting meetings for tasks");
-                return new Dictionary<int, int>();
-            }
-        }
-
-        /// <summary>
-        /// Gets the count of OneOnOne meetings for multiple OKRs in a single query (batch operation).
-        /// This prevents N+1 query problem when loading meeting counts for multiple OKRs.
-        /// </summary>
-        public async Task<Dictionary<int, int>> GetOkrMeetingCountsAsync(List<int> okrIds)
-        {
-            if (_context == null || okrIds == null || okrIds.Count == 0)
-                return new Dictionary<int, int>();
-
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue)
-            {
-                return new Dictionary<int, int>();
-            }
-
-            try
-            {
-                var counts = await _context.OneOnOneLinkedOkrs
-                    .Where(link => !link.IsDeleted && okrIds.Contains(link.OkrId))
-                    .Join(_context.OneOnOnes.Where(o => EF.Property<int>(o, "UserId") == currentUserId.Value),
-                        link => link.OneOnOneId,
-                        meeting => meeting.Id,
-                        (link, meeting) => link)
-                    .GroupBy(link => link.OkrId)
-                    .Select(g => new { OkrId = g.Key, Count = g.Select(x => x.OneOnOneId).Distinct().Count() })
-                    .ToDictionaryAsync(x => x.OkrId, x => x.Count);
-
-                return counts;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error counting meetings for OKRs");
                 return new Dictionary<int, int>();
             }
         }
@@ -2318,165 +2219,7 @@ namespace Tracker.Database
 
         #endregion
 
-        #region OKR Operations
-
-        public async Task<List<ObjectiveKeyResult>> GetOKRsAsync()
-        {
-            System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: Starting ===");
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue)
-            {
-                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: No CurrentUserId ===");
-                _logger.Warn("GetOKRsAsync called but CurrentUserId is not set");
-                return new List<ObjectiveKeyResult>();
-            }
-
-            var context = GetReadContext();
-            if (context == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: No context ===");
-                _logger.Warn("GetOKRsAsync: Context is null");
-                return new List<ObjectiveKeyResult>();
-            }
-
-            _logger.Info("GetOKRsAsync: Querying OKRs for UserId = {0}", currentUserId.Value);
-
-            try
-            {
-                // First, let's see all OKRs regardless of UserId for debugging
-                var allOkrsCount = await context.ObjectiveKeyResults.CountAsync();
-                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: Total OKRs in database (all users) = {allOkrsCount} ===");
-                _logger.Info("GetOKRsAsync: Total OKRs in database (all users) = {0}", allOkrsCount);
-                
-                // Load all data without filters in the Include to avoid SQL translation errors
-                var result = await context.ObjectiveKeyResults
-                    .Where(o => !o.IsDeleted && EF.Property<int>(o, "UserId") == currentUserId.Value)
-                    .Include(o => o.Owner)
-                    .Include(o => o.KeyResults)
-                        .ThenInclude(k => k.Measurables)
-                    .OrderBy(o => o.EndDate)
-                    .ToListAsync();
-                
-                // Filter in-memory to avoid SQL translation issues with obsolete/unmapped properties
-                foreach (var okr in result)
-                {
-                    if (okr.KeyResults != null)
-                    {
-                        okr.KeyResults = okr.KeyResults.Where(k => !k.IsDeleted).ToList();
-                        foreach (var kr in okr.KeyResults)
-                        {
-                            if (kr.Measurables != null)
-                                kr.Measurables = kr.Measurables.Where(m => !m.IsDeleted).ToList();
-                        }
-                    }
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync: Query succeeded, got {result.Count} OKRs ===");
-                _logger.Info("GetOKRsAsync: Found {0} OKRs for UserId = {1}", result.Count, currentUserId.Value);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"=== GetOKRsAsync EXCEPTION: {ex.GetType().Name}: {ex.Message} ===");
-                if (ex.InnerException != null)
-                    System.Diagnostics.Debug.WriteLine($"=== Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message} ===");
-                _logger.Exception(ex, "Error retrieving OKRs from database");
-                return new List<ObjectiveKeyResult>();
-            }
-            finally
-            {
-                DisposeIfFactory(context);
-            }
-        }
-
-        // Alias for consistency
-        public async Task<List<ObjectiveKeyResult>> GetOkrsAsync() => await GetOKRsAsync();
-
-        public async Task<int> AddOKRAsync(ObjectiveKeyResult okr)
-        {
-            if (_context == null) return 0;
-
-            var currentUserId = GetCurrentUserId();
-            if (!currentUserId.HasValue)
-            {
-                _logger.Error("AddOKRAsync called but CurrentUserId is not set");
-                return 0;
-            }
-
-            try
-            {
-                _context.ObjectiveKeyResults.Add(okr);
-                // Set UserId shadow property
-                _context.Entry(okr).Property("UserId").CurrentValue = currentUserId.Value;
-                
-                // Also set UserId for nested KPIs
-                if (okr.KeyResults != null)
-                {
-                    foreach (var kpi in okr.KeyResults)
-                    {
-                        _context.Entry(kpi).Property("UserId").CurrentValue = currentUserId.Value;
-                    }
-                }
-                
-                await _context.SaveChangesAsync();
-                return okr.ObjectiveId;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error adding OKR");
-                return 0;
-            }
-        }
-
-        public async Task<bool> UpdateOKRAsync(ObjectiveKeyResult okr)
-        {
-            if (_context == null) return false;
-
-            try
-            {
-                var existing = await _context.ObjectiveKeyResults.FindAsync(okr.ObjectiveId);
-                if (existing == null)
-                {
-                    _logger.Error("UpdateOKRAsync: OKR ID {0} not found", okr.ObjectiveId);
-                    return false;
-                }
-
-                _context.Entry(existing).CurrentValues.SetValues(okr);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error updating OKR ID: {0}", okr.ObjectiveId);
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Deletes an OKR by ID (soft delete).
-        /// </summary>
-        public async Task<bool> DeleteOKRAsync(int id)
-        {
-            if (_context == null) return false;
-
-            try
-            {
-                var okr = await _context.ObjectiveKeyResults.FindAsync(id);
-                if (okr != null)
-                {
-                    _context.ObjectiveKeyResults.Remove(okr);
-                    await _context.SaveChangesAsync();
-                    _logger.Info("Deleted OKR ID: {0}", id);
-                    return true;
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.Exception(ex, "Error deleting OKR ID: {0}", id);
-                return false;
-            }
-        }
+        #region KeyResult Operations
 
         /// <summary>
         /// Adds a Key Result to an OKR.
@@ -3012,6 +2755,40 @@ namespace Tracker.Database
             {
                 _logger.Exception(ex, "Error retrieving all development goals");
                 return new List<DevelopmentGoal>();
+            }
+            finally
+            {
+                DisposeIfFactory(context);
+            }
+        }
+
+        /// <summary>
+        /// Gets all Goals (organizational, team, and personal objectives).
+        /// Goals consolidate the legacy OKR/KPI framework with type discrimination.
+        /// </summary>
+        public async Task<List<Goal>> GetGoalsAsync()
+        {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return new List<Goal>();
+
+            var context = GetReadContext();
+            if (context == null) return new List<Goal>();
+
+            try
+            {
+                return await context.Goals
+                    .Include(g => g.Targets)
+                        .ThenInclude(t => t.Measurables)
+                    .Include(g => g.CreatedByUser)
+                    .Where(g => !g.IsDeleted)
+                    .OrderByDescending(g => g.Type == GoalType.Organizational)
+                    .ThenBy(g => g.EndDate)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Exception(ex, "Error retrieving Goals");
+                return new List<Goal>();
             }
             finally
             {
@@ -4849,3 +4626,5 @@ namespace Tracker.Database
         #endregion
     }
 }
+
+#endif

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 
 namespace Tracker.Services.AI.Insights

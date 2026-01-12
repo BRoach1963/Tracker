@@ -36,7 +36,7 @@ namespace Tracker.Controls
         /// </summary>
         private void Meeting_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is OneOnOne meeting)
+            if (sender is FrameworkElement fe && fe.Tag is Meeting meeting)
             {
                 if (DataContext is TrackerMainViewModel vm)
                 {

@@ -3,6 +3,19 @@ using Tracker.Common.Enums;
 namespace Tracker.DataModels
 {
     /// <summary>
+    /// Goal type - distinguishes personal development goals from organizational/team goals.
+    /// </summary>
+    public enum GoalType
+    {
+        /// <summary>Organizational or strategic goal.</summary>
+        Organizational = 0,
+        /// <summary>Team goal.</summary>
+        Team = 1,
+        /// <summary>Personal development goal for a team member.</summary>
+        Personal = 2
+    }
+
+    /// <summary>
     /// Goal (formerly OKR/Objective) - what we want to achieve.
     /// Maps to Supabase 'goals' table.
     /// Progress is calculated from linked Targets.
@@ -39,6 +52,11 @@ namespace Tracker.DataModels
         /// Extended description.
         /// </summary>
         public string? Description { get; set; }
+
+        /// <summary>
+        /// Goal type - distinguishes personal development goals from organizational/team goals.
+        /// </summary>
+        public GoalType Type { get; set; } = GoalType.Organizational;
 
         /// <summary>
         /// Time period (Q1-Q4, Annual, Custom).
@@ -97,7 +115,16 @@ namespace Tracker.DataModels
         public Project? Project { get; set; }
 
         /// <summary>
+        /// Source agenda item that initiated this goal. UUID FK to meeting_agenda_items. Nullable.
+        /// </summary>
+        public Guid? SourceAgendaItemId { get; set; }
 
+        /// <summary>
+        /// Source meeting from which this goal originated. UUID FK to meetings. Nullable.
+        /// </summary>
+        public Guid? SourceMeetingId { get; set; }
+
+        /// <summary>
         /// Targets (Key Results) that measure progress.
         /// </summary>
         public List<Target> Targets { get; set; } = new();

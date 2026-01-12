@@ -14,16 +14,16 @@ namespace Tracker.Common.Enums
         /// <summary>Linked to a project.</summary>
         Project = 2,
         
-        /// <summary>Linked to a 1:1 meeting.</summary>
+        /// <summary>Linked to a 1:1 meeting (legacy - use Meeting).</summary>
         OneOnOne = 3,
         
         /// <summary>Linked to an OKR (Objective).</summary>
         OKR = 4,
         
-        /// <summary>Linked to a Key Result.</summary>
+        /// <summary>Linked to a Key Result (now Target).</summary>
         KeyResult = 5,
         
-        /// <summary>Linked to a KPI.</summary>
+        /// <summary>Linked to a KPI (now Metric).</summary>
         KPI = 6,
         
         /// <summary>Linked to a task.</summary>
@@ -33,7 +33,16 @@ namespace Tracker.Common.Enums
         Goal = 8,
         
         /// <summary>Linked to a feedback entry.</summary>
-        Feedback = 9
+        Feedback = 9,
+        
+        /// <summary>Linked to a meeting.</summary>
+        Meeting = 10,
+        
+        /// <summary>Linked to a Target (new name for Key Result).</summary>
+        Target = 11,
+        
+        /// <summary>Linked to a Metric (new name for KPI).</summary>
+        Metric = 12
     }
 }
 

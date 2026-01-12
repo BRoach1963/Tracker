@@ -3,6 +3,7 @@ using System.Windows.Input;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
@@ -19,6 +20,8 @@ namespace Tracker.ViewModels
         #region Fields
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("PerformanceReviewsVM");
+        private readonly IReviewCycleRepository _reviewCycleRepository;
+        private readonly IPerformanceReviewRepository _performanceReviewRepository;
 
         // Collections
         private ObservableCollection<ReviewTemplate> _templates = new();
@@ -47,7 +50,7 @@ namespace Tracker.ViewModels
         // Cycle Edit Fields
         private string _editCycleName = string.Empty;
         private string _editCycleDescription = string.Empty;
-        private int? _editCycleTemplateId;
+        private Guid? _editCycleTemplateId;
         private DateTime? _editSelfReviewStartDate;
         private DateTime? _editSelfReviewDueDate;
         private DateTime? _editManagerReviewStartDate;
@@ -57,8 +60,10 @@ namespace Tracker.ViewModels
 
         #region Constructor
 
-        public PerformanceReviewsViewModel()
+        public PerformanceReviewsViewModel(IReviewCycleRepository reviewCycleRepository, IPerformanceReviewRepository performanceReviewRepository)
         {
+            _reviewCycleRepository = reviewCycleRepository ?? throw new ArgumentNullException(nameof(reviewCycleRepository));
+            _performanceReviewRepository = performanceReviewRepository ?? throw new ArgumentNullException(nameof(performanceReviewRepository));
             _ = LoadDataAsync();
             DataMessenger.Register(this, OnDataChanged);
         }
@@ -328,7 +333,7 @@ namespace Tracker.ViewModels
             }
         }
 
-        public int? EditCycleTemplateId
+        public Guid? EditCycleTemplateId
         {
             get => _editCycleTemplateId;
             set
@@ -585,7 +590,7 @@ namespace Tracker.ViewModels
                     });
 
                     var id = await TrackerDataManager.Instance.AddReviewTemplate(_selectedTemplate);
-                    if (id > 0)
+                    if (id != Guid.Empty)
                     {
                         _selectedTemplate.Id = id;
                         _logger.Info("Created new template: {0}", _selectedTemplate.Name);
@@ -646,7 +651,7 @@ namespace Tracker.ViewModels
             _selectedCycle = new PerformanceReviewCycle
             {
                 Name = $"{DateTime.Now.Year} Performance Review",
-                ReviewTemplateId = defaultTemplate?.Id ?? 0,
+                ReviewTemplateId = defaultTemplate?.Id ?? Guid.Empty,
                 Status = ReviewCycleStatus.Draft,
                 SelfReviewStartDate = DateTime.Today,
                 SelfReviewDueDate = DateTime.Today.AddDays(14),
@@ -688,7 +693,7 @@ namespace Tracker.ViewModels
                 if (IsNewCycle)
                 {
                     var id = await TrackerDataManager.Instance.AddReviewCycle(_selectedCycle);
-                    if (id > 0)
+                    if (id != Guid.Empty)
                     {
                         _selectedCycle.Id = id;
                         _logger.Info("Created new cycle: {0}", _selectedCycle.Name);
@@ -743,14 +748,15 @@ namespace Tracker.ViewModels
 
             try
             {
+                // TODO: Migrate CreateReviewsForCycleAsync to TrackerDataManager or repository pattern
                 // Create reviews for all team members (special operation, uses DB directly)
-                var count = await TrackerDbManager.Instance.CreateReviewsForCycleAsync(_selectedCycle.Id);
+                var count = await TrackerDataManager.Instance.CreateReviewsForCycleAsync(_selectedCycle.Id);
                 
                 _selectedCycle.Status = ReviewCycleStatus.SelfReviewInProgress;
                 await TrackerDataManager.Instance.UpdateReviewCycle(_selectedCycle);
 
                 // Reload to get the created reviews
-                _selectedCycle = await TrackerDbManager.Instance.GetReviewCycleAsync(_selectedCycle.Id);
+                _selectedCycle = await _reviewCycleRepository.GetReviewCycleByIdAsync(_selectedCycle.Id);
                 
                 RaisePropertyChanged(nameof(SelectedCycle));
                 RaisePropertyChanged(nameof(SelectedCycleReviews));
@@ -805,7 +811,8 @@ namespace Tracker.ViewModels
 
             try
             {
-                var success = await TrackerDbManager.Instance.ShareReviewAsync(_selectedReview.Id);
+                // TODO: Migrate ShareReviewAsync to TrackerDataManager or repository pattern
+                var success = await TrackerDataManager.Instance.ShareReviewAsync(_selectedReview.Id);
                 if (success)
                 {
                     _selectedReview.Status = ReviewStatus.Shared;

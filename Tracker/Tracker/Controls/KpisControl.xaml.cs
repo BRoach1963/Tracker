@@ -7,6 +7,9 @@ using Tracker.ViewModels;
 
 namespace Tracker.Controls
 {
+    /// <summary>
+    /// Control for displaying and filtering metrics (formerly KPIs).
+    /// </summary>
     public partial class KpisControl : UserControl
     {
         public KpisControl()
@@ -21,10 +24,10 @@ namespace Tracker.Controls
             if (DataContext is TrackerMainViewModel vm)
             {
                 // Toggle: if already selected, go back to All
-                if (vm.KpiStatusFilter == KpiStatusEnum.OnTarget)
+                if (vm.KpiStatusFilter == OkrStatus.OnTrack)
                     vm.KpiStatusFilter = null;
                 else
-                    vm.KpiStatusFilter = KpiStatusEnum.OnTarget;
+                    vm.KpiStatusFilter = OkrStatus.OnTrack;
             }
         }
 
@@ -33,11 +36,11 @@ namespace Tracker.Controls
             if (DataContext is TrackerMainViewModel vm)
             {
                 // Toggle: if already selected, go back to All  
-                // Use OffTarget to represent "Below Target" filter
-                if (vm.KpiStatusFilter == KpiStatusEnum.OffTarget)
+                // Use OffTrack to represent "Below Target" filter
+                if (vm.KpiStatusFilter == OkrStatus.OffTrack)
                     vm.KpiStatusFilter = null;
                 else
-                    vm.KpiStatusFilter = KpiStatusEnum.OffTarget;
+                    vm.KpiStatusFilter = OkrStatus.OffTrack;
             }
         }
 
@@ -65,7 +68,7 @@ namespace Tracker.Controls
         {
             if (DataContext is TrackerMainViewModel vm)
             {
-                vm.KpiStatusFilter = KpiStatusEnum.OnTarget;
+                vm.KpiStatusFilter = OkrStatus.OnTrack;
             }
         }
 
@@ -73,8 +76,8 @@ namespace Tracker.Controls
         {
             if (DataContext is TrackerMainViewModel vm)
             {
-                // Use OffTarget to represent "Below Target" (not on target)
-                vm.KpiStatusFilter = KpiStatusEnum.OffTarget;
+                // Use OffTrack to represent "Below Target" (not on target)
+                vm.KpiStatusFilter = OkrStatus.OffTrack;
             }
         }
 
@@ -84,11 +87,11 @@ namespace Tracker.Controls
 
         private void Kpi_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is KeyPerformanceIndicator kpi)
+            if (sender is FrameworkElement fe && fe.Tag is Metric metric)
             {
                 if (DataContext is TrackerMainViewModel vm)
                 {
-                    vm.SelectedKpi = kpi;
+                    vm.SelectedKpi = metric;
                 }
             }
         }

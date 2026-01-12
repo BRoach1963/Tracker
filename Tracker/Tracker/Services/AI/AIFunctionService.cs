@@ -107,17 +107,15 @@ namespace Tracker.Services.AI
             // Create meeting - DO NOT set TeamMember navigation property directly
             // It causes EF Core tracking conflicts since the member is already tracked
             // We'll set TeamMemberId via shadow property in AddOneOnOneAsync
-            var meeting = new OneOnOne
+            var meeting = new Meeting
             {
-                Date = meetingDate.Date,
-                StartTime = meetingDate.TimeOfDay,
-                EndTime = meetingDate.AddHours(1).TimeOfDay,
-                Duration = TimeSpan.FromHours(1),
-                Status = MeetingStatusEnum.Scheduled,
+                Type = MeetingType.OneOnOne,
+                Title = notes ?? "1:1 Meeting",
+                ScheduledAt = meetingDate,
+                DurationMinutes = 60,
+                Status = MeetingStatus.Scheduled,
                 Description = notes ?? "1:1 Meeting",
-                Agenda = notes ?? "",
                 Notes = "",
-                Feedback = "",
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
             };
@@ -126,7 +124,7 @@ namespace Tracker.Services.AI
             var memberId = member.Id;
             var memberName = member.FullName;
 
-            var id = await TrackerDataManager.Instance.AddOneOnOne(meeting, memberId);
+            var id = await TrackerDataManager.Instance.AddOneOnOneMeeting(meeting, memberId);
 
             if (id > 0)
             {
@@ -167,11 +165,12 @@ namespace Tracker.Services.AI
             // Create task - DO NOT set Owner navigation property directly
             // It causes EF Core tracking conflicts since the owner is already tracked
             // We'll set OwnerId via shadow property in AddTaskAsync
-            var task = new IndividualTask
+            var task = new TrackerTask
             {
+                Title = description,
                 Description = description,
                 DueDate = dueDate ?? DateTime.Now.AddDays(7),
-                IsCompleted = false,
+                Status = WorkItemStatus.NotStarted,
                 Notes = string.Empty,
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
@@ -201,15 +200,15 @@ namespace Tracker.Services.AI
             // Create KPI - DO NOT set Owner navigation property directly
             // It causes EF Core tracking conflicts since the owner is already tracked
             // We'll set OwnerId via shadow property in AddKPIAsync
-            var kpi = new KeyPerformanceIndicator
+            var kpi = new Metric
             {
                 Name = name,
-                TargetValue = targetValue,
+                TargetValue = (decimal)targetValue,
                 Unit = unit ?? "",
-                Value = currentValue,
+                CurrentValue = (decimal)currentValue,
                 Description = "",
-                TargetDirection = TargetDirectionEnum.GreaterOrEqual,
-                Frequency = KpiFrequencyEnum.Monthly,
+                TargetDirection = MetricTargetDirection.HigherIsBetter,
+                Frequency = MetricFrequency.Monthly,
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
             };
@@ -217,7 +216,7 @@ namespace Tracker.Services.AI
             // Ensure navigation property is null to prevent EF from tracking an empty entity
             kpi.Owner = null!;
 
-            await TrackerDataManager.Instance.AddKPI(kpi);
+            await TrackerDataManager.Instance.AddMetric(kpi);
 
             _logger.Info("Created KPI: {0} (target: {1} {2})", name, targetValue, unit);
             return $"✓ Created KPI: {name} with target of {targetValue:N0} {unit}";
@@ -225,34 +224,11 @@ namespace Tracker.Services.AI
 
         private async Task<string> CreateOKRAsync(JsonElement args)
         {
-            var title = args.GetProperty("title").GetString();
-            var description = args.TryGetProperty("description", out var d) ? d.GetString() : null;
-
-            if (string.IsNullOrEmpty(title))
-                return "Error: title is required";
-
-            // Create OKR - DO NOT set Owner navigation property directly
-            // It causes EF Core tracking conflicts since the owner is already tracked
-            // We'll set OwnerId via shadow property in AddOKRAsync
-            var okr = new ObjectiveKeyResult
-            {
-                Title = title,
-                Description = description ?? "",
-                StartDate = DateTime.Now,
-                EndDate = DateTime.Now.AddMonths(3),
-                TimePeriod = TimePeriodEnum.Q1,
-                Year = DateTime.Now.Year,
-                CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
-            };
-            
-            // Ensure navigation property is null to prevent EF from tracking an empty entity
-            okr.Owner = null!;
-
-            await TrackerDataManager.Instance.AddOKR(okr);
-
-            _logger.Info("Created OKR: {0}", title);
-            return $"✓ Created OKR: {title}";
+            // DEPRECATED: OKRs have been consolidated into the Goal model with type discrimination
+            // Goals now represent organizational, team, and personal objectives
+            // Use Goal creation instead or contact the development team for updated AI functions
+            _logger.Warn("CreateOKRAsync called but OKRs are deprecated - Goals now handle all objective types");
+            return "Error: CreateOKRAsync is deprecated. OKRs have been consolidated into the Goal model. Please use the Goal creation interface instead.";
         }
 
         private async Task<string> SearchTeamMembersAsync(JsonElement args)
@@ -285,12 +261,12 @@ namespace Tracker.Services.AI
         {
             var daysAhead = args.TryGetProperty("days_ahead", out var d) ? d.GetInt32() : 7;
 
-            var meetings = await TrackerDataManager.Instance.GetOneOnOnes();
+            var meetings = await TrackerDataManager.Instance.GetOneOnOneMeetings();
             var upcoming = meetings.Where(m =>
-                m.Status == MeetingStatusEnum.Scheduled &&
-                m.Date >= DateTime.Now.Date &&
-                m.Date <= DateTime.Now.AddDays(daysAhead).Date)
-                .OrderBy(m => m.Date)
+                m.Status == MeetingStatus.Scheduled &&
+                m.ScheduledAt.Date >= DateTime.Now.Date &&
+                m.ScheduledAt.Date <= DateTime.Now.AddDays(daysAhead).Date)
+                .OrderBy(m => m.ScheduledAt)
                 .ToList();
 
             if (!upcoming.Any())
@@ -298,9 +274,8 @@ namespace Tracker.Services.AI
 
             var results = upcoming.Take(10).Select(m =>
             {
-                var memberName = m.TeamMember?.FullName ?? "Unknown";
-                var meetingTime = m.Date.Add(m.StartTime);
-                return $"• {meetingTime:ddd, MMM d 'at' h:mm tt} - {memberName}";
+                var memberName = m.Report?.FullName ?? "Unknown";
+                return $"• {m.ScheduledAt:ddd, MMM d 'at' h:mm tt} - {memberName}";
             });
 
             return string.Join("\n", results);
@@ -335,18 +310,16 @@ namespace Tracker.Services.AI
             // Create feedback - DO NOT set TeamMember navigation property
             var feedback = new Feedback
             {
-                TeamMemberId = member.Id,
-                Title = title,
-                Content = content,
-                Type = feedbackType,
-                Date = DateTime.Now,
-                Context = "",
+                ToTeamMemberId = member.Id,
+                Content = $"{title}: {content}",
+                Sentiment = feedbackType == FeedbackType.Positive ? "positive" : "constructive",
+                FeedbackType = "general",
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
             };
 
             // Ensure navigation property is null to prevent EF from tracking an empty entity
-            feedback.TeamMember = null!;
+            feedback.ToTeamMember = null!;
 
             var id = await TrackerDataManager.Instance.AddFeedback(feedback);
 
@@ -387,9 +360,8 @@ namespace Tracker.Services.AI
                 Name = name,
                 Description = description ?? "",
                 StartDate = startDate,
-                EndDate = endDate,
-                Status = "NotStarted",
-                Budget = decimal.MinValue,
+                TargetEndDate = endDate,
+                Status = WorkItemStatus.NotStarted,
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
             };
@@ -399,7 +371,7 @@ namespace Tracker.Services.AI
 
             var id = await TrackerDataManager.Instance.AddProject(project);
 
-            if (id > 0)
+            if (id != Guid.Empty)
             {
                 var dateInfo = endDate.HasValue ? $" (due {endDate.Value:MMM d, yyyy})" : "";
                 _logger.Info("Created project: {0}", name);
@@ -535,7 +507,7 @@ namespace Tracker.Services.AI
 
             var results = projects.Take(10).Select(p =>
             {
-                var dateInfo = p.EndDate.HasValue ? $" (due {p.EndDate.Value:MMM d})" : "";
+                var dateInfo = p.TargetEndDate.HasValue ? $" (due {p.TargetEndDate.Value:MMM d})" : "";
                 var taskInfo = p.Tasks?.Any() == true ? $" - {p.Tasks.Count} tasks" : "";
                 return $"• {p.Name} ({p.Status}){dateInfo}{taskInfo}";
             });
@@ -595,9 +567,9 @@ namespace Tracker.Services.AI
                         "birthday" => insights.Where(i => i.Type == InsightType.UpcomingBirthday).ToList(),
                         "anniversary" => insights.Where(i => i.Type == InsightType.UpcomingAnniversary).ToList(),
                         "stale_task" => insights.Where(i => i.Type == InsightType.StaleActionItem).ToList(),
-                        "okr_at_risk" => insights.Where(i => i.Type == InsightType.OkrAtRisk).ToList(),
-                        "okr_ending" => insights.Where(i => i.Type == InsightType.OkrEndingSoon).ToList(),
-                        "kpi_off_target" => insights.Where(i => i.Type == InsightType.KpiOffTarget).ToList(),
+                        "goal_at_risk" or "okr_at_risk" => insights.Where(i => i.Type == InsightType.GoalAtRisk).ToList(),
+                        "goal_ending" or "okr_ending" => insights.Where(i => i.Type == InsightType.GoalEndingSoon).ToList(),
+                        "metric_off_target" or "kpi_off_target" => insights.Where(i => i.Type == InsightType.MetricOffTarget).ToList(),
                         "survey_alert" => insights.Where(i => i.Type == InsightType.SurveyAlert).ToList(),
                         _ => insights
                     };

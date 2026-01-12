@@ -5,13 +5,12 @@ using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.DataModels;
 using Tracker.DataWrappers;
-using Tracker.Interfaces;
 using Tracker.Managers;
 
 namespace Tracker.ViewModels.DialogViewModels
 {
     /// <summary>
-    /// ViewModel for creating and editing individual tasks.
+    /// ViewModel for creating and editing tasks.
     /// 
     /// Key responsibilities:
     /// - Expose task properties for data binding
@@ -21,7 +20,7 @@ namespace Tracker.ViewModels.DialogViewModels
     /// 
     /// Usage:
     /// <code>
-    /// var vm = new NewTaskViewModel(callback, new IndividualTask());
+    /// var vm = new NewTaskViewModel(callback, new TrackerTask());
     /// var dialog = new AddTaskDialog(vm);
     /// </code>
     /// </summary>
@@ -29,7 +28,7 @@ namespace Tracker.ViewModels.DialogViewModels
     {
         #region Fields
 
-        private readonly IndividualTask _data;
+        private readonly TrackerTask _data;
         private readonly bool _inEditMode;
 
         private ICommand? _addTaskCommand;
@@ -50,9 +49,9 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <param name="callback">Optional callback to invoke when dialog closes.</param>
         /// <param name="data">The task data to edit or a new task instance.</param>
         /// <param name="edit">True if editing an existing task, false for new task.</param>
-        public NewTaskViewModel(Action? callback, ITask data, bool edit = false) : base(callback)
+        public NewTaskViewModel(Action? callback, TrackerTask data, bool edit = false) : base(callback)
         {
-            _data = data as IndividualTask ?? new IndividualTask();
+            _data = data ?? new TrackerTask();
             _inEditMode = edit;
 
             // Set defaults for new tasks
@@ -96,7 +95,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets the underlying task data model.
         /// </summary>
-        public IndividualTask Data => _data;
+        public TrackerTask Data => _data;
 
         /// <summary>
         /// Gets whether the ViewModel is in edit mode (true) or add mode (false).
@@ -129,7 +128,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets or sets the task description.
         /// </summary>
-        public string Description
+        public string? Description
         {
             get => _data.Description;
             set
@@ -143,7 +142,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets or sets the task due date.
         /// </summary>
-        public DateTime DueDate
+        public DateTime? DueDate
         {
             get => _data.DueDate;
             set
@@ -160,7 +159,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// </summary>
         public string DueDateDisplay
         {
-            get => _data.DueDate == DateTime.MinValue ? "MM/DD/YYYY" : _data.DueDate.ToString("MM/dd/yyyy");
+            get => _data.DueDate == null || _data.DueDate == DateTime.MinValue ? "MM/DD/YYYY" : _data.DueDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParse(value, out DateTime date))
@@ -174,29 +173,29 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         /// <summary>
-        /// Gets or sets whether the task is completed.
+        /// Gets whether the task is completed.
         /// </summary>
-        public bool IsCompleted
-        {
-            get => _data.IsCompleted;
-            set
-            {
-                _data.IsCompleted = value;
-                RaisePropertyChanged();
-                RaisePropertyChanged(nameof(Status));
-                UpdateChangedValues("@IsCompleted", value);
-            }
-        }
+        public bool IsCompleted => _data.IsCompleted;
 
         /// <summary>
         /// Gets the task status (Completed/Incomplete) - read-only, derived from IsCompleted.
         /// </summary>
-        public string Status => _data.Status;
+        public WorkItemStatus Status
+        {
+            get => _data.Status;
+            set
+            {
+                _data.Status = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(IsCompleted));
+                UpdateChangedValues("@Status", value);
+            }
+        }
 
         /// <summary>
         /// Gets or sets additional notes for the task.
         /// </summary>
-        public string Notes
+        public string? Notes
         {
             get => _data.Notes;
             set
@@ -250,10 +249,10 @@ namespace Tracker.ViewModels.DialogViewModels
         private async void AddTaskExecuted(object? parameter)
         {
             var id = await TrackerDataManager.Instance.AddTask(_data);
-            if (id > 0)
+            if (id != Guid.Empty)
             {
                 _data.Id = id;
-                NotificationManager.Instance.ShowSuccess("Task Created", $"Task '{Description}' has been created.");
+                NotificationManager.Instance.ShowSuccess("Task Created", $"Task has been created.");
             }
             else
             {

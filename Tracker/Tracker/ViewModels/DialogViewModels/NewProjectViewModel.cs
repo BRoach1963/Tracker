@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Tracker.Command;
+using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.DataModels;
 using Tracker.Managers;
@@ -39,16 +40,15 @@ namespace Tracker.ViewModels.DialogViewModels
         private readonly Dictionary<string, object> _changedProperties = new();
 
         // Status options for the project
-        private ObservableCollection<string> _statusOptions = new()
+        private ObservableCollection<WorkItemStatus> _statusOptions = new()
         {
-            "Not Started",
-            "Planning",
-            "In Progress",
-            "On Hold",
-            "Completed",
-            "Cancelled"
+            WorkItemStatus.NotStarted,
+            WorkItemStatus.InProgress,
+            WorkItemStatus.Blocked,
+            WorkItemStatus.Completed,
+            WorkItemStatus.Cancelled
         };
-        private string _selectedStatus = "Not Started";
+        private WorkItemStatus _selectedStatus = WorkItemStatus.NotStarted;
 
         #endregion
 
@@ -70,7 +70,7 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 _data.StartDate = DateTime.Now;
                 _data.TargetEndDate = DateTime.Now.AddMonths(3); // Default 3-month duration
-                _data.Status = "Not Started";
+                _data.Status = WorkItemStatus.NotStarted;
             }
             else
             {
@@ -133,12 +133,12 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets the available status options for the project.
         /// </summary>
-        public ObservableCollection<string> StatusOptions => _statusOptions;
+        public ObservableCollection<WorkItemStatus> StatusOptions => _statusOptions;
 
         /// <summary>
         /// Gets or sets the selected project status.
         /// </summary>
-        public string SelectedStatus
+        public WorkItemStatus SelectedStatus
         {
             get => _selectedStatus;
             set
@@ -185,7 +185,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets or sets the project description.
         /// </summary>
-        public string Description
+        public string? Description
         {
             get => _data.Description;
             set
@@ -199,7 +199,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets or sets the project start date.
         /// </summary>
-        public DateTime StartDate
+        public DateTime? StartDate
         {
             get => _data.StartDate;
             set
@@ -216,7 +216,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// </summary>
         public string StartDateDisplay
         {
-            get => _data.StartDate == DateTime.MinValue ? "MM/DD/YYYY" : _data.StartDate.ToString("MM/dd/yyyy");
+            get => _data.StartDate == null || _data.StartDate == DateTime.MinValue ? "MM/DD/YYYY" : _data.StartDate.Value.ToString("MM/dd/yyyy");
             set
             {
                 if (DateTime.TryParse(value, out DateTime date))
@@ -265,23 +265,9 @@ namespace Tracker.ViewModels.DialogViewModels
         }
 
         /// <summary>
-        /// Gets or sets the project budget.
-        /// </summary>
-        public decimal Budget
-        {
-            get => _data.Budget == decimal.MinValue ? 0 : _data.Budget;
-            set
-            {
-                _data.Budget = value;
-                RaisePropertyChanged();
-                UpdateChangedValues("@Budget", value);
-            }
-        }
-
-        /// <summary>
         /// Gets or sets the project status.
         /// </summary>
-        public string Status
+        public WorkItemStatus Status
         {
             get => _data.Status;
             set
@@ -353,9 +339,9 @@ namespace Tracker.ViewModels.DialogViewModels
             _data.TeamMembers = _selectedTeamMembers.ToList();
 
             var id = await TrackerDataManager.Instance.AddProject(_data);
-            if (id > 0)
+            if (id != Guid.Empty)
             {
-                _data.ID = id;
+                _data.Id = id;
                 NotificationManager.Instance.ShowSuccess("Project Created", $"Project '{Name}' has been created.");
             }
             else

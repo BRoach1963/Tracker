@@ -82,7 +82,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Tasks within this project
         /// </summary>
-        public List<IndividualTask> Tasks { get; set; } = new();
+        public List<TrackerTask> Tasks { get; set; } = new();
 
         /// <summary>
         /// Milestones within this project
@@ -93,5 +93,15 @@ namespace Tracker.DataModels
         /// Team members assigned to this project
         /// </summary>
         public List<TeamMember> TeamMembers { get; set; } = new();
+
+        /// <summary>
+        /// Source agenda item that initiated this project. UUID FK to meeting_agenda_items. Nullable.
+        /// </summary>
+        public Guid? SourceAgendaItemId { get; set; }
+
+        /// <summary>
+        /// Source meeting from which this project originated. UUID FK to meetings. Nullable.
+        /// </summary>
+        public Guid? SourceMeetingId { get; set; }
     }
 }

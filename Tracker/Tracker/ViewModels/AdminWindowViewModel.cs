@@ -237,12 +237,6 @@ namespace Tracker.ViewModels
                     _logger.Info($"AdminWindow: SQL Server connection - Server: {dbSettings.Server}, Database: {dbSettings.Database}");
                 }
                 
-                // Also log what TrackerDbManager reports
-                var dbManager = TrackerDbManager.Instance;
-                _logger.Info($"AdminWindow: TrackerDbManager.DatabasePath reports: {dbManager.DatabasePath ?? "(null)"}");
-                _logger.Info($"AdminWindow: TrackerDbManager.IsInitialized: {dbManager.IsInitialized}");
-                _logger.Info($"AdminWindow: TrackerDbManager.IsLocalDatabase: {dbManager.IsLocalDatabase}");
-
                 // Load database tables
                 await RefreshTablesAsync();
                 // Placeholder for total records

@@ -1,6 +1,7 @@
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -30,17 +31,17 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var cutoffDate = DateTime.Today.AddDays(-settings.FeedbackLookbackDays);
+
+                var repository = CreateFeedbackRepository();
+                if (repository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping feedback data");
+                    _logger.Debug("No current user context, skipping feedback data");
                     return null;
                 }
 
-                var cutoffDate = DateTime.Today.AddDays(-settings.FeedbackLookbackDays);
-
                 // Get feedback for this team member
-                var allFeedback = await dbManager.GetFeedbackForTeamMemberAsync(teamMember.Id);
+                var allFeedback = await repository.GetFeedbackForTeamMemberAsync(teamMember.Id);
                 if (allFeedback == null || allFeedback.Count == 0)
                 {
                     return null;
@@ -60,9 +61,10 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
                 foreach (var feedback in recentFeedback)
                 {
-                    var priority = GetPriorityFromFeedbackType(feedback.Type);
-                    var icon = GetIconFromFeedbackType(feedback.Type);
-                    var typeLabel = GetLabelFromFeedbackType(feedback.Type);
+                    var feedbackType = ParseFeedbackType(feedback.FeedbackType, feedback.Sentiment);
+                    var priority = GetPriorityFromFeedbackType(feedbackType);
+                    var icon = GetIconFromFeedbackType(feedbackType);
+                    var typeLabel = GetLabelFromFeedbackType(feedbackType);
 
                     var subtext = !string.IsNullOrWhiteSpace(feedback.Content) && feedback.Content.Length > 50
                         ? feedback.Content.Substring(0, 50) + "..."
@@ -70,19 +72,19 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
                     section.Items.Add(new PrepItem
                     {
-                        Title = $"{typeLabel}: {feedback.Title}",
+                        Title = $"{typeLabel}: {feedback.Content?.Split(new[] { '.', '!' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "Feedback"}",
                         Subtext = $"{feedback.CreatedAt:MMM d} • {subtext}",
                         Description = feedback.Content,
                         Priority = priority,
                         LinkType = PrepItemLinkType.Feedback,
-                        LinkId = feedback.Id,
+                        LinkId = feedback.Id.GetHashCode(), // Convert Guid to int for compatibility
                         Icon = icon
                     });
                 }
 
                 // Update section description
-                var positiveFeedback = recentFeedback.Count(f => f.Type == FeedbackType.Positive || f.Type == FeedbackType.Recognition);
-                var constructiveFeedback = recentFeedback.Count(f => f.Type == FeedbackType.Constructive || f.Type == FeedbackType.Coaching);
+                var positiveFeedback = recentFeedback.Count(f => IsPositiveFeedback(f.FeedbackType, f.Sentiment));
+                var constructiveFeedback = recentFeedback.Count(f => IsConstructiveFeedback(f.FeedbackType, f.Sentiment));
 
                 if (positiveFeedback > 0 && constructiveFeedback > 0)
                 {
@@ -107,6 +109,19 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             }
 
             return section.HasItems ? section : null;
+        }
+
+        private static FeedbackRepository? CreateFeedbackRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new FeedbackRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private static PrepItemPriority GetPriorityFromFeedbackType(FeedbackType type)
@@ -146,6 +161,42 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 FeedbackType.PerformanceReview => "Review",
                 _ => "Feedback"
             };
+        }
+
+        /// <summary>
+        /// Parses the feedback type from the string FeedbackType and Sentiment properties.
+        /// </summary>
+        private static FeedbackType ParseFeedbackType(string feedbackType, string sentiment)
+        {
+            // First check FeedbackType string
+            if (Enum.TryParse<FeedbackType>(feedbackType, true, out var parsed))
+                return parsed;
+            
+            // Fall back to sentiment-based determination
+            return sentiment?.ToLowerInvariant() switch
+            {
+                "positive" => FeedbackType.Positive,
+                "constructive" => FeedbackType.Constructive,
+                _ => FeedbackType.Positive // Default
+            };
+        }
+
+        /// <summary>
+        /// Checks if the feedback is positive based on type and sentiment.
+        /// </summary>
+        private static bool IsPositiveFeedback(string feedbackType, string sentiment)
+        {
+            var type = ParseFeedbackType(feedbackType, sentiment);
+            return type == FeedbackType.Positive || type == FeedbackType.Recognition;
+        }
+
+        /// <summary>
+        /// Checks if the feedback is constructive based on type and sentiment.
+        /// </summary>
+        private static bool IsConstructiveFeedback(string feedbackType, string sentiment)
+        {
+            var type = ParseFeedbackType(feedbackType, sentiment);
+            return type == FeedbackType.Constructive || type == FeedbackType.Coaching;
         }
 
         private MeetingPrepSettings GetSettings()

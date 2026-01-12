@@ -9,7 +9,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Primary key.
         /// </summary>
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this item belongs to.
@@ -23,7 +23,7 @@ namespace Tracker.DataModels
         public int CollectionId { get; set; }
 
         /// <summary>
-        /// FK to the IndividualTask.
+        /// FK to the TrackerTask.
         /// </summary>
         public int TaskId { get; set; }
 
@@ -40,7 +40,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Navigation property to the task.
         /// </summary>
-        public IndividualTask? Task { get; set; }
+        public TrackerTask? Task { get; set; }
     }
 }
 

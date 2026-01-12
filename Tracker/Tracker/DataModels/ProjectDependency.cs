@@ -2,7 +2,7 @@
 {
     public class ProjectDependency : AuditableEntity
     {
-        public int ID { get; set; } = 0;
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this dependency belongs to.

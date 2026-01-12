@@ -141,10 +141,8 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Action items/tasks created from this meeting.
-        /// Replaces List<MeetingTask> from OneOnOne.
-        /// Now uses List<Task> with MeetingId FK.
         /// </summary>
-        public List<Task> Tasks { get; set; } = new();
+        public List<TrackerTask> Tasks { get; set; } = new();
 
         /// <summary>
         /// Agenda items for this meeting.
@@ -170,6 +168,18 @@ namespace Tracker.DataModels
         /// Outlook/Microsoft Graph calendar event ID.
         /// </summary>
         public string? OutlookCalendarEventId { get; set; }
+
+        /// <summary>
+        /// Google Calendar ETag for change detection.
+        /// Stores the ETag from Google Calendar API for efficient sync.
+        /// </summary>
+        public string? GoogleCalendarEventEtag { get; set; }
+
+        /// <summary>
+        /// Outlook/Microsoft Calendar ETag for change detection.
+        /// Stores the ETag from Microsoft Graph API for efficient sync.
+        /// </summary>
+        public string? OutlookCalendarEventEtag { get; set; }
 
         /// <summary>
         /// Teams meeting join URL.
@@ -213,7 +223,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Count of incomplete action items from this meeting.
         /// </summary>
-        public int ActionItemCount => Tasks?.Count(t => !t.IsCompleted) ?? 0;
+        public int ActionItemCount => Tasks?.Count(t => t.Status != WorkItemStatus.Completed) ?? 0;
 
         /// <summary>
         /// Count of agenda items for this meeting.

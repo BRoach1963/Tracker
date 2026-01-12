@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Tracker.Common.Enums;
 
 namespace Tracker.DataModels
@@ -13,7 +14,7 @@ namespace Tracker.DataModels
     /// - GoalId only → GoalTask
     /// - None → Standalone
     /// </summary>
-    public class Task : AuditableEntity
+    public class TrackerTask : AuditableEntity
     {
         /// <summary>
         /// Primary key (UUID).
@@ -40,7 +41,7 @@ namespace Tracker.DataModels
         /// Parent task (for subtasks). UUID FK to tasks.
         /// </summary>
         public Guid? ParentTaskId { get; set; }
-        public Task? ParentTask { get; set; }
+        public TrackerTask? ParentTask { get; set; }
 
         /// <summary>
         /// Project this task belongs to. UUID FK to projects. Nullable.
@@ -58,6 +59,16 @@ namespace Tracker.DataModels
         /// Meeting this task came from (action item). UUID. Nullable.
         /// </summary>
         public Guid? MeetingId { get; set; }
+
+        /// <summary>
+        /// Source agenda item that initiated this task. UUID FK to meeting_agenda_items. Nullable.
+        /// </summary>
+        public Guid? SourceAgendaItemId { get; set; }
+
+        /// <summary>
+        /// Source meeting from which this task originated. UUID FK to meetings. Nullable.
+        /// </summary>
+        public Guid? SourceMeetingId { get; set; }
 
         /// <summary>
         /// Task title. VARCHAR(300) NOT NULL
@@ -102,9 +113,16 @@ namespace Tracker.DataModels
         /// <summary>
         /// Subtasks of this task.
         /// </summary>
-        public List<Task> Subtasks { get; set; } = new();
+        public List<TrackerTask> Subtasks { get; set; } = new();
 
         #region Computed Properties
+
+        /// <summary>
+        /// Number of meetings where this task was discussed.
+        /// Not mapped to the database; populated by reporting/analytics queries.
+        /// </summary>
+        [NotMapped]
+        public int MeetingCount { get; set; }
 
         /// <summary>
         /// Is the task completed?

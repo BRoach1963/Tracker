@@ -8,7 +8,7 @@ namespace Tracker.DataModels
     /// </summary>
     public class Risk : AuditableEntity
     {
-        public int ID { get; set; } = 0;
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this risk belongs to.

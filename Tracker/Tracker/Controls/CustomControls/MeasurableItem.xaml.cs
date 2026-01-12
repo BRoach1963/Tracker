@@ -190,12 +190,12 @@ namespace Tracker.Controls.CustomControls
                 // Get DisplayValue and MeasurableType from concrete types
                 switch (measurable)
                 {
-                    case KeyPerformanceIndicator kpi:
-                        item.DisplayValue = kpi.DisplayValue;
+                    case Metric metric:
+                        item.DisplayValue = $"{metric.CurrentValue:N1}/{metric.TargetValue?.ToString("N1") ?? "—"} {metric.Unit ?? ""}".Trim();
                         item.MeasurableType = Interfaces.MeasurableType.Metric;
                         break;
                     case Project project:
-                        item.DisplayValue = project.DisplayValue;
+                        item.DisplayValue = $"{project.ProgressPercent:N0}%";
                         item.MeasurableType = Interfaces.MeasurableType.Project;
                         break;
                     case TaskCollection tc:
@@ -203,7 +203,7 @@ namespace Tracker.Controls.CustomControls
                         item.MeasurableType = Interfaces.MeasurableType.TaskCollection;
                         break;
                     default:
-                        item.DisplayValue = string.Empty;
+                        item.DisplayValue = $"{measurable.CurrentProgress:N0}%";
                         item.MeasurableType = Interfaces.MeasurableType.Metric;
                         break;
                 }

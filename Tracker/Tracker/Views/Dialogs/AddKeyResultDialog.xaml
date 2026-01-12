@@ -17,11 +17,11 @@
                     AllowsTransparency="True"
                     SizeToContent="WidthAndHeight"
                     Background="Transparent"
-                    d:DataContext="{d:DesignInstance Type=dialogViewModels:KeyResultViewModel}"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:TargetViewModel}"
                     MinWidth="520"
                     MinHeight="480"
-                    AutomationProperties.Name="Key Result Dialog"
-                    AutomationProperties.HelpText="Create or edit a Key Result for an OKR">
+                    AutomationProperties.Name="Target Dialog"
+                    AutomationProperties.HelpText="Create or edit a Target for a Goal">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

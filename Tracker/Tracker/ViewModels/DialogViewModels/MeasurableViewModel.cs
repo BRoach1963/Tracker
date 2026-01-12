@@ -13,14 +13,14 @@ using Tracker.Services;
 namespace Tracker.ViewModels.DialogViewModels
 {
     /// <summary>
-    /// ViewModel for selecting and linking a measurable (KPI, Project, TaskCollection) to a Key Result.
+    /// ViewModel for selecting and linking a measurable (KPI, Project, TaskCollection) to a Target.
     /// </summary>
     public class MeasurableViewModel : BaseDialogViewModel
     {
         #region Fields
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("MeasurableVM");
-        private readonly KeyResult _keyResult;
+        private readonly Target _target;
         
         private ICommand? _addCommand;
 
@@ -43,10 +43,10 @@ namespace Tracker.ViewModels.DialogViewModels
         /// Initializes a new MeasurableViewModel.
         /// </summary>
         /// <param name="callback">Callback when dialog closes.</param>
-        /// <param name="keyResult">The Key Result to add the measurable to.</param>
-        public MeasurableViewModel(Action? callback, KeyResult keyResult) : base(callback)
+        /// <param name="target">The Target to add the measurable to.</param>
+        public MeasurableViewModel(Action? callback, Target target) : base(callback)
         {
-            _keyResult = keyResult;
+            _target = target;
             LoadEnums();
             LoadAvailableMeasurables();
         }
@@ -65,7 +65,7 @@ namespace Tracker.ViewModels.DialogViewModels
         #region Commands
 
         /// <summary>
-        /// Command to add the selected measurable to the Key Result.
+        /// Command to add the selected measurable to the Target.
         /// </summary>
         public ICommand AddCommand => _addCommand ??=
             new TrackerCommand(AddExecuted, CanAdd);
@@ -207,19 +207,19 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             if (SelectedItem == null) return;
 
-            var measurable = new KeyResultMeasurable
+            var measurable = new TargetMeasurable
             {
-                KeyResultId = _keyResult.Id,
+                TargetId = _target.Id,
                 MeasurableType = SelectedItem.Type,
                 MeasurableId = SelectedItem.Id,
                 DisplayName = SelectedItem.Name,
                 AggregationType = _selectedAggregation
             };
 
-            _keyResult.Measurables ??= new List<KeyResultMeasurable>();
-            _keyResult.Measurables.Add(measurable);
+            _target.Measurables ??= new List<TargetMeasurable>();
+            _target.Measurables.Add(measurable);
 
-            NotificationManager.Instance.ShowSuccess("Measurable Added", $"'{SelectedItem.Name}' has been linked to the Key Result.");
+            NotificationManager.Instance.ShowSuccess("Measurable Added", $"'{SelectedItem.Name}' has been linked to the Target.");
 
             if (parameter is BaseWindow window)
             {

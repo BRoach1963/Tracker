@@ -19,7 +19,7 @@
                      Foreground="{DynamicResource ForegroundBrush}"
                      AllowsTransparency="True"
                      Background="Transparent"
-                     d:DataContext="{d:DesignInstance Type=dialogViewModels:OneOnOneViewModel}"
+                     d:DataContext="{d:DesignInstance Type=dialogViewModels:MeetingViewModel}"
                      MinWidth="950"
                      MinHeight="700"
                      Width="1000"

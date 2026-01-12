@@ -1,6 +1,7 @@
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -36,17 +37,17 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var cutoffDate = DateTime.Today.AddDays(-settings.SurveyLookbackDays);
+
+                var repository = CreatePulseSurveyRepository();
+                if (repository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping survey data");
+                    _logger.Debug("No current user context, skipping survey data");
                     return null;
                 }
 
-                var cutoffDate = DateTime.Today.AddDays(-settings.SurveyLookbackDays);
-
                 // Get all surveys
-                var surveys = await dbManager.GetPulseSurveysAsync();
+                var surveys = await repository.GetPulseSurveysAsync();
                 if (surveys == null || surveys.Count == 0)
                 {
                     return null;
@@ -181,6 +182,19 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             }
 
             return section.HasItems ? section : null;
+        }
+
+        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private MeetingPrepSettings GetSettings()

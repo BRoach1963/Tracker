@@ -27,8 +27,8 @@ namespace Tracker.Managers
         private readonly ILogger _logger;
         private readonly AuthService _authService;
         private readonly IFirmLicenseService _licenseService;
-        private PostgresAuthContextFactory? _authFactory;
-        private PostgresDbContextFactory? _userContextFactory;
+        //private PostgresAuthContextFactory? _authFactory;  // REMOVED - EF Core migrations to Dapper
+        //private PostgresDbContextFactory? _userContextFactory;  // REMOVED - EF Core migrations to Dapper
         private DatabaseSettings? _settings;
         private string _jwtSecret = string.Empty;
         
@@ -73,21 +73,22 @@ namespace Tracker.Managers
         /// Gets the PostgreSQL context factory for the current user.
         /// Throws if not authenticated.
         /// </summary>
-        public PostgresDbContextFactory? UserContextFactory
+        public object? UserContextFactory  // REMOVED - EF Core - was PostgresDbContextFactory
         {
             get
             {
                 if (!IsSignedIn || !CurrentUserId.HasValue || _settings == null)
                     return null;
                 
+                // REMOVED - EF Core migration to Dapper
                 // Create factory if needed, or recreate if user changed
-                if (_userContextFactory == null || _userContextFactory.UserId != CurrentUserId.Value)
-                {
-                    _userContextFactory?.Dispose();
-                    _userContextFactory = new PostgresDbContextFactory(_settings, CurrentUserId.Value);
-                }
+                // if (_userContextFactory == null || _userContextFactory.UserId != CurrentUserId.Value)
+                // {
+                //     _userContextFactory?.Dispose();
+                //     _userContextFactory = new PostgresDbContextFactory(_settings, CurrentUserId.Value);
+                // }
                 
-                return _userContextFactory;
+                return null; // TEMPORARY - EF Core removal
             }
         }
 
@@ -144,10 +145,11 @@ namespace Tracker.Managers
             _settings = settings;
             _jwtSecret = jwtSecret;
             
-            if (settings.Type == DatabaseType.PostgreSQL)
-            {
-                _authFactory = new PostgresAuthContextFactory(settings);
-            }
+            // REMOVED - EF Core migration to Dapper
+            // if (settings.Type == DatabaseType.PostgreSQL)
+            // {
+            //     _authFactory = new PostgresAuthContextFactory(settings);
+            // }
 
             _logger.Info("AuthenticationManager initialized");
         }
@@ -205,12 +207,13 @@ namespace Tracker.Managers
                 // Store seat info
                 _currentSeatInfo = seatResult;
                 
+                // REMOVED - EF Core migration to Dapper
                 // Update last login timestamp
-                await _authFactory.UpdateLastLoginAsync(result.User.Id);
+                // await _authFactory.UpdateLastLoginAsync(result.User.Id);
                 
                 // Create user context factory
-                _userContextFactory?.Dispose();
-                _userContextFactory = new PostgresDbContextFactory(_settings, result.User.Id);
+                // _userContextFactory?.Dispose();
+                // _userContextFactory = new PostgresDbContextFactory(_settings, result.User.Id);
                 
                 _logger.Info("Sign in successful: {0} (Firm: {1})", result.User.Email, seatResult.FirmName);
             }
@@ -251,9 +254,10 @@ namespace Tracker.Managers
 
             if (result.Success && result.User != null)
             {
+                // REMOVED - EF Core migration to Dapper
                 // Create user context factory
-                _userContextFactory?.Dispose();
-                _userContextFactory = new PostgresDbContextFactory(_settings, result.User.Id);
+                // _userContextFactory?.Dispose();
+                // _userContextFactory = new PostgresDbContextFactory(_settings, result.User.Id);
                 
                 _logger.Info("Sign up successful: {0}", result.User.Email);
             }
@@ -296,12 +300,13 @@ namespace Tracker.Managers
                 accessToken,
                 refreshToken,
                 _jwtSecret,
-                async (userId) => await _authFactory.GetUserByIdAsync(userId));
+                async (userId) => null); // REMOVED - EF Core: was await _authFactory.GetUserByIdAsync(userId)
 
             if (success && CurrentUserId.HasValue)
             {
-                _userContextFactory?.Dispose();
-                _userContextFactory = new PostgresDbContextFactory(_settings, CurrentUserId.Value);
+                // REMOVED - EF Core migration to Dapper
+                // _userContextFactory?.Dispose();
+                // _userContextFactory = new PostgresDbContextFactory(_settings, CurrentUserId.Value);
                 _logger.Info("Session restored for: {0}", CurrentUser?.Email);
             }
 

@@ -202,7 +202,7 @@ namespace Tracker.ViewModels.DialogViewModels
             
             if (_inEditMode)
             {
-                success = await TrackerDbManager.Instance!.UpdateDevelopmentGoalAsync(_data);
+                success = await TrackerDataManager.Instance.UpdateGoal(_data);
                 if (success)
                 {
                     NotificationManager.Instance.ShowSuccess("Goal Updated", "Goal has been updated.");
@@ -210,7 +210,7 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             else
             {
-                var id = await TrackerDbManager.Instance!.AddDevelopmentGoalAsync(_data);
+                var id = await TrackerDataManager.Instance.AddGoal(_data);
                 success = id != Guid.Empty;
                 if (success)
                 {
@@ -241,7 +241,7 @@ namespace Tracker.ViewModels.DialogViewModels
             var milestone = new DevelopmentGoalMilestone
             {
                 Title = NewMilestoneDescription,
-                Status = MilestoneStatus.NotStarted,
+                Status = "not_started",
                 GoalId = _data.Id,
                 SortOrder = _milestones.Count
             };

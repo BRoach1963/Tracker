@@ -1,10 +1,13 @@
 using System.Security.Cryptography;
 using System.Text;
 using Supabase;
+using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
+using Tracker.Services;
 using Tracker.Services.Backend.Models;
 
 namespace Tracker.Services.Backend
@@ -350,13 +353,17 @@ namespace Tracker.Services.Backend
                             Answers = new List<PulseSurveyAnswer>()
                         };
 
-                        // Try to find team member by name
+                        // Try to find team member by name using repository
                         if (!string.IsNullOrEmpty(response.RespondentName))
                         {
-                            var teamMember = await TrackerDbManager.Instance.FindTeamMemberByNameAsync(response.RespondentName);
-                            if (teamMember != null)
+                            var teamMemberRepository = CreateTeamMemberRepository();
+                            if (teamMemberRepository != null)
                             {
-                                localResponse.TeamMemberId = teamMember.Id;
+                                var teamMember = await teamMemberRepository.FindTeamMemberByNameAsync(response.RespondentName);
+                                if (teamMember != null)
+                                {
+                                    localResponse.TeamMemberId = teamMember.Id;
+                                }
                             }
                         }
 
@@ -382,8 +389,13 @@ namespace Tracker.Services.Backend
                             localResponse.Answers.Add(localAnswer);
                         }
 
-                        // Save to local database
-                        var responseId = await TrackerDbManager.Instance.AddSurveyResponseAsync(localResponse);
+                        // Save to local database via repository
+                        var pulseSurveyRepository = CreatePulseSurveyRepository();
+                        var responseId = 0;
+                        if (pulseSurveyRepository != null)
+                        {
+                            responseId = await pulseSurveyRepository.AddSurveyResponseAsync(localResponse);
+                        }
                         if (responseId > 0)
                         {
                             // Mark as synced in Supabase
@@ -440,6 +452,32 @@ namespace Tracker.Services.Backend
         #endregion
 
         #region Helpers
+
+        private static TeamMemberRepository? CreateTeamMemberRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
+
+        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
 
         private static string MapQuestionType(SurveyQuestionType type)
         {

@@ -1,3 +1,4 @@
+using Tracker.Common.Enums;
 using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Logging;
@@ -75,28 +76,28 @@ namespace Tracker.Services
             {
                 // Search in parallel
                 var teamMembersTask = SearchTeamMembersAsync(query);
-                var oneOnOnesTask = SearchOneOnOnesAsync(query);
+                var meetingsTask = SearchMeetingsAsync(query);
                 var projectsTask = SearchProjectsAsync(query);
                 var tasksTask = SearchTasksAsync(query);
-                var okrsTask = SearchOkrsAsync(query);
-                var kpisTask = SearchKpisAsync(query);
-                var notesTask = SearchNotesAsync(query);
                 var goalsTask = SearchGoalsAsync(query);
+                var targetsTask = SearchTargetsAsync(query);
+                var metricsTask = SearchMetricsAsync(query);
+                var notesTask = SearchNotesAsync(query);
                 var feedbackTask = SearchFeedbackAsync(query);
 
                 await Task.WhenAll(
-                    teamMembersTask, oneOnOnesTask, projectsTask, tasksTask,
-                    okrsTask, kpisTask, notesTask, goalsTask, feedbackTask
+                    teamMembersTask, meetingsTask, projectsTask, tasksTask,
+                    goalsTask, targetsTask, metricsTask, notesTask, feedbackTask
                 );
 
                 results.AddRange(await teamMembersTask);
-                results.AddRange(await oneOnOnesTask);
+                results.AddRange(await meetingsTask);
                 results.AddRange(await projectsTask);
                 results.AddRange(await tasksTask);
-                results.AddRange(await okrsTask);
-                results.AddRange(await kpisTask);
-                results.AddRange(await notesTask);
                 results.AddRange(await goalsTask);
+                results.AddRange(await targetsTask);
+                results.AddRange(await metricsTask);
+                results.AddRange(await notesTask);
                 results.AddRange(await feedbackTask);
 
                 // Sort by relevance (exact matches first, then by date)
@@ -125,26 +126,26 @@ namespace Tracker.Services
             try
             {
                 // Get recent from each category using TrackerDataManager as single source of truth
-                var oneOnOnes = await TrackerDataManager.Instance.GetOneOnOnes();
-                results.AddRange(oneOnOnes.Take(3).Select(o => new SearchResult
+                var meetings = await TrackerDataManager.Instance.GetOneOnOneMeetings();
+                results.AddRange(meetings.Take(3).Select(m => new SearchResult
                 {
                     Type = "1:1 Meeting",
-                    Title = $"1:1 with {o.TeamMemberName}",
-                    Description = o.Description,
+                    Title = $"1:1 with {m.Report?.FullName ?? "Unknown"}",
+                    Description = m.Description ?? string.Empty,
                     Icon = "📅",
-                    EntityId = o.Id,
-                    Date = o.Date,
-                    Entity = o
+                    GuidEntityId = m.Id,
+                    Date = m.ScheduledAt,
+                    Entity = m
                 }));
 
                 var tasks = await TrackerDataManager.Instance.GetTasks();
                 results.AddRange(tasks.Take(3).Select(t => new SearchResult
                 {
                     Type = "Task",
-                    Title = t.Description,
-                    Description = $"Assigned to: {t.OwnerName}",
+                    Title = t.Title,
+                    Description = $"Assigned to: {t.Owner?.FullName ?? "Unassigned"}",
                     Icon = "✅",
-                    EntityId = t.Id,
+                    GuidEntityId = t.Id,
                     Date = t.DueDate,
                     Entity = t
                 }));
@@ -200,25 +201,24 @@ namespace Tracker.Services
             return results;
         }
 
-        private async Task<List<SearchResult>> SearchOneOnOnesAsync(string query)
+        private async Task<List<SearchResult>> SearchMeetingsAsync(string query)
         {
             var results = new List<SearchResult>();
-            var meetings = await TrackerDataManager.Instance.GetOneOnOnes();
+            var meetings = await TrackerDataManager.Instance.GetOneOnOneMeetings();
 
             foreach (var m in meetings.Where(m =>
-                m.TeamMemberName.ToLowerInvariant().Contains(query) ||
-                m.Description.ToLowerInvariant().Contains(query) ||
-                m.Notes.ToLowerInvariant().Contains(query) ||
-                m.Agenda.ToLowerInvariant().Contains(query)))
+                (m.Report?.FullName ?? string.Empty).ToLowerInvariant().Contains(query) ||
+                (m.Description ?? string.Empty).ToLowerInvariant().Contains(query) ||
+                (m.Notes ?? string.Empty).ToLowerInvariant().Contains(query)))
             {
                 results.Add(new SearchResult
                 {
                     Type = "1:1 Meeting",
-                    Title = $"1:1 with {m.TeamMemberName}",
-                    Description = m.Description,
+                    Title = $"1:1 with {m.Report?.FullName ?? "Unknown"}",
+                    Description = m.Description ?? string.Empty,
                     Icon = "📅",
-                    EntityId = m.Id,
-                    Date = m.Date,
+                    GuidEntityId = m.Id,
+                    Date = m.ScheduledAt,
                     Entity = m
                 });
             }
@@ -233,15 +233,15 @@ namespace Tracker.Services
 
             foreach (var p in projects.Where(p =>
                 p.Name.ToLowerInvariant().Contains(query) ||
-                p.Description.ToLowerInvariant().Contains(query)))
+                (p.Description ?? string.Empty).ToLowerInvariant().Contains(query)))
             {
                 results.Add(new SearchResult
                 {
                     Type = "Project",
                     Title = p.Name,
-                    Description = p.Description,
+                    Description = p.Description ?? string.Empty,
                     Icon = "📁",
-                    EntityId = p.ID,
+                    GuidEntityId = p.Id,
                     Date = p.StartDate,
                     Entity = p
                 });
@@ -256,16 +256,16 @@ namespace Tracker.Services
             var tasks = await TrackerDataManager.Instance.GetTasks();
 
             foreach (var t in tasks.Where(t =>
-                t.Description.ToLowerInvariant().Contains(query) ||
-                t.OwnerName.ToLowerInvariant().Contains(query)))
+                (t.Title ?? t.Description ?? string.Empty).ToLowerInvariant().Contains(query) ||
+                (t.Owner?.FullName ?? string.Empty).ToLowerInvariant().Contains(query)))
             {
                 results.Add(new SearchResult
                 {
                     Type = "Task",
-                    Title = t.Description,
-                    Description = $"Due: {t.DueDate:MMM dd} | {t.OwnerName}",
+                    Title = t.Title ?? t.Description ?? "Untitled Task",
+                    Description = $"Due: {t.DueDate:MMM dd} | {t.Owner?.FullName ?? "Unassigned"}",
                     Icon = "✅",
-                    EntityId = t.Id,
+                    GuidEntityId = t.Id,
                     Date = t.DueDate,
                     Entity = t
                 });
@@ -274,50 +274,60 @@ namespace Tracker.Services
             return results;
         }
 
-        private async Task<List<SearchResult>> SearchOkrsAsync(string query)
+        private async Task<List<SearchResult>> SearchGoalsAsync(string query)
         {
             var results = new List<SearchResult>();
-            var okrs = await TrackerDataManager.Instance.GetOKRs();
+            var goals = await TrackerDataManager.Instance.GetGoals();
 
-            foreach (var o in okrs.Where(o =>
-                o.Title.ToLowerInvariant().Contains(query) ||
-                o.Description.ToLowerInvariant().Contains(query)))
+            foreach (var g in goals.Where(g =>
+                g.Title.ToLowerInvariant().Contains(query) ||
+                g.Description.ToLowerInvariant().Contains(query)))
             {
                 results.Add(new SearchResult
                 {
-                    Type = "OKR",
-                    Title = o.Title,
-                    Description = o.Description,
+                    Type = "Goal",
+                    Title = g.Title,
+                    Description = g.Description,
                     Icon = "🎯",
-                    EntityId = o.ObjectiveId,
-                    Date = o.EndDate,
-                    Entity = o
+                    GuidEntityId = g.Id,
+                    Date = g.TargetDate,
+                    Entity = g
                 });
             }
 
             return results;
         }
 
-        private async Task<List<SearchResult>> SearchKpisAsync(string query)
+        private async Task<List<SearchResult>> SearchTargetsAsync(string query)
         {
             var results = new List<SearchResult>();
-            var kpis = await TrackerDataManager.Instance.GetKPIs();
+            var goals = await TrackerDataManager.Instance.GetStrategicGoals();
+            var allTargets = goals.SelectMany(g => g.Targets ?? new List<Target>()).ToList();
 
-            foreach (var k in kpis.Where(k =>
-                k.Name.ToLowerInvariant().Contains(query) ||
-                k.Description.ToLowerInvariant().Contains(query)))
+            foreach (var t in allTargets.Where(t =>
+                (t.Title ?? string.Empty).ToLowerInvariant().Contains(query) ||
+                (t.Description ?? string.Empty).ToLowerInvariant().Contains(query)))
             {
                 results.Add(new SearchResult
                 {
-                    Type = "KPI",
-                    Title = k.Name,
-                    Description = $"Value: {k.Value} / Target: {k.TargetValue}",
-                    Icon = "📊",
-                    EntityId = k.KpiId,
-                    Entity = k
+                    Type = "Target",
+                    Title = t.Title ?? "Untitled Target",
+                    Description = t.Description ?? string.Empty,
+                    Icon = "🎯",
+                    GuidEntityId = t.Id,
+                    Entity = t
                 });
             }
 
+            return results;
+        }
+
+        private async Task<List<SearchResult>> SearchMetricsAsync(string query)
+        {
+            var results = new List<SearchResult>();
+
+            // Metrics search is not yet implemented.
+            // This will be wired to MetricRepository / TrackerDataManager metrics once available.
             return results;
         }
 
@@ -345,32 +355,6 @@ namespace Tracker.Services
             return results;
         }
 
-        private async Task<List<SearchResult>> SearchGoalsAsync(string query)
-        {
-            var results = new List<SearchResult>();
-            var members = await TrackerDataManager.Instance.GetTeamData();
-            var goals = await TrackerDataManager.Instance.GetGoals();
-
-            foreach (var g in goals.Where(g =>
-                g.Title.ToLowerInvariant().Contains(query) ||
-                g.Description.ToLowerInvariant().Contains(query)))
-            {
-                var member = members.FirstOrDefault(m => m.Id == g.TeamMemberId);
-                results.Add(new SearchResult
-                {
-                    Type = "Goal",
-                    Title = g.Title,
-                    Description = $"{member?.FirstName ?? "Unknown"}'s goal - {g.Category}",
-                    Icon = "🏆",
-                    GuidEntityId = g.Id,
-                    Date = g.TargetDate,
-                    Entity = g
-                });
-            }
-
-            return results;
-        }
-
         private async Task<List<SearchResult>> SearchFeedbackAsync(string query)
         {
             var results = new List<SearchResult>();
@@ -378,18 +362,17 @@ namespace Tracker.Services
             var feedbacks = await TrackerDataManager.Instance.GetFeedbacks();
 
             foreach (var f in feedbacks.Where(f =>
-                f.Title.ToLowerInvariant().Contains(query) ||
-                f.Content.ToLowerInvariant().Contains(query)))
+                (f.Content ?? string.Empty).ToLowerInvariant().Contains(query)))
             {
-                var member = members.FirstOrDefault(m => m.Id == f.TeamMemberId);
+                var member = members.FirstOrDefault(m => m.Id == f.ToTeamMemberId);
                 results.Add(new SearchResult
                 {
                     Type = "Feedback",
-                    Title = f.Title,
-                    Description = $"For {member?.FirstName ?? "Unknown"} - {f.Type}",
+                    Title = f.Content?.Length > 50 ? f.Content.Substring(0, 50) + "..." : f.Content ?? "Feedback",
+                    Description = $"For {member?.FirstName ?? "Unknown"} - {f.FeedbackType}",
                     Icon = "💬",
-                    EntityId = f.Id,
-                    Date = f.Date,
+                    GuidEntityId = f.Id,
+                    Date = f.CreatedAt,
                     Entity = f
                 });
             }

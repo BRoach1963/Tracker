@@ -10,7 +10,7 @@ namespace Tracker.Views.Dialogs
     [HelpContext("dialogs/add-one-on-one")]
     public partial class AddOneOnOneDialog
     {
-        public AddOneOnOneDialog(OneOnOneViewModel vm) : base(DialogType.AddOneOnOne)
+        public AddOneOnOneDialog(MeetingViewModel vm) : base(DialogType.AddOneOnOne)
         {
             InitializeComponent();
             DataContext = vm;

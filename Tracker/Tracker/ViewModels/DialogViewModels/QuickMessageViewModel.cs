@@ -18,7 +18,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private readonly ILogger _logger;
         private TeamMember? _recipient;
-        private OneOnOne? _relatedMeeting;
+        private Meeting? _relatedMeeting;
         private string _messageText = string.Empty;
         private string _emailSubject = string.Empty;
         private bool _isTeamsMessage = true;
@@ -45,7 +45,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Initialize with a recipient and optional related meeting.
         /// </summary>
-        public void Initialize(TeamMember recipient, OneOnOne? relatedMeeting = null)
+        public void Initialize(TeamMember recipient, Meeting? relatedMeeting = null)
         {
             _recipient = recipient;
             _relatedMeeting = relatedMeeting;
@@ -333,7 +333,7 @@ namespace Tracker.ViewModels.DialogViewModels
                     if (_relatedMeeting != null)
                     {
                         MessageText = QuickMessageService.GetPreMeetingTeamsMessage(_relatedMeeting, _recipient);
-                        EmailSubject = $"Reminder: 1:1 on {_relatedMeeting.Date:MMM d}";
+                        EmailSubject = $"Reminder: 1:1 on {_relatedMeeting.ScheduledAt:MMM d}";
                     }
                     break;
 

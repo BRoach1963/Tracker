@@ -30,7 +30,7 @@ namespace Tracker.Controls.CustomControls
         /// The Key Result data to display.
         /// </summary>
         public static readonly DependencyProperty KeyResultProperty =
-            DependencyProperty.Register(nameof(KeyResult), typeof(KeyResult), typeof(KeyResultItem),
+            DependencyProperty.Register(nameof(KeyResult), typeof(Target), typeof(KeyResultItem),
                 new PropertyMetadata(null));
 
         /// <summary>
@@ -90,9 +90,9 @@ namespace Tracker.Controls.CustomControls
 
         #region Properties
 
-        public KeyResult? KeyResult
+        public Target? KeyResult
         {
-            get => (KeyResult?)GetValue(KeyResultProperty);
+            get => (Target?)GetValue(KeyResultProperty);
             set => SetValue(KeyResultProperty, value);
         }
 

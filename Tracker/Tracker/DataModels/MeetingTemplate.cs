@@ -7,7 +7,7 @@ namespace Tracker.DataModels
     /// </summary>
     public class MeetingTemplate : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this template belongs to.

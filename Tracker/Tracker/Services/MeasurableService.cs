@@ -8,7 +8,7 @@ namespace Tracker.Services
 {
     /// <summary>
     /// Implementation of IMeasurableService for resolving measurable progress
-    /// from various sources (KPI, Project, TaskCollection).
+    /// from various sources (Metric, Project, TaskCollection).
     /// </summary>
     public class MeasurableService : IMeasurableService
     {
@@ -22,18 +22,16 @@ namespace Tracker.Services
         /// <inheritdoc />
         public Task<decimal> GetProgressAsync(IMeasurable measurable)
         {
-            // Progress is computed directly on the entity
             return Task.FromResult(measurable.CurrentProgress);
         }
 
         /// <inheritdoc />
         public Task<string> GetDisplayValueAsync(IMeasurable measurable)
         {
-            // DisplayValue is computed directly on the entity - access via concrete type
             var displayValue = measurable switch
             {
-                KeyPerformanceIndicator kpi => kpi.DisplayValue,
-                Project project => project.DisplayValue,
+                Metric metric => $"{metric.CurrentValue:F1} / {metric.TargetValue:F1}",
+                Project project => $"{project.ProgressPercent:F0}%",
                 TaskCollection tc => tc.DisplayValue,
                 _ => string.Empty
             };
@@ -41,14 +39,12 @@ namespace Tracker.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<KeyResultMeasurable>> GetMeasurablesForKeyResultAsync(int keyResultId)
+        public async Task<List<TargetMeasurable>> GetMeasurablesForTargetAsync(Guid targetId)
         {
-            var measurables = await _context.KeyResultMeasurables
-                .Where(m => m.KeyResultId == keyResultId && !m.IsDeleted)
-                .OrderBy(m => m.SortOrder)
+            var measurables = await _context.TargetMeasurables
+                .Where(m => m.TargetId == targetId && !m.IsDeleted)
                 .ToListAsync();
 
-            // Resolve each measurable and populate computed properties
             foreach (var measurable in measurables)
             {
                 var resolved = await ResolveMeasurableAsync(measurable);
@@ -56,13 +52,6 @@ namespace Tracker.Services
                 {
                     measurable.DisplayName = resolved.DisplayName;
                     measurable.CurrentProgress = resolved.CurrentProgress;
-                    measurable.CurrentDisplayValue = resolved switch
-                    {
-                        KeyPerformanceIndicator kpi => kpi.DisplayValue,
-                        Project project => project.DisplayValue,
-                        TaskCollection tc => tc.DisplayValue,
-                        _ => string.Empty
-                    };
                 }
             }
 
@@ -70,27 +59,26 @@ namespace Tracker.Services
         }
 
         /// <inheritdoc />
-        public async Task<IMeasurable?> ResolveMeasurableAsync(KeyResultMeasurable measurableLink)
+        public async Task<IMeasurable?> ResolveMeasurableAsync(TargetMeasurable measurableLink)
         {
             return measurableLink.MeasurableType switch
             {
-                MeasurableType.Metric => await GetKpiAsync(measurableLink.MeasurableId),
-                MeasurableType.Project => await GetProjectAsync(measurableLink.MeasurableId),
-                MeasurableType.TaskCollection => await GetTaskCollectionAsync(measurableLink.MeasurableId),
+                "metric" => await GetMetricAsync(measurableLink.MeasurableId),
+                // Project doesn't implement IMeasurable
+                "project" => null,
+                "task_collection" => await GetTaskCollectionAsync(measurableLink.MeasurableId),
                 _ => null
             };
         }
 
         /// <inheritdoc />
-        public async Task<decimal?> CalculateAggregatedValueAsync(int keyResultId)
+        public async Task<decimal?> CalculateAggregatedValueAsync(Guid targetId)
         {
-            var measurables = await GetMeasurablesForKeyResultAsync(keyResultId);
+            var measurables = await GetMeasurablesForTargetAsync(targetId);
             
             if (measurables.Count == 0)
                 return null;
 
-            // Group by aggregation type to handle mixed aggregations
-            // For simplicity, we use the most common aggregation type or the first one
             var primaryAggregation = measurables
                 .GroupBy(m => m.AggregationType)
                 .OrderByDescending(g => g.Count())
@@ -101,26 +89,21 @@ namespace Tracker.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<IMeasurable>> GetAvailableMeasurablesAsync(MeasurableType type)
+        public async Task<List<IMeasurable>> GetAvailableMeasurablesAsync(string type)
         {
             return type switch
             {
-                MeasurableType.Metric => (await _context.KeyPerformanceIndicators
-                    .Where(k => !k.IsDeleted)
-                    .OrderBy(k => k.Name)
+                "metric" => (await _context.Metrics
+                    .Where(m => !m.IsDeleted)
+                    .OrderBy(m => m.Name)
                     .ToListAsync())
                     .Cast<IMeasurable>()
                     .ToList(),
 
-                MeasurableType.Project => (await _context.Projects
-                    .Include(p => p.Tasks)
-                    .Where(p => !p.IsDeleted)
-                    .OrderBy(p => p.Name)
-                    .ToListAsync())
-                    .Cast<IMeasurable>()
-                    .ToList(),
+                // Project doesn't implement IMeasurable, return empty list
+                "project" => new List<IMeasurable>(),
 
-                MeasurableType.TaskCollection => (await _context.TaskCollections
+                "task_collection" => (await _context.TaskCollections
                     .Include(tc => tc.Items)
                         .ThenInclude(i => i.Task)
                     .Where(tc => !tc.IsDeleted)
@@ -133,37 +116,53 @@ namespace Tracker.Services
             };
         }
 
-        #region Private Helper Methods
+        #region Private Helpers
 
-        private async Task<KeyPerformanceIndicator?> GetKpiAsync(int kpiId)
+        private async Task<Metric?> GetMetricAsync(Guid metricId)
         {
-            return await _context.KeyPerformanceIndicators
-                .Where(k => k.KpiId == kpiId && !k.IsDeleted)
+            return await _context.Metrics
+                .Where(m => m.Id == metricId && !m.IsDeleted)
                 .FirstOrDefaultAsync();
         }
 
-        private async Task<Project?> GetProjectAsync(int projectId)
+        private async Task<Project?> GetProjectAsync(Guid projectId)
         {
             return await _context.Projects
                 .Include(p => p.Tasks)
-                .Where(p => p.ID == projectId && !p.IsDeleted)
+                .Where(p => p.Id == projectId && !p.IsDeleted)
                 .FirstOrDefaultAsync();
         }
 
-        private async Task<TaskCollection?> GetTaskCollectionAsync(int collectionId)
+        private async Task<TaskCollection?> GetTaskCollectionAsync(Guid collectionId)
         {
+            // TaskCollection.Id is int (legacy), so extract int from Guid
+            // The Guid may contain the int in its first 4 bytes or be a simple representation
+            var bytes = collectionId.ToByteArray();
+            var intId = BitConverter.ToInt32(bytes, 0);
+            
             return await _context.TaskCollections
                 .Include(tc => tc.Items)
                     .ThenInclude(i => i.Task)
-                .Where(tc => tc.Id == collectionId && !tc.IsDeleted)
+                .Where(tc => tc.Id == intId && !tc.IsDeleted)
                 .FirstOrDefaultAsync();
         }
 
-        private decimal CalculateAggregation(List<KeyResultMeasurable> measurables, AggregationTypeEnum aggregationType)
+        private string GetDisplayForMeasurable(IMeasurable measurable)
+        {
+            return measurable switch
+            {
+                Metric metric => $"{metric.CurrentValue:F1} / {metric.TargetValue:F1}",
+                Project project => $"{project.ProgressPercent:F0}%",
+                TaskCollection tc => tc.DisplayValue,
+                _ => string.Empty
+            };
+        }
+
+        private decimal CalculateAggregation(List<TargetMeasurable> measurables, AggregationTypeEnum aggregationType)
         {
             var values = measurables
                 .Where(m => m.CurrentProgress.HasValue)
-                .Select(m => new { Progress = m.CurrentProgress!.Value, m.Weight })
+                .Select(m => new { Progress = m.CurrentProgress!.Value, Weight = 1.0m })
                 .ToList();
 
             if (values.Count == 0)
@@ -189,7 +188,7 @@ namespace Tracker.Services
             foreach (var v in values)
             {
                 weightedSum += v.Progress * v.Weight;
-                totalWeight += v.Weight;
+                totalWeight += (decimal)v.Weight;
             }
 
             return totalWeight > 0 ? Math.Round(weightedSum / totalWeight, 2) : 0m;

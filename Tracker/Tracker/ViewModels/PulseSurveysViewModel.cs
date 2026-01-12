@@ -4,6 +4,7 @@ using System.Windows.Input;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
@@ -22,6 +23,7 @@ namespace Tracker.ViewModels
         #region Fields
 
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("PulseSurveysVM");
+        private readonly IPulseSurveyRepository _pulseSurveyRepository;
 
         private ObservableCollection<PulseSurvey> _surveys = new();
         private ObservableCollection<TeamMember> _teamMembers = new();
@@ -56,8 +58,9 @@ namespace Tracker.ViewModels
 
         #region Constructor
 
-        public PulseSurveysViewModel()
+        public PulseSurveysViewModel(IPulseSurveyRepository pulseSurveyRepository)
         {
+            _pulseSurveyRepository = pulseSurveyRepository ?? throw new ArgumentNullException(nameof(pulseSurveyRepository));
             // Don't load data in constructor - wait for Loaded event
             // Data will be loaded asynchronously to avoid blocking UI
             DataMessenger.Register(this, OnDataChanged);
@@ -594,7 +597,7 @@ namespace Tracker.ViewModels
 
             try
             {
-                var survey = await TrackerDbManager.Instance.GetPulseSurveyAsync(_selectedSurvey.Id);
+                var survey = await _pulseSurveyRepository.GetPulseSurveyByIdAsync(_selectedSurvey.Id);
                 if (survey?.Responses != null)
                 {
                     SurveyResponses = new ObservableCollection<PulseSurveyResponse>(

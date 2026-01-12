@@ -31,7 +31,7 @@ namespace Tracker.Controls.CustomControls
         /// The OKR data to display.
         /// </summary>
         public static readonly DependencyProperty OkrProperty =
-            DependencyProperty.Register(nameof(Okr), typeof(ObjectiveKeyResult), typeof(OkrCard),
+            DependencyProperty.Register(nameof(Okr), typeof(Goal), typeof(OkrCard),
                 new PropertyMetadata(null));
 
         /// <summary>
@@ -84,9 +84,9 @@ namespace Tracker.Controls.CustomControls
 
         #region Properties
 
-        public ObjectiveKeyResult? Okr
+        public Goal? Okr
         {
-            get => (ObjectiveKeyResult?)GetValue(OkrProperty);
+            get => (Goal?)GetValue(OkrProperty);
             set => SetValue(OkrProperty, value);
         }
 

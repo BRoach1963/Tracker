@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Tracker.Classes;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 
@@ -52,15 +55,15 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var teamMemberRepository = CreateTeamMemberRepository();
+                if (teamMemberRepository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping meeting cadence analysis");
+                    _logger.Debug("No current user or database context available, skipping meeting cadence analysis");
                     return insights;
                 }
 
                 // Get all active team members
-                var teamMembers = await dbManager.GetTeamMembersAsync();
+                var teamMembers = await teamMemberRepository.GetTeamMembersAsync();
                 if (teamMembers == null || teamMembers.Count == 0)
                 {
                     _logger.Debug("No team members found");
@@ -129,6 +132,19 @@ namespace Tracker.Services.AI.Insights.Analyzers
             return insights;
         }
 
+        private static TeamMemberRepository? CreateTeamMemberRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
+        }
+
         private static Insight CreateInsight(TeamMember member, InsightSeverity severity, string title, string description, string action, DateTime? lastMeetingDate)
         {
             // Create unique key based on member and current month (so it resurfaces monthly if still an issue)
@@ -144,7 +160,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                 Description = description,
                 ActionSuggestion = action,
                 EntityType = "TeamMember",
-                TeamMemberEntityId = member.Id,
+                TargetTeamMemberId = member.Id,
                 GeneratedAt = DateTime.Now
             };
         }

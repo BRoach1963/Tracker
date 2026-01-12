@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Tracker.Classes;
 using Tracker.DataModels;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
@@ -11,7 +12,7 @@ using Tracker.Services.Google;
 namespace Tracker.Managers
 {
     /// <summary>
-    /// Manages synchronization of 1:1 meetings with calendar providers (Google Calendar, Outlook).
+    /// Manages synchronization of meetings with calendar providers (Google Calendar, Outlook).
     /// </summary>
     public class CalendarSyncManager
     {
@@ -25,9 +26,9 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Syncs a 1:1 meeting to Google Calendar if enabled.
+        /// Syncs a meeting to Google Calendar if enabled.
         /// </summary>
-        public async Task<bool> SyncToGoogleCalendarAsync(OneOnOne meeting, bool createGoogleMeet = false)
+        public async Task<bool> SyncToGoogleCalendarAsync(Meeting meeting, bool createGoogleMeet = false)
         {
             var settings = UserSettingsManager.Instance.Settings.Google;
             
@@ -57,7 +58,6 @@ namespace Tracker.Managers
                     if (createdEvent != null)
                     {
                         meeting.GoogleCalendarEventId = createdEvent.Id;
-                        meeting.IsSyncedToGoogle = true;
                         meeting.LastSyncedAt = DateTime.Now;
                         meeting.SyncStatus = "Synced";
                         
@@ -68,20 +68,11 @@ namespace Tracker.Managers
                             meeting.GoogleMeetUrl = meetUrl;
                         }
                         
-                        await TrackerDbManager.Instance!.UpdateOneOnOneAsync(meeting);
-                        
-                        // Also create CalendarLink for tracking
-                        var link = new CalendarLink
+                        var meetingRepository = CreateMeetingRepository();
+                        if (meetingRepository != null)
                         {
-                            OneOnOneId = meeting.Id,
-                            ProviderId = "google",
-                            ExternalEventId = createdEvent.Id,
-                            ETag = createdEvent.ETag,
-                            LastSyncedAt = DateTime.Now,
-                            LastSyncDirection = SyncDirection.Push,
-                            Status = CalendarLinkStatus.Synced
-                        };
-                        await TrackerDbManager.Instance.SaveCalendarLinkAsync(link);
+                            await meetingRepository.UpdateMeetingAsync(meeting);
+                        }
                         
                         _logger.Info("Synced meeting {0} to Google Calendar", meeting.Id);
                         return true;
@@ -93,23 +84,13 @@ namespace Tracker.Managers
                     var updatedEvent = await GoogleCalendarService.Instance.UpdateEventAsync(meeting.GoogleCalendarEventId, meeting);
                     if (updatedEvent != null)
                     {
-                        meeting.IsSyncedToGoogle = true;
                         meeting.LastSyncedAt = DateTime.Now;
                         meeting.SyncStatus = "Synced";
-                        await TrackerDbManager.Instance!.UpdateOneOnOneAsync(meeting);
-                        
-                        // Update CalendarLink
-                        var link = new CalendarLink
+                        var meetingRepository = CreateMeetingRepository();
+                        if (meetingRepository != null)
                         {
-                            OneOnOneId = meeting.Id,
-                            ProviderId = "google",
-                            ExternalEventId = meeting.GoogleCalendarEventId,
-                            ETag = updatedEvent.ETag,
-                            LastSyncedAt = DateTime.Now,
-                            LastSyncDirection = SyncDirection.Push,
-                            Status = CalendarLinkStatus.Synced
-                        };
-                        await TrackerDbManager.Instance.SaveCalendarLinkAsync(link);
+                            await meetingRepository.UpdateMeetingAsync(meeting);
+                        }
                         
                         _logger.Info("Updated Google Calendar event for meeting {0}", meeting.Id);
                         return true;
@@ -126,9 +107,9 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Removes a 1:1 meeting from Google Calendar.
+        /// Removes a meeting from Google Calendar.
         /// </summary>
-        public async Task<bool> UnsyncFromGoogleCalendarAsync(OneOnOne meeting)
+        public async Task<bool> UnsyncFromGoogleCalendarAsync(Meeting meeting)
         {
             if (string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
             {
@@ -158,14 +139,15 @@ namespace Tracker.Managers
                 
                 if (success)
                 {
-                    // Delete CalendarLink record
-                    await TrackerDbManager.Instance.DeleteCalendarLinkAsync(meeting.Id, "google");
-                    
                     meeting.GoogleCalendarEventId = null;
-                    meeting.IsSyncedToGoogle = false;
                     meeting.GoogleMeetUrl = null;
                     meeting.SyncStatus = "NotSynced";
-                    await TrackerDbManager.Instance!.UpdateOneOnOneAsync(meeting);
+
+                    var meetingRepository = CreateMeetingRepository();
+                    if (meetingRepository != null)
+                    {
+                        await meetingRepository.UpdateMeetingAsync(meeting);
+                    }
                     _logger.Info("Removed meeting {0} from Google Calendar", meeting.Id);
                 }
 
@@ -185,12 +167,12 @@ namespace Tracker.Managers
         /// </summary>
         /// <param name="meeting">The meeting to refresh from calendar.</param>
         /// <returns>True if calendar was fetched and time was updated.</returns>
-        public async Task<bool> RefreshTimeFromCalendarAsync(OneOnOne meeting)
+        public async Task<bool> RefreshTimeFromCalendarAsync(Meeting meeting)
         {
             bool timeUpdated = false;
 
             // Try Outlook first (via CalendarSyncService)
-            if (!string.IsNullOrEmpty(meeting.CalendarEventId))
+            if (!string.IsNullOrEmpty(meeting.OutlookCalendarEventId))
             {
                 timeUpdated = await Services.Microsoft365.CalendarSyncService.Instance.RefreshTimeFromCalendarAsync(meeting);
                 if (timeUpdated) return true;
@@ -208,7 +190,7 @@ namespace Tracker.Managers
         /// <summary>
         /// Fetches the latest Google Calendar event and updates the meeting's time fields.
         /// </summary>
-        private async Task<bool> RefreshTimeFromGoogleCalendarAsync(OneOnOne meeting)
+        private async Task<bool> RefreshTimeFromGoogleCalendarAsync(Meeting meeting)
         {
             var settings = UserSettingsManager.Instance.Settings.Google;
             if (!settings.IsConnected || string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
@@ -231,49 +213,44 @@ namespace Tracker.Managers
                     _logger.Warn("Google Calendar event not found for meeting {0}, may have been deleted", meeting.Id);
                     return false;
                 }
-
-                // Check if event has changed (different ETag)
-                // Note: Google uses ETag for versioning
-                if (calEvent.ETag == meeting.CalendarEventEtag)
-                {
-                    _logger.Debug("Google Calendar event unchanged for meeting {0}", meeting.Id);
-                    return false;
-                }
-
-                // Update time fields from calendar
+                // Update scheduling fields from calendar (calendar is authoritative for time)
                 bool timeChanged = false;
 
-                if (calEvent.Start?.DateTime != null)
+                DateTime? startDateTime = calEvent.Start?.DateTime;
+                DateTime? endDateTime = calEvent.End?.DateTime;
+
+                if (startDateTime.HasValue)
                 {
-                    var startDateTime = calEvent.Start.DateTime.Value;
-                    if (meeting.Date != startDateTime.Date || meeting.StartTime != startDateTime.TimeOfDay)
+                    var startLocal = startDateTime.Value;
+                    if (meeting.ScheduledAt != startLocal)
                     {
-                        meeting.Date = startDateTime.Date;
-                        meeting.StartTime = startDateTime.TimeOfDay;
+                        meeting.ScheduledAt = startLocal;
                         timeChanged = true;
                     }
                 }
 
-                if (calEvent.End?.DateTime != null)
+                if (endDateTime.HasValue && startDateTime.HasValue)
                 {
-                    var endDateTime = calEvent.End.DateTime.Value;
-                    if (meeting.EndTime != endDateTime.TimeOfDay)
+                    var durationMinutes = (int)Math.Round((endDateTime.Value - startDateTime.Value).TotalMinutes);
+                    if (meeting.DurationMinutes != durationMinutes)
                     {
-                        meeting.EndTime = endDateTime.TimeOfDay;
+                        meeting.DurationMinutes = durationMinutes;
                         timeChanged = true;
                     }
                 }
 
-                // Update ETag and sync timestamp
-                meeting.CalendarEventEtag = calEvent.ETag;
                 meeting.LastSyncedAt = DateTime.Now;
 
                 if (timeChanged)
                 {
-                    _logger.Info("Updated meeting {0} time from Google Calendar: {1:d} {2:hh\\:mm}-{3:hh\\:mm}", 
-                        meeting.Id, meeting.Date, meeting.StartTime, meeting.EndTime);
+                    _logger.Info("Updated meeting {0} time from Google Calendar: {1:g} ({2} min)", 
+                        meeting.Id, meeting.ScheduledAt, meeting.DurationMinutes);
                     
-                    await TrackerDbManager.Instance.UpdateOneOnOneAsync(meeting);
+                    var meetingRepository = CreateMeetingRepository();
+                    if (meetingRepository != null)
+                    {
+                        await meetingRepository.UpdateMeetingAsync(meeting);
+                    }
                 }
 
                 return timeChanged;
@@ -286,9 +263,9 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Syncs a 1:1 meeting to all enabled calendar providers.
+        /// Syncs a meeting to all enabled calendar providers.
         /// </summary>
-        public async Task SyncToAllCalendarsAsync(OneOnOne meeting, bool createMeetingLinks = false)
+        public async Task SyncToAllCalendarsAsync(Meeting meeting, bool createMeetingLinks = false)
         {
             var googleSuccess = await SyncToGoogleCalendarAsync(meeting, createMeetingLinks);
             
@@ -299,6 +276,19 @@ namespace Tracker.Managers
             {
                 NotificationManager.Instance.ShowSuccess("Calendar Sync", "Meeting synced to Google Calendar");
             }
+        }
+
+        private static MeetingRepository? CreateMeetingRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
     }
 }

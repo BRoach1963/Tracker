@@ -8,7 +8,7 @@ namespace Tracker.DataModels
     /// </summary>
     public class PulseSurvey : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this survey belongs to.

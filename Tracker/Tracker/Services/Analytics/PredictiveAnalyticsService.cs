@@ -32,10 +32,10 @@ namespace Tracker.Services.Analytics
         public class PredictionResult
         {
             /// <summary>Type of entity being analyzed.</summary>
-            public string EntityType { get; init; } = string.Empty;
+            public SnapshotEntityType EntityType { get; init; } = SnapshotEntityType.Goal;
 
             /// <summary>Entity ID.</summary>
-            public int EntityId { get; init; }
+            public Guid EntityId { get; init; }
 
             /// <summary>Entity name for display.</summary>
             public string EntityName { get; init; } = string.Empty;
@@ -64,7 +64,7 @@ namespace Tracker.Services.Analytics
             /// <summary>
             /// Creates an invalid result.
             /// </summary>
-            public static PredictionResult Invalid(string entityType, int entityId, string entityName, string reason) => new()
+            public static PredictionResult Invalid(SnapshotEntityType entityType, Guid entityId, string entityName, string reason) => new()
             {
                 EntityType = entityType,
                 EntityId = entityId,
@@ -147,36 +147,36 @@ namespace Tracker.Services.Analytics
         #region Public Methods - Single Entity Analysis
 
         /// <summary>
-        /// Analyzes an OKR and generates predictions.
+        /// Analyzes a Goal and generates predictions.
         /// </summary>
-        public async Task<PredictionResult> AnalyzeOkrAsync(int objectiveId, string objectiveName, DateTime startDate, DateTime endDate)
+        public async Task<PredictionResult> AnalyzeGoalAsync(Guid goalId, string goalName, DateTime startDate, DateTime endDate)
         {
             try
             {
                 var snapshots = await ProgressSnapshotService.Instance.GetHistoryAsync(
-                    SnapshotEntityType.OKR, objectiveId);
+                    SnapshotEntityType.Goal, goalId);
 
                 return AnalyzeEntity(
-                    SnapshotEntityType.OKR,
-                    objectiveId,
-                    objectiveName,
+                    SnapshotEntityType.Goal,
+                    goalId,
+                    goalName,
                     snapshots,
                     startDate,
                     endDate);
             }
             catch (Exception ex)
             {
-                _logger.Error("Error analyzing OKR {0}: {1}", objectiveId, ex.Message);
-                return PredictionResult.Invalid(SnapshotEntityType.OKR, objectiveId, objectiveName, "Error analyzing OKR");
+                _logger.Error("Error analyzing Goal {0}: {1}", goalId, ex.Message);
+                return PredictionResult.Invalid(SnapshotEntityType.Goal, goalId, goalName, "Error analyzing Goal");
             }
         }
 
         /// <summary>
-        /// Analyzes a Key Result and generates predictions.
+        /// Analyzes a Target and generates predictions.
         /// </summary>
-        public async Task<PredictionResult> AnalyzeKeyResultAsync(
-            int keyResultId, 
-            string keyResultName, 
+        public async Task<PredictionResult> AnalyzeTargetAsync(
+            Guid targetId, 
+            string targetName, 
             DateTime startDate, 
             DateTime endDate,
             decimal targetValue)
@@ -184,12 +184,12 @@ namespace Tracker.Services.Analytics
             try
             {
                 var snapshots = await ProgressSnapshotService.Instance.GetHistoryAsync(
-                    SnapshotEntityType.KeyResult, keyResultId);
+                    SnapshotEntityType.Target, targetId);
 
                 return AnalyzeEntity(
-                    SnapshotEntityType.KeyResult,
-                    keyResultId,
-                    keyResultName,
+                    SnapshotEntityType.Target,
+                    targetId,
+                    targetName,
                     snapshots,
                     startDate,
                     endDate,
@@ -197,41 +197,8 @@ namespace Tracker.Services.Analytics
             }
             catch (Exception ex)
             {
-                _logger.Error("Error analyzing Key Result {0}: {1}", keyResultId, ex.Message);
-                return PredictionResult.Invalid(SnapshotEntityType.KeyResult, keyResultId, keyResultName, "Error analyzing Key Result");
-            }
-        }
-
-        /// <summary>
-        /// Analyzes a KPI and generates predictions.
-        /// </summary>
-        public async Task<PredictionResult> AnalyzeKpiAsync(
-            int kpiId, 
-            string kpiName, 
-            DateTime? targetDate,
-            double targetValue)
-        {
-            try
-            {
-                var snapshots = await ProgressSnapshotService.Instance.GetHistoryAsync(
-                    SnapshotEntityType.KPI, kpiId);
-
-                // KPIs may not have a start date, use first snapshot or 90 days ago
-                var startDate = snapshots.FirstOrDefault()?.SnapshotDate ?? DateTime.Today.AddDays(-90);
-
-                return AnalyzeEntity(
-                    SnapshotEntityType.KPI,
-                    kpiId,
-                    kpiName,
-                    snapshots,
-                    startDate,
-                    targetDate,
-                    targetValue);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error analyzing KPI {0}: {1}", kpiId, ex.Message);
-                return PredictionResult.Invalid(SnapshotEntityType.KPI, kpiId, kpiName, "Error analyzing KPI");
+                _logger.Error("Error analyzing Target {0}: {1}", targetId, ex.Message);
+                return PredictionResult.Invalid(SnapshotEntityType.Target, targetId, targetName, "Error analyzing Target");
             }
         }
 
@@ -239,7 +206,7 @@ namespace Tracker.Services.Analytics
         /// Analyzes a Project and generates predictions.
         /// </summary>
         public async Task<PredictionResult> AnalyzeProjectAsync(
-            int projectId, 
+            Guid projectId, 
             string projectName, 
             DateTime startDate, 
             DateTime? dueDate)
@@ -269,62 +236,31 @@ namespace Tracker.Services.Analytics
         #region Public Methods - Batch Analysis
 
         /// <summary>
-        /// Analyzes all OKRs and returns a summary.
+        /// Analyzes all Goals and returns a summary.
         /// </summary>
-        public async Task<PredictionSummary> AnalyzeAllOkrsAsync()
+        public async Task<PredictionSummary> AnalyzeAllGoalsAsync()
         {
             var results = new List<PredictionResult>();
 
             try
             {
-                var okrs = await TrackerDataManager.Instance.GetOKRs();
-                if (okrs == null) return CreateEmptySummary();
+                var goals = await TrackerDataManager.Instance.GetStrategicGoals();
+                if (goals == null) return CreateEmptySummary();
 
-                foreach (var okr in okrs.Where(o => o.EndDate >= DateTime.Today))
+                foreach (var goal in goals.Where(g => g.EndDate >= DateTime.Today))
                 {
-                    var result = await AnalyzeOkrAsync(
-                        okr.ObjectiveId, 
-                        okr.Title, 
-                        okr.StartDate, 
-                        okr.EndDate);
+                    var result = await AnalyzeGoalAsync(
+                        goal.Id, 
+                        goal.Title, 
+                        goal.StartDate, 
+                        goal.EndDate);
 
                     results.Add(result);
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error("Error analyzing all OKRs: {0}", ex.Message);
-            }
-
-            return CreateSummary(results);
-        }
-
-        /// <summary>
-        /// Analyzes all KPIs and returns a summary.
-        /// </summary>
-        public async Task<PredictionSummary> AnalyzeAllKpisAsync()
-        {
-            var results = new List<PredictionResult>();
-
-            try
-            {
-                var kpis = await TrackerDataManager.Instance.GetKPIs();
-                if (kpis == null) return CreateEmptySummary();
-
-                foreach (var kpi in kpis.Where(k => k.TargetValue > 0))
-                {
-                    var result = await AnalyzeKpiAsync(
-                        kpi.KpiId, 
-                        kpi.Name, 
-                        null, // KPIs typically don't have target dates
-                        kpi.TargetValue);
-
-                    results.Add(result);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error analyzing all KPIs: {0}", ex.Message);
+                _logger.Error("Error analyzing all Goals: {0}", ex.Message);
             }
 
             return CreateSummary(results);
@@ -339,13 +275,13 @@ namespace Tracker.Services.Analytics
 
             try
             {
-                // Analyze OKRs
-                var okrs = await TrackerDataManager.Instance.GetOKRs();
-                if (okrs != null)
+                // Analyze Goals
+                var goals = await TrackerDataManager.Instance.GetStrategicGoals();
+                if (goals != null)
                 {
-                    foreach (var okr in okrs.Where(o => o.EndDate >= DateTime.Today && o.CompletionPercentage < 100))
+                    foreach (var goal in goals.Where(g => g.EndDate >= DateTime.Today && g.EffectiveProgress < 100))
                     {
-                        var result = await AnalyzeOkrAsync(okr.ObjectiveId, okr.Title, okr.StartDate, okr.EndDate);
+                        var result = await AnalyzeGoalAsync(goal.Id, goal.Title, goal.StartDate, goal.EndDate);
                         allResults.Add(result);
                     }
                 }
@@ -354,9 +290,9 @@ namespace Tracker.Services.Analytics
                 var projects = await TrackerDataManager.Instance.GetProjects();
                 if (projects != null)
                 {
-                    foreach (var project in projects.Where(p => p.EndDate >= DateTime.Today && p.Progress < 100))
+                    foreach (var project in projects.Where(p => p.TargetEndDate >= DateTime.Today && p.ProgressPercent < 100))
                     {
-                        var result = await AnalyzeProjectAsync(project.ID, project.Name, project.StartDate, project.EndDate);
+                        var result = await AnalyzeProjectAsync(project.Id, project.Name, project.StartDate ?? DateTime.Today, project.TargetEndDate);
                         allResults.Add(result);
                     }
                 }
@@ -377,8 +313,8 @@ namespace Tracker.Services.Analytics
         /// Gets quick trend info for an entity (for inline display).
         /// </summary>
         public async Task<(TrendAnalyzer.TrendDirection Direction, string Description)?> GetQuickTrendAsync(
-            string entityType, 
-            int entityId)
+            SnapshotEntityType entityType, 
+            Guid entityId)
         {
             try
             {
@@ -404,7 +340,7 @@ namespace Tracker.Services.Analytics
         /// <summary>
         /// Checks if there's enough data for predictions.
         /// </summary>
-        public async Task<bool> HasSufficientDataAsync(string entityType, int entityId)
+        public async Task<bool> HasSufficientDataAsync(SnapshotEntityType entityType, Guid entityId)
         {
             var count = await ProgressSnapshotService.Instance.GetSnapshotCountAsync(entityType, entityId);
             return count >= _sufficiencyChecker.MinimumDataPoints;
@@ -418,8 +354,8 @@ namespace Tracker.Services.Analytics
         /// Core analysis method for any entity type.
         /// </summary>
         private PredictionResult AnalyzeEntity(
-            string entityType,
-            int entityId,
+            SnapshotEntityType entityType,
+            Guid entityId,
             string entityName,
             List<ProgressSnapshot> snapshots,
             DateTime startDate,

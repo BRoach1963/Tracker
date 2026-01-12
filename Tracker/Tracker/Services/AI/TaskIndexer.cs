@@ -28,7 +28,7 @@ namespace Tracker.Services.AI
 
         protected override async Task IndexSingleEntityAsync(object entity)
         {
-            var task = (DataModels.IndividualTask)entity;
+            var task = (DataModels.TrackerTask)entity;
             try
             {
                 // Create rich text representation

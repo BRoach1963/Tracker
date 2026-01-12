@@ -315,7 +315,7 @@ namespace Tracker.Services.Kudos
         /// </summary>
         private string FormatKudosMessageHtml(DataModels.Kudos kudos, TeamMember teamMember, string senderName)
         {
-            var categoryEmoji = GetCategoryEmoji(kudos.Category);
+            var categoryEmoji = GetBadgeEmoji(kudos.BadgeType);
             var title = string.IsNullOrWhiteSpace(kudos.Title)
                 ? $"{categoryEmoji} You received kudos!"
                 : $"{categoryEmoji} {kudos.Title}";
@@ -326,7 +326,7 @@ namespace Tracker.Services.Kudos
                     <p style="font-size: 14px; margin: 12px 0;">{kudos.Message}</p>
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 12px 0;" />
                     <p style="font-size: 12px; color: #666;">
-                        <strong>Category:</strong> {kudos.CategoryDisplayName}<br/>
+                        <strong>Badge:</strong> {kudos.BadgeType ?? "Recognition"}<br/>
                         <strong>From:</strong> {senderName}
                     </p>
                 </div>
@@ -334,19 +334,19 @@ namespace Tracker.Services.Kudos
         }
 
         /// <summary>
-        /// Gets the emoji for a kudos category.
+        /// Gets the emoji for a kudos badge type.
         /// </summary>
-        private static string GetCategoryEmoji(KudosCategory category) => category switch
+        private static string GetBadgeEmoji(string? badgeType) => badgeType?.ToLower() switch
         {
-            KudosCategory.TeamWork => "🤝",
-            KudosCategory.Innovation => "💡",
-            KudosCategory.Leadership => "👑",
-            KudosCategory.CustomerFocus => "🎯",
-            KudosCategory.GoingAboveBeyond => "🚀",
-            KudosCategory.ProblemSolving => "🔧",
-            KudosCategory.LearningGrowth => "📚",
-            KudosCategory.Reliability => "⏰",
-            KudosCategory.Communication => "💬",
+            "team_player" => "🤝",
+            "innovator" => "💡",
+            "leader" or "leadership" => "👑",
+            "customer_focus" => "🎯",
+            "mentor" => "🚀",
+            "problem_solver" => "🔧",
+            "learner" => "📚",
+            "reliable" => "⏰",
+            "communicator" => "💬",
             _ => "⭐"
         };
 
@@ -355,7 +355,7 @@ namespace Tracker.Services.Kudos
         /// </summary>
         private object BuildAdaptiveCard(DataModels.Kudos kudos, TeamMember teamMember, string senderName)
         {
-            var categoryEmoji = GetCategoryEmoji(kudos.Category);
+            var categoryEmoji = GetBadgeEmoji(kudos.BadgeType);
 
             var title = string.IsNullOrWhiteSpace(kudos.Title)
                 ? $"{categoryEmoji} Kudos to {teamMember.FullName}!"
@@ -389,7 +389,7 @@ namespace Tracker.Services.Kudos
                         {
                             new { title = "To", value = teamMember.FullName },
                             new { title = "From", value = senderName },
-                            new { title = "Category", value = kudos.CategoryDisplayName }
+                            new { title = "Badge", value = kudos.BadgeType ?? "Recognition" }
                         },
                         spacing = "medium"
                     }

@@ -18,11 +18,11 @@
                     AllowsTransparency="True"
                     SizeToContent="WidthAndHeight"
                     Background="Transparent"
-                    d:DataContext="{d:DesignInstance Type=dialogViewModels:NewOkrViewModel}"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:NewGoalViewModel}"
                     MinWidth="680"
                     MinHeight="550"
-                    AutomationProperties.Name="Add OKR Dialog"
-                    AutomationProperties.HelpText="Create a new Objective and Key Results">
+                    AutomationProperties.Name="Add Goal Dialog"
+                    AutomationProperties.HelpText="Create a new Goal with Targets">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

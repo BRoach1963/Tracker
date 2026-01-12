@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Tracker.Command;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Interfaces;
 using Tracker.Logging;

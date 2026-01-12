@@ -70,14 +70,34 @@ namespace Tracker.Classes
     /// </summary>
     public class TrackerDbContextFactory : ITrackerDbContextFactory
     {
-        private readonly DatabaseSettings _settings;
+        private static readonly Lazy<TrackerDbContextFactory> _instance =
+            new(() => new TrackerDbContextFactory(new DatabaseSettings { Type = DatabaseType.SQLite }));
+
+        /// <summary>
+        /// Gets the singleton instance of the factory.
+        /// </summary>
+        public static TrackerDbContextFactory Instance => _instance.Value;
+
+        private DatabaseSettings _settings;
         private Guid? _userId;
         private Guid? _organizationId;
         private string _role = "manager";
+        private readonly object _lock = new();
 
         public TrackerDbContextFactory(DatabaseSettings settings)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        }
+
+        /// <summary>
+        /// Updates the database settings used for creating new contexts.
+        /// </summary>
+        public void UpdateSettings(DatabaseSettings settings)
+        {
+            lock (_lock)
+            {
+                _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            }
         }
 
         /// <inheritdoc />

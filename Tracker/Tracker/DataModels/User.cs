@@ -13,7 +13,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Primary key for the User entity.
         /// </summary>
-        public int Id { get; set; } = 0;
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The firm this user belongs to (from Supabase firms table).

@@ -1,3 +1,4 @@
+using System;
 using Tracker.Common.Enums;
 
 namespace Tracker.DataModels
@@ -9,22 +10,28 @@ namespace Tracker.DataModels
     /// </summary>
     public class Reminder : AuditableEntity
     {
+        /// <summary>
+        /// Unique identifier (UUID).
+        /// </summary>
         public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this reminder belongs to.
         /// </summary>
         public Guid OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
 
         /// <summary>
-        /// Who gets reminded.
+        /// Who gets reminded (user ID).
         /// </summary>
         public Guid UserId { get; set; }
+        public User? User { get; set; }
 
         /// <summary>
-        /// Optional: Related team member.
+        /// Optional: Related team member (e.g., for "meeting with X tomorrow").
         /// </summary>
         public Guid? TeamMemberId { get; set; }
+        public TeamMember? TeamMember { get; set; }
 
         /// <summary>
         /// Type of reminder (e.g., Meeting, Task, Goal, Engagement, Custom).
@@ -58,11 +65,12 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// For relative reminders (e.g., "15 min before meeting").
+        /// Minutes before the event to trigger the reminder.
         /// </summary>
         public int? MinutesBefore { get; set; }
 
         /// <summary>
-        /// Current status of the reminder (scheduled, sent, dismissed, snoozed).
+        /// Current status of the reminder (pending, sent, dismissed, snoozed).
         /// </summary>
         public ReminderStatus Status { get; set; } = ReminderStatus.Pending;
 
@@ -106,18 +114,22 @@ namespace Tracker.DataModels
         /// </summary>
         public string? RecurrenceRule { get; set; }
 
+        #region Computed Properties
+
         /// <summary>
-        /// Computed: Is the reminder due now or overdue?
+        /// Is the reminder due now or overdue?
         /// </summary>
         public bool IsDue => Status == ReminderStatus.Pending && 
                             RemindAt <= DateTime.Now &&
                             (SnoozedUntil == null || SnoozedUntil <= DateTime.Now);
 
         /// <summary>
-        /// Computed: Is snoozed and not yet due again?
+        /// Is snoozed and not yet due again?
         /// </summary>
         public bool IsSnoozed => Status == ReminderStatus.Snoozed && 
                                  SnoozedUntil.HasValue && 
                                  SnoozedUntil > DateTime.Now;
+
+        #endregion
     }
 }

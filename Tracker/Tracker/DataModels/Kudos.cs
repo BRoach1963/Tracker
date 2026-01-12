@@ -1,167 +1,91 @@
-using Tracker.Common.Enums;
+using System;
+using System.Collections.Generic;
 
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// Represents a kudos/recognition sent to a team member.
-    /// Kudos are composed in Tracker and delivered externally via Teams, Slack, or Email.
+    /// Represents public recognition/kudos given from one team member to another.
+    /// Recognition is a form of public praise that acknowledges contributions.
+    /// Maps to Supabase 'recognition' table.
     /// </summary>
     public class Kudos : AuditableEntity
     {
-        #region Properties
-
         /// <summary>
-        /// Primary key.
+        /// Unique identifier (UUID).
         /// </summary>
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
-        /// The organization this kudos belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
+        /// The organization this recognition belongs to.
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        public Guid OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
 
         /// <summary>
-        /// Foreign key to the User (manager) who sent this kudos.
+        /// The team member who gave this recognition.
         /// </summary>
-        public int UserId { get; set; }
+        public Guid FromTeamMemberId { get; set; }
+        public TeamMember? FromTeamMember { get; set; }
 
         /// <summary>
-        /// Foreign key to the team member receiving this kudos.
+        /// The team member who received this recognition.
         /// </summary>
-        public Guid TeamMemberId { get; set; }
+        public Guid ToTeamMemberId { get; set; }
+        public TeamMember? ToTeamMember { get; set; }
 
         /// <summary>
-        /// Navigation property to the team member.
+        /// Recognition title/headline.
         /// </summary>
-        public virtual TeamMember? TeamMember { get; set; }
-
-        #endregion
-
-        #region Content
+        public string Title { get; set; } = string.Empty;
 
         /// <summary>
-        /// Optional headline/title for the kudos.
-        /// </summary>
-        public string? Title { get; set; }
-
-        /// <summary>
-        /// The kudos message content.
+        /// The recognition message content.
         /// </summary>
         public string Message { get; set; } = string.Empty;
 
         /// <summary>
-        /// Category of recognition.
+        /// Badge type: team_player, innovator, customer_focus, leader, mentor, etc.
         /// </summary>
-        public KudosCategory Category { get; set; } = KudosCategory.Other;
-
-        #endregion
-
-        #region Linked Items (Optional)
+        public string? BadgeType { get; set; }
 
         /// <summary>
-        /// Optional link to a task that prompted this kudos.
+        /// Company values this recognition acknowledges (JSONB array of strings).
         /// </summary>
-        public int? LinkedTaskId { get; set; }
+        public List<string>? CompanyValues { get; set; }
 
         /// <summary>
-        /// Optional link to an OKR that prompted this kudos.
+        /// Whether this recognition is public to the organization.
         /// </summary>
-        public int? LinkedOkrId { get; set; }
+        public bool IsPublic { get; set; } = true;
 
         /// <summary>
-        /// Optional link to a meeting where this kudos was mentioned.
+        /// Count of reactions/emoji responses to this recognition.
         /// </summary>
-        public int? LinkedMeetingId { get; set; }
-
-        #endregion
-
-        #region Delivery
+        public int ReactionsCount { get; set; } = 0;
 
         /// <summary>
-        /// The channel through which this kudos should be/was delivered.
+        /// When this recognition was created.
         /// </summary>
-        public DeliveryChannel DeliveryChannel { get; set; } = DeliveryChannel.InternalOnly;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Current delivery status.
+        /// When this recognition was last updated.
         /// </summary>
-        public DeliveryStatus DeliveryStatus { get; set; } = DeliveryStatus.Draft;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// When the kudos was successfully delivered (UTC).
+        /// Whether this recognition is deleted (soft delete).
         /// </summary>
-        public DateTime? DeliveredAt { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
         /// <summary>
-        /// Error message if delivery failed.
+        /// When this recognition was deleted.
         /// </summary>
-        public string? DeliveryError { get; set; }
+        public DateTime? DeletedAt { get; set; }
 
         /// <summary>
-        /// Optional scheduled delivery time (UTC). If set, kudos will be sent at this time.
+        /// Who deleted this recognition.
         /// </summary>
-        public DateTime? ScheduledFor { get; set; }
-
-        #endregion
-
-        #region Visibility Options
-
-        /// <summary>
-        /// If true, kudos is also posted to a team channel (not just DM).
-        /// </summary>
-        public bool IsPublic { get; set; } = false;
-
-        /// <summary>
-        /// If true, this kudos should appear in meeting prep materials.
-        /// </summary>
-        public bool MentionInMeetingPrep { get; set; } = true;
-
-        #endregion
-
-        #region Display Helpers
-
-        /// <summary>
-        /// Gets a friendly display name for the category.
-        /// </summary>
-        public string CategoryDisplayName => Category switch
-        {
-            KudosCategory.TeamWork => "🤝 Team Work",
-            KudosCategory.Innovation => "💡 Innovation",
-            KudosCategory.Leadership => "👑 Leadership",
-            KudosCategory.CustomerFocus => "🎯 Customer Focus",
-            KudosCategory.GoingAboveBeyond => "🚀 Above & Beyond",
-            KudosCategory.ProblemSolving => "🔧 Problem Solving",
-            KudosCategory.LearningGrowth => "📚 Learning & Growth",
-            KudosCategory.Reliability => "⏰ Reliability",
-            KudosCategory.Communication => "💬 Communication",
-            _ => "⭐ Recognition"
-        };
-
-        /// <summary>
-        /// Gets a friendly display name for the delivery channel.
-        /// </summary>
-        public string ChannelDisplayName => DeliveryChannel switch
-        {
-            DeliveryChannel.MicrosoftTeams => "Microsoft Teams",
-            DeliveryChannel.Slack => "Slack",
-            DeliveryChannel.Email => "Email",
-            _ => "Internal Only"
-        };
-
-        /// <summary>
-        /// Gets a friendly display name for the delivery status.
-        /// </summary>
-        public string StatusDisplayName => DeliveryStatus switch
-        {
-            DeliveryStatus.Draft => "Draft",
-            DeliveryStatus.Scheduled => "Scheduled",
-            DeliveryStatus.Sending => "Sending...",
-            DeliveryStatus.Delivered => "✅ Delivered",
-            DeliveryStatus.Failed => "❌ Failed",
-            _ => "Unknown"
-        };
-
-        #endregion
+        public Guid? DeletedBy { get; set; }
     }
 }

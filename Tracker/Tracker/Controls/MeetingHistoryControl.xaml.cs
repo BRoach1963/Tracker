@@ -20,7 +20,7 @@ namespace Tracker.Controls
 
         private void ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (sender is ListView listView && listView.SelectedItem is OneOnOne meeting)
+            if (sender is ListView listView && listView.SelectedItem is Meeting meeting)
             {
                 // DialogFactory will handle creating the correct ViewModel with the meeting data
                 if (DialogFactory.TryGetWindowFromType(DialogType.AddOneOnOne, null, out var dialog, meeting))

@@ -5,11 +5,12 @@ namespace Tracker.Views.Dialogs
 {
     /// <summary>
     /// Interaction logic for AddKPI.xaml
+    /// Dialog for creating/editing Metrics.
     /// </summary>
-    [HelpContext("dialogs/add-kpi")]
+    [HelpContext("dialogs/add-metric")]
     public partial class AddKPI 
     {
-        public AddKPI(NewKpiViewModel vm)
+        public AddKPI(NewMetricViewModel vm)
         {
             InitializeComponent();
             DataContext = vm;

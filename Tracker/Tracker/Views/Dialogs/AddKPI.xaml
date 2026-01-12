@@ -18,11 +18,11 @@
                     AllowsTransparency="True"
                     SizeToContent="WidthAndHeight"
                     Background="Transparent"
-                    d:DataContext="{d:DesignInstance Type=dialogViewModels:NewKpiViewModel}"
+                    d:DataContext="{d:DesignInstance Type=dialogViewModels:NewMetricViewModel}"
                     MinWidth="560"
                     MinHeight="480"
-                    AutomationProperties.Name="Add KPI Dialog"
-                    AutomationProperties.HelpText="Create a new Key Performance Indicator">
+                    AutomationProperties.Name="Add Metric Dialog"
+                    AutomationProperties.HelpText="Create a new Metric">
     <controls:BaseWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

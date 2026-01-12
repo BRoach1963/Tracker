@@ -1,8 +1,6 @@
 using System.Windows.Input;
 using Tracker.Command;
-using Tracker.Common.Enums;
 using Tracker.Controls;
-using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Managers;
 
@@ -20,7 +18,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private readonly Guid _teamMemberId;
 
         private ICommand? _saveCommand;
-        private FeedbackType _selectedType;
+        private string _selectedSentiment;
 
         #endregion
 
@@ -34,17 +32,16 @@ namespace Tracker.ViewModels.DialogViewModels
             if (data != null && edit)
             {
                 _data = data;
-                _selectedType = data.Type;
+                _selectedSentiment = data.Sentiment;
             }
             else
             {
                 _data = new Feedback
                 {
-                    TeamMemberId = teamMemberId,
-                    Date = DateTime.Now,
-                    Type = FeedbackType.Positive
+                    ToTeamMemberId = teamMemberId,
+                    Sentiment = "positive"
                 };
-                _selectedType = FeedbackType.Positive;
+                _selectedSentiment = "positive";
             }
         }
 
@@ -62,35 +59,15 @@ namespace Tracker.ViewModels.DialogViewModels
         public Feedback Data => _data;
         public bool InEditMode => _inEditMode;
 
-        public Array FeedbackTypes => Enum.GetValues(typeof(FeedbackType));
+        public string[] Sentiments => new[] { "positive", "neutral", "constructive" };
 
-        public FeedbackType SelectedType
+        public string SelectedSentiment
         {
-            get => _selectedType;
+            get => _selectedSentiment;
             set
             {
-                _selectedType = value;
-                _data.Type = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public DateTime Date
-        {
-            get => _data.Date;
-            set
-            {
-                _data.Date = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public string Title
-        {
-            get => _data.Title;
-            set
-            {
-                _data.Title = value;
+                _selectedSentiment = value;
+                _data.Sentiment = value;
                 RaisePropertyChanged();
             }
         }
@@ -105,12 +82,12 @@ namespace Tracker.ViewModels.DialogViewModels
             }
         }
 
-        public string Context
+        public string? ContextType
         {
-            get => _data.Context;
+            get => _data.ContextType;
             set
             {
-                _data.Context = value;
+                _data.ContextType = value;
                 RaisePropertyChanged();
             }
         }
@@ -121,7 +98,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         private bool CanExecuteSave(object? obj)
         {
-            return !string.IsNullOrWhiteSpace(Title) && !string.IsNullOrWhiteSpace(Content);
+            return !string.IsNullOrWhiteSpace(Content);
         }
 
         private async void SaveExecuted(object? parameter)
@@ -130,7 +107,7 @@ namespace Tracker.ViewModels.DialogViewModels
             
             if (_inEditMode)
             {
-                success = await TrackerDbManager.Instance!.UpdateFeedbackAsync(_data);
+                success = await TrackerDataManager.Instance.UpdateFeedback(_data);
                 if (success)
                 {
                     NotificationManager.Instance.ShowSuccess("Feedback Updated", "Feedback has been updated.");
@@ -138,11 +115,10 @@ namespace Tracker.ViewModels.DialogViewModels
             }
             else
             {
-                var id = await TrackerDbManager.Instance!.AddFeedbackAsync(_data);
+                var id = await TrackerDataManager.Instance.AddFeedback(_data);
                 success = id > 0;
                 if (success)
                 {
-                    _data.Id = id;
                     NotificationManager.Instance.ShowSuccess("Feedback Added", "Feedback has been recorded.");
                 }
             }

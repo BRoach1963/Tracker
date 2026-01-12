@@ -20,7 +20,7 @@ namespace Tracker.Views.Dialogs
         /// <param name="recipient">The team member to message.</param>
         /// <param name="relatedMeeting">Optional related 1:1 meeting for context.</param>
         /// <param name="owner">Optional owner window.</param>
-        public static void ShowDialog(TeamMember recipient, OneOnOne? relatedMeeting = null, System.Windows.Window? owner = null)
+        public static void ShowDialog(TeamMember recipient, Meeting? relatedMeeting = null, System.Windows.Window? owner = null)
         {
             QuickMessageDialog? dialog = null;
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -62,11 +63,11 @@ namespace Tracker.Views.Dialogs
                     // Update counts
                     InsightsCountText.Text = insights.Count.ToString();
                     
-                    // Get meetings count for today (would need TrackerDbManager access)
-                    MeetingsCountText.Text = GetTodaysMeetingsCount().ToString();
+                    // TODO: Get meetings count for today - requires IMeetingRepository injection
+                    MeetingsCountText.Text = "0";
                     
-                    // Get open tasks count
-                    TasksCountText.Text = GetOpenTasksCount().ToString();
+                    // TODO: Get open tasks count - requires ITaskRepository injection
+                    TasksCountText.Text = "0";
                     
                     // Populate insight lists
                     if (critical.Any())
@@ -97,42 +98,6 @@ namespace Tracker.Views.Dialogs
             catch (Exception ex)
             {
                 _logger.Exception(ex, "Failed to load daily briefing");
-            }
-        }
-        
-        private int GetTodaysMeetingsCount()
-        {
-            try
-            {
-                var context = Database.TrackerDbManager.Instance?.GetDbContext();
-                if (context == null) return 0;
-                
-                var today = DateTime.Today;
-                var tomorrow = today.AddDays(1);
-                
-                return context.OneOnOnes
-                    .Count(m => m.Date >= today && m.Date < tomorrow);
-            }
-            catch
-            {
-                return 0;
-            }
-        }
-        
-        private int GetOpenTasksCount()
-        {
-            try
-            {
-                var context = Database.TrackerDbManager.Instance?.GetDbContext();
-                if (context == null) return 0;
-                
-                // Count uncompleted meeting tasks
-                return context.MeetingTasks
-                    .Count(t => !t.IsCompleted);
-            }
-            catch
-            {
-                return 0;
             }
         }
         

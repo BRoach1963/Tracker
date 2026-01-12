@@ -3,6 +3,7 @@ using System.Net.Http;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using MimeKit;
+using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
 using GmailMessage = Google.Apis.Gmail.v1.Data.Message;
@@ -107,37 +108,37 @@ namespace Tracker.Services.Google
         /// <summary>
         /// Sends a meeting summary email.
         /// </summary>
-        public async Task<bool> SendMeetingSummaryAsync(DataModels.OneOnOne meeting)
+        public async Task<bool> SendMeetingSummaryAsync(Meeting meeting)
         {
-            if (meeting.TeamMember == null || string.IsNullOrEmpty(meeting.TeamMember.Email))
+            if (meeting.Report == null || string.IsNullOrEmpty(meeting.Report.Email))
             {
                 _logger.Warn("Cannot send meeting summary: no team member email");
                 return false;
             }
 
-            var subject = $"1:1 Meeting Summary - {meeting.Date:MMMM d, yyyy}";
+            var subject = $"1:1 Meeting Summary - {meeting.ScheduledAt:MMMM d, yyyy}";
             var bodyHtml = BuildMeetingSummaryHtml(meeting);
             var bodyPlain = BuildMeetingSummaryPlain(meeting);
 
-            return await SendEmailAsync(meeting.TeamMember.Email, subject, bodyHtml, bodyPlain);
+            return await SendEmailAsync(meeting.Report.Email, subject, bodyHtml, bodyPlain);
         }
 
         /// <summary>
         /// Sends a meeting reminder email.
         /// </summary>
-        public async Task<bool> SendMeetingReminderAsync(DataModels.OneOnOne meeting)
+        public async Task<bool> SendMeetingReminderAsync(Meeting meeting)
         {
-            if (meeting.TeamMember == null || string.IsNullOrEmpty(meeting.TeamMember.Email))
+            if (meeting.Report == null || string.IsNullOrEmpty(meeting.Report.Email))
             {
                 _logger.Warn("Cannot send meeting reminder: no team member email");
                 return false;
             }
 
-            var subject = $"Reminder: 1:1 Meeting - {meeting.Date:MMMM d, yyyy} at {meeting.StartTime:hh\\:mm tt}";
+            var subject = $"Reminder: 1:1 Meeting - {meeting.ScheduledAt:MMMM d, yyyy} at {meeting.ScheduledAt:hh\\:mm tt}";
             var bodyHtml = BuildMeetingReminderHtml(meeting);
             var bodyPlain = BuildMeetingReminderPlain(meeting);
 
-            return await SendEmailAsync(meeting.TeamMember.Email, subject, bodyHtml, bodyPlain);
+            return await SendEmailAsync(meeting.Report.Email, subject, bodyHtml, bodyPlain);
         }
 
         #endregion
@@ -180,7 +181,7 @@ namespace Tracker.Services.Google
                 .Replace("=", "");
         }
 
-        private string BuildMeetingSummaryHtml(DataModels.OneOnOne meeting)
+        private string BuildMeetingSummaryHtml(Meeting meeting)
         {
             var html = new System.Text.StringBuilder();
             html.AppendLine("<!DOCTYPE html>");
@@ -198,9 +199,10 @@ namespace Tracker.Services.Google
             html.AppendLine("</style></head><body>");
             html.AppendLine("<div class='container'>");
             
+            var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
             html.AppendLine($"<h1>1:1 Meeting Summary</h1>");
-            html.AppendLine($"<p><strong>Date:</strong> {meeting.Date:dddd, MMMM d, yyyy}</p>");
-            html.AppendLine($"<p><strong>Time:</strong> {meeting.StartTime:hh\\:mm tt} - {meeting.EndTime:hh\\:mm tt}</p>");
+            html.AppendLine($"<p><strong>Date:</strong> {meeting.ScheduledAt:dddd, MMMM d, yyyy}</p>");
+            html.AppendLine($"<p><strong>Time:</strong> {meeting.ScheduledAt:hh\\:mm tt} - {endTime:hh\\:mm tt}</p>");
 
             // Agenda Items
             if (meeting.AgendaItems?.Any(a => !a.IsDeleted) == true)
@@ -209,8 +211,8 @@ namespace Tracker.Services.Google
                 html.AppendLine("<div class='section'>");
                 foreach (var item in meeting.AgendaItems.Where(a => !a.IsDeleted))
                 {
-                    var status = item.IsCompleted ? "✅" : "⬜";
-                    html.AppendLine($"<div class='agenda-item'>{status} {System.Web.HttpUtility.HtmlEncode(item.Description)}</div>");
+                    var status = item.IsDiscussed ? "✅" : "⬜";
+                    html.AppendLine($"<div class='agenda-item'>{status} {System.Web.HttpUtility.HtmlEncode(item.Title)}</div>");
                 }
                 html.AppendLine("</div>");
             }
@@ -245,14 +247,15 @@ namespace Tracker.Services.Google
             return html.ToString();
         }
 
-        private string BuildMeetingSummaryPlain(DataModels.OneOnOne meeting)
+        private string BuildMeetingSummaryPlain(Meeting meeting)
         {
             var text = new System.Text.StringBuilder();
             text.AppendLine("1:1 MEETING SUMMARY");
             text.AppendLine("===================");
             text.AppendLine();
-            text.AppendLine($"Date: {meeting.Date:dddd, MMMM d, yyyy}");
-            text.AppendLine($"Time: {meeting.StartTime:hh\\:mm tt} - {meeting.EndTime:hh\\:mm tt}");
+            var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
+            text.AppendLine($"Date: {meeting.ScheduledAt:dddd, MMMM d, yyyy}");
+            text.AppendLine($"Time: {meeting.ScheduledAt:hh\\:mm tt} - {endTime:hh\\:mm tt}");
             text.AppendLine();
 
             if (meeting.AgendaItems?.Any(a => !a.IsDeleted) == true)
@@ -261,8 +264,8 @@ namespace Tracker.Services.Google
                 text.AppendLine("------");
                 foreach (var item in meeting.AgendaItems.Where(a => !a.IsDeleted))
                 {
-                    var status = item.IsCompleted ? "[X]" : "[ ]";
-                    text.AppendLine($"{status} {item.Description}");
+                    var status = item.IsDiscussed ? "[X]" : "[ ]";
+                    text.AppendLine($"{status} {item.Title}");
                 }
                 text.AppendLine();
             }
@@ -293,7 +296,7 @@ namespace Tracker.Services.Google
             return text.ToString();
         }
 
-        private string BuildMeetingReminderHtml(DataModels.OneOnOne meeting)
+        private string BuildMeetingReminderHtml(Meeting meeting)
         {
             var html = new System.Text.StringBuilder();
             html.AppendLine("<!DOCTYPE html>");
@@ -307,10 +310,11 @@ namespace Tracker.Services.Google
             html.AppendLine("</style></head><body>");
             html.AppendLine("<div class='container'>");
             
+            var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
             html.AppendLine($"<h1>📅 Upcoming 1:1 Reminder</h1>");
             html.AppendLine("<div class='meeting-details'>");
-            html.AppendLine($"<p><strong>Date:</strong> {meeting.Date:dddd, MMMM d, yyyy}</p>");
-            html.AppendLine($"<p><strong>Time:</strong> {meeting.StartTime:hh\\:mm tt} - {meeting.EndTime:hh\\:mm tt}</p>");
+            html.AppendLine($"<p><strong>Date:</strong> {meeting.ScheduledAt:dddd, MMMM d, yyyy}</p>");
+            html.AppendLine($"<p><strong>Time:</strong> {meeting.ScheduledAt:hh\\:mm tt} - {endTime:hh\\:mm tt}</p>");
 
             if (!string.IsNullOrEmpty(meeting.GoogleMeetUrl))
             {
@@ -324,7 +328,7 @@ namespace Tracker.Services.Google
                 html.AppendLine("<h2>Agenda for Discussion</h2>");
                 foreach (var item in meeting.AgendaItems.Where(a => !a.IsDeleted).Take(5))
                 {
-                    html.AppendLine($"<div class='agenda-item'>• {System.Web.HttpUtility.HtmlEncode(item.Description)}</div>");
+                    html.AppendLine($"<div class='agenda-item'>• {System.Web.HttpUtility.HtmlEncode(item.Title)}</div>");
                 }
             }
 
@@ -336,14 +340,15 @@ namespace Tracker.Services.Google
             return html.ToString();
         }
 
-        private string BuildMeetingReminderPlain(DataModels.OneOnOne meeting)
+        private string BuildMeetingReminderPlain(Meeting meeting)
         {
             var text = new System.Text.StringBuilder();
             text.AppendLine("UPCOMING 1:1 REMINDER");
             text.AppendLine("=====================");
             text.AppendLine();
-            text.AppendLine($"Date: {meeting.Date:dddd, MMMM d, yyyy}");
-            text.AppendLine($"Time: {meeting.StartTime:hh\\:mm tt} - {meeting.EndTime:hh\\:mm tt}");
+            var endTime = meeting.ScheduledAt.AddMinutes(meeting.DurationMinutes ?? 60);
+            text.AppendLine($"Date: {meeting.ScheduledAt:dddd, MMMM d, yyyy}");
+            text.AppendLine($"Time: {meeting.ScheduledAt:hh\\:mm tt} - {endTime:hh\\:mm tt}");
 
             if (!string.IsNullOrEmpty(meeting.GoogleMeetUrl))
             {
@@ -358,7 +363,7 @@ namespace Tracker.Services.Google
                 text.AppendLine("---------------------");
                 foreach (var item in meeting.AgendaItems.Where(a => !a.IsDeleted).Take(5))
                 {
-                    text.AppendLine($"• {item.Description}");
+                    text.AppendLine($"• {item.Title}");
                 }
             }
 

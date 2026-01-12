@@ -9,7 +9,7 @@ namespace Tracker.DataModels
     /// </summary>
     public class QuickNote : AuditableEntity
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this note belongs to.
@@ -62,10 +62,10 @@ namespace Tracker.DataModels
         public int? ProjectId { get; set; }
 
         /// <summary>
-        /// Optional: Link to a 1:1 meeting this note is related to.
-        /// Populated when LinkedEntityType == OneOnOne.
+        /// Optional: Link to a meeting this note is related to.
+        /// Populated when LinkedEntityType == Meeting.
         /// </summary>
-        public int? OneOnOneId { get; set; }
+        public Guid? MeetingId { get; set; }
 
         #endregion
 
@@ -123,6 +123,7 @@ namespace Tracker.DataModels
                     NoteLinkedEntityType.TeamMember => "Team Member",
                     NoteLinkedEntityType.Project => "Project",
                     NoteLinkedEntityType.OneOnOne => "1:1 Meeting",
+                    NoteLinkedEntityType.Meeting => "Meeting",
                     NoteLinkedEntityType.OKR => "OKR",
                     NoteLinkedEntityType.KeyResult => "Key Result",
                     NoteLinkedEntityType.KPI => "KPI",
@@ -177,17 +178,17 @@ namespace Tracker.DataModels
         /// <summary>
         /// Sets the linked entity using the polymorphic approach.
         /// Also sets legacy FK for backward compatibility.
-        /// For TeamMember entities, use the overload that takes Guid?.
+        /// For TeamMember and Meeting entities, use the appropriate overloads that take Guid?.
         /// </summary>
         public void SetLinkedEntity(NoteLinkedEntityType entityType, int? entityId)
         {
             LinkedEntityType = entityType;
             LinkedEntityId = entityId;
 
-            // Set legacy FKs for backward compatibility (except TeamMemberId which is Guid)
+            // Set legacy FKs for backward compatibility (except TeamMemberId and MeetingId which are Guid)
             TeamMemberId = null; // TeamMember uses Guid, not int
             ProjectId = entityType == NoteLinkedEntityType.Project ? entityId : null;
-            OneOnOneId = entityType == NoteLinkedEntityType.OneOnOne ? entityId : null;
+            MeetingId = null; // Meeting uses Guid, not int
         }
 
         /// <summary>
@@ -199,7 +200,19 @@ namespace Tracker.DataModels
             LinkedEntityId = null; // Can't store Guid in int?
             TeamMemberId = teamMemberId;
             ProjectId = null;
-            OneOnOneId = null;
+            MeetingId = null;
+        }
+
+        /// <summary>
+        /// Sets the linked entity for Meeting (which uses Guid ID).
+        /// </summary>
+        public void SetLinkedMeeting(Guid? meetingId)
+        {
+            LinkedEntityType = meetingId.HasValue ? NoteLinkedEntityType.Meeting : NoteLinkedEntityType.None;
+            LinkedEntityId = null; // Can't store Guid in int?
+            TeamMemberId = null;
+            ProjectId = null;
+            MeetingId = meetingId;
         }
 
         /// <summary>
@@ -211,7 +224,7 @@ namespace Tracker.DataModels
             LinkedEntityId = null;
             TeamMemberId = null;
             ProjectId = null;
-            OneOnOneId = null;
+            MeetingId = null;
             TeamMember = null;
         }
 

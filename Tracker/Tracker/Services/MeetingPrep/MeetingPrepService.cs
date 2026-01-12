@@ -76,19 +76,19 @@ namespace Tracker.Services.MeetingPrep
         /// </summary>
         /// <param name="meeting">The meeting to prepare for.</param>
         /// <returns>A populated MeetingPrep object.</returns>
-        public async Task<DataModels.MeetingPrep> GeneratePrepAsync(OneOnOne meeting)
+        public async Task<DataModels.MeetingPrep> GeneratePrepAsync(Meeting meeting)
         {
             if (meeting == null)
                 throw new ArgumentNullException(nameof(meeting));
 
             _logger.Info("Generating meeting prep for 1:1 with {0} on {1}", 
-                meeting.TeamMemberName, meeting.Date.ToShortDateString());
+                meeting.Report?.FullName ?? "Unknown", meeting.ScheduledAt.ToShortDateString());
 
             var prep = new DataModels.MeetingPrep
             {
-                MeetingId = meeting.Id,
-                TeamMember = meeting.TeamMember,
-                MeetingDate = meeting.Date,
+                MeetingId = meeting.Id.GetHashCode(), // Convert Guid to int for compatibility
+                TeamMember = meeting.Report, // Use Report for 1:1 meetings
+                MeetingDate = meeting.ScheduledAt,
                 GeneratedAt = DateTime.Now
             };
 
@@ -103,7 +103,7 @@ namespace Tracker.Services.MeetingPrep
             // Run all gatherers in parallel
             var tasks = _gatherers
                 .Where(g => g.IsEnabled)
-                .Select(g => RunGathererAsync(g, meeting.TeamMember, meeting.Date))
+                .Select(g => RunGathererAsync(g, meeting.Report, meeting.ScheduledAt))
                 .ToList();
 
             var sections = await Task.WhenAll(tasks);
@@ -115,7 +115,7 @@ namespace Tracker.Services.MeetingPrep
             }
 
             // Calculate statistics
-            CalculateStatistics(prep, meeting.TeamMember);
+            CalculateStatistics(prep, meeting.Report);
 
             // Sort all items within sections
             prep.SortAllItems();
@@ -150,11 +150,12 @@ namespace Tracker.Services.MeetingPrep
         /// </summary>
         public async Task<DataModels.MeetingPrep> GeneratePrepAsync(TeamMember teamMember, DateTime meetingDate)
         {
-            var meeting = new OneOnOne
+            var meeting = new Meeting
             {
-                Id = 0,
-                TeamMember = teamMember,
-                Date = meetingDate
+                Id = Guid.Empty,
+                Report = teamMember,
+                ScheduledAt = meetingDate,
+                Type = MeetingType.OneOnOne
             };
 
             return await GeneratePrepAsync(meeting);
@@ -185,7 +186,7 @@ namespace Tracker.Services.MeetingPrep
         {
             RegisterGatherer(new PreviousMeetingGatherer());
             RegisterGatherer(new TaskDataGatherer());
-            RegisterGatherer(new OkrKpiGatherer());
+            RegisterGatherer(new GoalGatherer(new TrackerDbContext()));
             RegisterGatherer(new PersonalDatesGatherer());
             RegisterGatherer(new SurveyDataGatherer());
             RegisterGatherer(new FeedbackGatherer());

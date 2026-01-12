@@ -14,7 +14,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// Primary key.
         /// </summary>
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The organization this task collection belongs to.

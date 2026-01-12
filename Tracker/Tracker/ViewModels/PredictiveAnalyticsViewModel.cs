@@ -35,8 +35,8 @@ namespace Tracker.ViewModels
         private double _confidenceScore;
         private bool _hasSufficientData;
         private bool _isLoading;
-        private string? _entityType;
-        private int? _entityId;
+        private SnapshotEntityType? _entityType;
+        private Guid? _entityId;
         private string? _entityName;
 
         #endregion
@@ -213,41 +213,25 @@ namespace Tracker.ViewModels
         #region Public Methods
 
         /// <summary>
-        /// Loads prediction data for an OKR.
+        /// Loads prediction data for a Goal (formerly OKR).
         /// </summary>
-        public async Task LoadForOkrAsync(int okrId, string name, DateTime? startDate = null, DateTime? targetDate = null)
+        public async Task LoadForGoalAsync(Guid goalId, string name, DateTime? startDate = null, DateTime? targetDate = null)
         {
-            await LoadPredictionAsync(SnapshotEntityType.OKR, okrId, name, startDate, targetDate);
+            await LoadPredictionAsync(SnapshotEntityType.Goal, goalId, name, startDate, targetDate);
         }
 
         /// <summary>
-        /// Loads prediction data for a Key Result.
+        /// Loads prediction data for a Target (formerly Key Result).
         /// </summary>
-        public async Task LoadForKeyResultAsync(int keyResultId, string name, DateTime? startDate = null, DateTime? targetDate = null)
+        public async Task LoadForTargetAsync(Guid targetId, string name, DateTime? startDate = null, DateTime? targetDate = null)
         {
-            await LoadPredictionAsync(SnapshotEntityType.KeyResult, keyResultId, name, startDate, targetDate);
-        }
-
-        /// <summary>
-        /// Loads prediction data for a KPI.
-        /// </summary>
-        public async Task LoadForKpiAsync(int kpiId, string name, DateTime? startDate = null, DateTime? targetDate = null)
-        {
-            await LoadPredictionAsync(SnapshotEntityType.KPI, kpiId, name, startDate, targetDate);
-        }
-
-        /// <summary>
-        /// Loads prediction data for a Goal.
-        /// </summary>
-        public async Task LoadForGoalAsync(int goalId, string name, DateTime? startDate = null, DateTime? targetDate = null)
-        {
-            await LoadPredictionAsync("Goal", goalId, name, startDate, targetDate);
+            await LoadPredictionAsync(SnapshotEntityType.Target, targetId, name, startDate, targetDate);
         }
 
         /// <summary>
         /// Loads prediction data for a Project.
         /// </summary>
-        public async Task LoadForProjectAsync(int projectId, string name, DateTime? startDate = null, DateTime? targetDate = null)
+        public async Task LoadForProjectAsync(Guid projectId, string name, DateTime? startDate = null, DateTime? targetDate = null)
         {
             await LoadPredictionAsync(SnapshotEntityType.Project, projectId, name, startDate, targetDate);
         }
@@ -275,9 +259,9 @@ namespace Tracker.ViewModels
         /// </summary>
         public async Task RefreshAsync()
         {
-            if (_entityType != null && _entityId.HasValue && _entityName != null)
+            if (_entityType.HasValue && _entityId.HasValue && _entityName != null)
             {
-                await LoadPredictionAsync(_entityType, _entityId.Value, _entityName, null, null);
+                await LoadPredictionAsync(_entityType.Value, _entityId.Value, _entityName, null, null);
             }
         }
 
@@ -285,7 +269,7 @@ namespace Tracker.ViewModels
 
         #region Private Methods
 
-        private async Task LoadPredictionAsync(string entityType, int entityId, string entityName, DateTime? startDate, DateTime? targetDate)
+        private async Task LoadPredictionAsync(SnapshotEntityType entityType, Guid entityId, string entityName, DateTime? startDate, DateTime? targetDate)
         {
             if (IsLoading) return;
 
@@ -303,18 +287,15 @@ namespace Tracker.ViewModels
 
                 switch (entityType)
                 {
-                    case SnapshotEntityType.OKR:
-                        prediction = await service.AnalyzeOkrAsync(entityId, entityName, 
+                    case SnapshotEntityType.Goal:
+                        prediction = await service.AnalyzeGoalAsync(entityId, entityName, 
                             startDate ?? DateTime.Today.AddMonths(-3), 
                             targetDate ?? DateTime.Today.AddMonths(3));
                         break;
-                    case SnapshotEntityType.KeyResult:
-                        prediction = await service.AnalyzeKeyResultAsync(entityId, entityName,
+                    case SnapshotEntityType.Target:
+                        prediction = await service.AnalyzeTargetAsync(entityId, entityName,
                             startDate ?? DateTime.Today.AddMonths(-3),
                             targetDate ?? DateTime.Today.AddMonths(3), 100);
-                        break;
-                    case SnapshotEntityType.KPI:
-                        prediction = await service.AnalyzeKpiAsync(entityId, entityName, targetDate, 100);
                         break;
                     case SnapshotEntityType.Project:
                         prediction = await service.AnalyzeProjectAsync(entityId, entityName,

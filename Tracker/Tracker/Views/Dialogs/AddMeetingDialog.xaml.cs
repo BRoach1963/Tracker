@@ -12,7 +12,7 @@ namespace Tracker.Views.Dialogs
     [HelpContext("dialogs/add-one-on-one")]
     public partial class AddMeetingDialog
     {
-        public AddMeetingDialog(OneOnOneViewModel vm) : base(DialogType.AddMeeting)
+        public AddMeetingDialog(MeetingViewModel vm) : base(DialogType.AddMeeting)
         {
             InitializeComponent();
             DataContext = vm;
@@ -23,7 +23,7 @@ namespace Tracker.Views.Dialogs
         /// </summary>
         private void SchedulingAssistant_TimeSlotSelected(object sender, TimeSlotSelectedEventArgs e)
         {
-            if (DataContext is OneOnOneViewModel vm)
+            if (DataContext is MeetingViewModel vm)
             {
                 var slot = e.SelectedSlot;
                 vm.ApplySelectedTimeSlot(slot.Start.Date, slot.Start.TimeOfDay, slot.End.TimeOfDay);

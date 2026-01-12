@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Tracker.Classes;
 using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Logging;
@@ -22,7 +23,6 @@ namespace Tracker.Services.Analytics
 
         private readonly ILogger _logger;
         private static readonly object _lock = new();
-        private DateTime? _lastSnapshotDate;
 
         #endregion
 
@@ -57,76 +57,29 @@ namespace Tracker.Services.Analytics
         /// <summary>
         /// Captures snapshots for all trackable entities if needed.
         /// Should be called on app startup. Only captures if >24h since last snapshot.
+        /// 
+        /// DISABLED: Snapshot capture will be refactored to the unified
+        /// goals/targets/projects/tasks model in a future iteration.
         /// </summary>
         public async Task CaptureSnapshotsIfNeededAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
-                {
-                    _logger.Debug("Database not initialized, skipping snapshot capture");
-                    return;
-                }
-
-                var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-                if (!currentUserId.HasValue)
-                {
-                    _logger.Debug("No user logged in, skipping snapshot capture");
-                    return;
-                }
-
-                var today = DateTime.Today;
-
-                // Check if we already captured today
-                if (_lastSnapshotDate == today)
-                {
-                    _logger.Debug("Already captured snapshots today");
-                    return;
-                }
-
-                // Check database for last snapshot
-                var lastSnapshot = await GetLastSnapshotDateAsync(currentUserId.Value);
-                if (lastSnapshot == today)
-                {
-                    _lastSnapshotDate = today;
-                    _logger.Debug("Snapshots already exist for today");
-                    return;
-                }
-
-                _logger.Info("Capturing progress snapshots for {0}", today.ToString("yyyy-MM-dd"));
-
-                await CaptureAllSnapshotsAsync(currentUserId.Value, today, cancellationToken);
-
-                _lastSnapshotDate = today;
-                _logger.Info("Snapshot capture complete");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error capturing snapshots: {0}", ex.Message);
-            }
+            _logger.Warn("ProgressSnapshotService.CaptureSnapshotsIfNeededAsync DISABLED - snapshot capture refactor pending");
+            // Snapshot capture disabled pending unified goal/target/project/task tracking
+            await Task.CompletedTask;
         }
 
         /// <summary>
         /// Forces a snapshot capture regardless of last capture time.
         /// Useful for testing or manual refresh.
+        /// 
+        /// DISABLED: Snapshot capture will be refactored to the unified
+        /// goals/targets/projects/tasks model in a future iteration.
         /// </summary>
         public async Task ForceCaptureSnapshotsAsync(CancellationToken cancellationToken = default)
         {
-            var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-            if (!currentUserId.HasValue)
-            {
-                _logger.Warn("Cannot capture snapshots: no user logged in");
-                return;
-            }
-
-            var today = DateTime.Today;
-            _logger.Info("Force capturing progress snapshots for {0}", today.ToString("yyyy-MM-dd"));
-
-            await CaptureAllSnapshotsAsync(currentUserId.Value, today, cancellationToken);
-
-            _lastSnapshotDate = today;
-            _logger.Info("Force snapshot capture complete");
+            _logger.Warn("ProgressSnapshotService.ForceCaptureSnapshotsAsync DISABLED - snapshot capture refactor pending");
+            // Snapshot capture disabled pending unified goal/target/project/task tracking
+            await Task.CompletedTask;
         }
 
         #endregion
@@ -137,18 +90,14 @@ namespace Tracker.Services.Analytics
         /// Gets historical snapshots for a specific entity.
         /// </summary>
         /// <param name="entityType">The entity type (use SnapshotEntityType constants).</param>
-        /// <param name="entityId">The entity ID.</param>
+        /// <param name="entityId">The entity ID (Guid).</param>
         /// <param name="days">Number of days of history to retrieve (default 90).</param>
         /// <returns>List of snapshots ordered by date ascending.</returns>
         public async Task<List<ProgressSnapshot>> GetHistoryAsync(
-            string entityType, 
-            int entityId, 
+            SnapshotEntityType entityType, 
+            Guid entityId, 
             int days = 90)
         {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return new List<ProgressSnapshot>();
-
             var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
             if (!currentUserId.HasValue)
                 return new List<ProgressSnapshot>();
@@ -157,6 +106,8 @@ namespace Tracker.Services.Analytics
 
             try
             {
+                var contextFactory = TrackerDbContextFactory.Instance;
+                var context = contextFactory.CreateContext();
                 return await context.ProgressSnapshots
                     .Where(s => s.UserId == currentUserId.Value
                              && s.EntityType == entityType
@@ -176,18 +127,16 @@ namespace Tracker.Services.Analytics
         /// <summary>
         /// Gets the most recent snapshot for an entity.
         /// </summary>
-        public async Task<ProgressSnapshot?> GetLatestSnapshotAsync(string entityType, int entityId)
+        public async Task<ProgressSnapshot?> GetLatestSnapshotAsync(SnapshotEntityType entityType, Guid entityId)
         {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return null;
-
             var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
             if (!currentUserId.HasValue)
                 return null;
 
             try
             {
+                var contextFactory = TrackerDbContextFactory.Instance;
+                var context = contextFactory.CreateContext();
                 return await context.ProgressSnapshots
                     .Where(s => s.UserId == currentUserId.Value
                              && s.EntityType == entityType
@@ -208,16 +157,14 @@ namespace Tracker.Services.Analytics
         /// </summary>
         public async Task<List<ProgressSnapshot>> GetSnapshotsForDateAsync(DateTime date)
         {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return new List<ProgressSnapshot>();
-
             var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
             if (!currentUserId.HasValue)
                 return new List<ProgressSnapshot>();
 
             try
             {
+                var contextFactory = TrackerDbContextFactory.Instance;
+                var context = contextFactory.CreateContext();
                 return await context.ProgressSnapshots
                     .Where(s => s.UserId == currentUserId.Value
                              && s.SnapshotDate == date.Date)
@@ -234,18 +181,16 @@ namespace Tracker.Services.Analytics
         /// <summary>
         /// Gets the count of snapshots for an entity (for data sufficiency checks).
         /// </summary>
-        public async Task<int> GetSnapshotCountAsync(string entityType, int entityId)
+        public async Task<int> GetSnapshotCountAsync(SnapshotEntityType entityType, Guid entityId)
         {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return 0;
-
             var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
             if (!currentUserId.HasValue)
                 return 0;
 
             try
             {
+                var contextFactory = TrackerDbContextFactory.Instance;
+                var context = contextFactory.CreateContext();
                 return await context.ProgressSnapshots
                     .Where(s => s.UserId == currentUserId.Value
                              && s.EntityType == entityType
@@ -261,206 +206,6 @@ namespace Tracker.Services.Analytics
 
         #endregion
 
-        #region Private Methods
-
-        private async Task<DateTime?> GetLastSnapshotDateAsync(int userId)
-        {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return null;
-
-            try
-            {
-                var lastDate = await context.ProgressSnapshots
-                    .Where(s => s.UserId == userId)
-                    .MaxAsync(s => (DateTime?)s.SnapshotDate);
-
-                return lastDate;
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug("No existing snapshots found: {0}", ex.Message);
-                return null;
-            }
-        }
-
-        private async Task CaptureAllSnapshotsAsync(int userId, DateTime date, CancellationToken cancellationToken)
-        {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return;
-
-            var snapshots = new List<ProgressSnapshot>();
-
-            // Capture OKR snapshots
-            await CaptureOkrSnapshotsAsync(userId, date, snapshots, cancellationToken);
-
-            // Capture KPI snapshots
-            await CaptureKpiSnapshotsAsync(userId, date, snapshots, cancellationToken);
-
-            // Capture Project snapshots
-            await CaptureProjectSnapshotsAsync(userId, date, snapshots, cancellationToken);
-
-            if (snapshots.Count == 0)
-            {
-                _logger.Debug("No entities to snapshot");
-                return;
-            }
-
-            // Save all snapshots in one transaction
-            try
-            {
-                context.ProgressSnapshots.AddRange(snapshots);
-                await context.SaveChangesAsync(cancellationToken);
-                _logger.Info("Saved {0} progress snapshots", snapshots.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error saving snapshots: {0}", ex.Message);
-            }
-        }
-
-        private async Task CaptureOkrSnapshotsAsync(
-            int userId, 
-            DateTime date, 
-            List<ProgressSnapshot> snapshots,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var okrs = await TrackerDataManager.Instance.GetOKRs();
-                if (okrs == null) return;
-
-                foreach (var okr in okrs)
-                {
-                    if (cancellationToken.IsCancellationRequested) break;
-
-                    // Skip OKRs that haven't started or have ended
-                    if (okr.StartDate > date || okr.EndDate < date)
-                        continue;
-
-                    // OKR snapshot
-                    snapshots.Add(new ProgressSnapshot
-                    {
-                        UserId = userId,
-                        EntityType = SnapshotEntityType.OKR,
-                        EntityId = okr.ObjectiveId,
-                        SnapshotDate = date,
-                        CurrentValue = (decimal)okr.CompletionPercentage,
-                        TargetValue = 100m,
-                        Progress = (decimal)okr.CompletionPercentage
-                    });
-
-                    // Also capture each Key Result
-                    if (okr.KeyResults != null)
-                    {
-                        foreach (var kr in okr.KeyResults)
-                        {
-                            snapshots.Add(new ProgressSnapshot
-                            {
-                                UserId = userId,
-                                EntityType = SnapshotEntityType.KeyResult,
-                                EntityId = kr.Id,
-                                SnapshotDate = date,
-                                CurrentValue = kr.CurrentValue,
-                                TargetValue = kr.TargetValue,
-                                Progress = kr.Progress
-                            });
-                        }
-                    }
-                }
-
-                _logger.Debug("Captured {0} OKR/KeyResult snapshots", 
-                    snapshots.Count(s => s.EntityType == SnapshotEntityType.OKR || s.EntityType == SnapshotEntityType.KeyResult));
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error capturing OKR snapshots: {0}", ex.Message);
-            }
-        }
-
-        private async Task CaptureKpiSnapshotsAsync(
-            int userId, 
-            DateTime date, 
-            List<ProgressSnapshot> snapshots,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var kpis = await TrackerDataManager.Instance.GetKPIs();
-                if (kpis == null) return;
-
-                foreach (var kpi in kpis)
-                {
-                    if (cancellationToken.IsCancellationRequested) break;
-
-                    // Skip KPIs with no target (can't calculate progress)
-                    if (kpi.TargetValue == 0)
-                        continue;
-
-                    snapshots.Add(new ProgressSnapshot
-                    {
-                        UserId = userId,
-                        EntityType = SnapshotEntityType.KPI,
-                        EntityId = kpi.KpiId,
-                        SnapshotDate = date,
-                        CurrentValue = (decimal)kpi.Value,
-                        TargetValue = (decimal)kpi.TargetValue,
-                        Progress = (decimal)kpi.PercentComplete
-                    });
-                }
-
-                _logger.Debug("Captured {0} KPI snapshots", 
-                    snapshots.Count(s => s.EntityType == SnapshotEntityType.KPI));
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error capturing KPI snapshots: {0}", ex.Message);
-            }
-        }
-
-        private async Task CaptureProjectSnapshotsAsync(
-            int userId, 
-            DateTime date, 
-            List<ProgressSnapshot> snapshots,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var projects = await TrackerDataManager.Instance.GetProjects();
-                if (projects == null) return;
-
-                foreach (var project in projects)
-                {
-                    if (cancellationToken.IsCancellationRequested) break;
-
-                    // Skip completed or not-started projects
-                    if (project.Progress >= 100 || project.StartDate > date)
-                        continue;
-
-                    snapshots.Add(new ProgressSnapshot
-                    {
-                        UserId = userId,
-                        EntityType = SnapshotEntityType.Project,
-                        EntityId = project.ID,
-                        SnapshotDate = date,
-                        CurrentValue = (decimal)project.Progress,
-                        TargetValue = 100m,
-                        Progress = (decimal)project.Progress
-                    });
-                }
-
-                _logger.Debug("Captured {0} Project snapshots", 
-                    snapshots.Count(s => s.EntityType == SnapshotEntityType.Project));
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Error capturing Project snapshots: {0}", ex.Message);
-            }
-        }
-
-        #endregion
-
         #region Maintenance Methods
 
         /// <summary>
@@ -469,10 +214,6 @@ namespace Tracker.Services.Analytics
         /// <param name="retentionDays">Days to retain (default 365).</param>
         public async Task CleanupOldSnapshotsAsync(int retentionDays = 365)
         {
-            var context = TrackerDbManager.Instance.GetDbContext();
-            if (context == null)
-                return;
-
             var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
             if (!currentUserId.HasValue)
                 return;
@@ -481,6 +222,8 @@ namespace Tracker.Services.Analytics
 
             try
             {
+                var contextFactory = TrackerDbContextFactory.Instance;
+                var context = contextFactory.CreateContext();
                 var oldSnapshots = await context.ProgressSnapshots
                     .Where(s => s.UserId == currentUserId.Value && s.SnapshotDate < cutoffDate)
                     .ToListAsync();

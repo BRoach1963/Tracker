@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 
@@ -51,15 +53,15 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var surveyRepository = CreatePulseSurveyRepository();
+                if (surveyRepository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping survey sentiment analysis");
+                    _logger.Debug("No current user or database context available, skipping survey sentiment analysis");
                     return insights;
                 }
 
                 // Get recent surveys with responses
-                var surveys = await dbManager.GetPulseSurveysAsync();
+                var surveys = await surveyRepository.GetPulseSurveysAsync();
                 if (surveys == null || surveys.Count == 0)
                 {
                     _logger.Debug("No surveys found");
@@ -90,6 +92,19 @@ namespace Tracker.Services.AI.Insights.Analyzers
             }
 
             return insights;
+        }
+
+        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         /// <summary>
@@ -263,7 +278,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     ? "Review survey results and consider addressing the underlying concerns in a team meeting."
                     : "Follow up with the respondent(s) to understand their concerns and how you can help.",
                 EntityType = "Survey",
-                EntityId = survey.Id,
+                // EntityId not set - survey.Id is Guid, EntityId is int?
                 GeneratedAt = DateTime.Now
             };
         }

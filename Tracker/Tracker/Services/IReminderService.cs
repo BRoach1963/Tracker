@@ -49,12 +49,12 @@ namespace Tracker.Services
         /// <summary>
         /// Creates a reminder for an upcoming meeting.
         /// </summary>
-        Task CreateMeetingReminderAsync(OneOnOne meeting);
+        Task CreateMeetingReminderAsync(Meeting meeting);
 
         /// <summary>
         /// Creates a reminder for a task deadline.
         /// </summary>
-        Task CreateTaskReminderAsync(IndividualTask task);
+        Task CreateTaskReminderAsync(TrackerTask task);
 
         /// <summary>
         /// Creates a reminder for a goal deadline.

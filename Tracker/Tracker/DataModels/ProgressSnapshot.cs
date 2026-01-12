@@ -1,10 +1,22 @@
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// Represents a point-in-time snapshot of progress for an entity (OKR, KPI, Project, KeyResult).
+    /// Supported entity types for progress snapshots.
+    /// </summary>
+    public enum SnapshotEntityType
+    {
+        Goal = 0,
+        Target = 1,
+        Project = 2,
+        Task = 3
+    }
+
+    /// <summary>
+    /// Represents a point-in-time snapshot of progress for a unified entity
+    /// (Goal, Target, Project, or Task) in the new schema.
     /// Used for trajectory analysis and predictive analytics.
     /// 
-    /// Snapshots are captured daily on app startup and stored for historical trend analysis.
+    /// Snapshots are captured periodically and stored for historical trend analysis.
     /// This data enables:
     /// - Velocity calculations (progress per day)
     /// - Trajectory projections (will we hit the target?)
@@ -16,17 +28,18 @@ namespace Tracker.DataModels
         /// <summary>
         /// Primary key for the snapshot.
         /// </summary>
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         /// <summary>
-        /// The type of entity being tracked: "OKR", "KPI", "KeyResult", "Project".
+        /// The type of entity being tracked: Goal, Target, Project, or Task.
         /// </summary>
-        public string EntityType { get; set; } = string.Empty;
+        public SnapshotEntityType EntityType { get; set; } = SnapshotEntityType.Goal;
 
         /// <summary>
-        /// The ID of the entity (ObjectiveId, KpiId, KeyResultId, or ProjectId).
+        /// The unique identifier of the entity (Goal, Target, Project, or Task).
+        /// Uses Guid to align with unified schema.
         /// </summary>
-        public int EntityId { get; set; }
+        public Guid EntityId { get; set; }
 
         /// <summary>
         /// The date of the snapshot (date only, no time component).
@@ -35,17 +48,16 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// The current value at the time of snapshot.
-        /// For OKRs/Projects this is the completion percentage.
-        /// For KPIs this is the actual metric value.
-        /// For KeyResults this is the CurrentValue.
+        /// For goals/targets/projects this is typically the completion percentage
+        /// or current progress value. For metrics-style entities this is the
+        /// current measured value.
         /// </summary>
         public decimal CurrentValue { get; set; }
 
         /// <summary>
         /// The target value at the time of snapshot.
-        /// For OKRs/Projects this is always 100.
-        /// For KPIs this is the TargetValue.
-        /// For KeyResults this is the TargetValue.
+        /// For goals/projects this is often 100 (representing 100% complete).
+        /// For metrics-style entities this is the numeric target value.
         /// </summary>
         public decimal TargetValue { get; set; }
 
@@ -66,16 +78,5 @@ namespace Tracker.DataModels
         /// When this snapshot was created.
         /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// Supported entity types for progress snapshots.
-    /// </summary>
-    public static class SnapshotEntityType
-    {
-        public const string OKR = "OKR";
-        public const string KPI = "KPI";
-        public const string KeyResult = "KeyResult";
-        public const string Project = "Project";
     }
 }

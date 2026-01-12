@@ -5,22 +5,22 @@ using Tracker.Common.Enums;
 
 namespace Tracker.Common.Converters
 {
-    public class KpiStatusToColorConverter : IValueConverter
+    /// <summary>
+    /// Converts MetricStatus to a color brush for display.
+    /// </summary>
+    public class MetricStatusToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            KpiStatusEnum status = (KpiStatusEnum)value;
-            switch (status)
+            if (value is not MetricStatus status) return Brushes.Gray;
+            
+            return status switch
             {
-                case KpiStatusEnum.OnTarget:
-                    return Brushes.Green;
-                case KpiStatusEnum.OffTarget:
-                    return Brushes.Red;
-                case KpiStatusEnum.CloseToTarget:
-                    return Brushes.SlateGray;
-                default:
-                    return Brushes.Gray;
-            }
+                MetricStatus.OnTarget => Brushes.Green,
+                MetricStatus.OffTarget => Brushes.Red,
+                MetricStatus.CloseToTarget => Brushes.SlateGray,
+                _ => Brushes.Gray
+            };
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -29,27 +29,9 @@ namespace Tracker.Common.Converters
         }
     }
 
-    public class ObjectiveStatusToColorConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            ObjectiveStatusEnum status = (ObjectiveStatusEnum)value;
-            switch (status)
-            {
-                case ObjectiveStatusEnum.OnTrack:
-                    return Brushes.Green;
-                case ObjectiveStatusEnum.OffTrack:
-                    return Brushes.Red;
-                case ObjectiveStatusEnum.AtRisk:
-                    return Brushes.SlateGray;
-                default:
-                    return Brushes.Gray;
-            }
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return Binding.DoNothing;
-        }
-    }
+    /// <summary>
+    /// Legacy alias for backwards compatibility.
+    /// </summary>
+    [Obsolete("Use MetricStatusToColorConverter instead")]
+    public class KpiStatusToColorConverter : MetricStatusToColorConverter { }
 }

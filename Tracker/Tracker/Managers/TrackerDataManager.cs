@@ -1,11 +1,15 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using Microsoft.EntityFrameworkCore;
+using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Logging;
+using Tracker.Services;
 
 namespace Tracker.Managers
 {
@@ -23,13 +27,14 @@ namespace Tracker.Managers
 
         // Observable collections - THE single source of truth
         private readonly ObservableCollection<TeamMember> _teamMembers = new();
-        private readonly ObservableCollection<OneOnOne> _oneOnOnes = new();
+        private readonly ObservableCollection<Meeting> _meetings = new();
         private readonly ObservableCollection<Project> _projects = new();
-        private readonly ObservableCollection<IndividualTask> _tasks = new();
-        private readonly ObservableCollection<ObjectiveKeyResult> _okrs = new();
-        private readonly ObservableCollection<KeyPerformanceIndicator> _kpis = new();
+        private readonly ObservableCollection<TrackerTask> _tasks = new();
+        private readonly ObservableCollection<Metric> _metrics = new();
+        // Strategic goals (formerly "OKRs")
+        private readonly ObservableCollection<Goal> _strategicGoals = new();
         private readonly ObservableCollection<Feedback> _feedbacks = new();
-        private readonly ObservableCollection<DevelopmentGoal> _goals = new();
+        private readonly ObservableCollection<DevelopmentGoal> _developmentGoals = new();
         private readonly ObservableCollection<QuickNote> _quickNotes = new();
 
         // Specialized data collections (isolated - no cross-dependencies with core data)
@@ -39,13 +44,13 @@ namespace Tracker.Managers
 
         // Read-only wrappers for external access (prevents external modification)
         private readonly ReadOnlyObservableCollection<TeamMember> _teamMembersReadOnly;
-        private readonly ReadOnlyObservableCollection<OneOnOne> _oneOnOnesReadOnly;
+        private readonly ReadOnlyObservableCollection<Meeting> _meetingsReadOnly;
         private readonly ReadOnlyObservableCollection<Project> _projectsReadOnly;
-        private readonly ReadOnlyObservableCollection<IndividualTask> _tasksReadOnly;
-        private readonly ReadOnlyObservableCollection<ObjectiveKeyResult> _okrsReadOnly;
-        private readonly ReadOnlyObservableCollection<KeyPerformanceIndicator> _kpisReadOnly;
+        private readonly ReadOnlyObservableCollection<TrackerTask> _tasksReadOnly;
+        private readonly ReadOnlyObservableCollection<Metric> _metricsReadOnly;
+        private readonly ReadOnlyObservableCollection<Goal> _strategicGoalsReadOnly;
         private readonly ReadOnlyObservableCollection<Feedback> _feedbacksReadOnly;
-        private readonly ReadOnlyObservableCollection<DevelopmentGoal> _goalsReadOnly;
+        private readonly ReadOnlyObservableCollection<DevelopmentGoal> _developmentGoalsReadOnly;
         private readonly ReadOnlyObservableCollection<QuickNote> _quickNotesReadOnly;
 
         // Read-only wrappers for specialized data
@@ -55,13 +60,13 @@ namespace Tracker.Managers
 
         // Track if initial load has been done for each collection
         private bool _teamMembersLoaded;
-        private bool _oneOnOnesLoaded;
+        private bool _meetingsLoaded;
         private bool _projectsLoaded;
         private bool _tasksLoaded;
-        private bool _okrsLoaded;
-        private bool _kpisLoaded;
+        private bool _metricsLoaded;
+        private bool _strategicGoalsLoaded;
         private bool _feedbacksLoaded;
-        private bool _goalsLoaded;
+        private bool _developmentGoalsLoaded;
         private bool _quickNotesLoaded;
 
         // Track load status for specialized data
@@ -71,13 +76,13 @@ namespace Tracker.Managers
 
         // Lock objects for thread safety during collection updates
         private readonly object _teamMembersLock = new();
-        private readonly object _oneOnOnesLock = new();
+        private readonly object _meetingsLock = new();
         private readonly object _projectsLock = new();
         private readonly object _tasksLock = new();
-        private readonly object _okrsLock = new();
-        private readonly object _kpisLock = new();
+        private readonly object _metricsLock = new();
+        private readonly object _strategicGoalsLock = new();
         private readonly object _feedbacksLock = new();
-        private readonly object _goalsLock = new();
+        private readonly object _developmentGoalsLock = new();
         private readonly object _quickNotesLock = new();
 
         // Lock objects for specialized data
@@ -101,13 +106,13 @@ namespace Tracker.Managers
         {
             // Initialize read-only wrappers
             _teamMembersReadOnly = new ReadOnlyObservableCollection<TeamMember>(_teamMembers);
-            _oneOnOnesReadOnly = new ReadOnlyObservableCollection<OneOnOne>(_oneOnOnes);
+            _meetingsReadOnly = new ReadOnlyObservableCollection<Meeting>(_meetings);
             _projectsReadOnly = new ReadOnlyObservableCollection<Project>(_projects);
-            _tasksReadOnly = new ReadOnlyObservableCollection<IndividualTask>(_tasks);
-            _okrsReadOnly = new ReadOnlyObservableCollection<ObjectiveKeyResult>(_okrs);
-            _kpisReadOnly = new ReadOnlyObservableCollection<KeyPerformanceIndicator>(_kpis);
+            _tasksReadOnly = new ReadOnlyObservableCollection<TrackerTask>(_tasks);
+            _metricsReadOnly = new ReadOnlyObservableCollection<Metric>(_metrics);
+            _strategicGoalsReadOnly = new ReadOnlyObservableCollection<Goal>(_strategicGoals);
             _feedbacksReadOnly = new ReadOnlyObservableCollection<Feedback>(_feedbacks);
-            _goalsReadOnly = new ReadOnlyObservableCollection<DevelopmentGoal>(_goals);
+            _developmentGoalsReadOnly = new ReadOnlyObservableCollection<DevelopmentGoal>(_developmentGoals);
             _quickNotesReadOnly = new ReadOnlyObservableCollection<QuickNote>(_quickNotes);
 
             // Initialize read-only wrappers for specialized data
@@ -127,13 +132,13 @@ namespace Tracker.Managers
             RunOnUiThread(() =>
             {
                 _teamMembers.Clear();
-                _oneOnOnes.Clear();
+                _meetings.Clear();
                 _projects.Clear();
                 _tasks.Clear();
-                _okrs.Clear();
-                _kpis.Clear();
+                _metrics.Clear();
+                _strategicGoals.Clear();
                 _feedbacks.Clear();
-                _goals.Clear();
+                _developmentGoals.Clear();
                 _quickNotes.Clear();
 
                 // Clear specialized data
@@ -144,13 +149,13 @@ namespace Tracker.Managers
 
             // Reset load flags
             _teamMembersLoaded = false;
-            _oneOnOnesLoaded = false;
+            _meetingsLoaded = false;
             _projectsLoaded = false;
             _tasksLoaded = false;
-            _okrsLoaded = false;
-            _kpisLoaded = false;
+            _metricsLoaded = false;
+            _strategicGoalsLoaded = false;
             _feedbacksLoaded = false;
-            _goalsLoaded = false;
+            _developmentGoalsLoaded = false;
             _quickNotesLoaded = false;
 
             // Reset specialized data flags
@@ -166,15 +171,15 @@ namespace Tracker.Managers
         public void InvalidateAllCaches()
         {
             _logger.Debug("Invalidating all caches");
-            
+
             _teamMembersLoaded = false;
-            _oneOnOnesLoaded = false;
+            _meetingsLoaded = false;
             _projectsLoaded = false;
             _tasksLoaded = false;
-            _okrsLoaded = false;
-            _kpisLoaded = false;
+            _metricsLoaded = false;
+            _strategicGoalsLoaded = false;
             _feedbacksLoaded = false;
-            _goalsLoaded = false;
+            _developmentGoalsLoaded = false;
             _quickNotesLoaded = false;
 
             // Invalidate specialized data caches
@@ -186,13 +191,13 @@ namespace Tracker.Managers
             RunOnUiThread(() =>
             {
                 _teamMembers.Clear();
-                _oneOnOnes.Clear();
+                _meetings.Clear();
                 _projects.Clear();
                 _tasks.Clear();
-                _okrs.Clear();
-                _kpis.Clear();
+                _metrics.Clear();
+                _strategicGoals.Clear();
                 _feedbacks.Clear();
-                _goals.Clear();
+                _developmentGoals.Clear();
                 _quickNotes.Clear();
 
                 // Clear specialized data
@@ -212,9 +217,16 @@ namespace Tracker.Managers
         public ReadOnlyObservableCollection<TeamMember> TeamMembers => _teamMembersReadOnly;
 
         /// <summary>
-        /// Gets the read-only collection of one-on-ones. Bind directly to this in ViewModels.
+        /// Gets the read-only collection of meetings. Bind directly to this in ViewModels.
         /// </summary>
-        public ReadOnlyObservableCollection<OneOnOne> OneOnOnes => _oneOnOnesReadOnly;
+        public ReadOnlyObservableCollection<Meeting> Meetings => _meetingsReadOnly;
+
+        /// <summary>
+        /// Gets the read-only collection of one-on-one meetings (MeetingType.OneOnOne).
+        /// This is currently an alias over the Meetings collection and is kept for
+        /// backwards compatibility with existing ViewModels.
+        /// </summary>
+        public ReadOnlyObservableCollection<Meeting> OneOnOneMeetings => _meetingsReadOnly;
 
         /// <summary>
         /// Gets the read-only collection of projects. Bind directly to this in ViewModels.
@@ -224,17 +236,17 @@ namespace Tracker.Managers
         /// <summary>
         /// Gets the read-only collection of tasks. Bind directly to this in ViewModels.
         /// </summary>
-        public ReadOnlyObservableCollection<IndividualTask> Tasks => _tasksReadOnly;
+        public ReadOnlyObservableCollection<TrackerTask> Tasks => _tasksReadOnly;
 
         /// <summary>
-        /// Gets the read-only collection of OKRs. Bind directly to this in ViewModels.
+        /// Gets the read-only collection of strategic goals (formerly "OKRs").
         /// </summary>
-        public ReadOnlyObservableCollection<ObjectiveKeyResult> OKRs => _okrsReadOnly;
+        public ReadOnlyObservableCollection<Goal> StrategicGoals => _strategicGoalsReadOnly;
 
         /// <summary>
-        /// Gets the read-only collection of KPIs. Bind directly to this in ViewModels.
+        /// Gets the read-only collection of metrics. Bind directly to this in ViewModels.
         /// </summary>
-        public ReadOnlyObservableCollection<KeyPerformanceIndicator> KPIs => _kpisReadOnly;
+        public ReadOnlyObservableCollection<Metric> Metrics => _metricsReadOnly;
 
         /// <summary>
         /// Gets the read-only collection of feedbacks. Bind directly to this in ViewModels.
@@ -242,9 +254,9 @@ namespace Tracker.Managers
         public ReadOnlyObservableCollection<Feedback> Feedbacks => _feedbacksReadOnly;
 
         /// <summary>
-        /// Gets the read-only collection of goals. Bind directly to this in ViewModels.
+        /// Gets the read-only collection of development goals. Bind directly to this in ViewModels.
         /// </summary>
-        public ReadOnlyObservableCollection<DevelopmentGoal> Goals => _goalsReadOnly;
+        public ReadOnlyObservableCollection<DevelopmentGoal> DevelopmentGoals => _developmentGoalsReadOnly;
 
         /// <summary>
         /// Gets the read-only collection of quick notes. Bind directly to this in ViewModels.
@@ -342,8 +354,24 @@ namespace Tracker.Managers
             if (!_teamMembersLoaded)
             {
                 _logger.Debug("Loading team members from database");
-                var members = await TrackerDbManager.Instance!.GetTeamMembersAsync();
-                ReplaceCollectionItems(_teamMembers, members, _teamMembersLock);
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetTeamData called but OrganizationContext.UserId is not set");
+                    return _teamMembersReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var teamMemberRepository = new TeamMemberRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var members = await teamMemberRepository.GetTeamMembersAsync();
+                ReplaceCollectionItems(_teamMembers, members ?? new List<TeamMember>(), _teamMembersLock);
                 _teamMembersLoaded = true;
                 _logger.Debug("Loaded {0} team members", _teamMembers.Count);
             }
@@ -352,19 +380,50 @@ namespace Tracker.Managers
 
         public async Task<bool> AddTeamMember(TeamMember teamMember)
         {
-            var id = await TrackerDbManager.Instance!.AddTeamMemberAsync(teamMember);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("AddTeamMember called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var teamMemberRepository = new TeamMemberRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await teamMemberRepository.AddTeamMemberAsync(teamMember);
             if (id != Guid.Empty)
             {
                 teamMember.Id = id;
                 await RefreshAllAndNotifyAsync();
                 return true;
             }
+
             return false;
         }
 
         public async Task<bool> UpdateTeamMember(TeamMember teamMember)
         {
-            var success = await TrackerDbManager.Instance!.UpdateTeamMemberAsync(teamMember);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateTeamMember called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var teamMemberRepository = new TeamMemberRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await teamMemberRepository.UpdateTeamMemberAsync(teamMember);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
@@ -374,7 +433,22 @@ namespace Tracker.Managers
 
         public async Task<bool> DeleteTeamMember(Guid id)
         {
-            var success = await TrackerDbManager.Instance!.DeleteTeamMemberAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteTeamMember called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var teamMemberRepository = new TeamMemberRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await teamMemberRepository.DeleteTeamMemberAsync(id);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
@@ -387,56 +461,137 @@ namespace Tracker.Managers
         #region OneOnOne Methods
 
         /// <summary>
-        /// Ensures one-on-ones are loaded and returns the collection.
+        /// Ensures meetings of type OneOnOne are loaded and returns the collection (as Meeting entities).
         /// </summary>
-        public async Task<ReadOnlyObservableCollection<OneOnOne>> GetOneOnOnes()
+        public async Task<ReadOnlyObservableCollection<Meeting>> GetOneOnOneMeetings()
         {
-            if (!_oneOnOnesLoaded)
+            if (!_meetingsLoaded)
             {
-                _logger.Debug("Loading one-on-ones from database");
-                var oneOnOnes = await TrackerDbManager.Instance!.GetOneOnOnesAsync();
-                ReplaceCollectionItems(_oneOnOnes, oneOnOnes, _oneOnOnesLock);
-                _oneOnOnesLoaded = true;
-                _logger.Debug("Loaded {0} one-on-ones", _oneOnOnes.Count);
+                _logger.Debug("Loading meetings of type OneOnOne from database");
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetOneOnOneMeetings called but OrganizationContext.UserId is not set");
+                    return _meetingsReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var meetingRepository = new MeetingRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var oneOnOneMeetings = await meetingRepository.GetMeetingsByTypeAsync(MeetingType.OneOnOne);
+                ReplaceCollectionItems(_meetings, oneOnOneMeetings, _meetingsLock);
+                _meetingsLoaded = true;
+                _logger.Debug("Loaded {0} meetings of type OneOnOne", _meetings.Count);
             }
-            return _oneOnOnesReadOnly;
+
+            return _meetingsReadOnly;
         }
 
-        public async Task<int> AddOneOnOne(OneOnOne oneOnOne, Guid? teamMemberId = null)
+        /// <summary>
+        /// Adds a new meeting of type OneOnOne using the unified Meeting model.
+        /// Returns 1 on success and 0 on failure (legacy convention).
+        /// </summary>
+        public async Task<int> AddOneOnOneMeeting(Meeting meeting, Guid? teamMemberId = null)
         {
-            var id = await TrackerDbManager.Instance!.AddOneOnOneAsync(oneOnOne, teamMemberId);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                oneOnOne.Id = id;
+                _logger.Warn("AddOneOnOneMeeting called but OrganizationContext.UserId is not set");
+                return 0;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var meetingRepository = new MeetingRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            // Ensure correct meeting type
+            meeting.Type = MeetingType.OneOnOne;
+
+            var meetingId = await meetingRepository.AddMeetingAsync(meeting, teamMemberId);
+
+            if (meetingId != Guid.Empty)
+            {
+                meeting.Id = meetingId;
 
                 // Create meeting reminder if enabled
-                await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
+                await Services.ReminderService.Instance.CreateMeetingReminderAsync(meeting);
 
                 await RefreshAllAndNotifyAsync();
+                return 1;
             }
-            return id;
+
+            _logger.Warn("AddOneOnOne failed to create meeting");
+            return 0;
         }
 
-        public async Task<bool> UpdateOneOnOne(OneOnOne oneOnOne)
+        /// <summary>
+        /// Updates an existing meeting of type OneOnOne using the unified Meeting model.
+        /// </summary>
+        public async Task<bool> UpdateOneOnOneMeeting(Meeting meeting)
         {
-            var success = await TrackerDbManager.Instance!.UpdateOneOnOneAsync(oneOnOne);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateOneOnOneMeeting called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var meetingRepository = new MeetingRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await meetingRepository.UpdateMeetingAsync(meeting);
             if (success)
             {
                 // Update meeting reminder if date/time changed
-                await Services.ReminderService.Instance.CreateMeetingReminderAsync(oneOnOne);
+                await Services.ReminderService.Instance.CreateMeetingReminderAsync(meeting);
 
                 await RefreshAllAndNotifyAsync();
             }
+
             return success;
         }
 
-        public async Task<bool> DeleteOneOnOne(int id)
+        /// <summary>
+        /// Deletes a meeting of type OneOnOne by its Meeting.Id (Guid).
+        /// </summary>
+        public async Task<bool> DeleteOneOnOneMeeting(Guid id)
         {
-            var success = await TrackerDbManager.Instance!.DeleteOneOnOneAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteOneOnOneMeeting called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var meetingRepository = new MeetingRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await meetingRepository.DeleteMeetingAsync(id);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
             }
+
             return success;
         }
 
@@ -452,20 +607,51 @@ namespace Tracker.Managers
             if (!_projectsLoaded)
             {
                 _logger.Debug("Loading projects from database");
-                var projects = await TrackerDbManager.Instance!.GetProjectsAsync();
-                ReplaceCollectionItems(_projects, projects, _projectsLock);
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetProjects called but OrganizationContext.UserId is not set");
+                    return _projectsReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var projectRepository = new ProjectRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var projects = await projectRepository.GetProjectsAsync();
+                ReplaceCollectionItems(_projects, projects ?? new List<Project>(), _projectsLock);
                 _projectsLoaded = true;
                 _logger.Debug("Loaded {0} projects", _projects.Count);
             }
             return _projectsReadOnly;
         }
 
-        public async Task<int> AddProject(Project project)
+        public async Task<Guid> AddProject(Project project)
         {
-            var id = await TrackerDbManager.Instance!.AddProjectAsync(project);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                project.ID = id;
+                _logger.Warn("AddProject called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var projectRepository = new ProjectRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await projectRepository.AddProjectAsync(project);
+            if (id != Guid.Empty)
+            {
+                project.Id = id;
                 await RefreshAllAndNotifyAsync();
             }
             return id;
@@ -473,7 +659,22 @@ namespace Tracker.Managers
 
         public async Task<bool> UpdateProject(Project project)
         {
-            var success = await TrackerDbManager.Instance!.UpdateProjectAsync(project);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateProject called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var projectRepository = new ProjectRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await projectRepository.UpdateProjectAsync(project);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
@@ -481,9 +682,24 @@ namespace Tracker.Managers
             return success;
         }
 
-        public async Task<bool> DeleteProject(int id)
+        public async Task<bool> DeleteProject(Guid id)
         {
-            var success = await TrackerDbManager.Instance!.DeleteProjectAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteProject called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var projectRepository = new ProjectRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await projectRepository.DeleteProjectAsync(id);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
@@ -498,26 +714,45 @@ namespace Tracker.Managers
         /// <summary>
         /// Ensures tasks are loaded and returns the collection.
         /// </summary>
-        public async Task<ReadOnlyObservableCollection<IndividualTask>> GetTasks()
+        public async Task<ReadOnlyObservableCollection<TrackerTask>> GetTasks()
         {
             if (!_tasksLoaded)
             {
                 _logger.Debug("Loading tasks from database");
-                var tasks = await TrackerDbManager.Instance!.GetTasksAsync();
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetTasks called but OrganizationContext.UserId is not set");
+                    return _tasksReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var taskRepository = new TrackerTaskRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var tasks = await taskRepository.GetTasksAsync();
 
                 // Populate meeting counts for all tasks in a single batch query (prevents N+1 problem)
                 if (tasks != null && tasks.Count > 0)
                 {
                     var taskIds = tasks.Select(t => t.Id).ToList();
-                    var meetingCounts = await TrackerDbManager.Instance.GetTaskMeetingCountsAsync(taskIds);
+                    var meetingCounts = await taskRepository.GetTaskMeetingCountsAsync(taskIds);
 
                     foreach (var task in tasks)
                     {
-                        task.MeetingCount = meetingCounts.TryGetValue(task.Id, out var count) ? count : 0;
+                        if (meetingCounts.TryGetValue(task.Id, out var count))
+                        {
+                            task.MeetingCount = count;
+                        }
                     }
                 }
 
-                ReplaceCollectionItems(_tasks, tasks ?? new List<IndividualTask>(), _tasksLock);
+                ReplaceCollectionItems(_tasks, tasks ?? new List<TrackerTask>(), _tasksLock);
                 _tasksLoaded = true;
                 _logger.Debug("Loaded {0} tasks", _tasks.Count);
             }
@@ -525,20 +760,176 @@ namespace Tracker.Managers
             return _tasksReadOnly;
         }
 
-        public async Task<int> AddTask(IndividualTask task)
+        /// <summary>
+        /// Adds a new task.
+        /// </summary>
+        public async Task<Guid> AddTask(TrackerTask task)
         {
-            var id = await TrackerDbManager.Instance!.AddTaskAsync(task);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("AddTask called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var taskRepository = new TrackerTaskRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await taskRepository.AddTaskAsync(task);
+            if (id != Guid.Empty)
             {
                 task.Id = id;
                 await RefreshAllAndNotifyAsync();
             }
+
             return id;
         }
 
-        public async Task<bool> UpdateTask(IndividualTask task)
+        /// <summary>
+        /// Updates an existing task.
+        /// </summary>
+        public async Task<bool> UpdateTask(TrackerTask task)
         {
-            var success = await TrackerDbManager.Instance!.UpdateTaskAsync(task);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateTask called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var taskRepository = new TrackerTaskRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await taskRepository.UpdateTaskAsync(task);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Deletes a task by ID.
+        /// </summary>
+        public async Task<bool> DeleteTask(Guid id)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteTask called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var taskRepository = new TrackerTaskRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await taskRepository.DeleteTaskAsync(id);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
+            }
+
+            return success;
+        }
+
+        #endregion
+
+        #region Strategic Goal Methods
+
+        /// <summary>
+        /// Ensures strategic goals are loaded and returns the collection.
+        /// </summary>
+        public async Task<ReadOnlyObservableCollection<Goal>> GetStrategicGoals()
+        {
+            if (!_strategicGoalsLoaded)
+            {
+                _logger.Debug("Loading strategic goals from database");
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetOKRs called but OrganizationContext.UserId is not set");
+                    return _strategicGoalsReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var goalRepository = new GoalRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var goals = await goalRepository.GetGoalsAsync();
+
+                ReplaceCollectionItems(_strategicGoals, goals ?? new List<Goal>(), _strategicGoalsLock);
+                _strategicGoalsLoaded = true;
+                _logger.Debug("Loaded {0} strategic goals", _strategicGoals.Count);
+            }
+
+            return _strategicGoalsReadOnly;
+        }
+
+        public async Task<Guid> AddStrategicGoal(Goal goal)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("AddStrategicGoal called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var goalRepository = new GoalRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await goalRepository.AddGoalAsync(goal);
+            if (id != Guid.Empty)
+            {
+                goal.Id = id;
+                await RefreshAllAndNotifyAsync();
+            }
+
+            return id;
+        }
+
+        public async Task<bool> UpdateStrategicGoal(Goal goal)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateStrategicGoal called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var goalRepository = new GoalRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await goalRepository.UpdateGoalAsync(goal);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
@@ -546,9 +937,24 @@ namespace Tracker.Managers
             return success;
         }
 
-        public async Task<bool> DeleteTask(int id)
+        public async Task<bool> DeleteStrategicGoal(Guid id)
         {
-            var success = await TrackerDbManager.Instance!.DeleteTaskAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+            _logger.Warn("DeleteStrategicGoal called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var goalRepository = new GoalRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await goalRepository.DeleteGoalAsync(id);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
@@ -558,131 +964,127 @@ namespace Tracker.Managers
 
         #endregion
 
-        #region OKR Methods
+        #region Metric Methods
 
         /// <summary>
-        /// Ensures OKRs are loaded and returns the collection.
+        /// Ensures metrics are loaded and returns the collection.
         /// </summary>
-        public async Task<ReadOnlyObservableCollection<ObjectiveKeyResult>> GetOKRs()
+        public async Task<ReadOnlyObservableCollection<Metric>> GetMetrics()
         {
-            if (!_okrsLoaded)
+            if (!_metricsLoaded)
             {
-                _logger.Debug("Loading OKRs from database");
-                var okrs = await TrackerDbManager.Instance!.GetOKRsAsync();
+                _logger.Debug("Loading metrics from database");
 
-                // Populate meeting counts for all OKRs in a single batch query (prevents N+1 problem)
-                if (okrs != null && okrs.Count > 0)
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
                 {
-                    var okrIds = okrs.Select(o => o.ObjectiveId).ToList();
-                    var meetingCounts = await TrackerDbManager.Instance.GetOkrMeetingCountsAsync(okrIds);
-
-                    foreach (var okr in okrs)
-                    {
-                        okr.MeetingCount = meetingCounts.TryGetValue(okr.ObjectiveId, out var count) ? count : 0;
-                    }
+                    _logger.Warn("GetMetrics called but OrganizationContext.UserId is not set");
+                    return _metricsReadOnly;
                 }
 
-                ReplaceCollectionItems(_okrs, okrs ?? new List<ObjectiveKeyResult>(), _okrsLock);
-                _okrsLoaded = true;
-                _logger.Debug("Loaded {0} OKRs", _okrs.Count);
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var metricRepository = new MetricRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var metrics = await metricRepository.GetMetricsAsync();
+
+                ReplaceCollectionItems(_metrics, metrics ?? new List<Metric>(), _metricsLock);
+                _metricsLoaded = true;
+                _logger.Debug("Loaded {0} metrics", _metrics.Count);
             }
 
-            return _okrsReadOnly;
+            return _metricsReadOnly;
         }
 
-        public async Task<int> AddOKR(ObjectiveKeyResult okr)
+        /// <summary>
+        /// Adds a new metric.
+        /// </summary>
+        public async Task<Guid> AddMetric(Metric metric)
         {
-            var id = await TrackerDbManager.Instance!.AddOKRAsync(okr);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                okr.ObjectiveId = id;
+                _logger.Warn("AddMetric called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var metricRepository = new MetricRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await metricRepository.AddMetricAsync(metric);
+            if (id != Guid.Empty)
+            {
+                metric.Id = id;
                 await RefreshAllAndNotifyAsync();
             }
+
             return id;
         }
 
-        public async Task<bool> UpdateOKR(ObjectiveKeyResult okr)
+        /// <summary>
+        /// Updates an existing metric.
+        /// </summary>
+        public async Task<bool> UpdateMetric(Metric metric)
         {
-            var success = await TrackerDbManager.Instance!.UpdateOKRAsync(okr);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateMetric called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var metricRepository = new MetricRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await metricRepository.UpdateMetricAsync(metric);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
             }
+
             return success;
         }
-
-        public async Task<bool> DeleteOKR(int id)
-        {
-            var success = await TrackerDbManager.Instance!.DeleteOKRAsync(id);
-            if (success)
-            {
-                await RefreshAllAndNotifyAsync();
-            }
-            return success;
-        }
-
-        #endregion
-
-        #region KPI Methods
 
         /// <summary>
-        /// Ensures KPIs are loaded and returns the collection.
+        /// Deletes a metric by its Id.
         /// </summary>
-        public async Task<ReadOnlyObservableCollection<KeyPerformanceIndicator>> GetKPIs()
+        public async Task<bool> DeleteMetric(Guid id)
         {
-            if (!_kpisLoaded)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                _logger.Debug("Loading KPIs from database");
-                var kpis = await TrackerDbManager.Instance!.GetKPIsAsync();
-
-                // Populate meeting counts for all KPIs in a single batch query (prevents N+1 problem)
-                if (kpis != null && kpis.Count > 0)
-                {
-                    var kpiIds = kpis.Select(k => k.KpiId).ToList();
-                    var meetingCounts = await TrackerDbManager.Instance.GetKpiMeetingCountsAsync(kpiIds);
-
-                    foreach (var kpi in kpis)
-                    {
-                        kpi.MeetingCount = meetingCounts.TryGetValue(kpi.KpiId, out var count) ? count : 0;
-                    }
-                }
-
-                ReplaceCollectionItems(_kpis, kpis ?? new List<KeyPerformanceIndicator>(), _kpisLock);
-                _kpisLoaded = true;
-                _logger.Debug("Loaded {0} KPIs", _kpis.Count);
+                _logger.Warn("DeleteMetric called but OrganizationContext.UserId is not set");
+                return false;
             }
 
-            return _kpisReadOnly;
-        }
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
 
-        public async Task<int> AddKPI(KeyPerformanceIndicator kpi)
-        {
-            var id = await TrackerDbManager.Instance!.AddKPIAsync(kpi);
-            if (id > 0)
-            {
-                kpi.KpiId = id;
-                await RefreshAllAndNotifyAsync();
-            }
-            return id;
-        }
+            var metricRepository = new MetricRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
 
-        public async Task<bool> UpdateKPI(KeyPerformanceIndicator kpi)
-        {
-            var success = await TrackerDbManager.Instance!.UpdateKPIAsync(kpi);
+            var success = await metricRepository.DeleteMetricAsync(id);
             if (success)
             {
                 await RefreshAllAndNotifyAsync();
             }
-            return success;
-        }
 
-        public async Task<bool> DeleteKPI(int id)
-        {
-            var success = await TrackerDbManager.Instance!.DeleteKPIAsync(id);
-            if (success)
-            {
-                await RefreshAllAndNotifyAsync();
-            }
             return success;
         }
 
@@ -698,8 +1100,24 @@ namespace Tracker.Managers
             if (!_feedbacksLoaded)
             {
                 _logger.Debug("Loading feedbacks from database");
-                var feedbacks = await TrackerDbManager.Instance!.GetAllFeedbackAsync();
-                ReplaceCollectionItems(_feedbacks, feedbacks, _feedbacksLock);
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetFeedbacks called but OrganizationContext.UserId is not set");
+                    return _feedbacksReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var feedbackRepository = new FeedbackRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var feedbacks = await feedbackRepository.GetAllFeedbackAsync();
+                ReplaceCollectionItems(_feedbacks, feedbacks ?? new List<Feedback>(), _feedbacksLock);
                 _feedbacksLoaded = true;
                 _logger.Debug("Loaded {0} feedbacks", _feedbacks.Count);
             }
@@ -708,18 +1126,78 @@ namespace Tracker.Managers
 
         public async Task<int> AddFeedback(Feedback feedback)
         {
-            var id = await TrackerDbManager.Instance!.AddFeedbackAsync(feedback);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                feedback.Id = id;
+                _logger.Warn("AddFeedback called but OrganizationContext.UserId is not set");
+                return 0;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var feedbackRepository = new FeedbackRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await feedbackRepository.AddFeedbackAsync(feedback);
+            if (id != Guid.Empty)
+            {
                 await RefreshAllAndNotifyAsync();
             }
             return id;
         }
 
+        public async Task<bool> UpdateFeedback(Feedback feedback)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateFeedback called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var feedbackRepository = new FeedbackRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await feedbackRepository.UpdateFeedbackAsync(feedback);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
+            }
+            return success;
+        }
+
         public async Task DeleteFeedbackAsync(Feedback feedback)
         {
-            await TrackerDbManager.Instance!.DeleteFeedbackAsync(feedback.Id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteFeedbackAsync called but OrganizationContext.UserId is not set");
+                return;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            await using var context = contextFactory.CreateContext();
+
+            var existing = await context.Feedbacks
+                .Where(f => !f.IsDeleted && f.Id == feedback.Id)
+                .FirstOrDefaultAsync();
+
+            if (existing == null)
+            {
+                _logger.Warn("DeleteFeedbackAsync: Feedback with Id {0} not found", feedback.Id);
+                return;
+            }
+
+            context.Feedbacks.Remove(existing);
+            await context.SaveChangesAsync();
             await RefreshAllAndNotifyAsync();
         }
 
@@ -732,20 +1210,51 @@ namespace Tracker.Managers
         /// </summary>
         public async Task<ReadOnlyObservableCollection<DevelopmentGoal>> GetGoals()
         {
-            if (!_goalsLoaded)
+            if (!_developmentGoalsLoaded)
             {
                 _logger.Debug("Loading goals from database");
-                var goals = await TrackerDbManager.Instance!.GetAllDevelopmentGoalsAsync();
-                ReplaceCollectionItems(_goals, goals, _goalsLock);
-                _goalsLoaded = true;
-                _logger.Debug("Loaded {0} goals", _goals.Count);
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetGoals called but OrganizationContext.UserId is not set");
+                    return _developmentGoalsReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var goalRepository = new DevelopmentGoalRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var goals = await goalRepository.GetAllDevelopmentGoalsAsync();
+                ReplaceCollectionItems(_developmentGoals, goals ?? new List<DevelopmentGoal>(), _developmentGoalsLock);
+                _developmentGoalsLoaded = true;
+                _logger.Debug("Loaded {0} goals", _developmentGoals.Count);
             }
-            return _goalsReadOnly;
+            return _developmentGoalsReadOnly;
         }
 
         public async Task<Guid> AddGoal(DevelopmentGoal goal)
         {
-            var id = await TrackerDbManager.Instance!.AddDevelopmentGoalAsync(goal);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("AddGoal called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var goalRepository = new DevelopmentGoalRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await goalRepository.AddDevelopmentGoalAsync(goal);
             if (id != Guid.Empty)
             {
                 goal.Id = id;
@@ -754,10 +1263,53 @@ namespace Tracker.Managers
             return id;
         }
 
+        public async Task<bool> UpdateGoal(DevelopmentGoal goal)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateGoal called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var goalRepository = new DevelopmentGoalRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await goalRepository.UpdateDevelopmentGoalAsync(goal);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
+            }
+            return success;
+        }
+
         public async Task DeleteGoalAsync(DevelopmentGoal goal)
         {
-            await TrackerDbManager.Instance!.DeleteDevelopmentGoalAsync(goal.Id);
-            await RefreshAllAndNotifyAsync();
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteGoalAsync called but OrganizationContext.UserId is not set");
+                return;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var goalRepository = new DevelopmentGoalRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await goalRepository.DeleteDevelopmentGoalAsync(goal.Id);
+            if (success)
+            {
+                await RefreshAllAndNotifyAsync();
+            }
         }
 
         #endregion
@@ -772,8 +1324,24 @@ namespace Tracker.Managers
             if (!_quickNotesLoaded)
             {
                 _logger.Debug("Loading quick notes from database");
-                var notes = await TrackerDbManager.Instance!.GetQuickNotesAsync();
-                ReplaceCollectionItems(_quickNotes, notes, _quickNotesLock);
+
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetQuickNotes called but OrganizationContext.UserId is not set");
+                    return _quickNotesReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var quickNoteRepository = new QuickNoteRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var notes = await quickNoteRepository.GetQuickNotesAsync();
+                ReplaceCollectionItems(_quickNotes, notes ?? new List<QuickNote>(), _quickNotesLock);
                 _quickNotesLoaded = true;
                 _logger.Debug("Loaded {0} quick notes", _quickNotes.Count);
             }
@@ -782,7 +1350,22 @@ namespace Tracker.Managers
 
         public async Task<int> AddQuickNote(QuickNote note)
         {
-            var id = await TrackerDbManager.Instance!.AddQuickNoteAsync(note);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("AddQuickNote called but OrganizationContext.UserId is not set");
+                return 0;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var quickNoteRepository = new QuickNoteRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await quickNoteRepository.AddQuickNoteAsync(note);
             if (id > 0)
             {
                 note.Id = id;
@@ -803,8 +1386,23 @@ namespace Tracker.Managers
             if (!_pulseSurveysLoaded)
             {
                 _logger.Debug("Loading pulse surveys from database");
-                var surveys = await TrackerDbManager.Instance!.GetPulseSurveysAsync();
-                ReplaceCollectionItems(_pulseSurveys, surveys, _pulseSurveysLock);
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetPulseSurveys called but OrganizationContext.UserId is not set");
+                    return _pulseSurveysReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var pulseSurveyRepository = new PulseSurveyRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var surveys = await pulseSurveyRepository.GetPulseSurveysAsync();
+                ReplaceCollectionItems(_pulseSurveys, surveys ?? new List<PulseSurvey>(), _pulseSurveysLock);
                 _pulseSurveysLoaded = true;
                 _logger.Debug("Loaded {0} pulse surveys", _pulseSurveys.Count);
             }
@@ -813,7 +1411,22 @@ namespace Tracker.Managers
 
         public async Task<int> AddPulseSurvey(PulseSurvey survey)
         {
-            var id = await TrackerDbManager.Instance!.AddPulseSurveyAsync(survey);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("AddPulseSurvey called but OrganizationContext.UserId is not set");
+                return 0;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var pulseSurveyRepository = new PulseSurveyRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await pulseSurveyRepository.AddPulseSurveyAsync(survey);
             if (id > 0)
             {
                 survey.Id = id;
@@ -824,7 +1437,22 @@ namespace Tracker.Managers
 
         public async Task<bool> UpdatePulseSurvey(PulseSurvey survey)
         {
-            var success = await TrackerDbManager.Instance!.UpdatePulseSurveyAsync(survey);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdatePulseSurvey called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var pulseSurveyRepository = new PulseSurveyRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await pulseSurveyRepository.UpdatePulseSurveyAsync(survey);
             if (success)
             {
                 await RefreshPulseSurveysAsync();
@@ -834,7 +1462,22 @@ namespace Tracker.Managers
 
         public async Task<bool> DeletePulseSurvey(int id)
         {
-            var success = await TrackerDbManager.Instance!.DeletePulseSurveyAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeletePulseSurvey called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var pulseSurveyRepository = new PulseSurveyRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await pulseSurveyRepository.DeletePulseSurveyAsync(id);
             if (success)
             {
                 await RefreshPulseSurveysAsync();
@@ -854,20 +1497,49 @@ namespace Tracker.Managers
             if (!_reviewTemplatesLoaded)
             {
                 _logger.Debug("Loading review templates from database");
-                var templates = await TrackerDbManager.Instance!.GetReviewTemplatesAsync();
-                ReplaceCollectionItems(_reviewTemplates, templates, _reviewTemplatesLock);
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetReviewTemplates called but OrganizationContext.UserId is not set");
+                    return _reviewTemplatesReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var reviewTemplateRepository = new ReviewTemplateRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var templates = await reviewTemplateRepository.GetReviewTemplatesAsync();
+                ReplaceCollectionItems(_reviewTemplates, templates ?? new List<ReviewTemplate>(), _reviewTemplatesLock);
                 _reviewTemplatesLoaded = true;
                 _logger.Debug("Loaded {0} review templates", _reviewTemplates.Count);
             }
             return _reviewTemplatesReadOnly;
         }
 
-        public async Task<int> AddReviewTemplate(ReviewTemplate template)
+        public async Task<Guid> AddReviewTemplate(ReviewTemplate template)
         {
-            var id = await TrackerDbManager.Instance!.AddReviewTemplateAsync(template);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                template.Id = id;
+                _logger.Warn("AddReviewTemplate called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reviewTemplateRepository = new ReviewTemplateRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await reviewTemplateRepository.AddReviewTemplateAsync(template);
+            if (id != Guid.Empty)
+            {
                 await RefreshReviewTemplatesAsync();
             }
             return id;
@@ -875,7 +1547,22 @@ namespace Tracker.Managers
 
         public async Task<bool> UpdateReviewTemplate(ReviewTemplate template)
         {
-            var success = await TrackerDbManager.Instance!.UpdateReviewTemplateAsync(template);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateReviewTemplate called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reviewTemplateRepository = new ReviewTemplateRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await reviewTemplateRepository.UpdateReviewTemplateAsync(template);
             if (success)
             {
                 await RefreshReviewTemplatesAsync();
@@ -883,9 +1570,24 @@ namespace Tracker.Managers
             return success;
         }
 
-        public async Task<bool> DeleteReviewTemplate(int id)
+        public async Task<bool> DeleteReviewTemplate(Guid id)
         {
-            var success = await TrackerDbManager.Instance!.DeleteReviewTemplateAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteReviewTemplate called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reviewTemplateRepository = new ReviewTemplateRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await reviewTemplateRepository.DeleteReviewTemplateAsync(id);
             if (success)
             {
                 await RefreshReviewTemplatesAsync();
@@ -905,20 +1607,49 @@ namespace Tracker.Managers
             if (!_reviewCyclesLoaded)
             {
                 _logger.Debug("Loading review cycles from database");
-                var cycles = await TrackerDbManager.Instance!.GetReviewCyclesAsync();
-                ReplaceCollectionItems(_reviewCycles, cycles, _reviewCyclesLock);
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue)
+                {
+                    _logger.Warn("GetReviewCycles called but OrganizationContext.UserId is not set");
+                    return _reviewCyclesReadOnly;
+                }
+
+                var contextFactory = TrackerDbContextFactory.Instance;
+                using var context = contextFactory.CreateContext();
+
+                var reviewCycleRepository = new ReviewCycleRepository(
+                    context,
+                    userId.Value,
+                    () => contextFactory.CreateContext());
+
+                var cycles = await reviewCycleRepository.GetReviewCyclesAsync();
+                ReplaceCollectionItems(_reviewCycles, cycles ?? new List<PerformanceReviewCycle>(), _reviewCyclesLock);
                 _reviewCyclesLoaded = true;
                 _logger.Debug("Loaded {0} review cycles", _reviewCycles.Count);
             }
             return _reviewCyclesReadOnly;
         }
 
-        public async Task<int> AddReviewCycle(PerformanceReviewCycle cycle)
+        public async Task<Guid> AddReviewCycle(PerformanceReviewCycle cycle)
         {
-            var id = await TrackerDbManager.Instance!.AddReviewCycleAsync(cycle);
-            if (id > 0)
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
             {
-                cycle.Id = id;
+                _logger.Warn("AddReviewCycle called but OrganizationContext.UserId is not set");
+                return Guid.Empty;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reviewCycleRepository = new ReviewCycleRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var id = await reviewCycleRepository.AddReviewCycleAsync(cycle);
+            if (id != Guid.Empty)
+            {
                 await RefreshReviewCyclesAsync();
             }
             return id;
@@ -926,7 +1657,22 @@ namespace Tracker.Managers
 
         public async Task<bool> UpdateReviewCycle(PerformanceReviewCycle cycle)
         {
-            var success = await TrackerDbManager.Instance!.UpdateReviewCycleAsync(cycle);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("UpdateReviewCycle called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reviewCycleRepository = new ReviewCycleRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await reviewCycleRepository.UpdateReviewCycleAsync(cycle);
             if (success)
             {
                 await RefreshReviewCyclesAsync();
@@ -934,14 +1680,51 @@ namespace Tracker.Managers
             return success;
         }
 
-        public async Task<bool> DeleteReviewCycle(int id)
+        public async Task<bool> DeleteReviewCycle(Guid id)
         {
-            var success = await TrackerDbManager.Instance!.DeleteReviewCycleAsync(id);
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                _logger.Warn("DeleteReviewCycle called but OrganizationContext.UserId is not set");
+                return false;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            var reviewCycleRepository = new ReviewCycleRepository(
+                context,
+                userId.Value,
+                () => contextFactory.CreateContext());
+
+            var success = await reviewCycleRepository.DeleteReviewCycleAsync(id);
             if (success)
             {
                 await RefreshReviewCyclesAsync();
             }
             return success;
+        }
+
+        /// <summary>
+        /// Creates performance reviews for all team members in a cycle.
+        /// TODO: Implement properly via repository pattern
+        /// </summary>
+        public async Task<int> CreateReviewsForCycleAsync(Guid cycleId)
+        {
+            _logger.Warn("CreateReviewsForCycleAsync not yet implemented for repository pattern");
+            await Task.CompletedTask;
+            return 0;
+        }
+
+        /// <summary>
+        /// Shares a review with the team member.
+        /// TODO: Implement properly via repository pattern
+        /// </summary>
+        public async Task<bool> ShareReviewAsync(Guid reviewId)
+        {
+            _logger.Warn("ShareReviewAsync not yet implemented for repository pattern");
+            await Task.CompletedTask;
+            return false;
         }
 
         #endregion
@@ -950,7 +1733,21 @@ namespace Tracker.Managers
 
         public async Task<List<TaskCollection>> GetTaskCollections()
         {
-            return await TrackerDbManager.Instance!.GetTaskCollectionsAsync();
+            var organizationId = OrganizationContext.Current.OrganizationIdOrNull;
+            if (!organizationId.HasValue)
+            {
+                _logger.Warn("GetTaskCollections called but OrganizationContext.OrganizationId is not set");
+                return new List<TaskCollection>();
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            using var context = contextFactory.CreateContext();
+
+            return await context.TaskCollections
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted && c.OrganizationId == organizationId.Value)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
         }
 
         #endregion
@@ -971,17 +1768,17 @@ namespace Tracker.Managers
             // Load all data in parallel
             await Task.WhenAll(
                 GetTeamData(),
-                GetOneOnOnes(),
+                GetOneOnOneMeetings(),
                 GetTasks(),
-                GetOKRs(),
-                GetKPIs(),
+                GetStrategicGoals(),
+                GetMetrics(),
                 GetProjects(),
                 GetFeedbacks(),
                 GetGoals()
             );
 
-            _logger.Info("All data refreshed: {0} team members, {1} tasks, {2} OKRs",
-                _teamMembers.Count, _tasks.Count, _okrs.Count);
+            _logger.Info("All data refreshed: {0} team members, {1} tasks, {2} strategic goals",
+                _teamMembers.Count, _tasks.Count, _strategicGoals.Count);
         }
 
         /// <summary>
@@ -996,20 +1793,21 @@ namespace Tracker.Managers
                     await GetTeamData();
                     break;
                 case DataChangeType.OneOnOnes:
-                    _oneOnOnesLoaded = false;
-                    await GetOneOnOnes();
+                    _meetingsLoaded = false;
+                    await GetOneOnOneMeetings();
                     break;
                 case DataChangeType.Tasks:
                     _tasksLoaded = false;
                     await GetTasks();
                     break;
                 case DataChangeType.OKRs:
-                    _okrsLoaded = false;
-                    await GetOKRs();
+                    _strategicGoalsLoaded = false;
+                    await GetStrategicGoals();
                     break;
                 case DataChangeType.KPIs:
-                    _kpisLoaded = false;
-                    await GetKPIs();
+                    // Legacy change type name; now refreshes metrics
+                    _metricsLoaded = false;
+                    await GetMetrics();
                     break;
                 case DataChangeType.Projects:
                     _projectsLoaded = false;
@@ -1020,7 +1818,7 @@ namespace Tracker.Managers
                     await GetFeedbacks();
                     break;
                 case DataChangeType.Goals:
-                    _goalsLoaded = false;
+                    _developmentGoalsLoaded = false;
                     await GetGoals();
                     break;
                 case DataChangeType.QuickNotes:
@@ -1044,8 +1842,8 @@ namespace Tracker.Managers
         /// </summary>
         public async Task RefreshOneOnOnesAsync()
         {
-            _oneOnOnesLoaded = false;
-            await GetOneOnOnes();
+            _meetingsLoaded = false;
+            await GetOneOnOneMeetings();
         }
 
         /// <summary>
@@ -1058,21 +1856,21 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Refreshes OKRs from the database.
+        /// Refreshes strategic goals from the database.
         /// </summary>
-        public async Task RefreshOKRsAsync()
+        public async Task RefreshStrategicGoalsAsync()
         {
-            _okrsLoaded = false;
-            await GetOKRs();
+            _strategicGoalsLoaded = false;
+            await GetStrategicGoals();
         }
 
         /// <summary>
-        /// Refreshes KPIs from the database.
+        /// Refreshes metrics from the database (legacy name: KPIs).
         /// </summary>
         public async Task RefreshKPIsAsync()
         {
-            _kpisLoaded = false;
-            await GetKPIs();
+            _metricsLoaded = false;
+            await GetMetrics();
         }
 
         /// <summary>
@@ -1098,7 +1896,7 @@ namespace Tracker.Managers
         /// </summary>
         public async Task RefreshGoalsAsync()
         {
-            _goalsLoaded = false;
+            _developmentGoalsLoaded = false;
             await GetGoals();
         }
 

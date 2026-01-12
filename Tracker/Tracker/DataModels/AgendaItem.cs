@@ -16,6 +16,8 @@ namespace Tracker.DataModels
         private DateTime? _discussedAt;
         private int? _timeEstimateMinutes;
         private int? _actualDurationMinutes;
+        private string? _relatedEntityType;
+        private Guid? _relatedEntityId;
 
         /// <summary>
         /// Unique identifier for this agenda item (UUID).
@@ -98,6 +100,35 @@ namespace Tracker.DataModels
             get => _actualDurationMinutes;
             set { _actualDurationMinutes = value; OnPropertyChanged(); }
         }
+
+        #region Related Entity (for discussing existing Tasks/Goals/Metrics)
+
+        /// <summary>
+        /// Type of related entity being discussed (Task, Goal, Metric).
+        /// Null if this is a standalone agenda item.
+        /// </summary>
+        public string? RelatedEntityType
+        {
+            get => _relatedEntityType;
+            set { _relatedEntityType = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// ID of the related entity being discussed.
+        /// Null if this is a standalone agenda item.
+        /// </summary>
+        public Guid? RelatedEntityId
+        {
+            get => _relatedEntityId;
+            set { _relatedEntityId = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// Whether this agenda item is linked to an existing entity.
+        /// </summary>
+        public bool HasRelatedEntity => RelatedEntityId.HasValue && !string.IsNullOrEmpty(RelatedEntityType);
+
+        #endregion
 
         #region Computed Properties
 

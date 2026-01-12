@@ -1,6 +1,7 @@
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
+using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -31,15 +32,15 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
             try
             {
-                var dbManager = TrackerDbManager.Instance;
-                if (dbManager == null || !dbManager.IsInitialized)
+                var repository = CreateTaskRepository();
+                if (repository == null)
                 {
-                    _logger.Debug("Database not initialized, skipping task data");
+                    _logger.Debug("No current user context, skipping task data");
                     return null;
                 }
 
                 // Get all tasks
-                var allTasks = await dbManager.GetTasksAsync();
+                var allTasks = await repository.GetTasksAsync();
                 if (allTasks == null || allTasks.Count == 0)
                 {
                     return null;
@@ -65,37 +66,37 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 var cutoffDate = today.AddDays(-settings.ShowOverdueTasksMaxDays);
                 var weekAhead = today.AddDays(7);
 
-                // Categorize tasks - DueDate is not nullable in IndividualTask
+                // Categorize tasks - DueDate is nullable in TrackerTask
                 var overdueTasks = memberTasks
-                    .Where(t => t.DueDate.Date < today && t.DueDate.Date >= cutoffDate)
+                    .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date < today && t.DueDate.Value.Date >= cutoffDate)
                     .OrderBy(t => t.DueDate)
                     .ToList();
 
                 var dueThisWeek = memberTasks
-                    .Where(t => t.DueDate.Date >= today && t.DueDate.Date <= weekAhead)
+                    .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date >= today && t.DueDate.Value.Date <= weekAhead)
                     .OrderBy(t => t.DueDate)
                     .ToList();
 
-                // Tasks with MinValue DueDate are considered "no due date"
+                // Tasks with no DueDate are considered "no due date"
                 var noDueDate = memberTasks
-                    .Where(t => t.DueDate.Date == DateTime.MinValue.Date)
+                    .Where(t => !t.DueDate.HasValue)
                     .Take(3)
                     .ToList();
 
                 // Add overdue tasks (high priority)
                 foreach (var task in overdueTasks.Take(settings.MaxItemsPerSection))
                 {
-                    var daysOverdue = (today - task.DueDate.Date).Days;
+                    var daysOverdue = (today - task.DueDate!.Value.Date).Days;
                     var priority = daysOverdue > 7 ? PrepItemPriority.Critical : PrepItemPriority.High;
                     
                     section.Items.Add(new PrepItem
                     {
-                        Title = task.Description,
+                        Title = task.Title ?? task.Description ?? "Untitled Task",
                         Subtext = $"⚠️ Overdue by {daysOverdue} day{(daysOverdue != 1 ? "s" : "")}",
                         Description = task.Notes,
                         Priority = priority,
                         LinkType = PrepItemLinkType.Task,
-                        LinkId = task.Id,
+                        LinkId = task.Id.GetHashCode(),
                         Icon = "Warning"
                     });
                 }
@@ -103,7 +104,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 // Add tasks due this week
                 foreach (var task in dueThisWeek.Take(settings.MaxItemsPerSection - overdueTasks.Count()))
                 {
-                    var daysUntil = (task.DueDate.Date - today).Days;
+                    var daysUntil = (task.DueDate!.Value.Date - today).Days;
                     var subtext = daysUntil == 0 
                         ? "Due TODAY" 
                         : daysUntil == 1 
@@ -112,12 +113,12 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     
                     section.Items.Add(new PrepItem
                     {
-                        Title = task.Description,
+                        Title = task.Title ?? task.Description ?? "Untitled Task",
                         Subtext = subtext,
                         Description = task.Notes,
                         Priority = daysUntil <= 2 ? PrepItemPriority.High : PrepItemPriority.Normal,
                         LinkType = PrepItemLinkType.Task,
-                        LinkId = task.Id,
+                        LinkId = task.Id.GetHashCode(),
                         Icon = "Clock"
                     });
                 }
@@ -129,12 +130,12 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     {
                         section.Items.Add(new PrepItem
                         {
-                            Title = task.Description,
+                            Title = task.Title ?? task.Description ?? "Untitled Task",
                             Subtext = "No due date set",
                             Description = task.Notes,
                             Priority = PrepItemPriority.Low,
                             LinkType = PrepItemLinkType.Task,
-                            LinkId = task.Id,
+                            LinkId = task.Id.GetHashCode(),
                             Icon = "Task"
                         });
                     }
@@ -153,6 +154,19 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             }
 
             return section.HasItems ? section : null;
+        }
+
+        private static TrackerTaskRepository? CreateTaskRepository()
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var contextFactory = TrackerDbContextFactory.Instance;
+            var context = contextFactory.CreateContext();
+            return new TrackerTaskRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private MeetingPrepSettings GetSettings()
