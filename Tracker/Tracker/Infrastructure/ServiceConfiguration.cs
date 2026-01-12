@@ -37,6 +37,8 @@ namespace Tracker.Infrastructure
             services.AddScoped<ITaskRepository, TaskRepository>();
             services.AddScoped<IGoalRepository, GoalRepository>();
             services.AddScoped<IMetricRepository, MetricRepository>();
+            services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+            services.AddScoped<IProjectRepository, ProjectRepository>();
             // TODO: Add remaining repositories as they are created (Phase 2)
 
             // Register logging
