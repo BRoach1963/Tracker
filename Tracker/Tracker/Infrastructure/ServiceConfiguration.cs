@@ -32,6 +32,7 @@ namespace Tracker.Infrastructure
             // This is the ONLY place database operations happen - never directly in ViewModels or Services.
             services.AddScoped<IDapperConnectionFactory, DapperConnectionFactory>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
             // TODO: Add remaining repositories as they are created
 
             // Register logging
