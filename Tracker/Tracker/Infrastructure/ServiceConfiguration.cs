@@ -41,7 +41,9 @@ namespace Tracker.Infrastructure
             services.AddScoped<IProjectRepository, ProjectRepository>();
             services.AddScoped<IQuickNoteRepository, QuickNoteRepository>();
             services.AddScoped<IDevelopmentGoalRepository, DevelopmentGoalRepository>();
-            // TODO: Add PerformanceReview & PulseSurvey (Phase 2.3)
+            services.AddScoped<IPerformanceReviewRepository, PerformanceReviewRepository>();
+            services.AddScoped<IPulseSurveyRepository, PulseSurveyRepository>();
+            // ALL 12 GOLD STANDARD REPOSITORIES REGISTERED - PHASE 2 COMPLETE
 
             // Register logging
             services.AddSingleton<ILogger>(_ => LoggingManager.GetComponentLogger("DI"));
