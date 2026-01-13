@@ -45,6 +45,14 @@ namespace Tracker.Infrastructure
             services.AddScoped<IPulseSurveyRepository, PulseSurveyRepository>();
             // ALL 12 GOLD STANDARD REPOSITORIES REGISTERED - PHASE 2 COMPLETE
 
+            // ===== BUSINESS LOGIC SERVICES LAYER =====
+            // High-level services that wrap repositories
+            // ViewModels inject these instead of repositories directly
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<ITeamMemberService, TeamMemberService>();
+            services.AddScoped<IMeetingService, MeetingService>();
+            // TODO: Add remaining services as needed (TaskService, GoalService, etc.)
+
             // Register logging
             services.AddSingleton<ILogger>(_ => LoggingManager.GetComponentLogger("DI"));
 
