@@ -51,7 +51,10 @@ namespace Tracker.Infrastructure
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<ITeamMemberService, TeamMemberService>();
             services.AddScoped<IMeetingService, MeetingService>();
-            // TODO: Add remaining services as needed (TaskService, GoalService, etc.)
+            services.AddScoped<ITaskService, TaskService>();
+            services.AddScoped<IGoalService, GoalService>();
+            services.AddScoped<IMetricService, MetricService>();
+            // TODO: Add remaining services (FeedbackService, ProjectService, etc.) as needed
 
             // Register logging
             services.AddSingleton<ILogger>(_ => LoggingManager.GetComponentLogger("DI"));
