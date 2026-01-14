@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Input;
 using Tracker.Classes;
 using Tracker.Command;
-using Tracker.Database;
 using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -351,9 +350,6 @@ namespace Tracker.ViewModels.DialogViewModels
                     // Create local user record FIRST - this sets CurrentUserId
                     await CreateLocalUserAsync(result.User);
 
-                    // Set PostgreSQL RLS context AFTER CurrentUserId is set
-                    await TrackerDbManager.Instance!.SetPostgresUserAsync(result.User.Id);
-
                     // Save auth settings
                     SaveAuthenticationSettings(isNewAccount: false, result.User, result.AccessToken);
 
@@ -442,9 +438,6 @@ namespace Tracker.ViewModels.DialogViewModels
 
                     // Create local user record FIRST - this sets CurrentUserId
                     await CreateLocalUserAsync(result.User);
-
-                    // Set PostgreSQL RLS context AFTER CurrentUserId is set
-                    await TrackerDbManager.Instance!.SetPostgresUserAsync(result.User.Id);
 
                     // Save auth settings
                     SaveAuthenticationSettings(isNewAccount: true, result.User, result.AccessToken);
@@ -601,26 +594,23 @@ namespace Tracker.ViewModels.DialogViewModels
 
                 UserSettingsManager.Instance.CurrentUser = displayName;
 
-                if (TrackerDbManager.Instance != null)
-                {
-                    // Look up by SupabaseUserId (UUID), not by display name string
-                    var localUser = await TrackerDbManager.Instance.GetOrCreateUserAsync(user.Id, user.Email, displayName);
-                    if (localUser != null)
-                    {
-                        var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-                        authSettings.StoredUserId = localUser.Id;
-                        authSettings.AccountSetupCompleted = true;
-                        
-                        _logger.Info("Local user created/retrieved: {0} (Id: {1})", displayName, localUser.Id);
-                        
-                        // Refresh CanSelectAdmin binding to enable/disable checkbox
-                        RaisePropertyChanged(nameof(CanSelectAdmin));
-                    }
-                }
+                // Store the Supabase user ID - use CloudUserId for the UUID
+                var authSettings = UserSettingsManager.Instance.Settings.Authentication;
+                authSettings.CloudUserId = user.Id.ToString();
+                authSettings.CloudUserEmail = user.Email;
+                authSettings.CloudAccountLinked = true;
+                authSettings.AccountSetupCompleted = true;
+                
+                _logger.Info("User authenticated: {0} (SupabaseId: {1})", displayName, user.Id);
+                
+                // Refresh CanSelectAdmin binding to enable/disable checkbox
+                RaisePropertyChanged(nameof(CanSelectAdmin));
+                
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
-                _logger.Warn("Failed to create local user: {0}", ex.Message);
+                _logger.Warn("Failed to set up user: {0}", ex.Message);
             }
         }
 
