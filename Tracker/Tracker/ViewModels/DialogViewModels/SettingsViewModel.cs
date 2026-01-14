@@ -6,7 +6,6 @@ using DeepEndControls.Theming;
 using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Common.Enums;
-using Tracker.Database;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Helpers;
@@ -313,8 +312,8 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             get
             {
-                var settings = TrackerDbManager.Instance.CurrentSettings;
-                if (settings == null) return "Legacy (SQLite)";
+                var settings = UserSettingsManager.Instance.Settings?.Database;
+                if (settings == null) return "PostgreSQL (Supabase)";
                 return Services.AI.VectorStoreFactory.GetProviderDisplayName(settings);
             }
         }
@@ -346,8 +345,8 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             get
             {
-                var settings = TrackerDbManager.Instance.CurrentSettings;
-                if (settings == null) return false;
+                var settings = UserSettingsManager.Instance.Settings?.Database;
+                if (settings == null) return true; // Default to PostgreSQL/Supabase
                 return settings.GetVectorStorageProvider() == VectorStorageProvider.PostgreSQL;
             }
         }
@@ -454,161 +453,41 @@ namespace Tracker.ViewModels.DialogViewModels
         private async void ExecuteClearData(object? parameter)
         {
             var owner = Win32UtilHelper.GetMainWindow();
-            var result = MessageBoxHelper.Show(
-                "⚠️ WARNING: This will permanently delete ALL data from your database!\n\n" +
-                "This includes:\n" +
-                "• All team members\n" +
-                "• All 1:1 meetings\n" +
-                "• All projects, tasks, OKRs, and KPIs\n\n" +
-                "This action cannot be undone.\n\n" +
-                "Are you sure you want to continue?",
-                "Clear All Data",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                owner);
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            // Double confirm
-            result = MessageBoxHelper.Show(
-                "Are you ABSOLUTELY sure? All data will be permanently deleted.",
-                "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Exclamation,
-                owner);
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            var success = await TrackerDbManager.Instance!.ClearAllDataAsync();
             
-            if (success)
-            {
-                // Publish a message to refresh all data in the main ViewModel
-                Messenger.Publish(new PropertyChangedMessage
-                {
-                    ChangedProperty = PropertyChangedEnum.All,
-                    RefreshData = true
-                });
-
-                // Also send through the new DataMessenger system for ViewModels using it
-                DataMessenger.SendRefreshAll();
-
-                NotificationManager.Instance.ShowSuccess("Data Cleared", "All data has been removed from the database.");
-            }
-            else
-            {
-                NotificationManager.Instance.ShowError("Error", "Failed to clear data. Check the logs for details.");
-            }
+            // Data is now managed via Supabase - show informational message
+            MessageBoxHelper.Show(
+                "Data Management\n\n" +
+                "Your data is stored securely in Supabase cloud database.\n\n" +
+                "To manage your data:\n" +
+                "• Delete individual items using the app interface\n" +
+                "• Contact support for bulk data operations\n" +
+                "• Use Supabase dashboard for admin operations",
+                "Cloud Data Management",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information,
+                owner);
+            
+            await Task.CompletedTask;
         }
 
         private async void ExecuteSeedSampleData(object? parameter)
         {
-            // Check if database already has data - use forceReseed=true if data exists
-            var hasExistingData = await TrackerDbManager.Instance!.HasDataAsync();
+            var owner = Win32UtilHelper.GetMainWindow();
             
-            string message;
-            bool forceReseed = hasExistingData; // Always use forceReseed if data exists
-            
-            if (hasExistingData)
-            {
-                message = "⚠️ WARNING: Your database already contains data!\n\n" +
-                         "This will:\n" +
-                         "• DELETE all existing data\n" +
-                         "• Add fresh sample data including:\n" +
-                         "  - 7 team members (Steelers team)\n" +
-                         "  - Sample 1:1 meetings\n" +
-                         "  - Sample projects with OKRs and KPIs\n" +
-                         "  - Sample tasks\n" +
-                         "  - Linked items (Phase 1 features)\n\n" +
-                         "This action cannot be undone.\n\n" +
-                         "Do you want to continue?";
-            }
-            else
-            {
-                message = "This will add sample data to your database including:\n\n" +
-                         "• 7 team members (Steelers team)\n" +
-                         "• Sample 1:1 meetings\n" +
-                         "• Sample projects with OKRs and KPIs\n" +
-                         "• Sample tasks\n" +
-                         "• Linked items (Phase 1 features)\n\n" +
-                         "Do you want to continue?";
-            }
-
-            // Get the Settings dialog window as owner, not MainWindow (which might cause issues)
-            var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-            var result = MessageBoxHelper.Show(
-                message,
-                forceReseed ? "Replace Data with Sample Data" : "Add Sample Data",
-                MessageBoxButton.YesNo,
-                forceReseed ? MessageBoxImage.Warning : MessageBoxImage.Question,
+            // Data is now managed via Supabase - show informational message
+            MessageBoxHelper.Show(
+                "Sample Data\n\n" +
+                "Sample data is managed via Supabase cloud database.\n\n" +
+                "To add sample data:\n" +
+                "• Run the seed.sql script in Supabase SQL Editor\n" +
+                "• Or use the Supabase dashboard\n\n" +
+                "See documentation for details.",
+                "Cloud Data Management",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information,
                 owner);
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            // Re-check for data right before seeding (in case user cleared data between dialog and now)
-            // Always use forceReseed=true if ANY data exists to ensure clean seeding
-            var hasDataBeforeSeeding = await TrackerDbManager.Instance!.HasDataAsync();
-            if (hasDataBeforeSeeding)
-            {
-                forceReseed = true; // Force reseed if data exists, regardless of original check
-            }
             
-            try
-            {
-                var success = await TrackerDbManager.Instance!.SeedSampleDataAsync(forceReseed);
-                
-                if (success)
-                {
-                    _logger.Info("Sample data seeded successfully. Sending refresh messages...");
-                    
-                    // Publish a message to refresh all data in the main ViewModel
-                    Messenger.Publish(new PropertyChangedMessage
-                    {
-                        ChangedProperty = PropertyChangedEnum.All,
-                        RefreshData = true
-                    });
-
-                    // Also send through the new DataMessenger system for ViewModels using it
-                    _logger.Debug("Calling DataMessenger.SendRefreshAll()");
-                    DataMessenger.SendRefreshAll();
-                    _logger.Debug("DataMessenger.SendRefreshAll() completed");
-
-                    NotificationManager.Instance.ShowSuccess(
-                        "Sample Data Added", 
-                        forceReseed 
-                            ? "All data has been replaced with fresh sample data." 
-                            : "Sample data has been added to the database.");
-                }
-                else
-                {
-                    // Check if it failed because data already exists
-                    var hasDataAfterFailure = await TrackerDbManager.Instance!.HasDataAsync();
-                    if (hasDataAfterFailure && !forceReseed)
-                    {
-                        NotificationManager.Instance.ShowWarning(
-                            "Data Already Exists", 
-                            "Your database already contains data. Use 'Replace Data with Sample Data' to clear and reseed.");
-                    }
-                    else
-                    {
-                        NotificationManager.Instance.ShowError("Error", "Failed to add sample data. The database may already contain data or there was an issue during seeding.");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Show the actual error message to the user
-                var errorMessage = ex.InnerException != null 
-                    ? $"{ex.Message}\n\nDetails: {ex.InnerException.Message}"
-                    : ex.Message;
-                    
-                NotificationManager.Instance.ShowError(
-                    "Error Adding Sample Data", 
-                    $"Failed to add sample data:\n\n{errorMessage}\n\nCheck the log file for more details:\n{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\Tracker\\Logs\\Tracker.log");
-            }
+            await Task.CompletedTask;
         }
 
         private static Brush GetThemePreviewColor(DeepEndTheme theme)
