@@ -15,7 +15,7 @@ namespace Tracker.Services
         Task<IEnumerable<MetricHistory>> GetMetricHistoryAsync(Guid metricId);
         Task<Metric> CreateMetricAsync(Metric metric);
         Task UpdateMetricAsync(Metric metric);
-        Task DeleteMetricAsync(Guid metricId);
+        Task DeleteMetricAsync(Guid metricId, Guid deletedByUserId);
         Task<Metric?> GetMetricAsync(Guid metricId);
     }
 
@@ -108,11 +108,11 @@ namespace Tracker.Services
             }
         }
 
-        public async Task DeleteMetricAsync(Guid metricId)
+        public async Task DeleteMetricAsync(Guid metricId, Guid deletedByUserId)
         {
             try
             {
-                await _repository.DeleteAsync(metricId);
+                await _repository.DeleteAsync(metricId, deletedByUserId);
             }
             catch (Exception ex)
             {

@@ -14,7 +14,7 @@ namespace Tracker.Services
         Task<IEnumerable<Goal>> GetOrganizationGoalsAsync(Guid organizationId);
         Task<Goal> CreateGoalAsync(Goal goal);
         Task UpdateGoalAsync(Goal goal);
-        Task DeleteGoalAsync(Guid goalId);
+        Task DeleteGoalAsync(Guid goalId, Guid deletedByUserId);
         Task<Goal?> GetGoalAsync(Guid goalId);
     }
 
@@ -94,11 +94,11 @@ namespace Tracker.Services
             }
         }
 
-        public async Task DeleteGoalAsync(Guid goalId)
+        public async Task DeleteGoalAsync(Guid goalId, Guid deletedByUserId)
         {
             try
             {
-                await _repository.DeleteAsync(goalId);
+                await _repository.DeleteAsync(goalId, deletedByUserId);
             }
             catch (Exception ex)
             {

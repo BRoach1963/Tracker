@@ -46,7 +46,7 @@ namespace Tracker.Services
         /// <summary>
         /// Delete a user (soft delete).
         /// </summary>
-        Task DeleteUserAsync(Guid userId);
+        Task DeleteUserAsync(Guid userId, Guid deletedByUserId);
 
         /// <summary>
         /// Get a single user by ID.
@@ -69,7 +69,12 @@ namespace Tracker.Services
         {
             try
             {
-                return await _repository.GetBySupabaseIdAsync(supabaseId);
+                if (!Guid.TryParse(supabaseId, out var supabaseGuid))
+                {
+                    _logger.LogWarning("Invalid Supabase ID format: {SupabaseId}", supabaseId);
+                    return null;
+                }
+                return await _repository.GetBySupabaseIdAsync(supabaseGuid);
             }
             catch (Exception ex)
             {
@@ -143,11 +148,11 @@ namespace Tracker.Services
             }
         }
 
-        public async Task DeleteUserAsync(Guid userId)
+        public async Task DeleteUserAsync(Guid userId, Guid deletedByUserId)
         {
             try
             {
-                await _repository.DeleteAsync(userId);
+                await _repository.DeleteAsync(userId, deletedByUserId);
             }
             catch (Exception ex)
             {

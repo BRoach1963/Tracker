@@ -51,7 +51,7 @@ namespace Tracker.Services
         /// <summary>
         /// Remove a team member (soft delete).
         /// </summary>
-        Task RemoveTeamMemberAsync(Guid teamMemberId);
+        Task RemoveTeamMemberAsync(Guid teamMemberId, Guid deletedByUserId);
 
         /// <summary>
         /// Get a single team member by ID.
@@ -161,11 +161,11 @@ namespace Tracker.Services
             }
         }
 
-        public async Task RemoveTeamMemberAsync(Guid teamMemberId)
+        public async Task RemoveTeamMemberAsync(Guid teamMemberId, Guid deletedByUserId)
         {
             try
             {
-                await _repository.DeleteAsync(teamMemberId);
+                await _repository.DeleteAsync(teamMemberId, deletedByUserId);
             }
             catch (Exception ex)
             {

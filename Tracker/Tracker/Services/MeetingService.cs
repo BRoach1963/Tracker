@@ -49,7 +49,7 @@ namespace Tracker.Services
         /// <summary>
         /// Delete a meeting (soft delete).
         /// </summary>
-        Task DeleteMeetingAsync(Guid meetingId);
+        Task DeleteMeetingAsync(Guid meetingId, Guid deletedByUserId);
 
         /// <summary>
         /// Get a single meeting by ID.
@@ -114,8 +114,9 @@ namespace Tracker.Services
                 // Get all meetings between user1 and user2, then return the most recent
                 var userMeetings = await _repository.GetByUserAsync(user1Id);
                 
+                // For 1:1 meetings, check if user2 is the manager or report
                 var previousMeeting = userMeetings
-                    .Where(m => m.ParticipantId == user2Id || m.OrganizerId == user2Id)
+                    .Where(m => m.ManagerTeamMemberId == user2Id || m.ReportTeamMemberId == user2Id)
                     .OrderByDescending(m => m.ScheduledAt)
                     .FirstOrDefault();
 
@@ -154,11 +155,11 @@ namespace Tracker.Services
             }
         }
 
-        public async Task DeleteMeetingAsync(Guid meetingId)
+        public async Task DeleteMeetingAsync(Guid meetingId, Guid deletedByUserId)
         {
             try
             {
-                await _repository.DeleteAsync(meetingId);
+                await _repository.DeleteAsync(meetingId, deletedByUserId);
             }
             catch (Exception ex)
             {

@@ -65,7 +65,7 @@ namespace Tracker.Services.Data
                     return envConnection;
 
                 // Fall back to user settings
-                var settings = UserSettingsManager.Instance?.Settings?.DatabaseSettings;
+                var settings = UserSettingsManager.Instance?.Settings?.Database;
                 if (settings?.Type == DatabaseType.PostgreSQL)
                     return settings.GetConnectionString();
 
