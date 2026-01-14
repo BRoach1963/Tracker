@@ -61,6 +61,39 @@ Follow the guidelines in [CODING_GUIDELINES.md](.github/CODING_GUIDELINES.md):
 4. Add appropriate logging
 5. Consider multi-user scenarios (shared database)
 6. Update tests if modifying business logic
+7. **Update Dapper documentation if applicable** (see below)
+
+## Documentation Sync Requirements (MANDATORY)
+
+When modifying data access code, you MUST update the corresponding documentation in `/New Docs/Dapper/`. This keeps docs accurate and saves future debugging time.
+
+### Dapper Documentation Files
+| File | Update When... |
+|------|----------------|
+| `01_ARCHITECTURE_OVERVIEW.md` | Changing overall data access patterns, adding new architectural layers |
+| `02_CONNECTION_MANAGEMENT.md` | Modifying `DapperConnectionFactory`, connection strings, RLS token handling |
+| `03_BASE_REPOSITORY.md` | Changing `BaseRepository.cs`, adding new shared CRUD methods |
+| `04_ENTITY_REPOSITORIES.md` | Adding/modifying any repository in `/Services/Data/Repositories/` |
+| `05_AUTHENTICATION_FLOW.md` | Changing auth flow, `AuthenticationSettings`, login/signup process |
+| `06_SUPABASE_RLS_INTEGRATION.md` | Modifying RLS patterns, JWT handling, security context |
+| `07_ADDING_NEW_ENTITIES.md` | If the process for adding new entities changes |
+| `08_TROUBLESHOOTING.md` | Discovering new common issues or solutions |
+| `09_QUICK_REFERENCE.md` | Adding new repositories, changing method signatures |
+
+### Triggers for Documentation Updates
+- Adding a new repository → Update `04_ENTITY_REPOSITORIES.md` and `09_QUICK_REFERENCE.md`
+- Changing `AuthenticationSettings` properties → Update `05_AUTHENTICATION_FLOW.md`
+- Modifying `BaseRepository` methods → Update `03_BASE_REPOSITORY.md`
+- Adding new SQL patterns → Update relevant repository docs
+- Changing model properties that affect data mapping → Update entity docs
+- Fixing a bug related to Dapper/data access → Consider adding to `08_TROUBLESHOOTING.md`
+
+### Documentation Update Checklist
+When committing data access changes, verify:
+- [ ] Code examples in docs match the actual implementation
+- [ ] Property names, method signatures, and types are accurate
+- [ ] Any new patterns are documented with examples
+- [ ] Quick reference tables are up to date
 
 ## WPF / C# Specific Guidance
 
