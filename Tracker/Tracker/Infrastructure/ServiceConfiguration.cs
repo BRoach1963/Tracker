@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tracker.Database;
-using Tracker.Database.Repositories;
 using Tracker.DataModels;
 using Tracker.Factories;
 using Tracker.Logging;
@@ -8,10 +7,48 @@ using Tracker.Managers;
 using Tracker.Services;
 using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
-//using Tracker.Services.TeamHealth;
 using Tracker.Help.ViewModels;
 using Tracker.ViewModels;
 using Tracker.ViewModels.DialogViewModels;
+
+// Aliases for EF Core repositories that still need to be registered
+// These are the OLD repositories - will be removed once all ViewModels migrate to services
+using EfMeetingRepository = Tracker.Database.Repositories.MeetingRepository;
+using EfMetricRepository = Tracker.Database.Repositories.MetricRepository;
+using EfTrackerTaskRepository = Tracker.Database.Repositories.TrackerTaskRepository;
+using EfTargetRepository = Tracker.Database.Repositories.TargetRepository;
+using EfKudosRepository = Tracker.Database.Repositories.KudosRepository;
+using EfGoalRepository = Tracker.Database.Repositories.GoalRepository;
+using EfTeamMemberRepository = Tracker.Database.Repositories.TeamMemberRepository;
+using EfDevelopmentGoalRepository = Tracker.Database.Repositories.DevelopmentGoalRepository;
+using EfProjectRepository = Tracker.Database.Repositories.ProjectRepository;
+using EfFeedbackRepository = Tracker.Database.Repositories.FeedbackRepository;
+using EfReminderRepository = Tracker.Database.Repositories.ReminderRepository;
+using EfReviewTemplateRepository = Tracker.Database.Repositories.ReviewTemplateRepository;
+using EfReviewCycleRepository = Tracker.Database.Repositories.ReviewCycleRepository;
+using EfPerformanceReviewRepository = Tracker.Database.Repositories.PerformanceReviewRepository;
+using EfMeetingTemplateRepository = Tracker.Database.Repositories.MeetingTemplateRepository;
+using EfQuickNoteRepository = Tracker.Database.Repositories.QuickNoteRepository;
+using EfPulseSurveyRepository = Tracker.Database.Repositories.PulseSurveyRepository;
+
+// EF Core Repository Interfaces (until migration complete)
+using IEfMeetingRepository = Tracker.Database.Repositories.IMeetingRepository;
+using IEfMetricRepository = Tracker.Database.Repositories.IMetricRepository;
+using IEfTrackerTaskRepository = Tracker.Database.Repositories.ITrackerTaskRepository;
+using IEfTargetRepository = Tracker.Database.Repositories.ITargetRepository;
+using IEfKudosRepository = Tracker.Database.Repositories.IKudosRepository;
+using IEfGoalRepository = Tracker.Database.Repositories.IGoalRepository;
+using IEfTeamMemberRepository = Tracker.Database.Repositories.ITeamMemberRepository;
+using IEfDevelopmentGoalRepository = Tracker.Database.Repositories.IDevelopmentGoalRepository;
+using IEfProjectRepository = Tracker.Database.Repositories.IProjectRepository;
+using IEfFeedbackRepository = Tracker.Database.Repositories.IFeedbackRepository;
+using IEfReminderRepository = Tracker.Database.Repositories.IReminderRepository;
+using IEfReviewTemplateRepository = Tracker.Database.Repositories.IReviewTemplateRepository;
+using IEfReviewCycleRepository = Tracker.Database.Repositories.IReviewCycleRepository;
+using IEfPerformanceReviewRepository = Tracker.Database.Repositories.IPerformanceReviewRepository;
+using IEfMeetingTemplateRepository = Tracker.Database.Repositories.IMeetingTemplateRepository;
+using IEfQuickNoteRepository = Tracker.Database.Repositories.IQuickNoteRepository;
+using IEfPulseSurveyRepository = Tracker.Database.Repositories.IPulseSurveyRepository;
 
 namespace Tracker.Infrastructure
 {
@@ -69,46 +106,47 @@ namespace Tracker.Infrastructure
             // Register services
             services.AddSingleton<ISearchService, SearchService>();
             services.AddSingleton<IReminderService>(_ => ReminderService.Instance);
-            //services.AddSingleton<ITeamHealthService, TeamHealthService>();
             services.AddSingleton<IMeasurableService, MeasurableService>();
             services.AddSingleton<IMetricCalculationService, MetricCalculationService>();
             services.AddSingleton<IGoalProgressService, GoalProgressService>();
 
-            // Register repositories (scoped - one per request/operation)
-            services.AddScoped<IMeetingRepository>(sp => 
-                new MeetingRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IMetricRepository>(sp => 
-                new MetricRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<ITrackerTaskRepository>(sp => 
-                new TrackerTaskRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<ITargetRepository>(sp => 
-                new TargetRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IKudosRepository>(sp => 
-                new KudosRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IGoalRepository>(sp => 
-                new GoalRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<ITeamMemberRepository>(sp => 
-                new TeamMemberRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IDevelopmentGoalRepository>(sp => 
-                new DevelopmentGoalRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IProjectRepository>(sp => 
-                new ProjectRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IFeedbackRepository>(sp => 
-                new FeedbackRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IReminderRepository>(sp => 
-                new ReminderRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IReviewTemplateRepository>(sp => 
-                new ReviewTemplateRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IReviewCycleRepository>(sp => 
-                new ReviewCycleRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IPerformanceReviewRepository>(sp => 
-                new PerformanceReviewRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IMeetingTemplateRepository>(sp => 
-                new MeetingTemplateRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IQuickNoteRepository>(sp => 
-                new QuickNoteRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
-            services.AddScoped<IPulseSurveyRepository>(sp => 
-                new PulseSurveyRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            // ===== LEGACY EF CORE REPOSITORIES =====
+            // These are the OLD repositories still needed by ViewModels not yet migrated.
+            // TODO: Remove these once all ViewModels migrate to Dapper services.
+            services.AddScoped<IEfMeetingRepository>(sp => 
+                new EfMeetingRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfMetricRepository>(sp => 
+                new EfMetricRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfTrackerTaskRepository>(sp => 
+                new EfTrackerTaskRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfTargetRepository>(sp => 
+                new EfTargetRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfKudosRepository>(sp => 
+                new EfKudosRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfGoalRepository>(sp => 
+                new EfGoalRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfTeamMemberRepository>(sp => 
+                new EfTeamMemberRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfDevelopmentGoalRepository>(sp => 
+                new EfDevelopmentGoalRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfProjectRepository>(sp => 
+                new EfProjectRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfFeedbackRepository>(sp => 
+                new EfFeedbackRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfReminderRepository>(sp => 
+                new EfReminderRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfReviewTemplateRepository>(sp => 
+                new EfReviewTemplateRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfReviewCycleRepository>(sp => 
+                new EfReviewCycleRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfPerformanceReviewRepository>(sp => 
+                new EfPerformanceReviewRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfMeetingTemplateRepository>(sp => 
+                new EfMeetingTemplateRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfQuickNoteRepository>(sp => 
+                new EfQuickNoteRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
+            services.AddScoped<IEfPulseSurveyRepository>(sp => 
+                new EfPulseSurveyRepository(sp.GetRequiredService<TrackerDbContext>(), GetCurrentUserId(), GetContextFactory(sp)));
 
             // Register ViewModel factory
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();
