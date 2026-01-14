@@ -558,9 +558,8 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             // Save to user-specific settings (after SwitchToUser has been called)
             var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-            authSettings.CloudAccountLinked = true;
-            authSettings.CloudUserId = user.Id.ToString();
-            authSettings.CloudUserEmail = Email;
+            authSettings.UserId = user.Id;
+            authSettings.UserEmail = Email;
             authSettings.RememberMe = RememberMe;
 
             if (RememberMe)
@@ -594,11 +593,10 @@ namespace Tracker.ViewModels.DialogViewModels
 
                 UserSettingsManager.Instance.CurrentUser = displayName;
 
-                // Store the Supabase user ID - use CloudUserId for the UUID
+                // Store the Supabase user ID
                 var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-                authSettings.CloudUserId = user.Id.ToString();
-                authSettings.CloudUserEmail = user.Email;
-                authSettings.CloudAccountLinked = true;
+                authSettings.UserId = user.Id;
+                authSettings.UserEmail = user.Email;
                 authSettings.AccountSetupCompleted = true;
                 
                 _logger.Info("User authenticated: {0} (SupabaseId: {1})", displayName, user.Id);

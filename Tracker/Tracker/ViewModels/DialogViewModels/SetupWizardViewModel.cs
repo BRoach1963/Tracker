@@ -989,12 +989,11 @@ namespace Tracker.ViewModels.DialogViewModels
                 // Save authentication settings
                 var authSettings = UserSettingsManager.Instance.Settings.Authentication;
                 
-                // Save cloud account settings
-                authSettings.CloudAccountLinked = !SkipAccountSetup && AccountSetupComplete;
+                // Save user info from Supabase
                 if (SupabaseService.Instance.CurrentUser != null)
                 {
-                    authSettings.CloudUserId = SupabaseService.Instance.CurrentUser.Id;
-                    authSettings.CloudUserEmail = SupabaseService.Instance.CurrentUser.Email;
+                    authSettings.UserId = Guid.Parse(SupabaseService.Instance.CurrentUser.Id);
+                    authSettings.UserEmail = SupabaseService.Instance.CurrentUser.Email;
                 }
                 
                 UserSettingsManager.Instance.SaveSettings();
@@ -1019,8 +1018,8 @@ namespace Tracker.ViewModels.DialogViewModels
                 
                 if (user != null)
                 {
-                    // Update auth settings with local user ID
-                    authSettings.StoredUserId = user.Id;
+                    // Update auth settings - user.Id is already a Guid
+                    authSettings.UserId = user.Id;
                     authSettings.AccountSetupCompleted = true;
                     UserSettingsManager.Instance.CurrentUser = displayName ?? user.Username;
                     UserSettingsManager.Instance.SaveSettings();

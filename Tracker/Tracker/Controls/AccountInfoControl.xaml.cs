@@ -72,7 +72,7 @@ namespace Tracker.Controls
 
                 // Email
                 var auth = settings.Authentication;
-                EmailText.Text = auth?.CloudUserEmail ?? "Not configured";
+                EmailText.Text = auth?.UserEmail ?? "Not configured";
                 
                 // Load profile fields from Supabase
                 LoadProfileFields();

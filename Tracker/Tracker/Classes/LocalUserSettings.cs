@@ -218,30 +218,20 @@ namespace Tracker.Classes
     public class AuthenticationSettings
     {
         /// <summary>
-        /// The database User ID associated with this authentication.
-        /// Stored to quickly look up the user without querying by username.
+        /// The authenticated user's ID (Supabase auth.users.id).
+        /// UUID in database, Guid in C#.
         /// </summary>
-        public int? StoredUserId { get; set; }
+        public Guid? UserId { get; set; }
+
+        /// <summary>
+        /// The authenticated user's email address.
+        /// </summary>
+        public string? UserEmail { get; set; }
 
         /// <summary>
         /// Whether the user has completed initial account setup.
         /// </summary>
         public bool AccountSetupCompleted { get; set; } = false;
-
-        /// <summary>
-        /// Whether the user has linked a cloud account (Supabase).
-        /// </summary>
-        public bool CloudAccountLinked { get; set; } = false;
-
-        /// <summary>
-        /// The cloud user ID (Supabase auth.users.id).
-        /// </summary>
-        public string? CloudUserId { get; set; }
-
-        /// <summary>
-        /// The cloud user email for display purposes.
-        /// </summary>
-        public string? CloudUserEmail { get; set; }
 
         /// <summary>
         /// Whether "Remember Me" is enabled for auto-login.
@@ -253,6 +243,11 @@ namespace Tracker.Classes
         /// Password is stored separately in encrypted secure storage.
         /// </summary>
         public string? SavedEmail { get; set; }
+
+        /// <summary>
+        /// Helper to check if user is authenticated.
+        /// </summary>
+        public bool IsAuthenticated => UserId.HasValue;
     }
 
     /// <summary>

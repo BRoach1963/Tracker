@@ -247,7 +247,7 @@ namespace Tracker.Views
                     // Update settings
                     UserSettingsManager.Instance.CurrentUser = username;
                     UserSettingsManager.Instance.CurrentUserId = user.Id;
-                    UserSettingsManager.Instance.Settings.Authentication.StoredUserId = user.Id;
+                    UserSettingsManager.Instance.Settings.Authentication.UserId = user.Id;
                     UserSettingsManager.Instance.Settings.Authentication.AccountSetupCompleted = true;
                     UserSettingsManager.Instance.SaveSettings();
                     

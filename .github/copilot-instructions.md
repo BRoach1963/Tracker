@@ -5,22 +5,32 @@ Tracker is a WPF desktop application for professional relationship management, b
 
 ## Key Technologies
 - **UI**: WPF with XAML, MVVM pattern
-- **Database**: SQLite (local) or SQL Server (shared), using Entity Framework Core
-- **Backend**: Supabase for authentication, subscriptions, and cloud sync
+- **Database**: Supabase PostgreSQL using Dapper (direct SQL)
+- **Backend**: Supabase for authentication, database, and subscriptions
 - **Testing**: xUnit with Moq
 
 ## Architecture
 - **Views**: XAML files in `/Views/` - UI only, no business logic
 - **ViewModels**: In `/ViewModels/` - UI logic, commands, data binding
-- **Services**: In `/Services/` - Business logic, external integrations
+- **Services**: In `/Services/` - Business logic, wraps repositories
+- **Repositories**: In `/Services/Data/Repositories/` - ALL database access (Dapper + SQL)
 - **Managers**: In `/Managers/` - Singleton services (UserSettingsManager, NotificationManager)
-- **Database**: In `/Database/` - EF Core context, repositories, migrations
+
+## Data Access Architecture (Dapper)
+- **Connection Factory**: `Services/Data/DapperConnectionFactory.cs` - creates PostgreSQL connections
+- **Base Repository**: `Services/Data/BaseRepository.cs` - shared CRUD operations
+- **Entity Repositories**: `Services/Data/Repositories/*.cs` - entity-specific queries
+- **Services Layer**: `Services/*.cs` - business logic, calls repositories
+- **Rule**: SQL lives ONLY in repositories. Never in ViewModels or Services.
+- **Documentation**: See `/New Docs/Dapper/` for comprehensive architecture docs
 
 ## Important Patterns
 1. **User-Specific Settings**: Settings stored per-Supabase-user at `%LocalAppData%\Tracker\Users\{userId}\TrackerSettings.json`
 2. **Logging**: Use `LoggingManager.GetComponentLogger("ComponentName")` for all logging
 3. **Commands**: Use `TrackerCommand` for ICommand implementations
 4. **Events**: Use `DataMessenger` for cross-component communication
+5. **Soft Delete**: Never hard delete - set `is_deleted = true`, `deleted_at`, `deleted_by`
+6. **All IDs are GUIDs**: Supabase uses UUID, C# uses `Guid`. Never use `int` for entity IDs.
 
 ## Coding Standards
 Follow the guidelines in [CODING_GUIDELINES.md](.github/CODING_GUIDELINES.md):
@@ -31,10 +41,18 @@ Follow the guidelines in [CODING_GUIDELINES.md](.github/CODING_GUIDELINES.md):
 - Unit tests for business logic
 
 ## Database Considerations
-- Support both SQLite and SQL Server
-- Custom database location is user-specific
-- Use `TrackerDbManager` for all database operations
-- Handle offline scenarios gracefully
+- Supabase PostgreSQL is the only database (no SQLite/SQL Server)
+- Row-Level Security (RLS) enforced at database level
+- Use repositories for all database operations (never direct SQL in ViewModels)
+- All tables have: id (UUID), is_deleted, created_at, updated_at, deleted_at, deleted_by
+
+## Naming Conventions (Legacy → Current)
+| Old Name | Current Name | Database Table |
+|----------|--------------|----------------|
+| OKR / ObjectiveKeyResult | Goal | `goals` |
+| KPI / KeyPerformanceIndicator | Metric | `metrics` |
+| KeyResult | Target | `targets` |
+| OneOnOne | Meeting (Type=OneOnOne) | `meetings` |
 
 ## When Making Changes
 1. Check for existing patterns in the codebase

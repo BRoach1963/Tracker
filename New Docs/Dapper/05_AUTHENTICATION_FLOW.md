@@ -52,7 +52,7 @@ Tracker uses **Supabase Authentication** for user management. This document expl
                   ▼                           ▼                           ▼
          ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
          │UserSettingsManager        │OrganizationContext        │ UI Updates      │
-         │- Store CloudUserId        │- Set current org          │- Show username  │
+         │- Store UserId (Guid)      │- Set current org          │- Show username  │
          │- Save to disk    │         │- Available to DI │        │- Enable features│
          └─────────────────┘         └─────────────────┘         └─────────────────┘
 ```
@@ -141,10 +141,11 @@ public class AuthenticationManager
 Stores in: `%LocalAppData%\Tracker\Users\{userId}\TrackerSettings.json`
 
 ```csharp
-// After login, store the Supabase user ID
-UserSettingsManager.Instance.Settings.Authentication.CloudUserId = user.Id.ToString();
-UserSettingsManager.Instance.Settings.Authentication.CloudUserEmail = user.Email;
-UserSettingsManager.Instance.Settings.Authentication.CloudAccountLinked = true;
+// After login, store the Supabase user ID (Guid, not string)
+var authSettings = UserSettingsManager.Instance.Settings.Authentication;
+authSettings.UserId = user.Id;  // Guid - direct assignment
+authSettings.UserEmail = user.Email;
+authSettings.AccountSetupCompleted = true;
 ```
 
 ---
@@ -179,7 +180,7 @@ User clicks "Sign Up"
 ┌──────────────────────────────────────────────────────────────────┐
 │ Post-Signup                                                       │
 │                                                                   │
-│ 1. Store CloudUserId in UserSettingsManager                      │
+│ 1. Store UserId (Guid) in UserSettingsManager                    │
 │ 2. Switch to user-specific settings folder                       │
 │ 3. Show main application window                                  │
 └──────────────────────────────────────────────────────────────────┘
@@ -207,11 +208,10 @@ private async Task ExecuteSignUp()
     // 3. Switch settings to this user
     await UserSettingsManager.Instance.SwitchToUserAsync(user.Id);
 
-    // 4. Store auth info
+    // 4. Store auth info (UserId is Guid, no ToString() needed)
     var authSettings = UserSettingsManager.Instance.Settings.Authentication;
-    authSettings.CloudUserId = user.Id.ToString();
-    authSettings.CloudUserEmail = user.Email;
-    authSettings.CloudAccountLinked = true;
+    authSettings.UserId = Guid.Parse(user.Id);  // Parse string to Guid
+    authSettings.UserEmail = user.Email;
     authSettings.AccountSetupCompleted = true;
 
     // 5. Close dialog
