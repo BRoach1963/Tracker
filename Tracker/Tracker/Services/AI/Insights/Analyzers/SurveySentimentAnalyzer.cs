@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.AI.Insights.Analyzers
 {
@@ -19,7 +21,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
     /// </summary>
     public class SurveySentimentAnalyzer : IInsightAnalyzer
     {
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
 
         public string Name => "Survey Sentiment Analyzer";
 
@@ -62,7 +64,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
                 // Get recent surveys with responses
                 var surveys = await surveyRepository.GetPulseSurveysAsync();
-                if (surveys == null || surveys.Count == 0)
+                if (surveys == null || surveys.Count() == 0)
                 {
                     _logger.Debug("No surveys found");
                     return insights;
@@ -94,17 +96,11 @@ namespace Tracker.Services.AI.Insights.Analyzers
             return insights;
         }
 
-        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        private static PulseSurveyRepository CreatePulseSurveyRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new PulseSurveyRepository(factory, loggerFactory.CreateLogger<PulseSurveyRepository>());
         }
 
         /// <summary>
@@ -119,14 +115,14 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             // Get recent responses
             var recentResponses = survey.Responses
-                .Where(r => r.SubmittedAt >= cutoffDate)
+                .Where(r => r.CompletedAt.HasValue && r.CompletedAt.Value >= cutoffDate)
                 .ToList();
 
             if (recentResponses.Count == 0)
                 return insights;
 
             // Track low ratings by question for aggregate insights
-            var lowRatingsByQuestion = new Dictionary<int, List<(PulseSurveyResponse Response, PulseSurveyAnswer Answer)>>();
+            var lowRatingsByQuestion = new Dictionary<Guid, List<(SurveyResponse Response, SurveyAnswer Answer)>>();
 
             foreach (var response in recentResponses)
             {
@@ -135,17 +131,17 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
                 foreach (var answer in response.Answers)
                 {
-                    if (answer.PulseSurveyQuestion == null)
+                    if (answer.Question == null)
                         continue;
 
                     var isLowRating = IsLowRating(answer);
                     if (isLowRating)
                     {
-                        if (!lowRatingsByQuestion.ContainsKey(answer.PulseSurveyQuestionId))
+                        if (!lowRatingsByQuestion.ContainsKey(answer.QuestionId))
                         {
-                            lowRatingsByQuestion[answer.PulseSurveyQuestionId] = new();
+                            lowRatingsByQuestion[answer.QuestionId] = new();
                         }
-                        lowRatingsByQuestion[answer.PulseSurveyQuestionId].Add((response, answer));
+                        lowRatingsByQuestion[answer.QuestionId].Add((response, answer));
                     }
                 }
             }
@@ -160,7 +156,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     continue;
 
                 // Get the question details
-                var question = lowResponses.First().Answer.PulseSurveyQuestion;
+                var question = lowResponses.First().Answer.Question;
                 if (question == null)
                 {
                     question = survey.Questions.FirstOrDefault(q => q.Id == questionId);
@@ -179,12 +175,12 @@ namespace Tracker.Services.AI.Insights.Analyzers
         /// <summary>
         /// Determines if an answer represents a low/concerning rating.
         /// </summary>
-        private bool IsLowRating(PulseSurveyAnswer answer)
+        private bool IsLowRating(SurveyAnswer answer)
         {
-            if (answer.PulseSurveyQuestion == null)
+            if (answer.Question == null)
                 return false;
 
-            var questionType = answer.PulseSurveyQuestion.QuestionType;
+            var questionType = answer.Question.QuestionType;
 
             switch (questionType)
             {
@@ -194,7 +190,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     
                     // Normalize the rating to compare against threshold
                     // Most ratings are 1-5, so we use that as baseline
-                    var maxRating = answer.PulseSurveyQuestion.RatingMax;
+                    var maxRating = answer.Question.RatingMax;
                     var normalizedThreshold = (LowRatingThreshold / 5.0) * maxRating;
                     return answer.RatingValue.Value <= normalizedThreshold;
 
@@ -221,8 +217,8 @@ namespace Tracker.Services.AI.Insights.Analyzers
         /// </summary>
         private Insight? CreateSurveyInsight(
             PulseSurvey survey, 
-            PulseSurveyQuestion? question, 
-            List<(PulseSurveyResponse Response, PulseSurveyAnswer Answer)> lowResponses)
+            SurveyQuestion? question, 
+            List<(SurveyResponse Response, SurveyAnswer Answer)> lowResponses)
         {
             if (question == null || lowResponses.Count == 0)
                 return null;
@@ -271,7 +267,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                 Type = InsightType.SurveyAlert,
                 Severity = severity,
                 Title = $"Low survey ratings{categoryText}",
-                Description = $"The question \"{TruncateTitle(question.Text, 60)}\" received low ratings " +
+                Description = $"The question \"{TruncateTitle(question.QuestionText, 60)}\" received low ratings " +
                               $"(avg: {avgRating:F1}) from {respondentInfo}{teamMemberNames} " +
                               $"in the \"{survey.Title}\" survey.",
                 ActionSuggestion = isAnonymous 

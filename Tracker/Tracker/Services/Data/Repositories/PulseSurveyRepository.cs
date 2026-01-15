@@ -19,6 +19,16 @@ namespace Tracker.Services.Data.Repositories
     public interface IPulseSurveyRepository : IRepository<PulseSurvey>
     {
         /// <summary>
+        /// Get all pulse surveys (convenience method).
+        /// </summary>
+        Task<IEnumerable<PulseSurvey>> GetPulseSurveysAsync();
+
+        /// <summary>
+        /// Get a pulse survey by ID with all related data.
+        /// </summary>
+        Task<PulseSurvey?> GetPulseSurveyByIdAsync(Guid surveyId);
+
+        /// <summary>
         /// Get all pulse surveys in an organization.
         /// </summary>
         Task<IEnumerable<PulseSurvey>> GetByOrganizationAsync(Guid organizationId);
@@ -37,6 +47,11 @@ namespace Tracker.Services.Data.Repositories
         /// Get pulse surveys by status (draft, active, closed, etc.).
         /// </summary>
         Task<IEnumerable<PulseSurvey>> GetByStatusAsync(string status);
+
+        /// <summary>
+        /// Add a survey response.
+        /// </summary>
+        Task<Guid> AddSurveyResponseAsync(SurveyResponse response);
     }
 
     public class PulseSurveyRepository : BaseRepository<PulseSurvey>, IPulseSurveyRepository
@@ -123,6 +138,65 @@ namespace Tracker.Services.Data.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting pulse surveys by status {Status}", status);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<PulseSurvey>> GetPulseSurveysAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM pulse_surveys
+                    WHERE is_deleted = false
+                    ORDER BY created_at DESC";
+
+                return await connection.QueryAsync<PulseSurvey>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all pulse surveys");
+                throw;
+            }
+        }
+
+        public async Task<PulseSurvey?> GetPulseSurveyByIdAsync(Guid surveyId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM pulse_surveys
+                    WHERE id = @Id AND is_deleted = false";
+
+                return await connection.QueryFirstOrDefaultAsync<PulseSurvey>(sql, new { Id = surveyId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting pulse survey by ID {SurveyId}", surveyId);
+                throw;
+            }
+        }
+
+        public async Task<Guid> AddSurveyResponseAsync(SurveyResponse response)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    INSERT INTO survey_responses (id, survey_id, team_member_id, started_at, completed_at, anonymous_token)
+                    VALUES (@Id, @SurveyId, @TeamMemberId, @StartedAt, @CompletedAt, @AnonymousToken)
+                    RETURNING id";
+
+                if (response.Id == Guid.Empty)
+                    response.Id = Guid.NewGuid();
+
+                return await connection.QueryFirstAsync<Guid>(sql, response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding survey response");
                 throw;
             }
         }

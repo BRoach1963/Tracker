@@ -7,6 +7,7 @@ using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Logging;
+using Tracker.Services;
 using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 
@@ -40,6 +41,10 @@ namespace Tracker.Managers
         private readonly ObservableCollection<DevelopmentGoal> _developmentGoals = new();
         private readonly ObservableCollection<QuickNote> _quickNotes = new();
         private readonly ObservableCollection<PulseSurvey> _pulseSurveys = new();
+        private readonly ObservableCollection<Target> _targets = new();
+        private readonly ObservableCollection<TargetMeasurable> _measurables = new();
+        private readonly ObservableCollection<TaskCollection> _taskCollections = new();
+        private readonly ObservableCollection<MetricDataSource> _metricDataSources = new();
 
         // Read-only wrappers for external access
         private readonly ReadOnlyObservableCollection<TeamMember> _teamMembersReadOnly;
@@ -52,6 +57,10 @@ namespace Tracker.Managers
         private readonly ReadOnlyObservableCollection<DevelopmentGoal> _developmentGoalsReadOnly;
         private readonly ReadOnlyObservableCollection<QuickNote> _quickNotesReadOnly;
         private readonly ReadOnlyObservableCollection<PulseSurvey> _pulseSurveysReadOnly;
+        private readonly ReadOnlyObservableCollection<Target> _targetsReadOnly;
+        private readonly ReadOnlyObservableCollection<TargetMeasurable> _measurablesReadOnly;
+        private readonly ReadOnlyObservableCollection<TaskCollection> _taskCollectionsReadOnly;
+        private readonly ReadOnlyObservableCollection<MetricDataSource> _metricDataSourcesReadOnly;
 
         // Track if initial load has been done for each collection
         private bool _teamMembersLoaded;
@@ -64,6 +73,7 @@ namespace Tracker.Managers
         private bool _developmentGoalsLoaded;
         private bool _quickNotesLoaded;
         private bool _pulseSurveysLoaded;
+        private bool _targetsLoaded;
 
         // Lock objects for thread safety
         private readonly object _teamMembersLock = new();
@@ -76,6 +86,7 @@ namespace Tracker.Managers
         private readonly object _developmentGoalsLock = new();
         private readonly object _quickNotesLock = new();
         private readonly object _pulseSurveysLock = new();
+        private readonly object _targetsLock = new();
 
         #endregion
 
@@ -98,6 +109,10 @@ namespace Tracker.Managers
             _developmentGoalsReadOnly = new ReadOnlyObservableCollection<DevelopmentGoal>(_developmentGoals);
             _quickNotesReadOnly = new ReadOnlyObservableCollection<QuickNote>(_quickNotes);
             _pulseSurveysReadOnly = new ReadOnlyObservableCollection<PulseSurvey>(_pulseSurveys);
+            _targetsReadOnly = new ReadOnlyObservableCollection<Target>(_targets);
+            _measurablesReadOnly = new ReadOnlyObservableCollection<TargetMeasurable>(_measurables);
+            _taskCollectionsReadOnly = new ReadOnlyObservableCollection<TaskCollection>(_taskCollections);
+            _metricDataSourcesReadOnly = new ReadOnlyObservableCollection<MetricDataSource>(_metricDataSources);
         }
 
         #endregion
@@ -134,6 +149,10 @@ namespace Tracker.Managers
                 _developmentGoals.Clear();
                 _quickNotes.Clear();
                 _pulseSurveys.Clear();
+                _targets.Clear();
+                _measurables.Clear();
+                _taskCollections.Clear();
+                _metricDataSources.Clear();
             });
 
             ResetAllLoadFlags();
@@ -156,6 +175,10 @@ namespace Tracker.Managers
                 _developmentGoals.Clear();
                 _quickNotes.Clear();
                 _pulseSurveys.Clear();
+                _targets.Clear();
+                _measurables.Clear();
+                _taskCollections.Clear();
+                _metricDataSources.Clear();
             });
         }
 
@@ -171,6 +194,7 @@ namespace Tracker.Managers
             _developmentGoalsLoaded = false;
             _quickNotesLoaded = false;
             _pulseSurveysLoaded = false;
+            _targetsLoaded = false;
         }
 
         #endregion
@@ -188,6 +212,13 @@ namespace Tracker.Managers
         public ReadOnlyObservableCollection<DevelopmentGoal> DevelopmentGoals => _developmentGoalsReadOnly;
         public ReadOnlyObservableCollection<QuickNote> QuickNotes => _quickNotesReadOnly;
         public ReadOnlyObservableCollection<PulseSurvey> PulseSurveys => _pulseSurveysReadOnly;
+        public ReadOnlyObservableCollection<Target> Targets => _targetsReadOnly;
+        public ReadOnlyObservableCollection<TargetMeasurable> Measurables => _measurablesReadOnly;
+        public ReadOnlyObservableCollection<TaskCollection> TaskCollections => _taskCollectionsReadOnly;
+        public ReadOnlyObservableCollection<MetricDataSource> MetricDataSources => _metricDataSourcesReadOnly;
+        
+        // Alias properties for backward compatibility
+        public ReadOnlyObservableCollection<Goal> Goals => _strategicGoalsReadOnly;
 
         #endregion
 
@@ -237,9 +268,13 @@ namespace Tracker.Managers
         private Microsoft.Extensions.Logging.ILogger<T> CreateLogger<T>()
         {
             return Microsoft.Extensions.Logging.LoggerFactory
-                .Create(builder => builder.AddDebug())
+                .Create(builder => { })
                 .CreateLogger<T>();
         }
+
+        // Alias methods for backward compatibility
+        public async Task<ReadOnlyObservableCollection<Metric>> GetKPIs() => await GetMetrics();
+        public async Task<ReadOnlyObservableCollection<TeamMember>> GetTeamMembers() => await GetTeamData();
 
         #endregion
 
@@ -321,7 +356,7 @@ namespace Tracker.Managers
                 var meetings = await repo.GetByOrganizationAsync(orgId.Value);
                 
                 // Filter to OneOnOne type
-                var oneOnOnes = meetings.Where(m => m.MeetingTypeString == "one_on_one" || m.Type == MeetingType.OneOnOne);
+                var oneOnOnes = meetings.Where(m => m.TypeString == "one_on_one" || m.Type == MeetingType.OneOnOne);
                 ReplaceCollectionItems(_meetings, oneOnOnes, _meetingsLock);
                 _meetingsLoaded = true;
                 _logger.Debug("Loaded {0} meetings", _meetings.Count);
@@ -616,7 +651,7 @@ namespace Tracker.Managers
                 }
 
                 var repo = new FeedbackRepository(GetConnectionFactory(), CreateLogger<FeedbackRepository>());
-                var feedbacks = await repo.GetByOrganizationAsync(orgId.Value);
+                var feedbacks = await repo.GetAllAsync();
                 
                 ReplaceCollectionItems(_feedbacks, feedbacks, _feedbacksLock);
                 _feedbacksLoaded = true;
@@ -673,7 +708,7 @@ namespace Tracker.Managers
                 }
 
                 var repo = new DevelopmentGoalRepository(GetConnectionFactory(), CreateLogger<DevelopmentGoalRepository>());
-                var goals = await repo.GetByOrganizationAsync(orgId.Value);
+                var goals = await repo.GetAllAsync();
                 
                 ReplaceCollectionItems(_developmentGoals, goals, _developmentGoalsLock);
                 _developmentGoalsLoaded = true;
@@ -730,7 +765,7 @@ namespace Tracker.Managers
                 }
 
                 var repo = new QuickNoteRepository(GetConnectionFactory(), CreateLogger<QuickNoteRepository>());
-                var notes = await repo.GetByUserAsync(userId.Value);
+                var notes = await repo.GetByCreatorAsync(userId.Value);
                 
                 ReplaceCollectionItems(_quickNotes, notes, _quickNotesLock);
                 _quickNotesLoaded = true;
@@ -813,6 +848,67 @@ namespace Tracker.Managers
 
         #endregion
 
+        #region Target Methods
+
+        public async Task<ReadOnlyObservableCollection<Target>> GetTargets()
+        {
+            if (!_targetsLoaded)
+            {
+                _logger.Debug("Loading targets from database");
+
+                var orgId = OrganizationContext.Current.OrganizationIdOrNull;
+                if (!orgId.HasValue)
+                {
+                    _logger.Warn("GetTargets called but OrganizationContext.OrganizationId is not set");
+                    return _targetsReadOnly;
+                }
+
+                var repo = new TargetRepository(GetConnectionFactory(), CreateLogger<TargetRepository>());
+                var targets = await repo.GetAllAsync();
+                
+                ReplaceCollectionItems(_targets, targets, _targetsLock);
+                _targetsLoaded = true;
+                _logger.Debug("Loaded {0} targets", _targets.Count);
+            }
+            return _targetsReadOnly;
+        }
+
+        public async Task<Guid> AddTarget(Target target)
+        {
+            var repo = new TargetRepository(GetConnectionFactory(), CreateLogger<TargetRepository>());
+            var created = await repo.CreateAsync(target);
+            if (created != null)
+            {
+                target.Id = created.Id;
+                await RefreshTargetsAsync();
+                return created.Id;
+            }
+            return Guid.Empty;
+        }
+
+        public async Task<bool> UpdateTarget(Target target)
+        {
+            var repo = new TargetRepository(GetConnectionFactory(), CreateLogger<TargetRepository>());
+            var success = await repo.UpdateAsync(target);
+            if (success)
+                await RefreshTargetsAsync();
+            return success;
+        }
+
+        public async Task<bool> DeleteTarget(Guid id)
+        {
+            var userId = OrganizationContext.Current.UserIdOrNull ?? Guid.Empty;
+            var repo = new TargetRepository(GetConnectionFactory(), CreateLogger<TargetRepository>());
+            var success = await repo.DeleteAsync(id, userId);
+            if (success)
+                await RefreshTargetsAsync();
+            return success;
+        }
+
+        public async Task RefreshTargetsAsync() { _targetsLoaded = false; await GetTargets(); }
+
+        #endregion
+
         #region TaskCollection Methods
 
         public async Task<List<TaskCollection>> GetTaskCollections()
@@ -846,7 +942,8 @@ namespace Tracker.Managers
                 GetMetrics(),
                 GetProjects(),
                 GetFeedbacks(),
-                GetGoals()
+                GetGoals(),
+                GetTargets()
             );
 
             _logger.Info("All data refreshed: {0} team members, {1} tasks, {2} strategic goals",

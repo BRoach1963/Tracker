@@ -223,7 +223,7 @@ namespace Tracker.Services.Analytics
             qualityScore -= Math.Min(20, gapDeviation * 5);
 
             // Check for value consistency (no wild swings)
-            var progressValues = snapshots.Select(s => (double)s.Progress).ToList();
+            var progressValues = snapshots.Select(s => (double)(s.OverallScore ?? 0)).ToList();
             var volatility = CalculateVolatility(progressValues);
             qualityScore -= Math.Min(20, volatility * 2);
 

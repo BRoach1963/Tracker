@@ -1457,10 +1457,10 @@ namespace Tracker.ViewModels.DialogViewModels
                 var today = DateTime.Today;
 
                 // Calculate average days to complete (for completed tasks)
-                // Use LastModifiedAt as a proxy for completion date for completed tasks
+                // Use UpdatedAt as a proxy for completion date for completed tasks
                 var completedTasks = filteredTasks.Where(t => t.IsCompleted).ToList();
                 var avgDays = completedTasks.Count > 0
-                    ? completedTasks.Average(t => (t.LastModifiedAt - t.CreatedAt).TotalDays)
+                    ? completedTasks.Average(t => (t.UpdatedAt - t.CreatedAt).TotalDays)
                     : 0;
 
                 Application.Current?.Dispatcher.Invoke(() =>
@@ -1503,9 +1503,9 @@ namespace Tracker.ViewModels.DialogViewModels
             {
                 var weekEnd = currentWeekStart.AddDays(6);
                 var created = tasks.Count(t => t.CreatedAt >= currentWeekStart && t.CreatedAt <= weekEnd);
-                // Use LastModifiedAt as a proxy for completion date for completed tasks
+                // Use UpdatedAt as a proxy for completion date for completed tasks
                 var completed = tasks.Count(t => t.IsCompleted && 
-                    t.LastModifiedAt >= currentWeekStart && t.LastModifiedAt <= weekEnd);
+                    t.UpdatedAt >= currentWeekStart && t.UpdatedAt <= weekEnd);
 
                 labels.Add(currentWeekStart.ToString("MMM d"));
                 createdValues.Add(created);
@@ -1599,7 +1599,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 var completed = filteredGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Completed);
                 var inProgress = filteredGoals.Count(g => g.Status == Common.Enums.DevelopmentGoalStatus.Active);
                 var overdue = filteredGoals.Count(g => g.IsOverdue);
-                var avgProgress = filteredGoals.Count > 0 ? filteredGoals.Average(g => g.ProgressPercent) : 0;
+                var avgProgress = filteredGoals.Count > 0 ? filteredGoals.Average(g => (double)(g.ProgressPercent ?? 0)) : 0;
                 var completionPercent = filteredGoals.Count > 0 ? (int)((double)completed / filteredGoals.Count * 100) : 0;
 
                 Application.Current?.Dispatcher.Invoke(() =>
@@ -1664,7 +1664,7 @@ namespace Tracker.ViewModels.DialogViewModels
                             Title = g.Title,
                             TeamMemberName = g.TeamMember?.FullName ?? "—",
                             Category = g.Category.ToString(),
-                            Progress = g.ProgressPercent,
+                            Progress = g.ProgressPercent ?? 0,
                             Status = g.Status.ToString(),
                             StatusColor = GetGoalStatusBrush(g.Status, g.IsOverdue),
                             TargetDate = g.TargetDate?.ToString("MMM d, yyyy") ?? "—",
@@ -1729,7 +1729,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 .Select(g => new
                 {
                     Name = g.Key,
-                    AvgProgress = g.Average(goal => goal.ProgressPercent),
+                    AvgProgress = g.Average(goal => (double)(goal.ProgressPercent ?? 0)),
                     CompletedCount = g.Count(goal => goal.Status == Common.Enums.DevelopmentGoalStatus.Completed),
                     TotalCount = g.Count()
                 })

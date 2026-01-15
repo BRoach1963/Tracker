@@ -2,6 +2,7 @@ using Tracker.Classes;
 using Tracker.Logging;
 using Tracker.Services.Auth;
 using Tracker.Services.Data;
+using Tracker.Services.Data.Repositories;
 using Tracker.Services.Licensing;
 
 namespace Tracker.Managers
@@ -26,8 +27,7 @@ namespace Tracker.Managers
         private readonly ILogger _logger;
         private readonly AuthService _authService;
         private readonly IFirmLicenseService _licenseService;
-        //private PostgresAuthContextFactory? _authFactory;  // REMOVED - EF Core migrations to Dapper
-        //private PostgresDbContextFactory? _userContextFactory;  // REMOVED - EF Core migrations to Dapper
+        private IUserRepository? _userRepository;
         private DatabaseSettings? _settings;
         private string _jwtSecret = string.Empty;
         
@@ -144,11 +144,12 @@ namespace Tracker.Managers
             _settings = settings;
             _jwtSecret = jwtSecret;
             
-            // REMOVED - EF Core migration to Dapper
-            // if (settings.Type == DatabaseType.PostgreSQL)
-            // {
-            //     _authFactory = new PostgresAuthContextFactory(settings);
-            // }
+            // Initialize UserRepository for authentication lookups
+            if (settings.Type == DatabaseType.PostgreSQL)
+            {
+                var connectionFactory = new DapperConnectionFactory();
+                _userRepository = new UserRepository(connectionFactory, null!);
+            }
 
             _logger.Info("AuthenticationManager initialized");
         }
@@ -166,7 +167,7 @@ namespace Tracker.Managers
         /// <returns>Authentication result with user info and tokens if successful.</returns>
         public async Task<AuthResult> SignInAsync(string email, string password)
         {
-            if (_settings?.Type != DatabaseType.PostgreSQL || _authFactory == null)
+            if (_settings?.Type != DatabaseType.PostgreSQL || _userRepository == null)
             {
                 return new AuthResult 
                 { 
@@ -198,7 +199,10 @@ namespace Tracker.Managers
             var result = await _authService.LoginAsync(
                 email,
                 password,
-                async (e) => await _authFactory.LookupUserByEmailAsync(e),
+                async (e) => {
+                    var user = await _userRepository.GetByEmailAsync(e);
+                    return user != null ? (user.Id, user.Email, user.DisplayName, user.PasswordHash) : null;
+                },
                 _jwtSecret);
 
             if (result.Success && result.User != null)
@@ -233,7 +237,7 @@ namespace Tracker.Managers
         /// <returns>Authentication result with user info and tokens if successful.</returns>
         public async Task<AuthResult> SignUpAsync(string email, string password, string? displayName = null)
         {
-            if (_settings?.Type != DatabaseType.PostgreSQL || _authFactory == null)
+            if (_settings?.Type != DatabaseType.PostgreSQL || _userRepository == null)
             {
                 return new AuthResult 
                 { 
@@ -248,7 +252,17 @@ namespace Tracker.Managers
                 email,
                 password,
                 displayName,
-                async (e, hash, name) => await _authFactory.CreateUserAsync(e, hash, name),
+                async (e, hash, name) => {
+                    var newUser = new DataModels.User 
+                    { 
+                        Email = e, 
+                        PasswordHash = hash, 
+                        DisplayName = name,
+                        IsActive = true
+                    };
+                    var created = await _userRepository.CreateAsync(newUser);
+                    return created?.Id;
+                },
                 _jwtSecret);
 
             if (result.Success && result.User != null)
@@ -276,8 +290,6 @@ namespace Tracker.Managers
             var email = CurrentUser?.Email ?? "unknown";
             
             _authService.SignOut();
-            _userContextFactory?.Dispose();
-            _userContextFactory = null;
             
             _logger.Info("User signed out: {0}", email);
         }
@@ -290,7 +302,7 @@ namespace Tracker.Managers
         /// <returns>True if session was restored successfully.</returns>
         public async Task<bool> TryRestoreSessionAsync(string? accessToken, string? refreshToken)
         {
-            if (_settings?.Type != DatabaseType.PostgreSQL || _authFactory == null)
+            if (_settings?.Type != DatabaseType.PostgreSQL || _userRepository == null)
             {
                 return false;
             }
@@ -299,13 +311,18 @@ namespace Tracker.Managers
                 accessToken,
                 refreshToken,
                 _jwtSecret,
-                async (userId) => null); // REMOVED - EF Core: was await _authFactory.GetUserByIdAsync(userId)
+                async (userId) => {
+                    var user = await _userRepository.GetByIdAsync(userId);
+                    return user != null ? new AuthenticatedUser 
+                    { 
+                        Id = user.Id, 
+                        Email = user.Email ?? "", 
+                        DisplayName = user.DisplayName 
+                    } : null;
+                });
 
             if (success && CurrentUserId.HasValue)
             {
-                // REMOVED - EF Core migration to Dapper
-                // _userContextFactory?.Dispose();
-                // _userContextFactory = new PostgresDbContextFactory(_settings, CurrentUserId.Value);
                 _logger.Info("Session restored for: {0}", CurrentUser?.Email);
             }
 
@@ -325,10 +342,9 @@ namespace Tracker.Managers
 
             try
             {
-                var connectionFactory = DapperConnectionFactory.Instance;
+                var connectionFactory = new DapperConnectionFactory();
                 using var connection = connectionFactory.CreateConnection();
-                await connection.OpenAsync();
-                await connection.CloseAsync();
+                // Connection is already opened by factory and will be closed by using statement
                 return true;
             }
             catch (Exception ex)

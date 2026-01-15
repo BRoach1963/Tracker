@@ -37,7 +37,7 @@ namespace Tracker.DTOs
         /// <summary>
         /// ID of the linked entity (task ID, OKR ID, etc.).
         /// </summary>
-        public int? LinkId { get; set; }
+        public Guid? LinkId { get; set; }
 
         /// <summary>
         /// Whether this item has been added to the meeting agenda.

@@ -1,9 +1,7 @@
 using System;
 using System.Data;
-using Microsoft.Extensions.Configuration;
 using Npgsql;
-using Tracker.Classes;
-using Tracker.Managers;
+using Tracker.Services.Backend;
 
 namespace Tracker.Services.Data
 {
@@ -13,8 +11,7 @@ namespace Tracker.Services.Data
     /// This is the ONLY place where database connections are created.
     /// All repositories use this factory - never create connections directly.
     /// 
-    /// Supabase connection string format:
-    /// "Server=db.xxxxx.supabase.co;Port=5432;Database=postgres;User Id=postgres;Password=xxxxx;SSL Mode=Require;"
+    /// Connection string is configured in SupabaseConfig.DatabaseConnectionString.
     /// </summary>
     public interface IDapperConnectionFactory
     {
@@ -26,56 +23,44 @@ namespace Tracker.Services.Data
 
     /// <summary>
     /// Implementation of IDapperConnectionFactory.
-    /// Uses DatabaseSettings from UserSettingsManager to get PostgreSQL connection parameters.
-    /// Supports Supabase connection strings from appsettings.json as fallback.
+    /// Uses SupabaseConfig.DatabaseConnectionString for all connections.
     /// </summary>
     public class DapperConnectionFactory : IDapperConnectionFactory
     {
         private readonly string _connectionString;
-
+        
+        private static DapperConnectionFactory? _instance;
+        private static readonly object _lock = new();
+        
         /// <summary>
-        /// Create factory with connection string from configuration or settings.
-        /// Priority:
-        /// 1. appsettings.json ConnectionStrings:Supabase (if present)
-        /// 2. UserSettingsManager.CurrentSettings.GetConnectionString() (user-configured)
-        /// 3. Throws error if neither is available
+        /// Singleton instance for services that need a shared connection factory.
         /// </summary>
-        public DapperConnectionFactory(IConfiguration? configuration = null)
+        public static DapperConnectionFactory Instance
         {
-            // Try configuration first (from appsettings.json)
-            _connectionString = configuration?.GetConnectionString("Supabase") 
-                ?? GetConnectionStringFromSettings();
-
-            if (string.IsNullOrEmpty(_connectionString))
-                throw new InvalidOperationException(
-                    "No database connection string found. Configure in appsettings.json (ConnectionStrings:Supabase) or UserSettings.");
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_lock)
+                    {
+                        _instance ??= new DapperConnectionFactory();
+                    }
+                }
+                return _instance;
+            }
         }
 
         /// <summary>
-        /// Get connection string from user settings (DatabaseSettings).
-        /// Falls back to environment variable TRACKER_SUPABASE_CONNECTION_STRING if configured.
+        /// Create factory using SupabaseConfig.DatabaseConnectionString.
+        /// Falls back to environment variable TRACKER_SUPABASE_CONNECTION_STRING if set.
         /// </summary>
-        private static string GetConnectionStringFromSettings()
+        public DapperConnectionFactory()
         {
-            try
-            {
-                // First try environment variable (for container/cloud deployments)
-                var envConnection = Environment.GetEnvironmentVariable("TRACKER_SUPABASE_CONNECTION_STRING");
-                if (!string.IsNullOrEmpty(envConnection))
-                    return envConnection;
-
-                // Fall back to user settings
-                var settings = UserSettingsManager.Instance?.Settings?.Database;
-                if (settings?.Type == DatabaseType.PostgreSQL)
-                    return settings.GetConnectionString();
-
-                return string.Empty;
-            }
-            catch
-            {
-                // If settings aren't initialized yet, return empty
-                return string.Empty;
-            }
+            // Environment variable takes precedence (for container/cloud deployments)
+            var envConnection = Environment.GetEnvironmentVariable("TRACKER_SUPABASE_CONNECTION_STRING");
+            _connectionString = !string.IsNullOrEmpty(envConnection) 
+                ? envConnection 
+                : SupabaseConfig.DatabaseConnectionString;
         }
 
         public IDbConnection CreateConnection()

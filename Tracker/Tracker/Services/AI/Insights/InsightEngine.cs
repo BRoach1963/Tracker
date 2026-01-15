@@ -151,7 +151,7 @@ namespace Tracker.Services.AI.Insights
             RegisterAnalyzer(new Analyzers.MeetingCadenceAnalyzer());
             RegisterAnalyzer(new Analyzers.PersonalDateAnalyzer());
             RegisterAnalyzer(new Analyzers.ActionItemStalenessAnalyzer());
-            RegisterAnalyzer(new Analyzers.GoalTrajectoryAnalyzer(new Database.TrackerDbContext()));
+            RegisterAnalyzer(new Analyzers.GoalTrajectoryAnalyzer());
             RegisterAnalyzer(new Analyzers.MetricGapAnalyzer());
             RegisterAnalyzer(new Analyzers.SurveySentimentAnalyzer());
         }
@@ -226,8 +226,18 @@ namespace Tracker.Services.AI.Insights
                     _logger.Exception(ex, "AI insight generation failed");
                 }
 
-                // Save all insights (deduplication handled by store)
-                var newCount = await _store.SaveInsightsAsync(allInsights);
+                // Save all insights (deduplication handled by repository)
+                var newCount = 0;
+                foreach (var insight in allInsights)
+                {
+                    // Check for duplicates using unique key
+                    if (!await _repository!.ExistsActiveByUniqueKeyAsync(insight.UniqueKey ?? $"{insight.InsightType}_{insight.TargetTeamMemberId}"))
+                    {
+                        insight.OrganizationId = _organizationId;
+                        await _repository.CreateAsync(insight);
+                        newCount++;
+                    }
+                }
                 
                 _logger.Info("Analysis complete. {0} new insights saved, {1} total generated",
                     newCount, allInsights.Count);
@@ -262,7 +272,7 @@ namespace Tracker.Services.AI.Insights
             await RunAnalyzersAsync();
 
             // Get all active insights
-            var activeInsights = await _store.GetActiveInsightsAsync();
+            var activeInsights = (await _repository!.GetActiveInsightsAsync(_organizationId)).ToList();
 
             var briefing = new DailyBriefing
             {
@@ -325,32 +335,32 @@ namespace Tracker.Services.AI.Insights
         /// <summary>
         /// Gets the count of unread insights.
         /// </summary>
-        public Task<int> GetUnreadCountAsync() => _store.GetUnreadCountAsync();
+        public Task<int> GetUnreadCountAsync() => _repository!.GetUnreadCountAsync(_organizationId);
 
         /// <summary>
         /// Gets all active insights.
         /// </summary>
-        public Task<List<Insight>> GetActiveInsightsAsync() => _store.GetActiveInsightsAsync();
+        public async Task<List<Insight>> GetActiveInsightsAsync() => (await _repository!.GetActiveInsightsAsync(_organizationId)).ToList();
 
         /// <summary>
         /// Marks an insight as read.
         /// </summary>
-        public Task MarkAsReadAsync(int insightId) => _store.MarkAsReadAsync(insightId);
+        public Task MarkAsReadAsync(Guid insightId) => _repository!.MarkAsReadAsync(insightId);
 
         /// <summary>
         /// Marks all insights as read.
         /// </summary>
-        public Task MarkAllAsReadAsync() => _store.MarkAllAsReadAsync();
+        public Task MarkAllAsReadAsync() => _repository!.MarkAllAsReadAsync(_organizationId);
 
         /// <summary>
         /// Dismisses an insight.
         /// </summary>
-        public Task DismissInsightAsync(int insightId) => _store.DismissInsightAsync(insightId);
+        public Task DismissInsightAsync(Guid insightId) => _repository!.DismissInsightAsync(insightId, _currentUserId);
 
         /// <summary>
         /// Marks an insight as acted upon.
         /// </summary>
-        public Task MarkAsActedOnAsync(int insightId) => _store.MarkAsActedOnAsync(insightId);
+        public Task MarkAsActedOnAsync(Guid insightId) => _repository!.MarkAsActionedAsync(insightId);
 
         /// <summary>
         /// Generates AI-powered insights by gathering team data and calling AIInsightGenerator.
@@ -383,7 +393,7 @@ namespace Tracker.Services.AI.Insights
                         Title = t.Title,
                         DueDate = t.DueDate,
                         Status = t.Status,
-                        AssigneeId = t.AssigneeId
+                        OwnerTeamMemberId = t.OwnerTeamMemberId
                     })
                     .ToList();
 

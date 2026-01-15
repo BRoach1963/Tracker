@@ -316,6 +316,12 @@ namespace Tracker.DataModels
         public int? MaxValue { get; set; } = 5;
 
         /// <summary>
+        /// RatingMax - alias for MaxValue for backward compatibility.
+        /// </summary>
+        [NotMapped]
+        public int RatingMax => MaxValue ?? 5;
+
+        /// <summary>
         /// Label for minimum rating.
         /// Maps to: min_label VARCHAR(100) NULL
         /// </summary>
@@ -529,6 +535,12 @@ namespace Tracker.DataModels
         /// </summary>
         [Column("completed_at")]
         public DateTime? CompletedAt { get; set; }
+
+        /// <summary>
+        /// SubmittedAt - alias for CompletedAt for backward compatibility.
+        /// </summary>
+        [NotMapped]
+        public DateTime? SubmittedAt => CompletedAt;
 
         /// <summary>
         /// Whether the response is complete.

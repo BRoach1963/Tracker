@@ -28,12 +28,12 @@ namespace Tracker.ViewModels
         private ObservableCollection<PulseSurvey> _surveys = new();
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<SurveyTokenInfo> _generatedTokens = new();
-        private ObservableCollection<PulseSurveyResponse> _surveyResponses = new();
+        private ObservableCollection<SurveyResponse> _surveyResponses = new();
 
         private PulseSurvey? _selectedSurvey;
-        private PulseSurveyQuestion? _selectedQuestion;
+        private SurveyQuestion? _selectedQuestion;
         private SurveyTokenInfo? _selectedToken;
-        private PulseSurveyResponse? _selectedResponse;
+        private SurveyResponse? _selectedResponse;
 
         private bool _isEditing;
         private bool _isNewSurvey;
@@ -121,7 +121,7 @@ namespace Tracker.ViewModels
             }
         }
 
-        public ObservableCollection<PulseSurveyResponse> SurveyResponses
+        public ObservableCollection<SurveyResponse> SurveyResponses
         {
             get => _surveyResponses;
             private set
@@ -160,7 +160,7 @@ namespace Tracker.ViewModels
             }
         }
 
-        public PulseSurveyQuestion? SelectedQuestion
+        public SurveyQuestion? SelectedQuestion
         {
             get => _selectedQuestion;
             set
@@ -181,7 +181,7 @@ namespace Tracker.ViewModels
             }
         }
 
-        public PulseSurveyResponse? SelectedResponse
+        public SurveyResponse? SelectedResponse
         {
             get => _selectedResponse;
             set
@@ -193,14 +193,14 @@ namespace Tracker.ViewModels
             }
         }
 
-        public ObservableCollection<PulseSurveyQuestion>? SelectedSurveyQuestions =>
+        public ObservableCollection<SurveyQuestion>? SelectedSurveyQuestions =>
             _selectedSurvey?.Questions != null
-                ? new ObservableCollection<PulseSurveyQuestion>(_selectedSurvey.Questions.OrderBy(q => q.SortOrder))
+                ? new ObservableCollection<SurveyQuestion>(_selectedSurvey.Questions.OrderBy(q => q.SortOrder))
                 : null;
 
-        public ObservableCollection<PulseSurveyAnswer>? SelectedResponseAnswers =>
+        public ObservableCollection<SurveyAnswer>? SelectedResponseAnswers =>
             _selectedResponse?.Answers != null
-                ? new ObservableCollection<PulseSurveyAnswer>(_selectedResponse.Answers)
+                ? new ObservableCollection<SurveyAnswer>(_selectedResponse.Answers)
                 : null;
 
         public bool HasSelectedSurvey => _selectedSurvey != null;
@@ -527,7 +527,7 @@ namespace Tracker.ViewModels
             EditTitle = survey.Title;
             EditDescription = survey.Description;
             EditIsAnonymous = survey.IsAnonymous;
-            EditDueDate = survey.DueDate;
+            EditDueDate = survey.EndDate;
         }
 
         private async Task LoadSurveyCloudStatusAsync()
@@ -600,7 +600,7 @@ namespace Tracker.ViewModels
                 var survey = await _pulseSurveyRepository.GetPulseSurveyByIdAsync(_selectedSurvey.Id);
                 if (survey?.Responses != null)
                 {
-                    SurveyResponses = new ObservableCollection<PulseSurveyResponse>(
+                    SurveyResponses = new ObservableCollection<SurveyResponse>(
                         survey.Responses.OrderByDescending(r => r.SubmittedAt));
                 }
             }
@@ -668,14 +668,14 @@ namespace Tracker.ViewModels
                 _selectedSurvey.Title = EditTitle;
                 _selectedSurvey.Description = EditDescription;
                 _selectedSurvey.IsAnonymous = EditIsAnonymous;
-                _selectedSurvey.DueDate = EditDueDate;
+                _selectedSurvey.EndDate = EditDueDate;
 
                 if (IsNewSurvey)
                 {
-                    var id = await TrackerDataManager.Instance.AddPulseSurvey(_selectedSurvey);
-                    if (id > 0)
+                    var result = await TrackerDataManager.Instance.AddPulseSurvey(_selectedSurvey);
+                    if (result > 0)
                     {
-                        _selectedSurvey.Id = id;
+                        // Note: survey.Id is already set inside AddPulseSurvey
                         _logger.Info("Created new survey: {0}", _selectedSurvey.Title);
                         // Reload to get fresh data from cache
                         await LoadDataAsync();
@@ -755,7 +755,7 @@ namespace Tracker.ViewModels
 
                 // Update local status
                 _selectedSurvey.Status = SurveyStatus.Active;
-                _selectedSurvey.SentDate = DateTime.UtcNow;
+                _selectedSurvey.StartDate = DateTime.UtcNow;
 
                 var updateSuccess = await TrackerDataManager.Instance.UpdatePulseSurvey(_selectedSurvey);
                 if (updateSuccess)
@@ -792,7 +792,7 @@ namespace Tracker.ViewModels
                 }
 
                 _selectedSurvey.Status = SurveyStatus.Closed;
-                _selectedSurvey.ClosedDate = DateTime.UtcNow;
+                _selectedSurvey.UpdatedAt = DateTime.UtcNow;
 
                 var success = await TrackerDataManager.Instance.UpdatePulseSurvey(_selectedSurvey);
                 if (success)
@@ -818,15 +818,15 @@ namespace Tracker.ViewModels
         {
             if (_selectedSurvey == null) return;
 
-            var newQuestion = new PulseSurveyQuestion
+            var newQuestion = new SurveyQuestion
             {
-                Text = "New Question",
+                QuestionText = "New Question",
                 QuestionType = SurveyQuestionType.Rating,
                 SortOrder = (_selectedSurvey.Questions?.Count ?? 0) + 1,
                 IsRequired = true
             };
 
-            _selectedSurvey.Questions ??= new List<PulseSurveyQuestion>();
+            _selectedSurvey.Questions ??= new List<SurveyQuestion>();
             _selectedSurvey.Questions.Add(newQuestion);
 
             RaisePropertyChanged(nameof(SelectedSurveyQuestions));

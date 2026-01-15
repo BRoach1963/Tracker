@@ -88,7 +88,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                         Description = task.Notes,
                         Priority = priority,
                         LinkType = PrepItemLinkType.Task,
-                        LinkId = task.Id.GetHashCode(),
+                        LinkId = task.Id,
                         Icon = "Warning"
                     });
                 }
@@ -110,7 +110,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                         Description = task.Notes,
                         Priority = daysUntil <= 2 ? PrepItemPriority.High : PrepItemPriority.Normal,
                         LinkType = PrepItemLinkType.Task,
-                        LinkId = task.Id.GetHashCode(),
+                        LinkId = task.Id,
                         Icon = "Clock"
                     });
                 }
@@ -127,7 +127,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                             Description = task.Notes,
                             Priority = PrepItemPriority.Low,
                             LinkType = PrepItemLinkType.Task,
-                            LinkId = task.Id.GetHashCode(),
+                            LinkId = task.Id,
                             Icon = "Task"
                         });
                     }

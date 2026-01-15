@@ -62,7 +62,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
                 // Get all metrics
                 var metrics = await _metricRepository.GetMetricsAsync();
-                if (metrics == null || metrics.Count == 0)
+                if (metrics == null || metrics.Count() == 0)
                 {
                     _logger.Debug("No metrics found");
                     return insights;

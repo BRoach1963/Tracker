@@ -429,11 +429,13 @@ namespace Tracker.ViewModels
                     return;
                 }
 
-                var contextFactory = TrackerDbContextFactory.Instance;
-                using var context = contextFactory.CreateContext();
-                var targetRepository = new TargetRepository(context, userId.Value, () => contextFactory.CreateContext());
+                var connectionFactory = new Services.Data.DapperConnectionFactory();
+                var targetRepository = new Services.Data.Repositories.TargetRepository(
+                    connectionFactory, 
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger<Services.Data.Repositories.TargetRepository>.Instance);
                 
-                var id = await targetRepository.AddTargetAsync(duplicate);
+                var created = await targetRepository.CreateAsync(duplicate);
+                var id = created?.Id ?? Guid.Empty;
                 if (id != Guid.Empty)
                 {
                     await LoadDataAsync();
@@ -470,11 +472,12 @@ namespace Tracker.ViewModels
                     return;
                 }
 
-                var contextFactory = TrackerDbContextFactory.Instance;
-                using var context = contextFactory.CreateContext();
-                var targetRepository = new TargetRepository(context, userId.Value, () => contextFactory.CreateContext());
+                var connectionFactory = new Services.Data.DapperConnectionFactory();
+                var targetRepository = new Services.Data.Repositories.TargetRepository(
+                    connectionFactory, 
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger<Services.Data.Repositories.TargetRepository>.Instance);
                 
-                var success = await targetRepository.DeleteTargetAsync(kr.Id);
+                var success = await targetRepository.DeleteAsync(kr.Id, userId.Value);
                 if (success)
                 {
                     await LoadDataAsync();

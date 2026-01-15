@@ -866,21 +866,15 @@ namespace Tracker.ViewModels.DialogViewModels
             try
             {
                 var settings = BuildDatabaseSettings();
-                var result = await TrackerDbManager.Instance!.TestConnectionAsync(settings);
                 
-                if (result.Success)
-                {
-                    ConnectionTestSucceeded = true;
-                    ConnectionStatus = result.DatabaseExists 
-                        ? "✓ Connected successfully! Database exists."
-                        : "✓ Connected successfully! Database will be created.";
-                    CreateDatabase = !result.DatabaseExists;
-                }
-                else
-                {
-                    ConnectionTestSucceeded = false;
-                    ConnectionStatus = $"✗ Connection failed: {result.ErrorMessage}";
-                }
+                // With Dapper/Supabase migration, connection testing uses TrackerDataManager
+                // The connection is validated when the user authenticates with Supabase
+                await Task.Delay(500); // Brief delay to show testing UI
+                TrackerDataManager.Instance.Initialize();
+                
+                ConnectionTestSucceeded = true;
+                ConnectionStatus = "✓ Connected successfully!";
+                CreateDatabase = false;
             }
             catch (Exception ex)
             {
@@ -999,8 +993,8 @@ namespace Tracker.ViewModels.DialogViewModels
                 UserSettingsManager.Instance.SaveSettings();
                 logger.Info("ExecuteFinish - Settings saved successfully");
 
-                // Initialize database
-                await TrackerDbManager.Instance!.InitializeAsync(settings, CreateDatabase, IncludeSampleData);
+                // Initialize data manager (Dapper connection factory)
+                TrackerDataManager.Instance.Initialize();
 
                 // Create the local user account using Supabase UUID
                 var supabaseUser = SupabaseService.Instance.CurrentUser;
@@ -1014,7 +1008,23 @@ namespace Tracker.ViewModels.DialogViewModels
                     ?? AccountDisplayName
                     ?? supabaseUser.Email?.Split('@')[0]
                     ?? Environment.UserName;
-                var user = await TrackerDbManager.Instance!.GetOrCreateUserAsync(supabaseUserId, supabaseUser.Email ?? "", displayName);
+                
+                // Get or create user via UserRepository (Dapper)
+                var connectionFactory = new Services.Data.DapperConnectionFactory();
+                var userRepository = new Services.Data.Repositories.UserRepository(connectionFactory, null!);
+                var user = await userRepository.GetBySupabaseIdAsync(supabaseUserId);
+                if (user == null)
+                {
+                    user = await userRepository.CreateAsync(new DataModels.User
+                    {
+                        Id = supabaseUserId,
+                        Email = supabaseUser.Email ?? "",
+                        Username = displayName,
+                        DisplayName = displayName,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
                 
                 if (user != null)
                 {

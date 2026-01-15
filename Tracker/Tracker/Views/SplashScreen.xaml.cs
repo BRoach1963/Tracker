@@ -2,12 +2,12 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using Microsoft.EntityFrameworkCore;
 using Tracker.Classes;
-using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Helpers;
 using Tracker.Managers;
+using Tracker.Services.Data;
+using Tracker.Services.Data.Repositories;
 
 namespace Tracker.Views
 {
@@ -268,21 +268,21 @@ namespace Tracker.Views
         }
 
         /// <summary>
-        /// Gets or creates a local user record for SQLite authentication.
-        /// Mirrors the behavior of the legacy TrackerDbManager user bootstrap logic
-        /// using the modern TrackerDbContextFactory pattern.
+        /// Gets or creates a local user record for authentication.
+        /// Uses the Dapper UserRepository pattern.
         /// </summary>
         private static async Task<User?> GetOrCreateLocalUserAsync(Guid localUserId, string email, string displayName, string username)
         {
-            var contextFactory = TrackerDbContextFactory.Instance;
-            using var context = contextFactory.CreateContext();
+            // Get the UserRepository from DI or create one
+            var connectionFactory = new DapperConnectionFactory();
+            var userRepository = new UserRepository(connectionFactory, null!);
 
-            // Try to find an existing user by Supabase/local GUID, username, or email
-            var existingUser = await context.Users
-                .FirstOrDefaultAsync(u =>
-                    (u.SupabaseAuthId.HasValue && u.SupabaseAuthId.Value == localUserId) ||
-                    u.Username == username ||
-                    u.Email == email);
+            // Try to find an existing user by Supabase/local GUID or email
+            var existingUser = await userRepository.GetBySupabaseIdAsync(localUserId);
+            if (existingUser == null)
+            {
+                existingUser = await userRepository.GetByEmailAsync(email);
+            }
 
             if (existingUser != null)
             {
@@ -297,7 +297,7 @@ namespace Tracker.Views
                 existingUser.Username = username;
                 existingUser.IsActive = true;
 
-                await context.SaveChangesAsync();
+                await userRepository.UpdateAsync(existingUser);
                 return existingUser;
             }
 
@@ -312,8 +312,7 @@ namespace Tracker.Views
                 Role = "manager"
             };
 
-            context.Users.Add(newUser);
-            await context.SaveChangesAsync();
+            await userRepository.CreateAsync(newUser);
             return newUser;
         }
 

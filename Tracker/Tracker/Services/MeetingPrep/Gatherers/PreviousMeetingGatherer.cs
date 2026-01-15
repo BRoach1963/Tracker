@@ -1,11 +1,13 @@
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.MeetingPrep.Gatherers
 {
@@ -14,7 +16,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
     /// </summary>
     public class PreviousMeetingGatherer : IMeetingPrepGatherer
     {
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
 
         public string Name => "Previous Meeting Gatherer";
         public PrepSectionType SectionType => PrepSectionType.FollowUp;
@@ -41,7 +43,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
                 // Get previous meetings with this team member
                 var meetings = await repository.GetMeetingsAsync();
-                if (meetings == null || meetings.Count == 0)
+                if (meetings == null || meetings.Count() == 0)
                 {
                     section.Items.Add(new PrepItem
                     {
@@ -160,17 +162,11 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             return section.HasItems ? section : null;
         }
 
-        private static MeetingRepository? CreateMeetingRepository()
+        private static MeetingRepository CreateMeetingRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new MeetingRepository(factory, loggerFactory.CreateLogger<MeetingRepository>());
         }
 
         private MeetingPrepSettings GetSettings()

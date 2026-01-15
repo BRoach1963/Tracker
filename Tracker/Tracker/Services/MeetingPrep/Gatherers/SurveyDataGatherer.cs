@@ -1,11 +1,13 @@
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.MeetingPrep.Gatherers
 {
@@ -15,7 +17,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
     /// </summary>
     public class SurveyDataGatherer : IMeetingPrepGatherer
     {
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
 
         public string Name => "Survey Data Gatherer";
         public PrepSectionType SectionType => PrepSectionType.SurveyFeedback;
@@ -49,12 +51,12 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
                 // Get all surveys
                 var surveys = await repository.GetPulseSurveysAsync();
-                if (surveys == null || surveys.Count == 0)
+                if (surveys == null || surveys.Count() == 0)
                 {
                     return null;
                 }
 
-                var recentResponses = new List<(PulseSurvey Survey, PulseSurveyResponse Response)>();
+                var recentResponses = new List<(PulseSurvey Survey, SurveyResponse Response)>();
 
                 foreach (var survey in surveys)
                 {
@@ -67,7 +69,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     // Find responses from this team member within the lookback period
                     var memberResponses = survey.Responses?
                         .Where(r => r.TeamMemberId == teamMember.Id && 
-                                   r.SubmittedAt.Date >= cutoffDate)
+                                   r.CompletedAt.HasValue && r.CompletedAt.Value.Date >= cutoffDate)
                         .ToList();
 
                     if (memberResponses != null && memberResponses.Any())
@@ -91,27 +93,27 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 }
 
                 // Process responses to find notable answers
-                foreach (var (survey, response) in recentResponses.OrderByDescending(r => r.Response.SubmittedAt)
+                foreach (var (survey, response) in recentResponses.OrderByDescending(r => r.Response.CompletedAt)
                     .Take(settings.MaxItemsPerSection))
                 {
                     // Find low ratings (potential concerns)
                     var lowRatings = response.Answers?
                         .Where(a => a.RatingValue.HasValue && a.RatingValue.Value <= 2)
-                        .ToList() ?? new List<PulseSurveyAnswer>();
+                        .ToList() ?? new List<SurveyAnswer>();
 
                     // Find high ratings (positive notes)
                     var highRatings = response.Answers?
                         .Where(a => a.RatingValue.HasValue && a.RatingValue.Value >= 4)
-                        .ToList() ?? new List<PulseSurveyAnswer>();
+                        .ToList() ?? new List<SurveyAnswer>();
 
                     // Add low ratings as concerns (higher priority)
                     foreach (var answer in lowRatings.Take(2))
                     {
-                        var question = answer.PulseSurveyQuestion;
+                        var question = answer.Question;
                         section.Items.Add(new PrepItem
                         {
-                            Title = question?.Text ?? "Survey Response",
-                            Subtext = $"Rated {answer.RatingValue}/5 on {response.SubmittedAt:MMM d}",
+                            Title = question?.QuestionText ?? "Survey Response",
+                            Subtext = $"Rated {answer.RatingValue}/5 on {response.CompletedAt:MMM d}",
                             Description = "Consider checking in about this area",
                             Priority = answer.RatingValue <= 1 ? PrepItemPriority.Critical : PrepItemPriority.High,
                             LinkType = PrepItemLinkType.Survey,
@@ -124,11 +126,11 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     if (section.Items.Count < settings.MaxItemsPerSection && highRatings.Any())
                     {
                         var topRating = highRatings.OrderByDescending(a => a.RatingValue).First();
-                        var question = topRating.PulseSurveyQuestion;
+                        var question = topRating.Question;
                         section.Items.Add(new PrepItem
                         {
-                            Title = question?.Text ?? "Survey Response",
-                            Subtext = $"Rated {topRating.RatingValue}/5 on {response.SubmittedAt:MMM d}",
+                            Title = question?.QuestionText ?? "Survey Response",
+                            Subtext = $"Rated {topRating.RatingValue}/5 on {response.CompletedAt:MMM d}",
                             Description = "Positive feedback area",
                             Priority = PrepItemPriority.Low,
                             LinkType = PrepItemLinkType.Survey,
@@ -147,14 +149,14 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     {
                         foreach (var answer in textAnswers)
                         {
-                            var question = answer.PulseSurveyQuestion;
+                            var question = answer.Question;
                             var textPreview = answer.TextValue!.Length > 80
                                 ? answer.TextValue.Substring(0, 80) + "..."
                                 : answer.TextValue;
 
                             section.Items.Add(new PrepItem
                             {
-                                Title = question?.Text ?? "Open Response",
+                                Title = question?.QuestionText ?? "Open Response",
                                 Subtext = textPreview,
                                 Priority = PrepItemPriority.Normal,
                                 LinkType = PrepItemLinkType.Survey,
@@ -185,17 +187,11 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             return section.HasItems ? section : null;
         }
 
-        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        private static PulseSurveyRepository CreatePulseSurveyRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new PulseSurveyRepository(factory, loggerFactory.CreateLogger<PulseSurveyRepository>());
         }
 
         private MeetingPrepSettings GetSettings()

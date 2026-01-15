@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Tracker.Classes;
 using Tracker.DataModels;
-using Tracker.Database;
 using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
@@ -20,9 +19,18 @@ namespace Tracker.Managers
         public static CalendarSyncManager Instance => _instance.Value;
 
         private readonly LoggingManager.Logger _logger = new("CalendarSync", "CalendarSync");
+        private IMeetingRepository? _meetingRepository;
 
         private CalendarSyncManager()
         {
+        }
+
+        /// <summary>
+        /// Initialize with repository (call after DI is set up).
+        /// </summary>
+        public void Initialize(IMeetingRepository meetingRepository)
+        {
+            _meetingRepository = meetingRepository;
         }
 
         /// <summary>
@@ -77,10 +85,9 @@ namespace Tracker.Managers
                             meeting.VideoConferenceProviderString = "google_meet";
                         }
                         
-                        var meetingRepository = CreateMeetingRepository();
-                        if (meetingRepository != null)
+                        if (_meetingRepository != null)
                         {
-                            await meetingRepository.UpdateMeetingAsync(meeting);
+                            await _meetingRepository.UpdateAsync(meeting);
                         }
                         
                         _logger.Info("Synced meeting {0} to Google Calendar", meeting.Id);
@@ -95,10 +102,9 @@ namespace Tracker.Managers
                     {
                         meeting.LastSyncedAt = DateTime.UtcNow;
                         meeting.CalendarSyncStatus = "synced";
-                        var meetingRepository = CreateMeetingRepository();
-                        if (meetingRepository != null)
+                        if (_meetingRepository != null)
                         {
-                            await meetingRepository.UpdateMeetingAsync(meeting);
+                            await _meetingRepository.UpdateAsync(meeting);
                         }
                         
                         _logger.Info("Updated Google Calendar event for meeting {0}", meeting.Id);
@@ -162,10 +168,9 @@ namespace Tracker.Managers
                         meeting.VideoConferenceId = null;
                     }
 
-                    var meetingRepository = CreateMeetingRepository();
-                    if (meetingRepository != null)
+                    if (_meetingRepository != null)
                     {
-                        await meetingRepository.UpdateMeetingAsync(meeting);
+                        await _meetingRepository.UpdateAsync(meeting);
                     }
                     _logger.Info("Removed meeting {0} from Google Calendar", meeting.Id);
                 }
@@ -261,10 +266,9 @@ namespace Tracker.Managers
                     _logger.Info("Updated meeting {0} time from Google Calendar: {1:g} ({2} min)", 
                         meeting.Id, meeting.ScheduledAt, meeting.DurationMinutes);
                     
-                    var meetingRepository = CreateMeetingRepository();
-                    if (meetingRepository != null)
+                    if (_meetingRepository != null)
                     {
-                        await meetingRepository.UpdateMeetingAsync(meeting);
+                        await _meetingRepository.UpdateAsync(meeting);
                     }
                 }
 
@@ -291,19 +295,6 @@ namespace Tracker.Managers
             {
                 NotificationManager.Instance.ShowSuccess("Calendar Sync", "Meeting synced to Google Calendar");
             }
-        }
-
-        private static MeetingRepository? CreateMeetingRepository()
-        {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
     }
 }

@@ -10,7 +10,7 @@
              x:Name="Root">
     
     <UserControl.Resources>
-        <converters:ObjectiveStatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:GoalStatusToColorConverter x:Key="StatusToColorConverter"/>
     </UserControl.Resources>
     
     <Border x:Name="CardBorder"

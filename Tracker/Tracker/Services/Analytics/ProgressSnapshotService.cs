@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-using Tracker.Classes;
-using Tracker.Database;
+using Dapper;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services;
+using Tracker.Services.Data;
 
 namespace Tracker.Services.Analytics
 {
@@ -98,24 +98,32 @@ namespace Tracker.Services.Analytics
             Guid entityId, 
             int days = 90)
         {
-            var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-            if (!currentUserId.HasValue)
+            var orgId = OrganizationContext.Current.OrganizationIdOrNull;
+            if (!orgId.HasValue)
                 return new List<ProgressSnapshot>();
 
             var cutoffDate = DateTime.Today.AddDays(-days);
 
             try
             {
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-                return await context.ProgressSnapshots
-                    .Where(s => s.UserId == currentUserId.Value
-                             && s.EntityType == entityType
-                             && s.EntityId == entityId
-                             && s.SnapshotDate >= cutoffDate)
-                    .OrderBy(s => s.SnapshotDate)
-                    .AsNoTracking()
-                    .ToListAsync();
+                var connectionFactory = new DapperConnectionFactory();
+                using var connection = connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM progress_snapshots
+                    WHERE organization_id = @OrgId
+                      AND entity_type = @EntityType
+                      AND entity_id = @EntityId
+                      AND snapshot_date >= @CutoffDate
+                    ORDER BY snapshot_date";
+                
+                var results = await connection.QueryAsync<ProgressSnapshot>(sql, new 
+                { 
+                    OrgId = orgId.Value, 
+                    EntityType = entityType.ToString().ToLowerInvariant(),
+                    EntityId = entityId,
+                    CutoffDate = cutoffDate
+                });
+                return results.ToList();
             }
             catch (Exception ex)
             {
@@ -129,21 +137,28 @@ namespace Tracker.Services.Analytics
         /// </summary>
         public async Task<ProgressSnapshot?> GetLatestSnapshotAsync(SnapshotEntityType entityType, Guid entityId)
         {
-            var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-            if (!currentUserId.HasValue)
+            var orgId = OrganizationContext.Current.OrganizationIdOrNull;
+            if (!orgId.HasValue)
                 return null;
 
             try
             {
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-                return await context.ProgressSnapshots
-                    .Where(s => s.UserId == currentUserId.Value
-                             && s.EntityType == entityType
-                             && s.EntityId == entityId)
-                    .OrderByDescending(s => s.SnapshotDate)
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync();
+                var connectionFactory = new DapperConnectionFactory();
+                using var connection = connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM progress_snapshots
+                    WHERE organization_id = @OrgId
+                      AND entity_type = @EntityType
+                      AND entity_id = @EntityId
+                    ORDER BY snapshot_date DESC
+                    LIMIT 1";
+                
+                return await connection.QueryFirstOrDefaultAsync<ProgressSnapshot>(sql, new 
+                { 
+                    OrgId = orgId.Value, 
+                    EntityType = entityType.ToString().ToLowerInvariant(),
+                    EntityId = entityId
+                });
             }
             catch (Exception ex)
             {
@@ -157,19 +172,25 @@ namespace Tracker.Services.Analytics
         /// </summary>
         public async Task<List<ProgressSnapshot>> GetSnapshotsForDateAsync(DateTime date)
         {
-            var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-            if (!currentUserId.HasValue)
+            var orgId = OrganizationContext.Current.OrganizationIdOrNull;
+            if (!orgId.HasValue)
                 return new List<ProgressSnapshot>();
 
             try
             {
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-                return await context.ProgressSnapshots
-                    .Where(s => s.UserId == currentUserId.Value
-                             && s.SnapshotDate == date.Date)
-                    .AsNoTracking()
-                    .ToListAsync();
+                var connectionFactory = new DapperConnectionFactory();
+                using var connection = connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM progress_snapshots
+                    WHERE organization_id = @OrgId
+                      AND snapshot_date = @Date";
+                
+                var results = await connection.QueryAsync<ProgressSnapshot>(sql, new 
+                { 
+                    OrgId = orgId.Value, 
+                    Date = date.Date
+                });
+                return results.ToList();
             }
             catch (Exception ex)
             {
@@ -183,19 +204,26 @@ namespace Tracker.Services.Analytics
         /// </summary>
         public async Task<int> GetSnapshotCountAsync(SnapshotEntityType entityType, Guid entityId)
         {
-            var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-            if (!currentUserId.HasValue)
+            var orgId = OrganizationContext.Current.OrganizationIdOrNull;
+            if (!orgId.HasValue)
                 return 0;
 
             try
             {
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-                return await context.ProgressSnapshots
-                    .Where(s => s.UserId == currentUserId.Value
-                             && s.EntityType == entityType
-                             && s.EntityId == entityId)
-                    .CountAsync();
+                var connectionFactory = new DapperConnectionFactory();
+                using var connection = connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT COUNT(*) FROM progress_snapshots
+                    WHERE organization_id = @OrgId
+                      AND entity_type = @EntityType
+                      AND entity_id = @EntityId";
+                
+                return await connection.ExecuteScalarAsync<int>(sql, new 
+                { 
+                    OrgId = orgId.Value, 
+                    EntityType = entityType.ToString().ToLowerInvariant(),
+                    EntityId = entityId
+                });
             }
             catch (Exception ex)
             {
@@ -214,26 +242,31 @@ namespace Tracker.Services.Analytics
         /// <param name="retentionDays">Days to retain (default 365).</param>
         public async Task CleanupOldSnapshotsAsync(int retentionDays = 365)
         {
-            var currentUserId = UserSettingsManager.Instance?.CurrentUserId;
-            if (!currentUserId.HasValue)
+            var orgId = OrganizationContext.Current.OrganizationIdOrNull;
+            if (!orgId.HasValue)
                 return;
 
             var cutoffDate = DateTime.Today.AddDays(-retentionDays);
 
             try
             {
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-                var oldSnapshots = await context.ProgressSnapshots
-                    .Where(s => s.UserId == currentUserId.Value && s.SnapshotDate < cutoffDate)
-                    .ToListAsync();
+                var connectionFactory = new DapperConnectionFactory();
+                using var connection = connectionFactory.CreateConnection();
+                const string sql = @"
+                    DELETE FROM progress_snapshots
+                    WHERE organization_id = @OrgId
+                      AND snapshot_date < @CutoffDate";
+                
+                var deleted = await connection.ExecuteAsync(sql, new 
+                { 
+                    OrgId = orgId.Value, 
+                    CutoffDate = cutoffDate
+                });
 
-                if (oldSnapshots.Count > 0)
+                if (deleted > 0)
                 {
-                    context.ProgressSnapshots.RemoveRange(oldSnapshots);
-                    await context.SaveChangesAsync();
                     _logger.Info("Cleaned up {0} old snapshots (older than {1})", 
-                        oldSnapshots.Count, cutoffDate.ToString("yyyy-MM-dd"));
+                        deleted, cutoffDate.ToString("yyyy-MM-dd"));
                 }
             }
             catch (Exception ex)

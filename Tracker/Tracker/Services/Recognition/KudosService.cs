@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.Recognition
 {
@@ -33,7 +35,7 @@ namespace Tracker.Services.Recognition
     {
         #region Fields
 
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
 
         #endregion
 
@@ -53,41 +55,24 @@ namespace Tracker.Services.Recognition
             _logger = LoggingManager.GetComponentLogger("KudosService");
         }
         
-        private static KudosRepository? CreateKudosRepository()
+        private static KudosRepository CreateKudosRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-            
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new KudosRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new KudosRepository(factory, loggerFactory.CreateLogger<KudosRepository>());
         }
         
-        private static TeamMemberRepository? CreateTeamMemberRepository()
+        private static TeamMemberRepository CreateTeamMemberRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-            
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new TeamMemberRepository(factory, loggerFactory.CreateLogger<TeamMemberRepository>());
         }
         
         private static async Task<TeamMember?> GetTeamMemberByIdAsync(Guid teamMemberId)
         {
             var repository = CreateTeamMemberRepository();
-            if (repository == null)
-            {
-                return null;
-            }
-            
-            return await repository.GetTeamMemberByIdAsync(teamMemberId);
+            return await repository.GetByIdAsync(teamMemberId);
         }
 
         #endregion
@@ -167,7 +152,8 @@ namespace Tracker.Services.Recognition
             if (repository == null) return false;
 
             kudos.UpdatedAt = DateTime.UtcNow;
-            return await repository.UpdateKudosAsync(kudos);
+            await repository.UpdateKudosAsync(kudos);
+            return true;
         }
 
         /// <summary>
@@ -178,7 +164,8 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return false;
 
-            return await repository.DeleteKudosAsync(kudosId);
+            await repository.DeleteKudosAsync(kudosId);
+            return true;
         }
 
         #endregion
@@ -193,7 +180,7 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return new List<DataModels.Kudos>();
 
-            return await repository.GetKudosToAsync(teamMemberId);
+            return (await repository.GetKudosToAsync(teamMemberId)).ToList();
         }
 
         /// <summary>
@@ -204,7 +191,7 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return new List<DataModels.Kudos>();
 
-            return await repository.GetKudosFromAsync(teamMemberId);
+            return (await repository.GetKudosFromAsync(teamMemberId)).ToList();
         }
 
         /// <summary>
@@ -215,7 +202,7 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return new List<DataModels.Kudos>();
 
-            return await repository.GetKudosAsync();
+            return (await repository.GetKudosAsync()).ToList();
         }
 
         /// <summary>
@@ -226,7 +213,7 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return new List<DataModels.Kudos>();
 
-            return await repository.GetPublicKudosAsync();
+            return (await repository.GetPublicKudosAsync()).ToList();
         }
 
         /// <summary>
@@ -239,8 +226,7 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return new List<DataModels.Kudos>();
 
-            var cutoff = DateTime.UtcNow.AddDays(-daysSince);
-            var recent = await repository.GetRecentKudosAsync(cutoff, DateTime.UtcNow);
+            var recent = await repository.GetRecentKudosAsync(daysSince);
             return recent.Where(k => k.ToTeamMemberId == teamMemberId).ToList();
         }
 
@@ -252,7 +238,7 @@ namespace Tracker.Services.Recognition
             var repository = CreateKudosRepository();
             if (repository == null) return new List<DataModels.Kudos>();
 
-            return await repository.GetKudosByBadgeTypeAsync(badgeType);
+            return (await repository.GetKudosByBadgeTypeAsync(badgeType!)).ToList();
         }
 
         /// <summary>

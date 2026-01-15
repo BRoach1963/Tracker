@@ -8,74 +8,79 @@ using Tracker.DataModels;
 namespace Tracker.Services.Data.Repositories
 {
     /// <summary>
-    /// Repository for Task entity.
+    /// Repository for TrackerTask entity.
     /// Provides data access for all task-related operations.
     /// 
     /// This is the ONLY place that queries the 'tasks' table.
     /// ViewModels and Services NEVER query the database directly - they use this repository.
     /// 
-    /// Tasks represent action items assigned to people, linked to Goals, Meetings, and Projects.
+    /// TrackerTask represents action items assigned to people, linked to Goals, Meetings, and Projects.
     /// They have status filtering, owner queries, date range lookups, and goal/project associations.
     /// </summary>
-    public interface ITaskRepository : IRepository<Task>
+    public interface ITaskRepository : IRepository<TrackerTask>
     {
         /// <summary>
         /// Get all tasks assigned to a specific person.
         /// </summary>
-        Task<IEnumerable<Task>> GetByAssigneeAsync(Guid assigneeId);
+        Task<IEnumerable<TrackerTask>> GetByAssigneeAsync(Guid assigneeId);
 
         /// <summary>
         /// Get all open (not completed) tasks for a user.
         /// </summary>
-        Task<IEnumerable<Task>> GetOpenByAssigneeAsync(Guid assigneeId);
+        Task<IEnumerable<TrackerTask>> GetOpenByAssigneeAsync(Guid assigneeId);
 
         /// <summary>
         /// Get all completed tasks for a user.
         /// </summary>
-        Task<IEnumerable<Task>> GetCompletedByAssigneeAsync(Guid assigneeId);
+        Task<IEnumerable<TrackerTask>> GetCompletedByAssigneeAsync(Guid assigneeId);
 
         /// <summary>
         /// Get tasks by specific status (open, completed, blocked, etc.).
         /// </summary>
-        Task<IEnumerable<Task>> GetByStatusAsync(string status);
+        Task<IEnumerable<TrackerTask>> GetByStatusAsync(string status);
 
         /// <summary>
         /// Get tasks due by a specific date.
         /// </summary>
-        Task<IEnumerable<Task>> GetDueByDateAsync(Guid assigneeId, DateTime dueDate);
+        Task<IEnumerable<TrackerTask>> GetDueByDateAsync(Guid assigneeId, DateTime dueDate);
 
         /// <summary>
         /// Get overdue tasks for a user (due_date in past).
         /// </summary>
-        Task<IEnumerable<Task>> GetOverdueAsync(Guid assigneeId, DateTime currentDate);
+        Task<IEnumerable<TrackerTask>> GetOverdueAsync(Guid assigneeId, DateTime currentDate);
 
         /// <summary>
         /// Get tasks linked to a specific goal.
         /// </summary>
-        Task<IEnumerable<Task>> GetByGoalAsync(Guid goalId);
+        Task<IEnumerable<TrackerTask>> GetByGoalAsync(Guid goalId);
 
         /// <summary>
         /// Get tasks linked to a specific project.
         /// </summary>
-        Task<IEnumerable<Task>> GetByProjectAsync(Guid projectId);
+        Task<IEnumerable<TrackerTask>> GetByProjectAsync(Guid projectId);
 
         /// <summary>
         /// Get tasks linked to a specific meeting (prep or follow-up).
         /// </summary>
-        Task<IEnumerable<Task>> GetByMeetingAsync(Guid meetingId);
+        Task<IEnumerable<TrackerTask>> GetByMeetingAsync(Guid meetingId);
 
         /// <summary>
         /// Get all tasks created/assigned by a specific user.
         /// </summary>
-        Task<IEnumerable<Task>> GetByCreatedByAsync(Guid createdById);
+        Task<IEnumerable<TrackerTask>> GetByCreatedByAsync(Guid createdById);
 
         /// <summary>
         /// Count open tasks for a user.
         /// </summary>
         Task<int> CountOpenByAssigneeAsync(Guid assigneeId);
+
+        /// <summary>
+        /// Get all tasks for an organization.
+        /// </summary>
+        Task<IEnumerable<TrackerTask>> GetByOrganizationAsync(Guid organizationId);
     }
 
-    public class TaskRepository : BaseRepository<Task>, ITaskRepository
+    public class TaskRepository : BaseRepository<TrackerTask>, ITaskRepository
     {
         public TaskRepository(
             IDapperConnectionFactory connectionFactory,
@@ -85,7 +90,7 @@ namespace Tracker.Services.Data.Repositories
             TableName = "tasks";
         }
 
-        public async Task<IEnumerable<Task>> GetByAssigneeAsync(Guid assigneeId)
+        public async Task<IEnumerable<TrackerTask>> GetByAssigneeAsync(Guid assigneeId)
         {
             try
             {
@@ -95,7 +100,7 @@ namespace Tracker.Services.Data.Repositories
                     WHERE assignee_id = @AssigneeId AND is_deleted = false
                     ORDER BY due_date ASC, created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { AssigneeId = assigneeId });
+                return await connection.QueryAsync<TrackerTask>(sql, new { AssigneeId = assigneeId });
             }
             catch (Exception ex)
             {
@@ -104,7 +109,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetOpenByAssigneeAsync(Guid assigneeId)
+        public async Task<IEnumerable<TrackerTask>> GetOpenByAssigneeAsync(Guid assigneeId)
         {
             try
             {
@@ -116,7 +121,7 @@ namespace Tracker.Services.Data.Repositories
                       AND is_deleted = false
                     ORDER BY due_date ASC, created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { AssigneeId = assigneeId });
+                return await connection.QueryAsync<TrackerTask>(sql, new { AssigneeId = assigneeId });
             }
             catch (Exception ex)
             {
@@ -125,7 +130,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetCompletedByAssigneeAsync(Guid assigneeId)
+        public async Task<IEnumerable<TrackerTask>> GetCompletedByAssigneeAsync(Guid assigneeId)
         {
             try
             {
@@ -137,7 +142,7 @@ namespace Tracker.Services.Data.Repositories
                       AND is_deleted = false
                     ORDER BY completed_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { AssigneeId = assigneeId });
+                return await connection.QueryAsync<TrackerTask>(sql, new { AssigneeId = assigneeId });
             }
             catch (Exception ex)
             {
@@ -146,7 +151,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetByStatusAsync(string status)
+        public async Task<IEnumerable<TrackerTask>> GetByStatusAsync(string status)
         {
             try
             {
@@ -156,7 +161,7 @@ namespace Tracker.Services.Data.Repositories
                     WHERE status = @Status AND is_deleted = false
                     ORDER BY due_date ASC, created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { Status = status });
+                return await connection.QueryAsync<TrackerTask>(sql, new { Status = status });
             }
             catch (Exception ex)
             {
@@ -165,7 +170,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetDueByDateAsync(Guid assigneeId, DateTime dueDate)
+        public async Task<IEnumerable<TrackerTask>> GetDueByDateAsync(Guid assigneeId, DateTime dueDate)
         {
             try
             {
@@ -177,7 +182,7 @@ namespace Tracker.Services.Data.Repositories
                       AND is_deleted = false
                     ORDER BY status, created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, 
+                return await connection.QueryAsync<TrackerTask>(sql, 
                     new { AssigneeId = assigneeId, DueDate = dueDate });
             }
             catch (Exception ex)
@@ -187,7 +192,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetOverdueAsync(Guid assigneeId, DateTime currentDate)
+        public async Task<IEnumerable<TrackerTask>> GetOverdueAsync(Guid assigneeId, DateTime currentDate)
         {
             try
             {
@@ -200,7 +205,7 @@ namespace Tracker.Services.Data.Repositories
                       AND is_deleted = false
                     ORDER BY due_date ASC";
 
-                return await connection.QueryAsync<Task>(sql, 
+                return await connection.QueryAsync<TrackerTask>(sql, 
                     new { AssigneeId = assigneeId, CurrentDate = currentDate });
             }
             catch (Exception ex)
@@ -210,7 +215,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetByGoalAsync(Guid goalId)
+        public async Task<IEnumerable<TrackerTask>> GetByGoalAsync(Guid goalId)
         {
             try
             {
@@ -220,7 +225,7 @@ namespace Tracker.Services.Data.Repositories
                     WHERE goal_id = @GoalId AND is_deleted = false
                     ORDER BY due_date ASC, created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { GoalId = goalId });
+                return await connection.QueryAsync<TrackerTask>(sql, new { GoalId = goalId });
             }
             catch (Exception ex)
             {
@@ -229,7 +234,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetByProjectAsync(Guid projectId)
+        public async Task<IEnumerable<TrackerTask>> GetByProjectAsync(Guid projectId)
         {
             try
             {
@@ -239,7 +244,7 @@ namespace Tracker.Services.Data.Repositories
                     WHERE project_id = @ProjectId AND is_deleted = false
                     ORDER BY due_date ASC, created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { ProjectId = projectId });
+                return await connection.QueryAsync<TrackerTask>(sql, new { ProjectId = projectId });
             }
             catch (Exception ex)
             {
@@ -248,7 +253,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetByMeetingAsync(Guid meetingId)
+        public async Task<IEnumerable<TrackerTask>> GetByMeetingAsync(Guid meetingId)
         {
             try
             {
@@ -258,7 +263,7 @@ namespace Tracker.Services.Data.Repositories
                     WHERE meeting_id = @MeetingId AND is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { MeetingId = meetingId });
+                return await connection.QueryAsync<TrackerTask>(sql, new { MeetingId = meetingId });
             }
             catch (Exception ex)
             {
@@ -267,7 +272,7 @@ namespace Tracker.Services.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<Task>> GetByCreatedByAsync(Guid createdById)
+        public async Task<IEnumerable<TrackerTask>> GetByCreatedByAsync(Guid createdById)
         {
             try
             {
@@ -277,7 +282,7 @@ namespace Tracker.Services.Data.Repositories
                     WHERE created_by = @CreatedById AND is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<Task>(sql, new { CreatedById = createdById });
+                return await connection.QueryAsync<TrackerTask>(sql, new { CreatedById = createdById });
             }
             catch (Exception ex)
             {
@@ -302,6 +307,25 @@ namespace Tracker.Services.Data.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error counting open tasks for assignee {AssigneeId}", assigneeId);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<TrackerTask>> GetByOrganizationAsync(Guid organizationId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM tasks
+                    WHERE organization_id = @OrganizationId AND is_deleted = false
+                    ORDER BY due_date ASC, created_at DESC";
+
+                return await connection.QueryAsync<TrackerTask>(sql, new { OrganizationId = organizationId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tasks by organization {OrganizationId}", organizationId);
                 throw;
             }
         }

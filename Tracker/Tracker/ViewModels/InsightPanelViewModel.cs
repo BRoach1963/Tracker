@@ -198,7 +198,7 @@ namespace Tracker.ViewModels
             }
         }
         
-        private void NavigateToEntity(string entityType, int entityId)
+        private void NavigateToEntity(string entityType, Guid entityId)
         {
             // TODO: Implement navigation based on entity type
             // For now, log the navigation request

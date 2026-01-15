@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.AI.Insights.Analyzers
 {
@@ -18,7 +20,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
     /// </summary>
     public class MeetingCadenceAnalyzer : IInsightAnalyzer
     {
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
 
         public string Name => "Meeting Cadence Analyzer";
 
@@ -64,7 +66,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
                 // Get all active team members
                 var teamMembers = await teamMemberRepository.GetTeamMembersAsync();
-                if (teamMembers == null || teamMembers.Count == 0)
+                if (teamMembers == null || !teamMembers.Any())
                 {
                     _logger.Debug("No team members found");
                     return insights;
@@ -132,17 +134,11 @@ namespace Tracker.Services.AI.Insights.Analyzers
             return insights;
         }
 
-        private static TeamMemberRepository? CreateTeamMemberRepository()
+        private static TeamMemberRepository CreateTeamMemberRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new TeamMemberRepository(factory, loggerFactory.CreateLogger<TeamMemberRepository>());
         }
 
         private static Insight CreateInsight(TeamMember member, InsightSeverity severity, string title, string description, string action, DateTime? lastMeetingDate)

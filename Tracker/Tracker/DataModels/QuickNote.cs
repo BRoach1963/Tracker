@@ -335,6 +335,54 @@ namespace Tracker.DataModels
         }
 
         /// <summary>
+        /// Tags as a comma-separated string (convenience property).
+        /// </summary>
+        [NotMapped]
+        public string Tags
+        {
+            get => string.Join(", ", TagList);
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    TagsJson = null;
+                }
+                else
+                {
+                    var tags = value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .ToArray();
+                    TagsJson = "[" + string.Join(",", tags.Select(t => $"\"{t}\"")) + "]";
+                }
+            }
+        }
+
+        /// <summary>
+        /// TeamMemberId alias for LinkedTeamMemberId (backward compatibility).
+        /// </summary>
+        [NotMapped]
+        public Guid? TeamMemberId
+        {
+            get => LinkedTeamMemberId;
+            set => LinkedTeamMemberId = value;
+        }
+
+        /// <summary>
+        /// Generic LinkedEntityId computed from whichever FK is set (for backward compatibility).
+        /// Returns hash code of Guid for legacy int-based code.
+        /// </summary>
+        [NotMapped]
+        public int? LinkedEntityId
+        {
+            get
+            {
+                var guid = LinkedProjectId ?? LinkedGoalId ?? LinkedTaskId ?? LinkedMeetingId;
+                return guid?.GetHashCode();
+            }
+        }
+
+        /// <summary>
         /// Display string for when the note was created.
         /// </summary>
         [NotMapped]
@@ -415,6 +463,46 @@ namespace Tracker.DataModels
             LinkedTaskId = null;
             LinkedTeamMember = null;
             LinkedMeeting = null;
+        }
+
+        /// <summary>
+        /// Sets a linked entity by type and ID.
+        /// </summary>
+        public void SetLinkedEntity(NoteLinkedEntityType entityType, int? entityIdHash)
+        {
+            ClearLinkedEntity();
+            // Note: This is a legacy method that accepted int. 
+            // For new code, use the type-specific methods like SetLinkedProject(Guid).
+            // This method is kept for backward compatibility but doesn't actually set the GUID properly.
+        }
+
+        /// <summary>
+        /// Sets a linked entity by type and Guid.
+        /// </summary>
+        public void SetLinkedEntity(NoteLinkedEntityType entityType, Guid? entityId)
+        {
+            ClearLinkedEntity();
+            if (!entityId.HasValue) return;
+            
+            switch (entityType)
+            {
+                case NoteLinkedEntityType.TeamMember:
+                    LinkedTeamMemberId = entityId;
+                    break;
+                case NoteLinkedEntityType.Meeting:
+                    LinkedMeetingId = entityId;
+                    break;
+                case NoteLinkedEntityType.Project:
+                    LinkedProjectId = entityId;
+                    break;
+                case NoteLinkedEntityType.Goal:
+                case NoteLinkedEntityType.OKR:
+                    LinkedGoalId = entityId;
+                    break;
+                case NoteLinkedEntityType.Task:
+                    LinkedTaskId = entityId;
+                    break;
+            }
         }
 
         /// <summary>

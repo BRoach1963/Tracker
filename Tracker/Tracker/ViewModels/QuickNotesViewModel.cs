@@ -402,7 +402,7 @@ namespace Tracker.ViewModels
                 if (IsNewNote)
                 {
                     var id = await _quickNoteRepository.AddQuickNoteAsync(note);
-                    if (id > 0)
+                    if (id != Guid.Empty)
                     {
                         note.Id = id;
                         _notes.Insert(0, note);
@@ -411,11 +411,8 @@ namespace Tracker.ViewModels
                 }
                 else
                 {
-                    var success = await _quickNoteRepository.UpdateQuickNoteAsync(note);
-                    if (success)
-                    {
-                        NotificationManager.Instance.ShowSuccess("Note Updated", "Your changes have been saved.");
-                    }
+                    await _quickNoteRepository.UpdateQuickNoteAsync(note);
+                    NotificationManager.Instance.ShowSuccess("Note Updated", "Your changes have been saved.");
                 }
 
                 IsEditing = false;
@@ -451,60 +448,52 @@ namespace Tracker.ViewModels
         {
             if (SelectedNote == null) return;
 
-            var result = await _quickNoteRepository.DeleteQuickNoteAsync(SelectedNote.Id);
-            if (result)
+            await _quickNoteRepository.DeleteQuickNoteAsync(SelectedNote.Id);
+            
+            var index = _notes.IndexOf(SelectedNote);
+            _notes.Remove(SelectedNote);
+            _filteredNotes.Remove(SelectedNote);
+            
+            // Select the next note or previous
+            if (_filteredNotes.Count > 0)
             {
-                var index = _notes.IndexOf(SelectedNote);
-                _notes.Remove(SelectedNote);
-                _filteredNotes.Remove(SelectedNote);
-                
-                // Select the next note or previous
-                if (_filteredNotes.Count > 0)
-                {
-                    SelectedNote = _filteredNotes[Math.Min(index, _filteredNotes.Count - 1)];
-                }
-                else
-                {
-                    SelectedNote = null;
-                }
-                
-                RefreshStatistics();
-                NotificationManager.Instance.ShowInfo("Note Deleted", "The note has been deleted.");
+                SelectedNote = _filteredNotes[Math.Min(index, _filteredNotes.Count - 1)];
             }
+            else
+            {
+                SelectedNote = null;
+            }
+            
+            RefreshStatistics();
+            NotificationManager.Instance.ShowInfo("Note Deleted", "The note has been deleted.");
         }
 
         private async void TogglePinAsync()
         {
             if (SelectedNote == null) return;
 
-            var result = await _quickNoteRepository.ToggleNotePinnedAsync(SelectedNote.Id);
-            if (result)
-            {
-                SelectedNote.IsPinned = !SelectedNote.IsPinned;
-                ApplyFilters();
-                RefreshStatistics();
-            }
+            await _quickNoteRepository.ToggleNotePinnedAsync(SelectedNote.Id);
+            SelectedNote.IsPinned = !SelectedNote.IsPinned;
+            ApplyFilters();
+            RefreshStatistics();
         }
 
         private async void ArchiveNoteAsync()
         {
             if (SelectedNote == null) return;
 
-            var result = await _quickNoteRepository.ArchiveNoteAsync(SelectedNote.Id);
-            if (result)
+            await _quickNoteRepository.ArchiveNoteAsync(SelectedNote.Id);
+            SelectedNote.IsArchived = true;
+            
+            if (!ShowArchived)
             {
-                SelectedNote.IsArchived = true;
-                
-                if (!ShowArchived)
-                {
-                    _notes.Remove(SelectedNote);
-                    _filteredNotes.Remove(SelectedNote);
-                    SelectedNote = _filteredNotes.FirstOrDefault();
-                }
-                
-                RefreshStatistics();
-                NotificationManager.Instance.ShowInfo("Note Archived", "The note has been archived.");
+                _notes.Remove(SelectedNote);
+                _filteredNotes.Remove(SelectedNote);
+                SelectedNote = _filteredNotes.FirstOrDefault();
             }
+                
+            RefreshStatistics();
+            NotificationManager.Instance.ShowInfo("Note Archived", "The note has been archived.");
         }
 
         private void ClearFilters()
@@ -528,7 +517,7 @@ namespace Tracker.ViewModels
 
         private async Task LoadNotesAsync()
         {
-            var notes = await _quickNoteRepository.GetQuickNotesAsync(ShowArchived);
+            var notes = await _quickNoteRepository.GetQuickNotesAsync();
             _notes.Clear();
             foreach (var note in notes)
             {

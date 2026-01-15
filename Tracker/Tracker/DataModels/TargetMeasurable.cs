@@ -66,6 +66,12 @@ namespace Tracker.DataModels
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Soft delete flag.
+        /// </summary>
+        [NotMapped]
+        public bool IsDeleted { get; set; }
+
         #region Navigation Properties
 
         /// <summary>

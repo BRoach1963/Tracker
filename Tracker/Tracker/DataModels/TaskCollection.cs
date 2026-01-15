@@ -66,6 +66,12 @@ namespace Tracker.DataModels
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Soft delete flag.
+        /// </summary>
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; }
+
         #region Navigation Properties
 
         /// <summary>

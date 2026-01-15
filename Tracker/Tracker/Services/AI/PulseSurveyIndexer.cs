@@ -1,9 +1,12 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
-using Tracker.Database;
+using Tracker.Common.Enums;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.AI
 {
@@ -24,17 +27,11 @@ namespace Tracker.Services.AI
 
         protected override string EntityTypeName => "pulse surveys";
 
-        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        private static PulseSurveyRepository CreatePulseSurveyRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new PulseSurveyRepository(factory, loggerFactory.CreateLogger<PulseSurveyRepository>());
         }
 
         protected override async Task<IEnumerable<object>> FetchEntitiesAsync()
@@ -62,14 +59,14 @@ namespace Tracker.Services.AI
                 if (!string.IsNullOrEmpty(survey.Description))
                     sb.AppendLine($"Description: {survey.Description}");
                 
-                if (survey.SentDate.HasValue)
-                    sb.AppendLine($"Sent: {survey.SentDate.Value:MMMM d, yyyy}");
+                if (survey.StartDate.HasValue)
+                    sb.AppendLine($"Started: {survey.StartDate.Value:MMMM d, yyyy}");
                 
-                if (survey.DueDate.HasValue)
-                    sb.AppendLine($"Due: {survey.DueDate.Value:MMMM d, yyyy}");
+                if (survey.EndDate.HasValue)
+                    sb.AppendLine($"Due: {survey.EndDate.Value:MMMM d, yyyy}");
                 
-                if (survey.ClosedDate.HasValue)
-                    sb.AppendLine($"Closed: {survey.ClosedDate.Value:MMMM d, yyyy}");
+                if (survey.Status == SurveyStatus.Closed)
+                    sb.AppendLine($"Closed: {survey.UpdatedAt:MMMM d, yyyy}");
 
                 sb.AppendLine($"Anonymous: {(survey.IsAnonymous ? "Yes" : "No")}");
 
@@ -80,7 +77,7 @@ namespace Tracker.Services.AI
                     sb.AppendLine("Questions:");
                     foreach (var question in survey.Questions.OrderBy(q => q.SortOrder))
                     {
-                        sb.AppendLine($"  Q{question.SortOrder}: {question.Text} ({question.QuestionType})");
+                        sb.AppendLine($"  Q{question.SortOrder}: {question.QuestionText} ({question.QuestionType})");
                     }
                 }
 
@@ -92,7 +89,7 @@ namespace Tracker.Services.AI
                     
                     // Analyze responses for rating questions
                     var ratingAnswers = survey.Responses
-                        .SelectMany(r => r.Answers ?? Enumerable.Empty<PulseSurveyAnswer>())
+                        .SelectMany(r => r.Answers ?? Enumerable.Empty<SurveyAnswer>())
                         .Where(a => a.RatingValue.HasValue)
                         .ToList();
                     
@@ -104,7 +101,7 @@ namespace Tracker.Services.AI
 
                     // Include text responses (anonymized if needed)
                     var textAnswers = survey.Responses
-                        .SelectMany(r => r.Answers ?? Enumerable.Empty<PulseSurveyAnswer>())
+                        .SelectMany(r => r.Answers ?? Enumerable.Empty<SurveyAnswer>())
                         .Where(a => !string.IsNullOrEmpty(a.TextValue))
                         .Select(a => a.TextValue!)
                         .Take(10) // Limit to avoid token overflow
@@ -128,13 +125,13 @@ namespace Tracker.Services.AI
                         foreach (var question in survey.Questions.OrderBy(q => q.SortOrder))
                         {
                             var questionAnswers = survey.Responses
-                                .SelectMany(r => r.Answers ?? Enumerable.Empty<PulseSurveyAnswer>())
-                                .Where(a => a.PulseSurveyQuestionId == question.Id)
+                                .SelectMany(r => r.Answers ?? Enumerable.Empty<SurveyAnswer>())
+                                .Where(a => a.QuestionId == question.Id)
                                 .ToList();
 
                             if (!questionAnswers.Any()) continue;
 
-                            sb.AppendLine($"  Q{question.SortOrder}: {question.Text}");
+                            sb.AppendLine($"  Q{question.SortOrder}: {question.QuestionText}");
                             
                             // Rating summary
                             var ratings = questionAnswers.Where(a => a.RatingValue.HasValue).ToList();
@@ -146,13 +143,11 @@ namespace Tracker.Services.AI
                                 sb.AppendLine($"    Rating: avg={avg:F1}, min={min}, max={max} ({ratings.Count} responses)");
                             }
 
-                            // Yes/No summary
-                            var yesNo = questionAnswers.Where(a => a.BoolValue.HasValue).ToList();
-                            if (yesNo.Any())
+                            // Text responses summary
+                            var textResponses = questionAnswers.Where(a => !string.IsNullOrEmpty(a.TextValue)).ToList();
+                            if (textResponses.Any())
                             {
-                                var yesCount = yesNo.Count(a => a.BoolValue == true);
-                                var noCount = yesNo.Count(a => a.BoolValue == false);
-                                sb.AppendLine($"    Yes: {yesCount}, No: {noCount}");
+                                sb.AppendLine($"    Text responses: {textResponses.Count}");
                             }
                         }
                     }

@@ -1,14 +1,16 @@
 using System.Collections.Concurrent;
 using System.Windows.Threading;
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Helpers;
 using Tracker.Logging;
 using Tracker.Managers;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.Services.Subscription;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.Microsoft365
 {
@@ -42,7 +44,7 @@ namespace Tracker.Services.Microsoft365
 
         #region Fields
 
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
         private readonly ConcurrentQueue<SyncOperation> _offlineQueue;
         private Timer? _periodicSyncTimer;
         private bool _isSyncing;
@@ -252,11 +254,11 @@ namespace Tracker.Services.Microsoft365
                     return false;
                 }
 
-                // Check if calendar event has changed
-                var calendarLastModified = calEvent.LastModifiedDateTime?.UtcDateTime ?? DateTime.UtcNow;
-                if (meeting.LastSyncedAt.HasValue && meeting.LastSyncedAt >= calendarLastModified)
+                // Check if calendar event has changed using ETag/ChangeKey
+                // GraphCalendarEvent doesn't have LastModifiedDateTime, so we use ChangeKey for change detection
+                if (meeting.CalendarEtag != null && meeting.CalendarEtag == calEvent.ChangeKey)
                 {
-                    _logger.Debug($"Calendar event unchanged for meeting {meeting.Id}");
+                    _logger.Debug($"Calendar event unchanged for meeting {meeting.Id} (ChangeKey match)");
                     return false; // No changes
                 }
 
@@ -804,8 +806,8 @@ namespace Tracker.Services.Microsoft365
                 return null;
             }
 
-            // Query database for meeting with this calendar event ID via CalendarLinks table
-            return await meetingRepository.FindMeetingByCalendarEventIdAsync("outlook", calendarEventId);
+            // Query database for meeting with this calendar event ID
+            return await meetingRepository.FindMeetingByCalendarEventIdAsync(calendarEventId);
         }
 
         private async Task<Meeting?> GetMeetingByIdAsync(Guid meetingId)
@@ -828,9 +830,7 @@ namespace Tracker.Services.Microsoft365
                 await meetingRepository.UpdateMeetingSyncDataAsync(
                     meeting.Id,
                     meeting.CalendarEventId,
-                    meeting.CalendarProviderString,
-                    meeting.CalendarEtag,
-                    meeting.CalendarSyncStatus);
+                    DateTime.UtcNow);
             }
         }
 
@@ -857,17 +857,11 @@ namespace Tracker.Services.Microsoft365
             MeetingSynced?.Invoke(meeting, SyncDirection.Pull);
         }
 
-        private static MeetingRepository? CreateMeetingRepository()
+        private static MeetingRepository CreateMeetingRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new MeetingRepository(factory, loggerFactory.CreateLogger<MeetingRepository>());
         }
 
         #endregion

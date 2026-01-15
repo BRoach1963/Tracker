@@ -303,6 +303,36 @@ namespace Tracker.DataModels
             ValidFrom <= DateTime.UtcNow && 
             (ValidUntil == null || ValidUntil > DateTime.UtcNow);
 
+        /// <summary>
+        /// Details - alias for DetailsJson for backward compatibility.
+        /// </summary>
+        [NotMapped]
+        public string? Details
+        {
+            get => DetailsJson;
+            set => DetailsJson = value;
+        }
+
+        /// <summary>
+        /// RecommendedActions - alias for RecommendedActionsJson for backward compatibility.
+        /// </summary>
+        [NotMapped]
+        public string? RecommendedActions
+        {
+            get => RecommendedActionsJson;
+            set => RecommendedActionsJson = value;
+        }
+
+        /// <summary>
+        /// SourceEntities - alias for SourceEntitiesJson for backward compatibility.
+        /// </summary>
+        [NotMapped]
+        public string? SourceEntities
+        {
+            get => SourceEntitiesJson;
+            set => SourceEntitiesJson = value;
+        }
+
         #endregion
     }
 }

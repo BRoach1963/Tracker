@@ -37,6 +37,16 @@ namespace Tracker.Services.Data.Repositories
         /// Get feedback in a date range.
         /// </summary>
         Task<IEnumerable<Feedback>> GetByDateRangeAsync(DateTime startDate, DateTime endDate);
+
+        /// <summary>
+        /// Get feedback for a specific team member.
+        /// </summary>
+        Task<IEnumerable<Feedback>> GetFeedbackForTeamMemberAsync(Guid teamMemberId);
+
+        /// <summary>
+        /// Delete feedback (soft delete).
+        /// </summary>
+        Task DeleteFeedbackAsync(Guid feedbackId);
     }
 
     public class FeedbackRepository : BaseRepository<Feedback>, IFeedbackRepository
@@ -124,6 +134,45 @@ namespace Tracker.Services.Data.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting feedback by date range");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Feedback>> GetFeedbackForTeamMemberAsync(Guid teamMemberId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM feedback
+                    WHERE team_member_id = @TeamMemberId AND is_deleted = false
+                    ORDER BY created_at DESC";
+
+                return await connection.QueryAsync<Feedback>(sql, new { TeamMemberId = teamMemberId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting feedback for team member {TeamMemberId}", teamMemberId);
+                throw;
+            }
+        }
+
+        public async Task DeleteFeedbackAsync(Guid feedbackId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    UPDATE feedback SET
+                        is_deleted = true,
+                        deleted_at = NOW()
+                    WHERE id = @Id";
+
+                await connection.ExecuteAsync(sql, new { Id = feedbackId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting feedback {FeedbackId}", feedbackId);
                 throw;
             }
         }

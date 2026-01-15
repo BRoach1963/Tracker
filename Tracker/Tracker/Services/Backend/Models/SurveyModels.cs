@@ -17,7 +17,7 @@ namespace Tracker.Services.Backend.Models
 
         [Column("tracker_id")]
         [JsonPropertyName("tracker_id")]
-        public int TrackerId { get; set; }
+        public string? TrackerId { get; set; }
 
         [Column("owner_id")]
         [JsonPropertyName("owner_id")]
@@ -69,7 +69,7 @@ namespace Tracker.Services.Backend.Models
 
         [Column("tracker_id")]
         [JsonPropertyName("tracker_id")]
-        public int? TrackerId { get; set; }
+        public string? TrackerId { get; set; }
 
         [Column("question_text")]
         [JsonPropertyName("question_text")]

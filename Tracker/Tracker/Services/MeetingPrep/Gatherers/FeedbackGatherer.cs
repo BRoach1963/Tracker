@@ -1,11 +1,13 @@
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.MeetingPrep.Gatherers
 {
@@ -14,7 +16,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
     /// </summary>
     public class FeedbackGatherer : IMeetingPrepGatherer
     {
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
 
         public string Name => "Feedback Gatherer";
         public PrepSectionType SectionType => PrepSectionType.RecentFeedback;
@@ -43,7 +45,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
                 // Get feedback for this team member
                 var allFeedback = await repository.GetFeedbackForTeamMemberAsync(teamMember.Id);
-                if (allFeedback == null || allFeedback.Count == 0)
+                if (allFeedback == null || allFeedback.Count() == 0)
                 {
                     return null;
                 }
@@ -78,7 +80,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                         Description = feedback.Content,
                         Priority = priority,
                         LinkType = PrepItemLinkType.Feedback,
-                        LinkId = feedback.Id.GetHashCode(), // Convert Guid to int for compatibility
+                        LinkId = feedback.Id,
                         Icon = icon
                     });
                 }
@@ -112,17 +114,11 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             return section.HasItems ? section : null;
         }
 
-        private static FeedbackRepository? CreateFeedbackRepository()
+        private static FeedbackRepository CreateFeedbackRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new FeedbackRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new FeedbackRepository(factory, loggerFactory.CreateLogger<FeedbackRepository>());
         }
 
         private static PrepItemPriority GetPriorityFromFeedbackType(FeedbackType type)

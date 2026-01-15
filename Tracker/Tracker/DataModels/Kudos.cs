@@ -91,6 +91,58 @@ namespace Tracker.DataModels
         [Column("company_values")]
         public string? CompanyValuesJson { get; set; }
 
+        /// <summary>
+        /// Gets the company values as a list of strings (deserialized from JSON).
+        /// </summary>
+        [NotMapped]
+        public List<string> CompanyValues
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(CompanyValuesJson))
+                    return new List<string>();
+                try
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<List<string>>(CompanyValuesJson) ?? new List<string>();
+                }
+                catch
+                {
+                    return new List<string>();
+                }
+            }
+            set
+            {
+                CompanyValuesJson = value?.Count > 0 
+                    ? System.Text.Json.JsonSerializer.Serialize(value) 
+                    : null;
+            }
+        }
+
+        /// <summary>
+        /// Category of recognition (alias for BadgeType for backward compatibility).
+        /// </summary>
+        [NotMapped]
+        public string Category
+        {
+            get => BadgeType ?? string.Empty;
+            set => BadgeType = value;
+        }
+
+        /// <summary>
+        /// Human-readable display name for the category/badge type.
+        /// </summary>
+        [NotMapped]
+        public string CategoryDisplayName
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(BadgeType)) return "Recognition";
+                // Convert snake_case to Title Case
+                return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(
+                    BadgeType.Replace("_", " "));
+            }
+        }
+
         #endregion
 
         #region Flags

@@ -153,7 +153,7 @@ namespace Tracker.Services.Analytics
 
             // Get current state
             var latestSnapshot = snapshotList.OrderByDescending(s => s.SnapshotDate).First();
-            var currentProgress = (double)latestSnapshot.Progress;
+            var currentProgress = (double)(latestSnapshot.OverallScore ?? 0);
             var today = DateTime.Today;
 
             // Calculate expected progress (linear from start to target)
@@ -230,7 +230,7 @@ namespace Tracker.Services.Analytics
                 points.Add(new TrajectoryPoint
                 {
                     Date = snapshot.SnapshotDate,
-                    ProjectedProgress = (double)snapshot.Progress,
+                    ProjectedProgress = (double)(snapshot.OverallScore ?? 0),
                     ExpectedProgress = expected,
                     IsHistorical = true
                 });
@@ -246,7 +246,7 @@ namespace Tracker.Services.Analytics
                 for (var date = projectionStart; date <= projectionEnd; date = date.AddDays(1))
                 {
                     var daysFromLast = (date - lastSnapshot.SnapshotDate).TotalDays;
-                    var projectedValue = (double)lastSnapshot.Progress + (trend.Slope * daysFromLast);
+                    var projectedValue = (double)(lastSnapshot.OverallScore ?? 0) + (trend.Slope * daysFromLast);
                     projectedValue = Math.Min(100, Math.Max(0, projectedValue)); // Clamp 0-100
 
                     double expected = CalculateExpectedProgress(startDate, targetDate, date, 100);

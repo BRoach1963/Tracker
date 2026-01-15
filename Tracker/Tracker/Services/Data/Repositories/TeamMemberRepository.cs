@@ -20,6 +20,11 @@ namespace Tracker.Services.Data.Repositories
     public interface ITeamMemberRepository : IRepository<TeamMember>
     {
         /// <summary>
+        /// Get all active team members (convenience method).
+        /// </summary>
+        Task<IEnumerable<TeamMember>> GetTeamMembersAsync();
+
+        /// <summary>
         /// Get all team members in an organization.
         /// </summary>
         Task<IEnumerable<TeamMember>> GetByOrganizationAsync(Guid organizationId);
@@ -59,6 +64,16 @@ namespace Tracker.Services.Data.Repositories
         /// Count active team members in organization.
         /// </summary>
         Task<int> CountActiveByOrganizationAsync(Guid organizationId);
+
+        /// <summary>
+        /// Get team members who haven't had a 1:1 meeting in the specified weeks.
+        /// </summary>
+        Task<List<TeamMember>> GetTeamMembersWithoutRecentOneOnOneAsync(int weeks);
+
+        /// <summary>
+        /// Find a team member by name (first + last).
+        /// </summary>
+        Task<TeamMember?> FindTeamMemberByNameAsync(string name);
     }
 
     public class TeamMemberRepository : BaseRepository<TeamMember>, ITeamMemberRepository
@@ -224,6 +239,82 @@ namespace Tracker.Services.Data.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error counting active team members in organization {OrgId}", organizationId);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<TeamMember>> GetTeamMembersAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM team_members
+                    WHERE is_deleted = false
+                    ORDER BY first_name, last_name";
+
+                return await connection.QueryAsync<TeamMember>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all team members");
+                throw;
+            }
+        }
+
+        public async Task<List<TeamMember>> GetTeamMembersWithoutRecentOneOnOneAsync(int weeks)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var cutoffDate = DateTime.UtcNow.AddDays(-7 * weeks);
+                
+                const string sql = @"
+                    SELECT tm.* FROM team_members tm
+                    WHERE tm.is_deleted = false
+                    AND NOT EXISTS (
+                        SELECT 1 FROM meetings m
+                        WHERE m.team_member_id = tm.id
+                        AND m.is_deleted = false
+                        AND m.meeting_type = 'OneOnOne'
+                        AND m.scheduled_date >= @CutoffDate
+                    )
+                    ORDER BY tm.first_name, tm.last_name";
+
+                var result = await connection.QueryAsync<TeamMember>(sql, new { CutoffDate = cutoffDate });
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting team members without recent 1:1");
+                throw;
+            }
+        }
+
+        public async Task<TeamMember?> FindTeamMemberByNameAsync(string name)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var nameParts = name.Trim().Split(' ', 2);
+                var firstName = nameParts[0];
+                var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+                
+                const string sql = @"
+                    SELECT * FROM team_members
+                    WHERE is_deleted = false
+                    AND (
+                        (first_name ILIKE @FirstName AND last_name ILIKE @LastName)
+                        OR (first_name || ' ' || last_name ILIKE @FullName)
+                    )
+                    LIMIT 1";
+
+                return await connection.QueryFirstOrDefaultAsync<TeamMember>(sql, 
+                    new { FirstName = $"%{firstName}%", LastName = $"%{lastName}%", FullName = $"%{name}%" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error finding team member by name {Name}", name);
                 throw;
             }
         }

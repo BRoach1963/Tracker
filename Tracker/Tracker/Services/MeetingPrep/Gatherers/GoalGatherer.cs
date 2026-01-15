@@ -97,7 +97,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                         Description = goal.Description,
                         Priority = priority,
                         LinkType = PrepItemLinkType.Okr,
-                        LinkId = goal.Id.GetHashCode(), // Convert Guid to int for compatibility
+                        LinkId = goal.Id,
                         Icon = status == GoalStatus.AtRisk || status == GoalStatus.OffTrack ? "Warning" : "Target"
                     });
                 }

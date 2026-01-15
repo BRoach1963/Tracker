@@ -153,6 +153,28 @@ namespace Tracker.DataModels
 
         #endregion
 
+        /// <summary>
+        /// Soft delete flag.
+        /// </summary>
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; }
+
+        /// <summary>
+        /// Description/additional context for the agenda item (alias for Notes).
+        /// </summary>
+        [NotMapped]
+        public string? Description
+        {
+            get => Notes;
+            set => Notes = value;
+        }
+
+        /// <summary>
+        /// Category of the agenda item.
+        /// </summary>
+        [NotMapped]
+        public string? Category { get; set; }
+
         #region Computed Properties
 
         /// <summary>

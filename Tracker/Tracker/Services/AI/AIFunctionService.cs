@@ -117,7 +117,7 @@ namespace Tracker.Services.AI
                 Description = notes ?? "1:1 Meeting",
                 Notes = "",
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
             
             // Store the member ID for setting the shadow property
@@ -173,7 +173,7 @@ namespace Tracker.Services.AI
                 Status = WorkItemStatus.NotStarted,
                 Notes = string.Empty,
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
             
             // Ensure navigation property is null to prevent EF from tracking an empty entity
@@ -210,7 +210,7 @@ namespace Tracker.Services.AI
                 TargetDirection = MetricTargetDirection.HigherIsBetter,
                 Frequency = MetricFrequency.Monthly,
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
             
             // Ensure navigation property is null to prevent EF from tracking an empty entity
@@ -315,7 +315,7 @@ namespace Tracker.Services.AI
                 Sentiment = feedbackType == FeedbackType.Positive ? "positive" : "constructive",
                 FeedbackType = "general",
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
 
             // Ensure navigation property is null to prevent EF from tracking an empty entity
@@ -363,7 +363,7 @@ namespace Tracker.Services.AI
                 TargetEndDate = endDate,
                 Status = WorkItemStatus.NotStarted,
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
 
             // Ensure navigation property is null to prevent EF from tracking an empty entity
@@ -427,7 +427,7 @@ namespace Tracker.Services.AI
                 TargetDate = targetDate,
                 ProgressPercent = 0,
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
 
             // Ensure navigation property is null to prevent EF from tracking an empty entity
@@ -466,11 +466,10 @@ namespace Tracker.Services.AI
                 Title = title ?? "",
                 Content = content,
                 Category = category,
-                LinkedEntityType = NoteLinkedEntityType.None,
                 IsPinned = false,
                 IsArchived = false,
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             };
 
             var id = await TrackerDataManager.Instance.AddQuickNote(note);
@@ -639,12 +638,12 @@ namespace Tracker.Services.AI
                 if (!args.TryGetProperty("insight_id", out var idProp))
                     return "Error: insight_id is required";
 
-                var insightId = idProp.GetInt32();
+                var insightId = Guid.Parse(idProp.GetString()!);
 
                 var engine = Insights.InsightEngine.Instance;
                 await engine.DismissInsightAsync(insightId);
 
-                return $"✓ Insight #{insightId} has been dismissed.";
+                return $"✓ Insight {insightId} has been dismissed.";
             }
             catch (Exception ex)
             {

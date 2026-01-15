@@ -178,7 +178,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 _availableKpis.Clear();
                 foreach (var kpi in kpis.Where(k => !k.IsDeleted))
                 {
-                    _availableKpis.Add(new MeasurableItemWrapper(kpi.KpiId, kpi.Name, Interfaces.MeasurableType.Metric));
+                    _availableKpis.Add(new MeasurableItemWrapper(kpi.Id, kpi.Name, Interfaces.MeasurableType.Metric));
                 }
 
                 // Load Projects
@@ -186,7 +186,7 @@ namespace Tracker.ViewModels.DialogViewModels
                 _availableProjects.Clear();
                 foreach (var project in projects.Where(p => !p.IsDeleted))
                 {
-                    _availableProjects.Add(new MeasurableItemWrapper(project.ID, project.Name, Interfaces.MeasurableType.Project));
+                    _availableProjects.Add(new MeasurableItemWrapper(project.Id, project.Name, Interfaces.MeasurableType.Project));
                 }
 
                 // TaskCollections would be loaded similarly if the feature exists
@@ -210,7 +210,7 @@ namespace Tracker.ViewModels.DialogViewModels
             var measurable = new TargetMeasurable
             {
                 TargetId = _target.Id,
-                MeasurableType = SelectedItem.Type,
+                MeasurableType = SelectedItem.Type.ToString(),
                 MeasurableId = SelectedItem.Id,
                 DisplayName = SelectedItem.Name,
                 AggregationType = _selectedAggregation
@@ -235,11 +235,11 @@ namespace Tracker.ViewModels.DialogViewModels
     /// </summary>
     public class MeasurableItemWrapper
     {
-        public int Id { get; }
+        public Guid Id { get; }
         public string Name { get; }
         public Interfaces.MeasurableType Type { get; }
 
-        public MeasurableItemWrapper(int id, string name, Interfaces.MeasurableType type)
+        public MeasurableItemWrapper(Guid id, string name, Interfaces.MeasurableType type)
         {
             Id = id;
             Name = name;

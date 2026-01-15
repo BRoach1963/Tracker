@@ -198,7 +198,7 @@ namespace Tracker.Controls.CustomControls
 
             var values = snapshots
                 .OrderBy(s => s.SnapshotDate)
-                .Select(s => (double)s.Progress)
+                .Select(s => (double)(s.OverallScore ?? 0))
                 .ToList();
 
             DataPoints = values;

@@ -54,7 +54,7 @@
         
         <Style x:Key="FilterButton" TargetType="RadioButton" BasedOn="{StaticResource SegmentedButtonStyle}"/>
         
-        <converters:ObjectiveStatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:GoalStatusToColorConverter x:Key="StatusToColorConverter"/>
     </UserControl.Resources>
     
     <Grid Margin="20,16">

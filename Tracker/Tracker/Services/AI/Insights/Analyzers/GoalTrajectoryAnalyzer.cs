@@ -129,14 +129,17 @@ namespace Tracker.Services.AI.Insights.Analyzers
             _logger.Debug("Goal '{0}': Days {1}/{2}, Progress {3:F1}%, Expected {4:F1}%, Projected {5:F1}%",
                 goal.Title, daysElapsed, totalDays, currentProgress, expectedProgress, projectedFinal);
 
-            // Determine if at risk
-            if (projectedFinal < CriticalThresholdPercent)
+            // Determine if at risk (cast decimal to double for comparison with threshold)
+            var projectedFinalDouble = (double)projectedFinal;
+            var currentProgressDouble = (double)currentProgress;
+            
+            if (projectedFinalDouble < CriticalThresholdPercent)
             {
-                return CreateAtRiskInsight(goal, projectedFinal, currentProgress, InsightSeverity.Critical);
+                return CreateAtRiskInsight(goal, projectedFinalDouble, currentProgressDouble, InsightSeverity.Critical);
             }
-            else if (projectedFinal < WarningThresholdPercent)
+            else if (projectedFinalDouble < WarningThresholdPercent)
             {
-                return CreateAtRiskInsight(goal, projectedFinal, currentProgress, InsightSeverity.Warning);
+                return CreateAtRiskInsight(goal, projectedFinalDouble, currentProgressDouble, InsightSeverity.Warning);
             }
 
             return null;
@@ -160,7 +163,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                               $"and at this pace, projected to reach only {projectedText} by the end date ({goal.EndDate:MMM d}).",
                 ActionSuggestion = "Review Targets and identify blockers. Consider adjusting targets or reallocating resources.",
                 EntityType = "Goal",
-                EntityId = goal.Id.GetHashCode(),
+                EntityId = goal.Id,
                 GeneratedAt = DateTime.Now
             };
         }
@@ -188,7 +191,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                     ? "Focus on achievable Targets or document learnings for future Goals." 
                     : "Final sprint to close out remaining items.",
                 EntityType = "Goal",
-                EntityId = goal.Id.GetHashCode(),
+                EntityId = goal.Id,
                 GeneratedAt = DateTime.Now
             };
         }

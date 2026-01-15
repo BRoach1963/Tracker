@@ -187,7 +187,7 @@ namespace Tracker.Services.MeetingPrep
         {
             RegisterGatherer(new PreviousMeetingGatherer());
             RegisterGatherer(new TaskDataGatherer());
-            RegisterGatherer(new GoalGatherer(new TrackerDbContext()));
+            RegisterGatherer(new GoalGatherer());
             RegisterGatherer(new PersonalDatesGatherer());
             RegisterGatherer(new SurveyDataGatherer());
             RegisterGatherer(new FeedbackGatherer());

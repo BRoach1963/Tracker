@@ -246,15 +246,15 @@ Current Status: {status}";
         {
             var categoryEmoji = kudos.Category switch
             {
-                KudosCategory.TeamWork => "🤝",
-                KudosCategory.Innovation => "💡",
-                KudosCategory.Leadership => "👑",
-                KudosCategory.CustomerFocus => "🎯",
-                KudosCategory.GoingAboveBeyond => "🚀",
-                KudosCategory.ProblemSolving => "🔧",
-                KudosCategory.LearningGrowth => "📚",
-                KudosCategory.Reliability => "⏰",
-                KudosCategory.Communication => "💬",
+                nameof(KudosCategory.TeamWork) => "🤝",
+                nameof(KudosCategory.Innovation) => "💡",
+                nameof(KudosCategory.Leadership) => "👑",
+                nameof(KudosCategory.CustomerFocus) => "🎯",
+                nameof(KudosCategory.GoingAboveBeyond) => "🚀",
+                nameof(KudosCategory.ProblemSolving) => "🔧",
+                nameof(KudosCategory.LearningGrowth) => "📚",
+                nameof(KudosCategory.Reliability) => "⏰",
+                nameof(KudosCategory.Communication) => "💬",
                 _ => "⭐"
             };
 

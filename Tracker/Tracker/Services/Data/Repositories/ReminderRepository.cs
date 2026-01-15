@@ -63,6 +63,21 @@ namespace Tracker.Services.Data.Repositories
         /// Delete reminders for an entity (when entity is deleted).
         /// </summary>
         Task<int> DeleteByEntityAsync(string entityType, Guid entityId);
+
+        /// <summary>
+        /// Add a new reminder.
+        /// </summary>
+        Task<Guid> AddReminderAsync(Reminder reminder);
+
+        /// <summary>
+        /// Get all due reminders (scheduled and past their remind_at time).
+        /// </summary>
+        Task<IEnumerable<Reminder>> GetDueRemindersAsync();
+
+        /// <summary>
+        /// Mark a reminder as triggered.
+        /// </summary>
+        Task MarkReminderTriggeredAsync(Guid reminderId);
     }
 
     public class ReminderRepository : BaseRepository<Reminder>, IReminderRepository
@@ -245,6 +260,68 @@ namespace Tracker.Services.Data.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting reminders for entity {EntityType}:{EntityId}", entityType, entityId);
+                throw;
+            }
+        }
+
+        public async Task<Guid> AddReminderAsync(Reminder reminder)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    INSERT INTO reminders (id, user_id, title, message, remind_at, status, 
+                        entity_type, entity_id, team_member_id, created_at)
+                    VALUES (@Id, @UserId, @Title, @Message, @RemindAt, 'scheduled',
+                        @EntityType, @EntityId, @TeamMemberId, NOW())
+                    RETURNING id";
+
+                if (reminder.Id == Guid.Empty)
+                    reminder.Id = Guid.NewGuid();
+
+                return await connection.QueryFirstAsync<Guid>(sql, reminder);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding reminder");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Reminder>> GetDueRemindersAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM reminders
+                    WHERE status = 'scheduled' AND remind_at <= NOW()
+                    ORDER BY remind_at";
+
+                return await connection.QueryAsync<Reminder>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting due reminders");
+                throw;
+            }
+        }
+
+        public async Task MarkReminderTriggeredAsync(Guid reminderId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    UPDATE reminders
+                    SET status = 'triggered', triggered_at = NOW(), updated_at = NOW()
+                    WHERE id = @Id";
+
+                await connection.ExecuteAsync(sql, new { Id = reminderId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking reminder {ReminderId} as triggered", reminderId);
                 throw;
             }
         }

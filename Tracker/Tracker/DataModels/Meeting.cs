@@ -429,6 +429,34 @@ namespace Tracker.DataModels
         [NotMapped]
         public bool HasVideoConference => !string.IsNullOrEmpty(VideoConferenceUrl);
 
+        /// <summary>
+        /// Teams meeting URL (alias for VideoConferenceUrl when provider is Teams).
+        /// </summary>
+        [NotMapped]
+        public string? TeamsMeetingUrl
+        {
+            get => VideoConferenceProvider == Common.Enums.VideoConferenceProvider.Teams ? VideoConferenceUrl : null;
+            set
+            {
+                VideoConferenceUrl = value;
+                VideoConferenceProvider = string.IsNullOrEmpty(value) ? null : Common.Enums.VideoConferenceProvider.Teams;
+            }
+        }
+
+        /// <summary>
+        /// Google Meet URL (alias for VideoConferenceUrl when provider is GoogleMeet).
+        /// </summary>
+        [NotMapped]
+        public string? GoogleMeetUrl
+        {
+            get => VideoConferenceProvider == Common.Enums.VideoConferenceProvider.GoogleMeet ? VideoConferenceUrl : null;
+            set
+            {
+                VideoConferenceUrl = value;
+                VideoConferenceProvider = string.IsNullOrEmpty(value) ? null : Common.Enums.VideoConferenceProvider.GoogleMeet;
+            }
+        }
+
         #endregion
     }
 }

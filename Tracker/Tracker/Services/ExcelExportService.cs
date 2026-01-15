@@ -104,7 +104,7 @@ namespace Tracker.Services
                 worksheet.Cells[row, 4].Value = meeting.Status.ToString();
                 worksheet.Cells[row, 5].Value = meeting.Description;
                 worksheet.Cells[row, 6].Value = meeting.Tasks?.Count(t => !t.IsDeleted) ?? 0;
-                worksheet.Cells[row, 7].Value = meeting.AgendaItems?.Count(a => !a.IsDeleted) ?? 0;
+                worksheet.Cells[row, 7].Value = meeting.AgendaItems?.Count ?? 0;
             }
 
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();

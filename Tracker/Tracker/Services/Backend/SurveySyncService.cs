@@ -1,14 +1,16 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Supabase;
 using Tracker.Classes;
 using Tracker.Common.Enums;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Services;
 using Tracker.Services.Backend.Models;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services.Backend
 {
@@ -29,7 +31,7 @@ namespace Tracker.Services.Backend
 
         #region Fields
 
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
         private Supabase.Client? _client;
         private bool _isInitialized;
 
@@ -127,13 +129,13 @@ namespace Tracker.Services.Backend
                 var supabaseSurvey = new SupabaseSurvey
                 {
                     Id = Guid.NewGuid().ToString(),
-                    TrackerId = survey.Id,
+                    TrackerId = survey.Id.ToString(),
                     OwnerId = userId,
                     Title = survey.Title,
                     Description = survey.Description,
                     IsAnonymous = survey.IsAnonymous,
                     Status = survey.Status.ToString().ToLower(),
-                    DueDate = survey.DueDate,
+                    DueDate = survey.EndDate,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -147,8 +149,8 @@ namespace Tracker.Services.Backend
                     {
                         Id = Guid.NewGuid().ToString(),
                         SurveyId = supabaseSurvey.Id,
-                        TrackerId = q.Id,
-                        QuestionText = q.Text,
+                        TrackerId = q.Id.ToString(),
+                        QuestionText = q.QuestionText,
                         QuestionType = MapQuestionType(q.QuestionType),
                         IsRequired = q.IsRequired,
                         SortOrder = q.SortOrder,
@@ -304,7 +306,7 @@ namespace Tracker.Services.Backend
         /// <summary>
         /// Syncs responses from Supabase to local database.
         /// </summary>
-        public async Task<(bool Success, string? Error, int SyncedCount)> SyncResponsesAsync(string supabaseSurveyId, int localSurveyId)
+        public async Task<(bool Success, string? Error, int SyncedCount)> SyncResponsesAsync(string supabaseSurveyId, Guid localSurveyId)
         {
             EnsureInitialized();
 
@@ -340,17 +342,18 @@ namespace Tracker.Services.Backend
                             .Where(q => q.SurveyId == supabaseSurveyId)
                             .Get();
 
+                        // Build map from Supabase question ID to local question ID (Guid)
                         var questionMap = questionsResult.Models
-                            .Where(q => q.TrackerId.HasValue)
-                            .ToDictionary(q => q.Id, q => q.TrackerId!.Value);
+                            .Where(q => !string.IsNullOrEmpty(q.TrackerId))
+                            .ToDictionary(q => q.Id, q => Guid.Parse(q.TrackerId!));
 
                         // Create local response
-                        var localResponse = new PulseSurveyResponse
+                        var localResponse = new SurveyResponse
                         {
-                            PulseSurveyId = localSurveyId,
+                            SurveyId = localSurveyId,
                             TeamMemberId = null, // Set below if we can match
-                            SubmittedAt = response.SubmittedAt,
-                            Answers = new List<PulseSurveyAnswer>()
+                            CompletedAt = response.SubmittedAt,
+                            Answers = new List<SurveyAnswer>()
                         };
 
                         // Try to find team member by name using repository
@@ -373,9 +376,9 @@ namespace Tracker.Services.Backend
                             if (!questionMap.TryGetValue(answer.QuestionId, out var localQuestionId))
                                 continue;
 
-                            var localAnswer = new PulseSurveyAnswer
+                            var localAnswer = new SurveyAnswer
                             {
-                                PulseSurveyQuestionId = localQuestionId
+                                QuestionId = localQuestionId
                             };
 
                             // Map answer values
@@ -383,20 +386,19 @@ namespace Tracker.Services.Backend
                                 localAnswer.RatingValue = answer.AnswerRating.Value;
                             if (!string.IsNullOrEmpty(answer.AnswerText))
                                 localAnswer.TextValue = answer.AnswerText;
-                            if (answer.AnswerBoolean.HasValue)
-                                localAnswer.BoolValue = answer.AnswerBoolean.Value;
+                            // Note: BoolValue not supported in new model - could map to RatingValue 1/0 if needed
 
                             localResponse.Answers.Add(localAnswer);
                         }
 
                         // Save to local database via repository
                         var pulseSurveyRepository = CreatePulseSurveyRepository();
-                        var responseId = 0;
+                        var responseId = Guid.Empty;
                         if (pulseSurveyRepository != null)
                         {
                             responseId = await pulseSurveyRepository.AddSurveyResponseAsync(localResponse);
                         }
-                        if (responseId > 0)
+                        if (responseId != Guid.Empty)
                         {
                             // Mark as synced in Supabase
                             await _client.From<SupabaseSurveyResponse>()
@@ -453,30 +455,18 @@ namespace Tracker.Services.Backend
 
         #region Helpers
 
-        private static TeamMemberRepository? CreateTeamMemberRepository()
+        private static TeamMemberRepository CreateTeamMemberRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new TeamMemberRepository(factory, loggerFactory.CreateLogger<TeamMemberRepository>());
         }
 
-        private static PulseSurveyRepository? CreatePulseSurveyRepository()
+        private static PulseSurveyRepository CreatePulseSurveyRepository()
         {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new PulseSurveyRepository(context, userId.Value, () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            return new PulseSurveyRepository(factory, loggerFactory.CreateLogger<PulseSurveyRepository>());
         }
 
         private static string MapQuestionType(SurveyQuestionType type)

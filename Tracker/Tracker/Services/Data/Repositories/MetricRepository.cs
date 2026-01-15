@@ -68,6 +68,11 @@ namespace Tracker.Services.Data.Repositories
         /// Count metrics by status in organization.
         /// </summary>
         Task<int> CountByStatusInOrganizationAsync(Guid organizationId, string status);
+
+        /// <summary>
+        /// Get all metrics.
+        /// </summary>
+        Task<IEnumerable<Metric>> GetMetricsAsync();
     }
 
     public class MetricRepository : BaseRepository<Metric>, IMetricRepository
@@ -279,6 +284,25 @@ namespace Tracker.Services.Data.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error counting metrics by status in organization {OrgId}", organizationId);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Metric>> GetMetricsAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = @"
+                    SELECT * FROM metrics
+                    WHERE is_deleted = false
+                    ORDER BY created_at DESC";
+
+                return await connection.QueryAsync<Metric>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all metrics");
                 throw;
             }
         }

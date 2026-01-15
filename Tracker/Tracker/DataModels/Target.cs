@@ -176,6 +176,13 @@ namespace Tracker.DataModels
         [NotMapped]
         public decimal Remaining => TargetValue - CurrentValue;
 
+        /// <summary>
+        /// Direction of the target (GreaterOrEqual, LessOrEqual).
+        /// Defaults to GreaterOrEqual (success when value >= target).
+        /// </summary>
+        [NotMapped]
+        public Common.Enums.TargetDirectionEnum TargetDirection { get; set; } = Common.Enums.TargetDirectionEnum.GreaterOrEqual;
+
         #endregion
     }
 }

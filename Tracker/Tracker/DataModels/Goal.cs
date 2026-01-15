@@ -372,6 +372,12 @@ namespace Tracker.DataModels
         public decimal EffectiveProgress => ProgressOverride ?? ProgressPercent;
 
         /// <summary>
+        /// Progress percentage (alias for EffectiveProgress for backward compatibility).
+        /// </summary>
+        [NotMapped]
+        public decimal Progress => EffectiveProgress;
+
+        /// <summary>
         /// Is the goal active (not completed, cancelled, or deleted)?
         /// </summary>
         [NotMapped]

@@ -76,7 +76,7 @@ namespace Tracker.Services.AI.Insights
                         description TEXT,
                         action_suggestion TEXT,
                         entity_type TEXT,
-                        entity_id INTEGER,
+                        entity_id TEXT,
                         generated_at TEXT NOT NULL,
                         dismissed_at TEXT,
                         acted_on_at TEXT,
@@ -139,7 +139,7 @@ namespace Tracker.Services.AI.Insights
                 command.Parameters.AddWithValue("@description", insight.Description ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@action_suggestion", insight.ActionSuggestion ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@entity_type", insight.EntityType ?? (object)DBNull.Value);
-                command.Parameters.AddWithValue("@entity_id", insight.EntityId ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@entity_id", insight.EntityId?.ToString() ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@generated_at", insight.GeneratedAt.ToString("O"));
                 command.Parameters.AddWithValue("@is_read", insight.IsRead ? 1 : 0);
 
@@ -329,14 +329,14 @@ namespace Tracker.Services.AI.Insights
         /// <summary>
         /// Removes all insights for a specific entity (e.g., when entity is deleted).
         /// </summary>
-        public async Task RemoveInsightsForEntityAsync(string entityType, int entityId)
+        public async Task RemoveInsightsForEntityAsync(string entityType, Guid entityId)
         {
             EnsureInitialized();
 
             var sql = "DELETE FROM insights WHERE entity_type = @entity_type AND entity_id = @entity_id";
             using var command = new SqliteCommand(sql, _connection);
             command.Parameters.AddWithValue("@entity_type", entityType);
-            command.Parameters.AddWithValue("@entity_id", entityId);
+            command.Parameters.AddWithValue("@entity_id", entityId.ToString());
             await command.ExecuteNonQueryAsync();
         }
 
@@ -351,9 +351,13 @@ namespace Tracker.Services.AI.Insights
 
         private static Insight ReadInsight(SqliteDataReader reader)
         {
+            // Note: The SQLite id is auto-increment integer, but model uses Guid
+            // Generate a deterministic Guid from the local id for consistency
+            var localId = reader.GetInt32(reader.GetOrdinal("id"));
             return new Insight
             {
-                Id = reader.GetInt32(reader.GetOrdinal("id")),
+                // Generate Guid from local integer ID (using a namespace-based approach)
+                Id = new Guid(localId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                 UniqueKey = reader.GetString(reader.GetOrdinal("unique_key")),
                 Type = Enum.Parse<InsightType>(reader.GetString(reader.GetOrdinal("type"))),
                 Severity = Enum.Parse<InsightSeverity>(reader.GetString(reader.GetOrdinal("severity"))),
@@ -361,7 +365,7 @@ namespace Tracker.Services.AI.Insights
                 Description = reader.IsDBNull(reader.GetOrdinal("description")) ? string.Empty : reader.GetString(reader.GetOrdinal("description")),
                 ActionSuggestion = reader.IsDBNull(reader.GetOrdinal("action_suggestion")) ? string.Empty : reader.GetString(reader.GetOrdinal("action_suggestion")),
                 EntityType = reader.IsDBNull(reader.GetOrdinal("entity_type")) ? null : reader.GetString(reader.GetOrdinal("entity_type")),
-                EntityId = reader.IsDBNull(reader.GetOrdinal("entity_id")) ? null : reader.GetInt32(reader.GetOrdinal("entity_id")),
+                EntityId = reader.IsDBNull(reader.GetOrdinal("entity_id")) ? null : Guid.Parse(reader.GetString(reader.GetOrdinal("entity_id"))),
                 GeneratedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("generated_at"))),
                 DismissedAt = reader.IsDBNull(reader.GetOrdinal("dismissed_at")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("dismissed_at"))),
                 ActionedAt = reader.IsDBNull(reader.GetOrdinal("acted_on_at")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("acted_on_at"))),

@@ -1,12 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Tracker.Classes;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tracker.DataModels;
-using Tracker.Database;
-using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
+using Tracker.Managers;
 using Tracker.Services;
+using Tracker.Services.Data;
+using Tracker.Services.Data.Repositories;
 using Tracker.ViewModels;
 
 namespace Tracker.Controls
@@ -29,13 +30,11 @@ namespace Tracker.Controls
                     return;
                 }
 
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-
+                // Create repository directly with Dapper connection factory
+                var connectionFactory = new DapperConnectionFactory();
                 var quickNoteRepository = new QuickNoteRepository(
-                    context,
-                    userId.Value,
-                    () => contextFactory.CreateContext());
+                    connectionFactory, 
+                    NullLogger<QuickNoteRepository>.Instance);
 
                 DataContext = new QuickNotesViewModel(quickNoteRepository);
             }

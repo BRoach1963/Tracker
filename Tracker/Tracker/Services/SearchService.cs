@@ -18,7 +18,7 @@ namespace Tracker.Services
         /// <summary>
         /// Entity ID for non-TeamMember entities (int-based IDs).
         /// </summary>
-        public int EntityId { get; set; }
+        public Guid EntityId { get; set; }
         /// <summary>
         /// Entity ID for TeamMember entities (Guid-based ID).
         /// </summary>

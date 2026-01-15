@@ -8,6 +8,9 @@ namespace Tracker.Common.Enums
         /// <summary>Reminder is pending and will fire at the scheduled time.</summary>
         Pending,
         
+        /// <summary>Reminder has been sent/triggered.</summary>
+        Sent,
+        
         /// <summary>Reminder has been triggered/shown to user.</summary>
         Triggered,
         

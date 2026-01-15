@@ -10,8 +10,6 @@ using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database;
-using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
@@ -149,21 +147,12 @@ namespace Tracker.Controls
 
                 _logger.Info($"Loading meetings from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
                 
-                var userId = OrganizationContext.Current.UserIdOrNull;
-                if (!userId.HasValue)
-                {
-                    _logger.Warn("Cannot load meetings: organization context has no current user");
-                    _meetings = new ObservableCollection<Meeting>();
-                    OnPropertyChanged(nameof(Meetings));
-                    return;
-                }
-
-                var contextFactory = TrackerDbContextFactory.Instance;
-                using var context = contextFactory.CreateContext();
-                var repository = new MeetingRepository(context, userId.Value, () => contextFactory.CreateContext());
-
-                var meetings = await repository.GetMeetingsInRangeAsync(startDate, endDate);
-                _logger.Info($"Retrieved {meetings.Count} meetings from database");
+                // Get meetings from TrackerDataManager and filter by date range
+                var meetings = TrackerDataManager.Instance.Meetings
+                    .Where(m => !m.IsDeleted && m.ScheduledAt >= startDate && m.ScheduledAt <= endDate)
+                    .ToList();
+                    
+                _logger.Info($"Retrieved {meetings.Count} meetings from TrackerDataManager");
                 
                 // Filter by team member if selected
                 if (_selectedTeamMember != null)

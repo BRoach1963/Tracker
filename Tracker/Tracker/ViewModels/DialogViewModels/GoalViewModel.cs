@@ -144,7 +144,7 @@ namespace Tracker.ViewModels.DialogViewModels
 
         public int ProgressPercent
         {
-            get => _data.ProgressPercent;
+            get => _data.ProgressPercent ?? 0;
             set
             {
                 _data.ProgressPercent = Math.Clamp(value, 0, 100);

@@ -497,12 +497,10 @@ namespace Tracker
             _splashScreen?.UpdateProgress(50);
             try
             {
-                // Initialize database context factory and ensure database/schema exist
-                var contextFactory = Tracker.Classes.TrackerDbContextFactory.Instance;
-                contextFactory.UpdateSettings(dbSettings);
-
-                using var context = contextFactory.CreateContext();
-                await context.Database.EnsureCreatedAsync();
+                // Initialize Dapper connection factory and test connection
+                var connectionFactory = new Tracker.Services.Data.DapperConnectionFactory();
+                using var connection = connectionFactory.CreateConnection();
+                // Connection is already opened by factory and will be closed by using statement
             }
             catch (Exception ex)
             {

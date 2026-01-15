@@ -21,6 +21,22 @@ namespace Tracker.Services.Backend
         internal const string AnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdHpveHVjcnpxbGphZHlpaWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3OTMwOTUsImV4cCI6MjA4MTM2OTA5NX0.HryjU3cmZlSGOjoSLcVoKIQiCspiqs7eN2Eemsf1LhY";
 
         /// <summary>
+        /// Direct database connection string for Dapper/Npgsql.
+        /// Uses the Supabase PostgreSQL database with SSL required.
+        /// </summary>
+        internal const string DatabaseConnectionString = 
+            "Host=db.cftzoxucrzqljadyiijd.supabase.co;" +
+            "Port=5432;" +
+            "Database=postgres;" +
+            "Username=postgres;" +
+            "Password=$teelers4Ever;" +
+            "SSL Mode=Require;" +
+            "Trust Server Certificate=true;" +
+            "Pooling=true;" +
+            "Minimum Pool Size=1;" +
+            "Maximum Pool Size=20;";
+
+        /// <summary>
         /// Storage bucket name for avatars.
         /// </summary>
         internal const string AvatarBucket = "avatars";

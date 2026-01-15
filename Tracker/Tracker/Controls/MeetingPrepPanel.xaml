@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:converters="clr-namespace:Tracker.Common.Converters"
-             xmlns:datamodels="clr-namespace:Tracker.DataModels"
+             xmlns:dtos="clr-namespace:Tracker.DTOs"
              xmlns:enums="clr-namespace:Tracker.Common.Enums"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="400"
@@ -73,7 +73,7 @@
             </Style>
             
             <!-- Prep Item DataTemplate -->
-            <DataTemplate x:Key="PrepItemTemplate" DataType="{x:Type datamodels:PrepItem}">
+            <DataTemplate x:Key="PrepItemTemplate" DataType="{x:Type dtos:PrepItem}">
                 <Border Style="{StaticResource PrepItemCardStyle}"
                         BorderBrush="{Binding Priority, Converter={StaticResource PriorityToBrushConverter}}"
                         Opacity="{Binding IsAddedToAgenda, Converter={x:Static converters:BoolToOpacityConverter.Instance}}">
@@ -115,7 +115,7 @@
             </DataTemplate>
             
             <!-- Section DataTemplate -->
-            <DataTemplate x:Key="PrepSectionTemplate" DataType="{x:Type datamodels:PrepSection}">
+            <DataTemplate x:Key="PrepSectionTemplate" DataType="{x:Type dtos:PrepSection}">
                 <Expander IsExpanded="{Binding IsExpanded}" Style="{StaticResource SectionHeaderStyle}">
                     <Expander.Header>
                         <Grid Margin="0,4">

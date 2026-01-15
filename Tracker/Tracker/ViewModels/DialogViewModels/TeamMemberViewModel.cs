@@ -649,7 +649,9 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var meetings = await (_meetingRepository?.GetMeetingsForTeamMemberAsync(_data.Id) ?? Task.FromResult(new List<Meeting>()));
+                var meetings = _meetingRepository != null 
+                    ? await _meetingRepository.GetMeetingsForTeamMemberAsync(_data.Id) 
+                    : Enumerable.Empty<Meeting>();
                 _meetings.Clear();
                 foreach (var meeting in meetings.OrderByDescending(m => m.ScheduledAt))
                 {
@@ -670,7 +672,9 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var feedbacks = await (_feedbackRepository?.GetFeedbackForTeamMemberAsync(_data.Id) ?? Task.FromResult(new List<Feedback>()));
+                var feedbacks = _feedbackRepository != null 
+                    ? await _feedbackRepository.GetFeedbackForTeamMemberAsync(_data.Id) 
+                    : Enumerable.Empty<Feedback>();
                 _feedbacks.Clear();
                 foreach (var feedback in feedbacks)
                 {
@@ -691,7 +695,9 @@ namespace Tracker.ViewModels.DialogViewModels
         {
             try
             {
-                var goals = await (_developmentGoalRepository?.GetDevelopmentGoalsForTeamMemberAsync(_data.Id) ?? Task.FromResult(new List<DevelopmentGoal>()));
+                var goals = _developmentGoalRepository != null 
+                    ? await _developmentGoalRepository.GetDevelopmentGoalsForTeamMemberAsync(_data.Id) 
+                    : Enumerable.Empty<DevelopmentGoal>();
                 _goals.Clear();
                 foreach (var goal in goals)
                 {
@@ -782,9 +788,9 @@ namespace Tracker.ViewModels.DialogViewModels
                 
             if (result == System.Windows.MessageBoxResult.OK)
             {
-                var success = await (_feedbackRepository?.DeleteFeedbackAsync(SelectedFeedback.Id) ?? Task.FromResult(false));
-                if (success)
+                if (_feedbackRepository != null)
                 {
+                    await _feedbackRepository.DeleteFeedbackAsync(SelectedFeedback.Id);
                     _feedbacks.Remove(SelectedFeedback);
                     NotificationManager.Instance.ShowSuccess("Deleted", "Feedback has been deleted.");
                     RaisePropertyChanged(nameof(FeedbackCount));
@@ -838,9 +844,9 @@ namespace Tracker.ViewModels.DialogViewModels
                 
             if (result == System.Windows.MessageBoxResult.OK)
             {
-                var success = await (_developmentGoalRepository?.DeleteDevelopmentGoalAsync(SelectedGoal.Id) ?? Task.FromResult(false));
-                if (success)
+                if (_developmentGoalRepository != null)
                 {
+                    await _developmentGoalRepository.DeleteDevelopmentGoalAsync(SelectedGoal.Id);
                     _goals.Remove(SelectedGoal);
                     NotificationManager.Instance.ShowSuccess("Deleted", "Goal has been deleted.");
                     RaisePropertyChanged(nameof(GoalCount));

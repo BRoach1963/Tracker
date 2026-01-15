@@ -108,7 +108,7 @@ namespace Tracker.Services.Analytics
             var points = dataPoints
                 .Select(s => (
                     X: (s.SnapshotDate - firstDate).TotalDays,
-                    Y: (double)s.Progress
+                    Y: (double)(s.OverallScore ?? 0)
                 ))
                 .OrderBy(p => p.X)
                 .ToList();

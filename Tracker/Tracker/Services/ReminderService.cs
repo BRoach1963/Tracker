@@ -1,11 +1,13 @@
 using System.Windows;
+using Microsoft.Extensions.Logging;
 using Tracker.Classes;
 using Tracker.Common.Enums;
-using Tracker.Database;
+using Tracker.Services.Data;
 using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Managers;
+using MsLogging = Microsoft.Extensions.Logging;
 
 namespace Tracker.Services
 {
@@ -29,7 +31,7 @@ namespace Tracker.Services
 
         #region Fields
 
-        private readonly ILogger _logger;
+        private readonly Logging.ILogger _logger;
         private Timer? _reminderTimer;
         private Timer? _engagementTimer;
         private bool _isRunning;
@@ -342,13 +344,9 @@ namespace Tracker.Services
                 return Guid.Empty;
             }
 
-            var contextFactory = TrackerDbContextFactory.Instance;
-            using var context = contextFactory.CreateContext();
-
-            var reminderRepository = new ReminderRepository(
-                context,
-                userId.Value,
-                () => contextFactory.CreateContext());
+            var factory = DapperConnectionFactory.Instance;
+            var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+            var reminderRepository = new ReminderRepository(factory, loggerFactory.CreateLogger<ReminderRepository>());
 
             return await reminderRepository.AddReminderAsync(reminder);
         }
@@ -366,13 +364,9 @@ namespace Tracker.Services
                     return;
                 }
 
-                var contextFactory = TrackerDbContextFactory.Instance;
-                using var context = contextFactory.CreateContext();
-
-                var reminderRepository = new ReminderRepository(
-                    context,
-                    userId.Value,
-                    () => contextFactory.CreateContext());
+                var contextFactory = DapperConnectionFactory.Instance;
+                var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+                var reminderRepository = new ReminderRepository(contextFactory, loggerFactory.CreateLogger<ReminderRepository>());
 
                 var dueReminders = await reminderRepository.GetDueRemindersAsync();
 
@@ -426,13 +420,9 @@ namespace Tracker.Services
                     return;
                 }
 
-                var contextFactory = TrackerDbContextFactory.Instance;
-                using var context = contextFactory.CreateContext();
-
-                var teamMemberRepository = new TeamMemberRepository(
-                    context,
-                    userId.Value,
-                    () => contextFactory.CreateContext());
+                var contextFactory = DapperConnectionFactory.Instance;
+                var loggerFactory = MsLogging.LoggerFactory.Create(builder => { });
+                var teamMemberRepository = new TeamMemberRepository(contextFactory, loggerFactory.CreateLogger<TeamMemberRepository>());
 
                 var teamMembersWithoutMeeting = await teamMemberRepository
                     .GetTeamMembersWithoutRecentOneOnOneAsync(_settings.EngagementAlertWeeks);

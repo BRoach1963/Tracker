@@ -9,14 +9,14 @@ namespace Tracker.Services
 {
     public interface ITaskService
     {
-        Task<IEnumerable<Task>> GetAssigneeTasksAsync(Guid assigneeId);
-        Task<IEnumerable<Task>> GetOpenTasksAsync(Guid assigneeId);
-        Task<IEnumerable<Task>> GetOverdueTasksAsync(Guid assigneeId, DateTime currentDate);
-        Task<IEnumerable<Task>> GetTasksByGoalAsync(Guid goalId);
-        Task<Task> CreateTaskAsync(Task task);
-        Task UpdateTaskAsync(Task task);
+        Task<IEnumerable<TrackerTask>> GetAssigneeTasksAsync(Guid assigneeId);
+        Task<IEnumerable<TrackerTask>> GetOpenTasksAsync(Guid assigneeId);
+        Task<IEnumerable<TrackerTask>> GetOverdueTasksAsync(Guid assigneeId, DateTime currentDate);
+        Task<IEnumerable<TrackerTask>> GetTasksByGoalAsync(Guid goalId);
+        Task<TrackerTask> CreateTaskAsync(TrackerTask task);
+        Task UpdateTaskAsync(TrackerTask task);
         Task DeleteTaskAsync(Guid taskId, Guid deletedByUserId);
-        Task<Task?> GetTaskAsync(Guid taskId);
+        Task<TrackerTask?> GetTaskAsync(Guid taskId);
     }
 
     public class TaskService : ITaskService
@@ -30,7 +30,7 @@ namespace Tracker.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<Task>> GetAssigneeTasksAsync(Guid assigneeId)
+        public async Task<IEnumerable<TrackerTask>> GetAssigneeTasksAsync(Guid assigneeId)
         {
             try
             {
@@ -43,7 +43,7 @@ namespace Tracker.Services
             }
         }
 
-        public async Task<IEnumerable<Task>> GetOpenTasksAsync(Guid assigneeId)
+        public async Task<IEnumerable<TrackerTask>> GetOpenTasksAsync(Guid assigneeId)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace Tracker.Services
             }
         }
 
-        public async Task<IEnumerable<Task>> GetOverdueTasksAsync(Guid assigneeId, DateTime currentDate)
+        public async Task<IEnumerable<TrackerTask>> GetOverdueTasksAsync(Guid assigneeId, DateTime currentDate)
         {
             try
             {
@@ -69,7 +69,7 @@ namespace Tracker.Services
             }
         }
 
-        public async Task<IEnumerable<Task>> GetTasksByGoalAsync(Guid goalId)
+        public async Task<IEnumerable<TrackerTask>> GetTasksByGoalAsync(Guid goalId)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace Tracker.Services
             }
         }
 
-        public async Task<Task> CreateTaskAsync(Task task)
+        public async Task<TrackerTask> CreateTaskAsync(TrackerTask task)
         {
             try
             {
@@ -95,7 +95,7 @@ namespace Tracker.Services
             }
         }
 
-        public async Task UpdateTaskAsync(Task task)
+        public async Task UpdateTaskAsync(TrackerTask task)
         {
             try
             {
@@ -121,7 +121,7 @@ namespace Tracker.Services
             }
         }
 
-        public async Task<Task?> GetTaskAsync(Guid taskId)
+        public async Task<TrackerTask?> GetTaskAsync(Guid taskId)
         {
             try
             {

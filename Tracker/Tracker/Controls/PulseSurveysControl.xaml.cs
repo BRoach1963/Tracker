@@ -1,9 +1,10 @@
 using System.Windows.Controls;
-using Tracker.Classes;
-using Tracker.Database;
-using Tracker.Services.Data.Repositories;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tracker.Logging;
+using Tracker.Managers;
 using Tracker.Services;
+using Tracker.Services.Data;
+using Tracker.Services.Data.Repositories;
 using Tracker.ViewModels;
 
 namespace Tracker.Controls
@@ -26,13 +27,11 @@ namespace Tracker.Controls
                     return;
                 }
 
-                var contextFactory = TrackerDbContextFactory.Instance;
-                var context = contextFactory.CreateContext();
-
+                // Create repository directly with Dapper connection factory
+                var connectionFactory = new DapperConnectionFactory();
                 var pulseSurveyRepository = new PulseSurveyRepository(
-                    context,
-                    userId.Value,
-                    () => contextFactory.CreateContext());
+                    connectionFactory, 
+                    NullLogger<PulseSurveyRepository>.Instance);
 
                 DataContext = new PulseSurveysViewModel(pulseSurveyRepository);
             }

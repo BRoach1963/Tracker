@@ -213,7 +213,7 @@
                              Click="FilterAll_Click"/>
                 <RadioButton x:Name="ShowOnTarget" Content="On Target" GroupName="KpiFilter" 
                              Style="{StaticResource SegmentedButtonStyle}"
-                             IsChecked="{Binding KpiStatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:KpiStatusEnum.OnTarget}}"
+                             IsChecked="{Binding KpiStatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:MetricStatus.OnTarget}}"
                              Click="FilterOnTarget_Click"/>
                 <RadioButton x:Name="ShowBelowTarget" Content="Below Target" GroupName="KpiFilter" 
                              Style="{StaticResource SegmentedButtonStyle}"
