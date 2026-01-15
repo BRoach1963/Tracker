@@ -1,4 +1,4 @@
-﻿using DeepEndControls.Enums;
+using DeepEndControls.Enums;
 using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows.Input;

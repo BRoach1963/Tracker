@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.Factories;

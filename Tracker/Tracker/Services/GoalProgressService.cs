@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Tracker.Common.Enums;
-using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Interfaces;
+using Tracker.Managers;
+using Tracker.Services.Data.Repositories;
 
 namespace Tracker.Services
 {
@@ -12,102 +12,116 @@ namespace Tracker.Services
     /// </summary>
     public class GoalProgressService : IGoalProgressService
     {
-        private readonly TrackerDbContext _context;
+        private readonly ITargetRepository _targetRepository;
         private readonly IMeasurableService _measurableService;
 
-        public GoalProgressService(TrackerDbContext context, IMeasurableService measurableService)
+        public GoalProgressService(ITargetRepository targetRepository, IMeasurableService measurableService)
         {
-            _context = context;
+            _targetRepository = targetRepository;
             _measurableService = measurableService;
         }
 
         /// <inheritdoc />
-        public async Task<decimal> CalculateTargetProgressAsync(Guid targetId)
+        public Task<decimal> CalculateTargetProgressAsync(Guid targetId)
         {
-            var target = await _context.Targets
-                .Where(t => t.Id == targetId && !t.IsDeleted)
-                .FirstOrDefaultAsync();
+            var target = TrackerDataManager.Instance.Targets
+                .FirstOrDefault(t => t.Id == targetId && !t.IsDeleted);
 
             if (target == null)
-                return 0m;
+                return Task.FromResult(0m);
 
-            return target.Progress; // Progress is a computed property on Target
+            return Task.FromResult(target.Progress); // Progress is a computed property on Target
         }
 
         /// <inheritdoc />
-        public async Task<decimal> CalculateGoalProgressAsync(Guid goalId)
+        public Task<decimal> CalculateGoalProgressAsync(Guid goalId)
         {
-            var goal = await _context.Goals
-                .Include(g => g.Targets)
-                .Where(g => g.Id == goalId && !g.IsDeleted)
-                .FirstOrDefaultAsync();
+            var goal = TrackerDataManager.Instance.Goals
+                .FirstOrDefault(g => g.Id == goalId && !g.IsDeleted);
 
             if (goal == null)
-                return 0m;
+                return Task.FromResult(0m);
 
-            var targets = goal.Targets?.Where(t => !t.IsDeleted).ToList();
-            if (targets == null || targets.Count == 0)
-                return 0m;
+            var targets = TrackerDataManager.Instance.Targets
+                .Where(t => t.GoalId == goalId && !t.IsDeleted).ToList();
+            
+            if (targets.Count == 0)
+                return Task.FromResult(0m);
 
             // Calculate weighted average if weights are specified
             var totalWeight = targets.Sum(t => t.Weight);
             if (totalWeight == 0)
-                return targets.Average(t => t.Progress);
+                return Task.FromResult((decimal)targets.Average(t => t.Progress));
 
             var weightedSum = targets.Sum(t => t.Progress * t.Weight);
-            return Math.Round(weightedSum / totalWeight, 1);
+            return Task.FromResult(Math.Round(weightedSum / totalWeight, 1));
         }
 
         /// <inheritdoc />
-        public async Task<ObjectiveStatusEnum> DetermineGoalStatusAsync(Guid goalId)
+        public Task<GoalStatus> DetermineGoalStatusAsync(Guid goalId)
         {
-            var goal = await _context.Goals
-                .Include(g => g.Targets)
-                .Where(g => g.Id == goalId && !g.IsDeleted)
-                .FirstOrDefaultAsync();
+            var goal = TrackerDataManager.Instance.Goals
+                .FirstOrDefault(g => g.Id == goalId && !g.IsDeleted);
 
             if (goal == null)
-                return ObjectiveStatusEnum.OffTrack;
+                return Task.FromResult(GoalStatus.OffTrack);
 
             // Respect manual override
             if (goal.StatusOverride.HasValue)
-                return (ObjectiveStatusEnum)(int)goal.StatusOverride.Value;
+                return Task.FromResult(goal.StatusOverride.Value);
 
-            var targets = goal.Targets?.Where(t => !t.IsDeleted).ToList();
-            if (targets == null || targets.Count == 0)
-                return ObjectiveStatusEnum.OffTrack;
+            var targets = TrackerDataManager.Instance.Targets
+                .Where(t => t.GoalId == goalId && !t.IsDeleted).ToList();
+            
+            if (targets.Count == 0)
+                return Task.FromResult(GoalStatus.OffTrack);
 
             // If any Target is off target, the Goal is off track
-            if (targets.Any(t => t.Status == OkrStatus.OffTrack))
-                return ObjectiveStatusEnum.OffTrack;
+            if (targets.Any(t => t.Status == GoalStatus.OffTrack))
+                return Task.FromResult(GoalStatus.OffTrack);
 
             // If any Target is close to target, the Goal is at risk
-            if (targets.Any(t => t.Status == OkrStatus.AtRisk))
-                return ObjectiveStatusEnum.AtRisk;
+            if (targets.Any(t => t.Status == GoalStatus.AtRisk))
+                return Task.FromResult(GoalStatus.AtRisk);
 
             // All Targets on target
-            return ObjectiveStatusEnum.OnTrack;
+            return Task.FromResult(GoalStatus.OnTrack);
         }
 
         /// <inheritdoc />
         public async Task<int> RefreshAllGoalProgressAsync()
         {
-            var goals = await _context.Goals
-                .Include(g => g.Targets)
-                    .ThenInclude(t => t.Measurables)
-                .Where(g => !g.IsDeleted)
-                .ToListAsync();
+            var goals = TrackerDataManager.Instance.Goals
+                .Where(g => !g.IsDeleted).ToList();
 
             var updatedCount = 0;
+            var targetsToUpdate = new List<Target>();
 
             foreach (var goal in goals)
             {
-                if (await RefreshGoalProgressInternalAsync(goal))
+                var targets = TrackerDataManager.Instance.Targets
+                    .Where(t => t.GoalId == goal.Id && !t.IsDeleted).ToList();
+                goal.Targets = targets;
+                
+                foreach (var target in targets)
+                {
+                    target.Measurables = TrackerDataManager.Instance.Measurables
+                        .Where(m => m.TargetId == target.Id && !m.IsDeleted).ToList();
+                }
+                
+                var updatedTargets = await RefreshGoalProgressInternalAsync(goal);
+                if (updatedTargets.Any())
+                {
+                    targetsToUpdate.AddRange(updatedTargets);
                     updatedCount++;
+                }
             }
 
-            if (updatedCount > 0)
-                await _context.SaveChangesAsync();
+            // Batch update all changed targets
+            foreach (var target in targetsToUpdate)
+            {
+                await _targetRepository.UpdateAsync(target);
+            }
 
             return updatedCount;
         }
@@ -115,74 +129,107 @@ namespace Tracker.Services
         /// <inheritdoc />
         public async Task<bool> RefreshGoalProgressAsync(Guid goalId)
         {
-            var goal = await _context.Goals
-                .Include(g => g.Targets)
-                    .ThenInclude(t => t.Measurables)
-                .Where(g => g.Id == goalId && !g.IsDeleted)
-                .FirstOrDefaultAsync();
+            var goal = TrackerDataManager.Instance.Goals
+                .FirstOrDefault(g => g.Id == goalId && !g.IsDeleted);
 
             if (goal == null)
                 return false;
 
-            var changed = await RefreshGoalProgressInternalAsync(goal);
+            // Load targets and measurables
+            var targets = TrackerDataManager.Instance.Targets
+                .Where(t => t.GoalId == goalId && !t.IsDeleted).ToList();
+            goal.Targets = targets;
             
-            if (changed)
-                await _context.SaveChangesAsync();
+            foreach (var target in targets)
+            {
+                target.Measurables = TrackerDataManager.Instance.Measurables
+                    .Where(m => m.TargetId == target.Id && !m.IsDeleted).ToList();
+            }
 
-            return changed;
+            var updatedTargets = await RefreshGoalProgressInternalAsync(goal);
+            
+            // Update changed targets in database
+            foreach (var target in updatedTargets)
+            {
+                await _targetRepository.UpdateAsync(target);
+            }
+
+            return updatedTargets.Any();
         }
 
         /// <inheritdoc />
         public async Task<bool> RefreshTargetValueAsync(Guid targetId)
         {
-            var target = await _context.Targets
-                .Include(t => t.Measurables)
-                .Where(t => t.Id == targetId && !t.IsDeleted)
-                .FirstOrDefaultAsync();
+            var target = TrackerDataManager.Instance.Targets
+                .FirstOrDefault(t => t.Id == targetId && !t.IsDeleted);
 
             if (target == null)
                 return false;
 
+            // Load measurables
+            target.Measurables = TrackerDataManager.Instance.Measurables
+                .Where(m => m.TargetId == targetId && !m.IsDeleted).ToList();
+
             var changed = await UpdateTargetFromMeasurablesAsync(target);
 
             if (changed)
-                await _context.SaveChangesAsync();
+                await _targetRepository.UpdateAsync(target);
 
             return changed;
         }
 
         /// <inheritdoc />
-        public async Task<GoalProgressSummary> GetGoalProgressSummaryAsync(Guid goalId)
+        public Task<GoalProgressSummary> GetGoalProgressSummaryAsync(Guid goalId)
         {
-            var goal = await _context.Goals
-                .Include(g => g.Owner)
-                .Include(g => g.Targets)
-                    .ThenInclude(t => t.Measurables)
-                .Where(g => g.Id == goalId && !g.IsDeleted)
-                .FirstOrDefaultAsync();
+            var goal = TrackerDataManager.Instance.Goals
+                .FirstOrDefault(g => g.Id == goalId && !g.IsDeleted);
 
             if (goal == null)
-                return new GoalProgressSummary { Goal = new Goal() };
+                return Task.FromResult(new GoalProgressSummary { Goal = new Goal() });
 
-            return await BuildGoalProgressSummaryAsync(goal);
+            // Load owner
+            goal.Owner = TrackerDataManager.Instance.People
+                .FirstOrDefault(p => p.Id == goal.OwnerId);
+            
+            // Load targets and their measurables
+            goal.Targets = TrackerDataManager.Instance.Targets
+                .Where(t => t.GoalId == goalId && !t.IsDeleted).ToList();
+            foreach (var target in goal.Targets)
+            {
+                target.Measurables = TrackerDataManager.Instance.Measurables
+                    .Where(m => m.TargetId == target.Id && !m.IsDeleted).ToList();
+            }
+
+            return BuildGoalProgressSummaryAsync(goal);
         }
 
         /// <inheritdoc />
         public async Task<List<GoalProgressSummary>> GetGoalsWithProgressAsync(TimePeriodEnum? timePeriod = null, int? year = null)
         {
-            var query = _context.Goals
-                .Include(g => g.Owner)
-                .Include(g => g.Targets)
-                    .ThenInclude(t => t.Measurables)
-                .Where(g => !g.IsDeleted);
+            var goals = TrackerDataManager.Instance.Goals
+                .Where(g => !g.IsDeleted).ToList();
 
             if (timePeriod.HasValue)
-                query = query.Where(g => g.TimePeriod == timePeriod.Value);
+                goals = goals.Where(g => g.TimePeriod == timePeriod.Value).ToList();
 
             if (year.HasValue)
-                query = query.Where(g => g.Year == year.Value);
+                goals = goals.Where(g => g.Year == year.Value).ToList();
 
-            var goals = await query.OrderBy(g => g.EndDate).ToListAsync();
+            goals = goals.OrderBy(g => g.EndDate).ToList();
+
+            // Load related data for each goal
+            foreach (var goal in goals)
+            {
+                goal.Owner = TrackerDataManager.Instance.People
+                    .FirstOrDefault(p => p.Id == goal.OwnerId);
+                goal.Targets = TrackerDataManager.Instance.Targets
+                    .Where(t => t.GoalId == goal.Id && !t.IsDeleted).ToList();
+                foreach (var target in goal.Targets)
+                {
+                    target.Measurables = TrackerDataManager.Instance.Measurables
+                        .Where(m => m.TargetId == target.Id && !m.IsDeleted).ToList();
+                }
+            }
 
             var summaries = new List<GoalProgressSummary>();
             foreach (var goal in goals)
@@ -195,9 +242,9 @@ namespace Tracker.Services
 
         #region Private Helper Methods
 
-        private async Task<bool> RefreshGoalProgressInternalAsync(Goal goal)
+        private async Task<List<Target>> RefreshGoalProgressInternalAsync(Goal goal)
         {
-            var anyChanged = false;
+            var updatedTargets = new List<Target>();
 
             // Update each Target from its Measurables
             if (goal.Targets != null)
@@ -205,11 +252,11 @@ namespace Tracker.Services
                 foreach (var target in goal.Targets.Where(t => !t.IsDeleted))
                 {
                     if (await UpdateTargetFromMeasurablesAsync(target))
-                        anyChanged = true;
+                        updatedTargets.Add(target);
                 }
             }
 
-            return anyChanged;
+            return updatedTargets;
         }
 
         private async Task<bool> UpdateTargetFromMeasurablesAsync(Target target)
@@ -238,7 +285,7 @@ namespace Tracker.Services
             {
                 Goal = goal,
                 Progress = goal.EffectiveProgress,
-                Status = (ObjectiveStatusEnum)(int)goal.EffectiveStatus,
+                Status = goal.EffectiveStatus,
                 TargetSummaries = new List<TargetProgressSummary>()
             };
 

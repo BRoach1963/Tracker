@@ -4,7 +4,7 @@ using Tracker.Classes;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
@@ -40,7 +40,7 @@ namespace Tracker.ViewModels
         private Goal? _selectedOkr;
         private Target? _selectedKeyResult;
         private string _searchText = string.Empty;
-        private OkrStatus? _statusFilter;
+        private GoalStatus? _statusFilter;
         private bool _isLoading;
         private PredictiveAnalyticsViewModel? _selectedOkrAnalytics;
         private PredictiveAnalyticsViewModel? _selectedKrAnalytics;
@@ -216,7 +216,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Status filter for OKRs.
         /// </summary>
-        public OkrStatus? StatusFilter
+        public GoalStatus? StatusFilter
         {
             get => _statusFilter;
             set
@@ -265,17 +265,17 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Count of On Track OKRs (from full list, not filtered).
         /// </summary>
-        public int OnTrackCount => _okrs.Count(o => o.Status == OkrStatus.OnTrack);
+        public int OnTrackCount => _okrs.Count(o => o.Status == GoalStatus.OnTrack);
 
         /// <summary>
         /// Count of At Risk OKRs.
         /// </summary>
-        public int AtRiskCount => _okrs.Count(o => o.Status == OkrStatus.AtRisk);
+        public int AtRiskCount => _okrs.Count(o => o.Status == GoalStatus.AtRisk);
 
         /// <summary>
         /// Count of Off Track OKRs.
         /// </summary>
-        public int OffTrackCount => _okrs.Count(o => o.Status == OkrStatus.OffTrack);
+        public int OffTrackCount => _okrs.Count(o => o.Status == GoalStatus.OffTrack);
 
         /// <summary>
         /// Total OKR count.
@@ -705,7 +705,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Sets the status filter.
         /// </summary>
-        public void SetStatusFilter(OkrStatus? status)
+        public void SetStatusFilter(GoalStatus? status)
         {
             StatusFilter = status;
         }

@@ -5,10 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database;
 using Tracker.Logging;
 using Tracker.Managers;
-using Microsoft.EntityFrameworkCore;
 
 namespace Tracker.Services.AI.Insights.Analyzers
 {
@@ -20,7 +18,6 @@ namespace Tracker.Services.AI.Insights.Analyzers
     public class GoalTrajectoryAnalyzer : IInsightAnalyzer
     {
         private readonly ILogger _logger;
-        private readonly TrackerDbContext _context;
 
         public string Name => "Goal Trajectory Analyzer";
 
@@ -47,13 +44,12 @@ namespace Tracker.Services.AI.Insights.Analyzers
         /// </summary>
         public int EndingSoonDays { get; set; } = 14;
 
-        public GoalTrajectoryAnalyzer(TrackerDbContext context)
+        public GoalTrajectoryAnalyzer()
         {
-            _context = context;
             _logger = LoggingManager.GetComponentLogger("GoalTrajectoryAnalyzer");
         }
 
-        public async Task<List<Insight>> AnalyzeAsync(CancellationToken cancellationToken = default)
+        public Task<List<Insight>> AnalyzeAsync(CancellationToken cancellationToken = default)
         {
             var insights = new List<Insight>();
 
@@ -61,12 +57,18 @@ namespace Tracker.Services.AI.Insights.Analyzers
             {
                 var today = DateTime.Now;
 
-                // Get all active goals with targets
-                var goals = await _context.Goals
-                    .Include(g => g.Targets)
-                        .ThenInclude(t => t.Measurables)
-                    .Where(g => !g.IsDeleted && g.EndDate > today)
-                    .ToListAsync(cancellationToken);
+                // Get all active goals from TrackerDataManager
+                var allGoals = TrackerDataManager.Instance.Goals.ToList();
+                var allTargets = TrackerDataManager.Instance.Targets.ToList();
+                
+                // Filter to active goals with end date in the future
+                var goals = allGoals.Where(g => !g.IsDeleted && g.EndDate > today).ToList();
+                
+                // Associate targets with their goals
+                foreach (var goal in goals)
+                {
+                    goal.Targets = allTargets.Where(t => t.GoalId == goal.Id && !t.IsDeleted).ToList();
+                }
 
                 foreach (var goal in goals)
                 {
@@ -91,7 +93,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
                 _logger.Error("Error analyzing Goal trajectories: {0}", ex.Message);
             }
 
-            return insights;
+            return Task.FromResult(insights);
         }
 
         /// <summary>

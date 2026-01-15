@@ -34,7 +34,7 @@ namespace Tracker.Services
         /// </summary>
         /// <param name="goalId">The Goal ID.</param>
         /// <returns>The calculated status.</returns>
-        Task<ObjectiveStatusEnum> DetermineGoalStatusAsync(Guid goalId);
+        Task<GoalStatus> DetermineGoalStatusAsync(Guid goalId);
 
         /// <summary>
         /// Refreshes progress calculations for all Goals and their Targets.
@@ -86,7 +86,7 @@ namespace Tracker.Services
         public decimal Progress { get; set; }
 
         /// <summary>Calculated or overridden status.</summary>
-        public ObjectiveStatusEnum Status { get; set; }
+        public GoalStatus Status { get; set; }
 
         /// <summary>Progress details for each Target.</summary>
         public List<TargetProgressSummary> TargetSummaries { get; set; } = new();
@@ -113,7 +113,7 @@ namespace Tracker.Services
         public decimal Progress { get; set; }
 
         /// <summary>Calculated status based on progress.</summary>
-        public OkrStatus Status { get; set; }
+        public GoalStatus Status { get; set; }
 
         /// <summary>Count of linked Measurables.</summary>
         public int MeasurableCount { get; set; }

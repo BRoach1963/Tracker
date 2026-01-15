@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Tracker.Common.Enums;
 
 namespace Tracker.Helpers

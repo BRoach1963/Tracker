@@ -1,4 +1,4 @@
-﻿using Tracker.ViewModels;
+using Tracker.ViewModels;
 
 namespace Tracker.DataWrappers
 {

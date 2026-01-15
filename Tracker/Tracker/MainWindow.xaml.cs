@@ -17,7 +17,7 @@ namespace Tracker
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow 
+    public partial class MainWindow : Controls.BaseWindow
     {
         private RoutedEventHandler? _loadedHandler;
         private RoutedEventHandler? _unloadedHandler;

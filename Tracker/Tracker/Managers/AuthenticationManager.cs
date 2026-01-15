@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using Tracker.Classes;
-using Tracker.Database;
 using Tracker.Logging;
 using Tracker.Services.Auth;
+using Tracker.Services.Data;
 using Tracker.Services.Licensing;
 
 namespace Tracker.Managers
@@ -314,21 +313,22 @@ namespace Tracker.Managers
         }
 
         /// <summary>
-        /// Test the PostgreSQL connection.
+        /// Test the PostgreSQL connection using Dapper.
         /// </summary>
         /// <returns>True if connection succeeds, false otherwise.</returns>
         public async Task<bool> TestConnectionAsync()
         {
-            if (_settings?.Type != DatabaseType.PostgreSQL || _authFactory == null)
+            if (_settings?.Type != DatabaseType.PostgreSQL)
             {
                 return false;
             }
 
             try
             {
-                using var context = _authFactory.CreateContext();
-                await context.Database.OpenConnectionAsync();
-                await context.Database.CloseConnectionAsync();
+                var connectionFactory = DapperConnectionFactory.Instance;
+                using var connection = connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+                await connection.CloseAsync();
                 return true;
             }
             catch (Exception ex)
@@ -336,15 +336,6 @@ namespace Tracker.Managers
                 _logger.Exception(ex, "Connection test failed");
                 return false;
             }
-        }
-
-        /// <summary>
-        /// Create a DbContext for the current authenticated user.
-        /// </summary>
-        /// <returns>A TrackerDbContext with RLS configured, or null if not authenticated.</returns>
-        public TrackerDbContext? CreateUserContext()
-        {
-            return UserContextFactory?.CreateContext();
         }
 
         #endregion

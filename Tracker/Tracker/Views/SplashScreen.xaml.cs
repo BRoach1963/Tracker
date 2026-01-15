@@ -280,16 +280,16 @@ namespace Tracker.Views
             // Try to find an existing user by Supabase/local GUID, username, or email
             var existingUser = await context.Users
                 .FirstOrDefaultAsync(u =>
-                    (u.SupabaseUserId.HasValue && u.SupabaseUserId.Value == localUserId) ||
+                    (u.SupabaseAuthId.HasValue && u.SupabaseAuthId.Value == localUserId) ||
                     u.Username == username ||
                     u.Email == email);
 
             if (existingUser != null)
             {
                 // Update basic fields to keep the record fresh
-                if (!existingUser.SupabaseUserId.HasValue)
+                if (!existingUser.SupabaseAuthId.HasValue)
                 {
-                    existingUser.SupabaseUserId = localUserId;
+                    existingUser.SupabaseAuthId = localUserId;
                 }
 
                 existingUser.Email = email;
@@ -303,7 +303,7 @@ namespace Tracker.Views
 
             var newUser = new User
             {
-                SupabaseUserId = localUserId,
+                SupabaseAuthId = localUserId,
                 Username = username,
                 Email = email,
                 DisplayName = displayName,
@@ -336,10 +336,10 @@ namespace Tracker.Views
     public class LoginSuccessEventArgs : EventArgs
     {
         public string Username { get; }
-        public int UserId { get; }
+        public Guid UserId { get; }
         public bool IsAdminLogin { get; }
 
-        public LoginSuccessEventArgs(string username, int userId, bool isAdminLogin = false)
+        public LoginSuccessEventArgs(string username, Guid userId, bool isAdminLogin = false)
         {
             Username = username;
             UserId = userId;

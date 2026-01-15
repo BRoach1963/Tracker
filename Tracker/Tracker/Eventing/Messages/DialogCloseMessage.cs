@@ -1,4 +1,4 @@
-﻿using Tracker.Common.Enums;
+using Tracker.Common.Enums;
 
 namespace Tracker.Eventing.Messages
 {

@@ -15,13 +15,13 @@ namespace Tracker.Common.Enums
 
     /// <summary>
     /// Priority level for tasks and projects.
-    /// Maps to Supabase task_priority enum.
+    /// Maps to Supabase task_priority enum: low, medium, high, critical
     /// </summary>
     public enum WorkItemPriority
     {
         Low,
         Medium,
         High,
-        Urgent
+        Critical
     }
 }

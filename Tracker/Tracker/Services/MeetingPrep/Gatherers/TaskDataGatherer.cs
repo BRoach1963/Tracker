@@ -1,8 +1,7 @@
 using Tracker.Classes;
 using Tracker.Common.Enums;
-using Tracker.Database;
-using Tracker.Database.Repositories;
 using Tracker.DataModels;
+using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
 
@@ -24,7 +23,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
             _logger = LoggingManager.GetComponentLogger("TaskDataGatherer");
         }
 
-        public async Task<PrepSection?> GatherAsync(TeamMember teamMember, DateTime meetingDate)
+        public Task<PrepSection?> GatherAsync(TeamMember teamMember, DateTime meetingDate)
         {
             var section = PrepSection.Create(PrepSectionType.TaskStatus);
             var urgentSection = PrepSection.Create(PrepSectionType.Urgent);
@@ -32,18 +31,11 @@ namespace Tracker.Services.MeetingPrep.Gatherers
 
             try
             {
-                var repository = CreateTaskRepository();
-                if (repository == null)
+                // Get all tasks from TrackerDataManager
+                var allTasks = TrackerDataManager.Instance.Tasks.ToList();
+                if (allTasks.Count == 0)
                 {
-                    _logger.Debug("No current user context, skipping task data");
-                    return null;
-                }
-
-                // Get all tasks
-                var allTasks = await repository.GetTasksAsync();
-                if (allTasks == null || allTasks.Count == 0)
-                {
-                    return null;
+                    return Task.FromResult<PrepSection?>(null);
                 }
 
                 // Filter tasks assigned to this team member
@@ -59,7 +51,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                         Subtext = "All tasks completed",
                         Priority = PrepItemPriority.Low
                     });
-                    return section;
+                    return Task.FromResult<PrepSection?>(section);
                 }
 
                 var today = DateTime.Today;
@@ -153,20 +145,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                 _logger.Error("Error gathering task data: {0}", ex.Message);
             }
 
-            return section.HasItems ? section : null;
-        }
-
-        private static TrackerTaskRepository? CreateTaskRepository()
-        {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TrackerTaskRepository(context, userId.Value, () => contextFactory.CreateContext());
+            return Task.FromResult<PrepSection?>(section.HasItems ? section : null);
         }
 
         private MeetingPrepSettings GetSettings()

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Tracker.Common.Enums;
 using Tracker.Factories;

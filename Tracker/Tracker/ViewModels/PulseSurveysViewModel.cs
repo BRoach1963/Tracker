@@ -4,7 +4,7 @@ using System.Windows.Input;
 using Tracker.Command;
 using Tracker.Common.Enums;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;

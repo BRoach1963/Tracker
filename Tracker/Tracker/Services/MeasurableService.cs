@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using Tracker.Common.Enums;
-using Tracker.Database;
 using Tracker.DataModels;
 using Tracker.Interfaces;
+using Tracker.Managers;
 
 namespace Tracker.Services
 {
@@ -12,11 +11,8 @@ namespace Tracker.Services
     /// </summary>
     public class MeasurableService : IMeasurableService
     {
-        private readonly TrackerDbContext _context;
-
-        public MeasurableService(TrackerDbContext context)
+        public MeasurableService()
         {
-            _context = context;
         }
 
         /// <inheritdoc />
@@ -41,9 +37,9 @@ namespace Tracker.Services
         /// <inheritdoc />
         public async Task<List<TargetMeasurable>> GetMeasurablesForTargetAsync(Guid targetId)
         {
-            var measurables = await _context.TargetMeasurables
+            var measurables = TrackerDataManager.Instance.Measurables
                 .Where(m => m.TargetId == targetId && !m.IsDeleted)
-                .ToListAsync();
+                .ToList();
 
             foreach (var measurable in measurables)
             {
@@ -89,62 +85,51 @@ namespace Tracker.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<IMeasurable>> GetAvailableMeasurablesAsync(string type)
+        public Task<List<IMeasurable>> GetAvailableMeasurablesAsync(string type)
         {
-            return type switch
+            List<IMeasurable> result = type switch
             {
-                "metric" => (await _context.Metrics
+                "metric" => TrackerDataManager.Instance.Metrics
                     .Where(m => !m.IsDeleted)
                     .OrderBy(m => m.Name)
-                    .ToListAsync())
                     .Cast<IMeasurable>()
                     .ToList(),
 
                 // Project doesn't implement IMeasurable, return empty list
                 "project" => new List<IMeasurable>(),
 
-                "task_collection" => (await _context.TaskCollections
-                    .Include(tc => tc.Items)
-                        .ThenInclude(i => i.Task)
+                "task_collection" => TrackerDataManager.Instance.TaskCollections
                     .Where(tc => !tc.IsDeleted)
                     .OrderBy(tc => tc.Name)
-                    .ToListAsync())
                     .Cast<IMeasurable>()
                     .ToList(),
 
                 _ => new List<IMeasurable>()
             };
+            return Task.FromResult(result);
         }
 
         #region Private Helpers
 
-        private async Task<Metric?> GetMetricAsync(Guid metricId)
+        private Task<Metric?> GetMetricAsync(Guid metricId)
         {
-            return await _context.Metrics
-                .Where(m => m.Id == metricId && !m.IsDeleted)
-                .FirstOrDefaultAsync();
+            var metric = TrackerDataManager.Instance.Metrics
+                .FirstOrDefault(m => m.Id == metricId && !m.IsDeleted);
+            return Task.FromResult(metric);
         }
 
-        private async Task<Project?> GetProjectAsync(Guid projectId)
+        private Task<Project?> GetProjectAsync(Guid projectId)
         {
-            return await _context.Projects
-                .Include(p => p.Tasks)
-                .Where(p => p.Id == projectId && !p.IsDeleted)
-                .FirstOrDefaultAsync();
+            var project = TrackerDataManager.Instance.Projects
+                .FirstOrDefault(p => p.Id == projectId && !p.IsDeleted);
+            return Task.FromResult(project);
         }
 
-        private async Task<TaskCollection?> GetTaskCollectionAsync(Guid collectionId)
+        private Task<TaskCollection?> GetTaskCollectionAsync(Guid collectionId)
         {
-            // TaskCollection.Id is int (legacy), so extract int from Guid
-            // The Guid may contain the int in its first 4 bytes or be a simple representation
-            var bytes = collectionId.ToByteArray();
-            var intId = BitConverter.ToInt32(bytes, 0);
-            
-            return await _context.TaskCollections
-                .Include(tc => tc.Items)
-                    .ThenInclude(i => i.Task)
-                .Where(tc => tc.Id == intId && !tc.IsDeleted)
-                .FirstOrDefaultAsync();
+            var collection = TrackerDataManager.Instance.TaskCollections
+                .FirstOrDefault(tc => tc.Id == collectionId && !tc.IsDeleted);
+            return Task.FromResult(collection);
         }
 
         private string GetDisplayForMeasurable(IMeasurable measurable)

@@ -371,7 +371,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets the calculated Goal status (OnTrack, AtRisk, OffTrack) based on Targets - read-only.
         /// </summary>
-        public OkrStatus Status => _goal.Status;
+        public GoalStatus Status => _goal.Status;
 
         /// <summary>
         /// Gets the completion percentage based on Targets - read-only.

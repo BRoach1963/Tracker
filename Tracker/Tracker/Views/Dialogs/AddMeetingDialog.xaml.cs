@@ -1,5 +1,6 @@
 using Tracker.Common.Enums;
 using Tracker.Controls;
+using Tracker.DTOs;
 using Tracker.Help.Attributes;
 using Tracker.Services;
 using Tracker.ViewModels.DialogViewModels;
@@ -26,7 +27,7 @@ namespace Tracker.Views.Dialogs
             if (DataContext is MeetingViewModel vm)
             {
                 var slot = e.SelectedSlot;
-                vm.ApplySelectedTimeSlot(slot.Start.Date, slot.Start.TimeOfDay, slot.End.TimeOfDay);
+                vm.ApplySelectedTimeSlot(slot.StartTime.Date, slot.StartTime.TimeOfDay, slot.EndTime.TimeOfDay);
                 
                 // Optionally hide the scheduling assistant after selection
                 vm.IsSchedulingAssistantVisible = false;

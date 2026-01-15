@@ -1,4 +1,4 @@
-﻿using Tracker.Extensions;
+using Tracker.Extensions;
 using Tracker.Helpers;
 
 namespace Tracker.DataWrappers

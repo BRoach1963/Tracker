@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.Managers;

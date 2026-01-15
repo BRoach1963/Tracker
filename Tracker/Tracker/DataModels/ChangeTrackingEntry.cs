@@ -4,11 +4,23 @@ using System.Collections.Generic;
 namespace Tracker.DataModels
 {
     /// <summary>
-    /// Synchronization tracking for changes.
-    /// Used for offline sync and change tracking.
-    /// Maps to Supabase 'change_tracking_entries' table.
+    /// [FUTURE FEATURE] Offline Sync / Change Tracking
+    /// 
+    /// Purpose: Track local changes made while offline so they can be synced
+    /// to Supabase when connectivity is restored. Enables conflict detection
+    /// and resolution for multi-device scenarios.
+    /// 
+    /// Status: NOT YET IMPLEMENTED - Model placeholder for future offline capability.
+    /// No corresponding Supabase table exists yet. Do not add Dapper attributes
+    /// until the feature is implemented and table is created.
+    /// 
+    /// Future Use Cases:
+    /// - Mobile app working offline
+    /// - Poor connectivity environments  
+    /// - Optimistic UI updates with background sync
+    /// - Conflict resolution when same entity edited on multiple devices
     /// </summary>
-    public class ChangeTrackingEntry : AuditableEntity
+    public class ChangeTrackingEntry
     {
         /// <summary>
         /// Primary key (UUID).

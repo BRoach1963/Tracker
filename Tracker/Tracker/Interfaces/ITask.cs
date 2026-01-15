@@ -1,4 +1,4 @@
-﻿using Tracker.Common.Enums;
+using Tracker.Common.Enums;
 using Tracker.DataModels;
 
 namespace Tracker.Interfaces

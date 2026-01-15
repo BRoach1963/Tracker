@@ -575,13 +575,13 @@ namespace Tracker.ViewModels
             // =====================================================
             // PERFORMANCE: OKRs and KPIs
             // =====================================================
-            var onTrackOkrs = StrategicGoalsData.Count(o => o.Status == OkrStatus.OnTrack);
+            var onTrackOkrs = StrategicGoalsData.Count(o => o.Status == GoalStatus.OnTrack);
             ActiveOkrs = StrategicGoalsData.Count;
             OkrOnTrackPercent = ActiveOkrs > 0 
                 ? (int)Math.Round((onTrackOkrs / (double)ActiveOkrs) * 100) 
                 : 0;
             
-            var onTargetKpis = KpisData.Count(k => k.Status == OkrStatus.OnTrack || k.Status == OkrStatus.Completed);
+            var onTargetKpis = KpisData.Count(k => k.Status == GoalStatus.OnTrack || k.Status == GoalStatus.Completed);
             KpisOnTarget = TotalKpis > 0 ? (int)Math.Round((onTargetKpis / (double)TotalKpis) * 100) : 0;
             
             RaisePropertyChanged(nameof(TaskCompletionPercentage));
@@ -700,9 +700,9 @@ namespace Tracker.ViewModels
 
         private void UpdateOkrProgressChart()
         {
-            var onTrack = StrategicGoalsData.Count(o => o.Status == OkrStatus.OnTrack);
-            var atRisk = StrategicGoalsData.Count(o => o.Status == OkrStatus.AtRisk);
-            var offTrack = StrategicGoalsData.Count(o => o.Status == OkrStatus.OffTrack);
+            var onTrack = StrategicGoalsData.Count(o => o.Status == GoalStatus.OnTrack);
+            var atRisk = StrategicGoalsData.Count(o => o.Status == GoalStatus.AtRisk);
+            var offTrack = StrategicGoalsData.Count(o => o.Status == GoalStatus.OffTrack);
 
             // Create new SeriesCollection to avoid LiveCharts race condition
             OkrProgressSeries = new SeriesCollection
@@ -732,9 +732,9 @@ namespace Tracker.ViewModels
 
         private void UpdateKpiStatusChart()
         {
-            var onTarget = KpisData.Count(k => k.Status == OkrStatus.OnTrack || k.Status == OkrStatus.Completed);
-            var offTarget = KpisData.Count(k => k.Status == OkrStatus.OffTrack);
-            var closeToTarget = KpisData.Count(k => k.Status == OkrStatus.AtRisk);
+            var onTarget = KpisData.Count(k => k.Status == GoalStatus.OnTrack || k.Status == GoalStatus.Completed);
+            var offTarget = KpisData.Count(k => k.Status == GoalStatus.OffTrack);
+            var closeToTarget = KpisData.Count(k => k.Status == GoalStatus.AtRisk);
 
             // Create new SeriesCollection to avoid LiveCharts race condition
             KpiStatusSeries = new SeriesCollection

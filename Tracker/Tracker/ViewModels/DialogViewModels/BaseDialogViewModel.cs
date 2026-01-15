@@ -1,4 +1,4 @@
-﻿using Tracker.Classes;
+using Tracker.Classes;
 
 namespace Tracker.ViewModels.DialogViewModels
 {

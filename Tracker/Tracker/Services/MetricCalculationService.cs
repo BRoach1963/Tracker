@@ -1,6 +1,6 @@
-using Tracker.Database;
 using Tracker.DataModels;
-using Microsoft.EntityFrameworkCore;
+using Tracker.Managers;
+using Tracker.Services.Data.Repositories;
 
 namespace Tracker.Services
 {
@@ -9,54 +9,53 @@ namespace Tracker.Services
     /// </summary>
     public class MetricCalculationService : IMetricCalculationService
     {
-        private readonly TrackerDbContext _context;
+        private readonly IMetricRepository _metricRepository;
 
-        public MetricCalculationService(TrackerDbContext context)
+        public MetricCalculationService(IMetricRepository metricRepository)
         {
-            _context = context;
+            _metricRepository = metricRepository;
         }
 
         /// <inheritdoc />
-        public async Task<decimal> CalculateMetricValueAsync(Guid metricId)
+        public Task<decimal> CalculateMetricValueAsync(Guid metricId)
         {
-            var metric = await _context.Metrics
-                .Include(m => m.DataSources)
-                .FirstOrDefaultAsync(m => m.Id == metricId && !m.IsDeleted);
+            var metric = TrackerDataManager.Instance.Metrics
+                .FirstOrDefault(m => m.Id == metricId && !m.IsDeleted);
 
-            if (metric == null || metric.DataSources == null || metric.DataSources.Count == 0)
-                return metric?.CurrentValue ?? 0m;
+            if (metric == null)
+                return Task.FromResult(0m);
 
             // For now, use the first data source value or calculate from all sources
             // This would need full implementation based on aggregation rules
-            return metric.CurrentValue;
+            return Task.FromResult(metric.CurrentValue);
         }
 
         /// <inheritdoc />
-        public async Task<decimal> CalculateCompositeMetricValueAsync(Guid metricId)
+        public Task<decimal> CalculateCompositeMetricValueAsync(Guid metricId)
         {
             // Composite metric calculation from child metrics
-            var metric = await _context.Metrics
-                .FirstOrDefaultAsync(m => m.Id == metricId && !m.IsDeleted);
+            var metric = TrackerDataManager.Instance.Metrics
+                .FirstOrDefault(m => m.Id == metricId && !m.IsDeleted);
 
-            return metric?.CurrentValue ?? 0m;
+            return Task.FromResult(metric?.CurrentValue ?? 0m);
         }
 
         /// <inheritdoc />
-        public async Task<int> RefreshAllMetricValuesAsync()
+        public Task<int> RefreshAllMetricValuesAsync()
         {
-            var metrics = await _context.Metrics
-                .Where(m => !m.IsDeleted && m.DataSources != null && m.DataSources.Any())
-                .ToListAsync();
+            var metrics = TrackerDataManager.Instance.Metrics
+                .Where(m => !m.IsDeleted)
+                .ToList();
 
             // Placeholder for batch refresh logic
-            return metrics.Count;
+            return Task.FromResult(metrics.Count);
         }
 
         /// <inheritdoc />
         public async Task<bool> RefreshMetricValueAsync(Guid metricId)
         {
-            var metric = await _context.Metrics
-                .FirstOrDefaultAsync(m => m.Id == metricId && !m.IsDeleted);
+            var metric = TrackerDataManager.Instance.Metrics
+                .FirstOrDefault(m => m.Id == metricId && !m.IsDeleted);
 
             if (metric == null)
                 return false;
@@ -67,7 +66,7 @@ namespace Tracker.Services
             if (oldValue != newValue)
             {
                 metric.CurrentValue = newValue;
-                await _context.SaveChangesAsync();
+                await _metricRepository.UpdateAsync(metric);
                 return true;
             }
 
@@ -75,11 +74,12 @@ namespace Tracker.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<MetricDataSource>> GetResolvedDataSourcesAsync(Guid metricId)
+        public Task<List<MetricDataSource>> GetResolvedDataSourcesAsync(Guid metricId)
         {
-            return await _context.MetricDataSources
+            var sources = TrackerDataManager.Instance.MetricDataSources
                 .Where(ds => ds.MetricId == metricId && !ds.IsDeleted)
-                .ToListAsync();
+                .ToList();
+            return Task.FromResult(sources);
         }
 
         /// <inheritdoc />

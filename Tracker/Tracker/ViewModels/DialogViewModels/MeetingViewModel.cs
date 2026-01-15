@@ -157,9 +157,7 @@ namespace Tracker.ViewModels.DialogViewModels
         private async void RefreshTimeFromCalendar()
         {
             // Check if meeting is synced to any calendar
-            bool hasSyncedCalendar =
-                !string.IsNullOrEmpty(_data.GoogleCalendarEventId) ||
-                !string.IsNullOrEmpty(_data.OutlookCalendarEventId);
+            bool hasSyncedCalendar = !string.IsNullOrEmpty(_data.CalendarEventId);
 
             if (!hasSyncedCalendar) return;
 

@@ -1,32 +1,30 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Tracker.DataModels
 {
     /// <summary>
     /// Base class for all database entities that require audit tracking.
+    /// Aligned with Supabase PostgreSQL schema patterns.
     /// 
     /// This class provides standardized fields for:
-    /// - Creation tracking (when and by whom a record was created)
-    /// - Modification tracking (when and by whom a record was last changed)
-    /// - Soft delete support (records are marked deleted rather than removed)
-    /// - Concurrency control (RowVersion for optimistic locking)
+    /// - Creation tracking (created_at)
+    /// - Modification tracking (updated_at)
+    /// - Soft delete support (is_deleted, deleted_at, deleted_by)
     /// 
-    /// All audit fields are automatically populated by TrackerDbContext.SaveChanges()
-    /// based on the entity's state (Added, Modified, or Deleted).
+    /// Supabase Schema Pattern:
+    /// Most tables include: created_at, updated_at, is_deleted, deleted_at, deleted_by
+    /// Some tables also have: created_by (uuid FK to users)
     /// 
     /// Soft Delete Pattern:
     /// Instead of physically removing records from the database, entities are marked
     /// with IsDeleted = true. This preserves data for audit trails and enables
-    /// potential recovery. Most queries should filter on IsDeleted = false.
-    /// 
-    /// Future Sync Support:
-    /// These fields, combined with the ChangeTrackingEntry table, enable future
-    /// offline sync scenarios where changes made locally can be synchronized
-    /// with a central SQL Server when connectivity is restored.
+    /// potential recovery. Dapper queries should filter: WHERE is_deleted = false
     /// 
     /// Usage:
     /// <code>
     /// public class TeamMember : AuditableEntity
     /// {
-    ///     public int Id { get; set; }
+    ///     public Guid Id { get; set; }
     ///     public string Name { get; set; }
     ///     // ... other properties
     /// }
@@ -34,52 +32,21 @@ namespace Tracker.DataModels
     /// </summary>
     public abstract class AuditableEntity
     {
-        #region Creation Tracking
+        #region Timestamp Tracking
 
         /// <summary>
         /// The UTC date and time when this record was first created.
-        /// Automatically set by SaveChanges() when the entity is added.
+        /// Maps to: created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         /// </summary>
+        [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// The username of the person who created this record.
-        /// Defaults to the current Windows username.
-        /// </summary>
-        public string CreatedBy { get; set; } = Environment.UserName;
-
-        #endregion
-
-        #region Modification Tracking
-
-        /// <summary>
         /// The UTC date and time when this record was last modified.
-        /// Updated automatically by SaveChanges() whenever the entity is changed.
+        /// Maps to: updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         /// </summary>
-        public DateTime LastModifiedAt { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// The username of the person who last modified this record.
-        /// Updated automatically on every save.
-        /// </summary>
-        public string LastModifiedBy { get; set; } = Environment.UserName;
-
-        #endregion
-
-        #region Concurrency Control
-
-        /// <summary>
-        /// Row version for optimistic concurrency control.
-        /// 
-        /// On SQL Server, this is a ROWVERSION/TIMESTAMP that changes automatically
-        /// with each update. EF Core uses this to detect concurrent modifications:
-        /// if the version in the database differs from the version in memory,
-        /// a DbUpdateConcurrencyException is thrown.
-        /// 
-        /// On SQLite, this field is not used for concurrency (SQLite doesn't support
-        /// ROWVERSION), but it's included for schema compatibility.
-        /// </summary>
-        public byte[]? RowVersion { get; set; }
+        [Column("updated_at")]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         #endregion
 
@@ -87,25 +54,30 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Indicates whether this record has been soft-deleted.
+        /// Maps to: is_deleted BOOLEAN NOT NULL DEFAULT false
         /// 
         /// When true, the record is considered "deleted" for business purposes
         /// but remains in the database for audit trails and potential recovery.
-        /// 
-        /// Most queries should include a filter: .Where(e => !e.IsDeleted)
+        /// Dapper queries should filter: WHERE is_deleted = false
         /// </summary>
+        [Column("is_deleted")]
         public bool IsDeleted { get; set; } = false;
 
         /// <summary>
         /// The UTC date and time when this record was soft-deleted.
+        /// Maps to: deleted_at TIMESTAMPTZ NULL
         /// Null if the record has not been deleted.
         /// </summary>
+        [Column("deleted_at")]
         public DateTime? DeletedAt { get; set; }
 
         /// <summary>
-        /// The username of the person who deleted this record.
+        /// The user who deleted this record (UUID FK to users).
+        /// Maps to: deleted_by UUID NULL
         /// Null if the record has not been deleted.
         /// </summary>
-        public string? DeletedBy { get; set; }
+        [Column("deleted_by")]
+        public Guid? DeletedBy { get; set; }
 
         #endregion
     }

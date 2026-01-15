@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Tracker.Controls.OkrsControl"
+<UserControl x:Class="Tracker.Controls.OkrsControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -232,15 +232,15 @@
                              Click="FilterAll_Click"/>
                 <RadioButton Content="On Track" GroupName="OkrFilter" 
                              Style="{StaticResource SegmentedButtonStyle}"
-                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:ObjectiveStatusEnum.OnTrack}}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:GoalStatus.OnTrack}}"
                              Click="FilterOnTrack_Click"/>
                 <RadioButton Content="At Risk" GroupName="OkrFilter" 
                              Style="{StaticResource SegmentedButtonStyle}"
-                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:ObjectiveStatusEnum.AtRisk}}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:GoalStatus.AtRisk}}"
                              Click="FilterAtRisk_Click"/>
                 <RadioButton Content="Off Track" GroupName="OkrFilter" 
                              Style="{StaticResource SegmentedButtonStyle}"
-                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:ObjectiveStatusEnum.OffTrack}}"
+                             IsChecked="{Binding StatusFilter, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter={x:Static enums:GoalStatus.OffTrack}}"
                              Click="FilterOffTrack_Click"/>
             </StackPanel>
             

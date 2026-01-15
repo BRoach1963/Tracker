@@ -9,7 +9,7 @@ namespace Tracker.Controls.CustomControls
     /// A reusable status badge control that displays status with color coding.
     /// 
     /// Features:
-    /// - Supports ObjectiveStatusEnum and custom status strings
+    /// - Supports GoalStatus enum and custom status strings
     /// - Auto-color coding based on status type
     /// - Optional status dot indicator
     /// - Configurable size and appearance
@@ -37,10 +37,10 @@ namespace Tracker.Controls.CustomControls
         #region Dependency Properties
 
         /// <summary>
-        /// The ObjectiveStatusEnum value to display.
+        /// The GoalStatus value to display.
         /// </summary>
         public static readonly DependencyProperty StatusProperty =
-            DependencyProperty.Register(nameof(Status), typeof(ObjectiveStatusEnum?), typeof(StatusBadge),
+            DependencyProperty.Register(nameof(Status), typeof(GoalStatus?), typeof(StatusBadge),
                 new PropertyMetadata(null, OnStatusChanged));
 
         /// <summary>
@@ -103,9 +103,9 @@ namespace Tracker.Controls.CustomControls
 
         #region Properties
 
-        public ObjectiveStatusEnum? Status
+        public GoalStatus? Status
         {
-            get => (ObjectiveStatusEnum?)GetValue(StatusProperty);
+            get => (GoalStatus?)GetValue(StatusProperty);
             set => SetValue(StatusProperty, value);
         }
 
@@ -210,24 +210,24 @@ namespace Tracker.Controls.CustomControls
             }
         }
 
-        private static string GetStatusDisplayText(ObjectiveStatusEnum status)
+        private static string GetStatusDisplayText(GoalStatus status)
         {
             return status switch
             {
-                ObjectiveStatusEnum.OnTrack => "On Track",
-                ObjectiveStatusEnum.AtRisk => "At Risk",
-                ObjectiveStatusEnum.OffTrack => "Off Track",
+                GoalStatus.OnTrack => "On Track",
+                GoalStatus.AtRisk => "At Risk",
+                GoalStatus.OffTrack => "Off Track",
                 _ => status.ToString()
             };
         }
 
-        private static Brush GetStatusBrush(ObjectiveStatusEnum status)
+        private static Brush GetStatusBrush(GoalStatus status)
         {
             return status switch
             {
-                ObjectiveStatusEnum.OnTrack => OnTrackBrush,
-                ObjectiveStatusEnum.AtRisk => AtRiskBrush,
-                ObjectiveStatusEnum.OffTrack => OffTrackBrush,
+                GoalStatus.OnTrack => OnTrackBrush,
+                GoalStatus.AtRisk => AtRiskBrush,
+                GoalStatus.OffTrack => OffTrackBrush,
                 _ => DefaultBrush
             };
         }
@@ -241,7 +241,7 @@ namespace Tracker.Controls.CustomControls
         /// </summary>
         /// <param name="status">The status enum value.</param>
         /// <returns>The corresponding brush.</returns>
-        public static Brush GetBrushForStatus(ObjectiveStatusEnum status) => GetStatusBrush(status);
+        public static Brush GetBrushForStatus(GoalStatus status) => GetStatusBrush(status);
 
         #endregion
     }

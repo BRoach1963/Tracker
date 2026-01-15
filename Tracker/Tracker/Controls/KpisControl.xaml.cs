@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Tracker.Common.Enums;
@@ -24,10 +24,10 @@ namespace Tracker.Controls
             if (DataContext is TrackerMainViewModel vm)
             {
                 // Toggle: if already selected, go back to All
-                if (vm.KpiStatusFilter == OkrStatus.OnTrack)
+                if (vm.KpiStatusFilter == GoalStatus.OnTrack)
                     vm.KpiStatusFilter = null;
                 else
-                    vm.KpiStatusFilter = OkrStatus.OnTrack;
+                    vm.KpiStatusFilter = GoalStatus.OnTrack;
             }
         }
 
@@ -37,10 +37,10 @@ namespace Tracker.Controls
             {
                 // Toggle: if already selected, go back to All  
                 // Use OffTrack to represent "Below Target" filter
-                if (vm.KpiStatusFilter == OkrStatus.OffTrack)
+                if (vm.KpiStatusFilter == GoalStatus.OffTrack)
                     vm.KpiStatusFilter = null;
                 else
-                    vm.KpiStatusFilter = OkrStatus.OffTrack;
+                    vm.KpiStatusFilter = GoalStatus.OffTrack;
             }
         }
 
@@ -68,7 +68,7 @@ namespace Tracker.Controls
         {
             if (DataContext is TrackerMainViewModel vm)
             {
-                vm.KpiStatusFilter = OkrStatus.OnTrack;
+                vm.KpiStatusFilter = GoalStatus.OnTrack;
             }
         }
 
@@ -77,7 +77,7 @@ namespace Tracker.Controls
             if (DataContext is TrackerMainViewModel vm)
             {
                 // Use OffTrack to represent "Below Target" (not on target)
-                vm.KpiStatusFilter = OkrStatus.OffTrack;
+                vm.KpiStatusFilter = GoalStatus.OffTrack;
             }
         }
 

@@ -1,13 +1,16 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.CompilerServices;
 
 namespace Tracker.DataModels
 {
     /// <summary>
     /// Agenda item for a meeting - topics, questions, items to discuss.
-    /// Maps to meeting_agenda_items table in Supabase.
+    /// Maps to: meeting_agenda_items (12 columns)
     /// </summary>
-    public class AgendaItem : AuditableEntity, INotifyPropertyChanged
+    [Table("meeting_agenda_items")]
+    public class AgendaItem : INotifyPropertyChanged
     {
         private string _title = string.Empty;
         private string? _notes;
@@ -16,28 +19,34 @@ namespace Tracker.DataModels
         private DateTime? _discussedAt;
         private int? _timeEstimateMinutes;
         private int? _actualDurationMinutes;
-        private string? _relatedEntityType;
-        private Guid? _relatedEntityId;
 
         /// <summary>
-        /// Unique identifier for this agenda item (UUID).
+        /// Unique identifier (UUID).
+        /// Maps to: id UUID NOT NULL DEFAULT gen_random_uuid()
         /// </summary>
+        [Column("id")]
         public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>
         /// FK to the meeting this item belongs to.
+        /// Maps to: meeting_id UUID NOT NULL
         /// </summary>
+        [Column("meeting_id")]
         public Guid MeetingId { get; set; }
 
         /// <summary>
         /// FK to the team member who added this item.
-        /// Null if added by system or unknown.
+        /// Maps to: added_by_team_member_id UUID NULL
         /// </summary>
+        [Column("added_by_team_member_id")]
         public Guid? AddedByTeamMemberId { get; set; }
 
         /// <summary>
         /// The agenda item title/topic to discuss.
+        /// Maps to: title VARCHAR(300) NOT NULL
         /// </summary>
+        [Column("title")]
+        [MaxLength(300)]
         public string Title
         {
             get => _title;
@@ -46,7 +55,9 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Additional notes or context for this agenda item.
+        /// Maps to: notes TEXT NULL
         /// </summary>
+        [Column("notes")]
         public string? Notes
         {
             get => _notes;
@@ -55,7 +66,9 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Sort order within the meeting agenda.
+        /// Maps to: sort_order INT4 NOT NULL DEFAULT 0
         /// </summary>
+        [Column("sort_order")]
         public int SortOrder
         {
             get => _sortOrder;
@@ -64,7 +77,9 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Whether this item was discussed in the meeting.
+        /// Maps to: is_discussed BOOLEAN NOT NULL DEFAULT false
         /// </summary>
+        [Column("is_discussed")]
         public bool IsDiscussed
         {
             get => _isDiscussed;
@@ -73,8 +88,9 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// When this item was discussed.
-        /// Null if not yet discussed.
+        /// Maps to: discussed_at TIMESTAMPTZ NULL
         /// </summary>
+        [Column("discussed_at")]
         public DateTime? DiscussedAt
         {
             get => _discussedAt;
@@ -83,8 +99,9 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Estimated time to discuss this item (minutes).
-        /// Null if no estimate.
+        /// Maps to: time_estimate_minutes INT4 NULL
         /// </summary>
+        [Column("time_estimate_minutes")]
         public int? TimeEstimateMinutes
         {
             get => _timeEstimateMinutes;
@@ -93,40 +110,46 @@ namespace Tracker.DataModels
 
         /// <summary>
         /// Actual time spent discussing this item (minutes).
-        /// Null if not yet discussed.
+        /// Maps to: actual_duration_minutes INT4 NULL
         /// </summary>
+        [Column("actual_duration_minutes")]
         public int? ActualDurationMinutes
         {
             get => _actualDurationMinutes;
             set { _actualDurationMinutes = value; OnPropertyChanged(); }
         }
 
-        #region Related Entity (for discussing existing Tasks/Goals/Metrics)
+        #region Timestamps
 
         /// <summary>
-        /// Type of related entity being discussed (Task, Goal, Metric).
-        /// Null if this is a standalone agenda item.
+        /// When this record was created.
+        /// Maps to: created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         /// </summary>
-        public string? RelatedEntityType
-        {
-            get => _relatedEntityType;
-            set { _relatedEntityType = value; OnPropertyChanged(); }
-        }
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// ID of the related entity being discussed.
-        /// Null if this is a standalone agenda item.
+        /// When this record was last updated.
+        /// Maps to: updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         /// </summary>
-        public Guid? RelatedEntityId
-        {
-            get => _relatedEntityId;
-            set { _relatedEntityId = value; OnPropertyChanged(); }
-        }
+        [Column("updated_at")]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        #endregion
+
+        #region Navigation Properties
 
         /// <summary>
-        /// Whether this agenda item is linked to an existing entity.
+        /// Navigation to the meeting.
         /// </summary>
-        public bool HasRelatedEntity => RelatedEntityId.HasValue && !string.IsNullOrEmpty(RelatedEntityType);
+        [NotMapped]
+        public Meeting? Meeting { get; set; }
+
+        /// <summary>
+        /// Navigation to the team member who added this item.
+        /// </summary>
+        [NotMapped]
+        public TeamMember? AddedByTeamMember { get; set; }
 
         #endregion
 
@@ -135,12 +158,14 @@ namespace Tracker.DataModels
         /// <summary>
         /// Whether this item is ready to be discussed (has a title and hasn't been discussed yet).
         /// </summary>
+        [NotMapped]
         public bool IsPending => !IsDiscussed && !string.IsNullOrWhiteSpace(Title);
 
         /// <summary>
         /// Time variance - how the actual duration compares to estimate.
         /// Returns the difference in minutes, null if no estimate or not discussed.
         /// </summary>
+        [NotMapped]
         public int? TimeVarianceMinutes
         {
             get

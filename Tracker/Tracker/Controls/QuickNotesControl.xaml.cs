@@ -4,7 +4,7 @@ using System.Windows.Input;
 using Tracker.Classes;
 using Tracker.DataModels;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Services;
 using Tracker.ViewModels;

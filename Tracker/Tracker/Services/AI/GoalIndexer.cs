@@ -1,9 +1,7 @@
 using System.Text;
 using Tracker.Common.Enums;
-using Tracker.Database;
 using Tracker.Logging;
 using Tracker.Managers;
-using Microsoft.EntityFrameworkCore;
 
 namespace Tracker.Services.AI
 {
@@ -12,6 +10,8 @@ namespace Tracker.Services.AI
     /// Goals consolidate OKRs and KPIs from the legacy system with type discrimination.
     /// This indexer handles multiple entity types via override of IndexAllAsync.
     /// Enhanced to provide rich context for AI analysis including progress, status, and targets.
+    /// 
+    /// Uses TrackerDataManager for data access (Dapper-based).
     /// </summary>
     public class GoalIndexer : EntityIndexerBase
     {
@@ -21,11 +21,9 @@ namespace Tracker.Services.AI
         public static GoalIndexer Instance => _instance.Value;
         
         private DateTime? _currentSinceTime;
-        private readonly TrackerDbContext _context;
 
         private GoalIndexer() : base("GoalIndexer")
         {
-            _context = new TrackerDbContext();
         }
 
         protected override string EntityTypeName => "goals/projects";
@@ -46,24 +44,21 @@ namespace Tracker.Services.AI
 
             try
             {
-                // Fetch and index Goals and Projects
-                var goals = await _context.Goals
-                    .Include(g => g.Targets)
-                        .ThenInclude(t => t.Measurables)
-                    .Include(g => g.Owner)
-                    .Where(g => !g.IsDeleted)
-                    .ToListAsync();
-
-                var projects = await _context.Projects
-                    .Where(p => !p.IsDeleted)
-                    .ToListAsync();
+                // Get data from TrackerDataManager (which uses Dapper repositories)
+                var dataManager = TrackerDataManager.Instance;
+                
+                // Get Goals - already loaded in TrackerDataManager
+                var goals = dataManager.Goals.Where(g => !g.IsDeleted).ToList();
+                
+                // Get Projects - already loaded in TrackerDataManager
+                var projects = dataManager.Projects.Where(p => !p.IsDeleted).ToList();
 
                 // Index each goal (filtering by time)
-                foreach (var goal in goals.Where(g => PassesTimeFilter(g.CreatedAt, g.LastModifiedAt)))
+                foreach (var goal in goals.Where(g => PassesTimeFilter(g.CreatedAt, g.UpdatedAt)))
                     await IndexGoalAsync(goal);
                     
                 // Index each project (filtering by time)
-                foreach (var project in projects.Where(p => PassesTimeFilter(p.CreatedAt, p.LastModifiedAt)))
+                foreach (var project in projects.Where(p => PassesTimeFilter(p.CreatedAt, p.UpdatedAt)))
                     await IndexProjectAsync(project);
 
                 _logger.Info("Indexed {0} {1}", _indexedCount, EntityTypeName);
@@ -104,8 +99,12 @@ namespace Tracker.Services.AI
                 if (!string.IsNullOrEmpty(goal.Description))
                     sb.AppendLine($"Description: {goal.Description}");
 
-                // Targets detail
-                var activeTargets = goal.Targets?.Where(t => !t.IsDeleted).ToList() ?? new List<DataModels.Target>();
+                // Get targets for this goal from TrackerDataManager
+                var dataManager = TrackerDataManager.Instance;
+                var activeTargets = dataManager.Targets
+                    .Where(t => t.GoalId == goal.Id && !t.IsDeleted)
+                    .ToList();
+                    
                 if (activeTargets.Any())
                 {
                     sb.AppendLine();
@@ -118,24 +117,12 @@ namespace Tracker.Services.AI
                         sb.AppendLine($"    Current: {target.CurrentValue} / Target: {target.TargetValue}");
                         sb.AppendLine($"    Status: {targetStatus}");
                         sb.AppendLine($"    Weight: {target.Weight}");
-                        
-                        // Include linked measurables
-                        var activeMeasurables = target.Measurables?.Where(m => !m.IsDeleted).ToList() ?? new List<DataModels.TargetMeasurable>();
-                        if (activeMeasurables.Any())
-                        {
-                            sb.AppendLine($"    Linked Sources: {activeMeasurables.Count}");
-                            foreach (var m in activeMeasurables.Take(3))
-                            {
-                                var progressStr = m.CurrentProgress.HasValue ? $"{m.CurrentProgress.Value:F1}%" : "N/A";
-                                sb.AppendLine($"      • {m.MeasurableType}: {m.DisplayName} ({progressStr})");
-                            }
-                        }
                     }
                     
                     // Summary analysis
-                    var onTrackTargets = activeTargets.Count(t => t.Status == OkrStatus.OnTrack);
-                    var atRiskTargets = activeTargets.Count(t => t.Status == OkrStatus.AtRisk);
-                    var offTrackTargets = activeTargets.Count(t => t.Status == OkrStatus.OffTrack);
+                    var onTrackTargets = activeTargets.Count(t => t.Status == GoalStatus.OnTrack);
+                    var atRiskTargets = activeTargets.Count(t => t.Status == GoalStatus.AtRisk);
+                    var offTrackTargets = activeTargets.Count(t => t.Status == GoalStatus.OffTrack);
                     
                     sb.AppendLine();
                     sb.AppendLine("Target Summary:");
@@ -198,26 +185,26 @@ namespace Tracker.Services.AI
 
         #region Helper Methods
 
-        private static string GetGoalStatusDescription(OkrStatus status)
+        private static string GetGoalStatusDescription(GoalStatus status)
         {
             return status switch
             {
-                OkrStatus.OnTrack => "On Track (green) - meeting or exceeding expectations",
-                OkrStatus.AtRisk => "At Risk (amber) - may not meet target without intervention",
-                OkrStatus.OffTrack => "Off Track (red) - significantly behind, needs attention",
-                OkrStatus.Completed => "Completed - goal achieved",
-                OkrStatus.Cancelled => "Cancelled",
+                GoalStatus.OnTrack => "On Track (green) - meeting or exceeding expectations",
+                GoalStatus.AtRisk => "At Risk (amber) - may not meet target without intervention",
+                GoalStatus.OffTrack => "Off Track (red) - significantly behind, needs attention",
+                GoalStatus.Completed => "Completed - goal achieved",
+                GoalStatus.Cancelled => "Cancelled",
                 _ => status.ToString()
             };
         }
 
-        private static string GetKpiStatusDescription(OkrStatus status)
+        private static string GetKpiStatusDescription(GoalStatus status)
         {
             return status switch
             {
-                OkrStatus.OnTrack => "On Target (green) - meeting or exceeding target",
-                OkrStatus.AtRisk => "Close to Target (amber) - within 10% of target",
-                OkrStatus.OffTrack => "Off Target (red) - more than 10% away from target",
+                GoalStatus.OnTrack => "On Target (green) - meeting or exceeding target",
+                GoalStatus.AtRisk => "Close to Target (amber) - within 10% of target",
+                GoalStatus.OffTrack => "Off Target (red) - more than 10% away from target",
                 _ => status.ToString()
             };
         }

@@ -40,20 +40,4 @@ namespace Tracker.Common.Enums
         Completed,
         Skipped
     }
-
-    /// <summary>
-    /// Legacy alias for backwards compatibility during migration.
-    /// </summary>
-    [Obsolete("Use DevelopmentGoalCategory instead")]
-    public enum GoalCategory
-    {
-        Career = DevelopmentGoalCategory.CareerGrowth,
-        SkillDevelopment = DevelopmentGoalCategory.SkillDevelopment,
-        Certification = DevelopmentGoalCategory.Certification,
-        Leadership = DevelopmentGoalCategory.Leadership,
-        Communication = DevelopmentGoalCategory.Other,
-        Technical = DevelopmentGoalCategory.SkillDevelopment,
-        Personal = DevelopmentGoalCategory.Wellness
-    }
 }
-

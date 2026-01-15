@@ -1,4 +1,4 @@
-﻿using DeepEndControls.Theming;
+using DeepEndControls.Theming;
 
 namespace Tracker.Classes
 {

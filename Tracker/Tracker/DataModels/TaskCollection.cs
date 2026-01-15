@@ -1,59 +1,98 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Tracker.Interfaces;
 
 namespace Tracker.DataModels
 {
     /// <summary>
     /// A named collection of tasks that can be treated as a single measurable unit.
-    /// Implements IMeasurable to provide progress to Key Results.
-    /// Implements IKpiSource to provide values to KPIs.
+    /// Maps to Supabase 'task_collections' table.
+    /// Implements IMeasurable to provide progress to Targets.
+    /// Implements IKpiSource to provide values to Metrics.
     /// 
     /// Progress is calculated as: (Completed Tasks / Total Tasks) × 100
     /// </summary>
-    public class TaskCollection : AuditableEntity, IMeasurable, IKpiSource
+    [Table("task_collections")]
+    public class TaskCollection : IMeasurable, IKpiSource
     {
         /// <summary>
-        /// Primary key.
+        /// Primary key (UUID).
+        /// Maps to: id UUID NOT NULL DEFAULT gen_random_uuid()
         /// </summary>
-        public Guid Id { get; set; }
+        [Column("id")]
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>
         /// The organization this task collection belongs to.
-        /// Null for legacy local-only databases (migration compatibility).
+        /// Maps to: organization_id UUID NOT NULL
         /// </summary>
-        public Guid? OrganizationId { get; set; }
+        [Column("organization_id")]
+        public Guid OrganizationId { get; set; }
 
         /// <summary>
         /// Name of the task collection.
+        /// Maps to: name VARCHAR(200) NOT NULL
         /// Example: "Q1 Customer Interviews", "Bug Fixes Sprint 5"
         /// </summary>
+        [Column("name")]
+        [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Optional description of what this collection represents.
+        /// Maps to: description TEXT NULL
         /// </summary>
-        public string Description { get; set; } = string.Empty;
+        [Column("description")]
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Optional query configuration for dynamic task collections.
+        /// Maps to: query_config JSONB NULL
+        /// </summary>
+        [Column("query_config")]
+        public string? QueryConfig { get; set; }
+
+        /// <summary>
+        /// When created.
+        /// Maps to: created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        /// </summary>
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// When last updated.
+        /// Maps to: updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        /// </summary>
+        [Column("updated_at")]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        #region Navigation Properties
 
         /// <summary>
         /// The tasks in this collection.
         /// </summary>
+        [NotMapped]
         public List<TaskCollectionItem> Items { get; set; } = new();
+
+        #endregion
 
         #region IMeasurable Implementation
 
         /// <summary>
-        /// IMeasurable.GuidId - returns Guid.Empty (legacy, will be updated later).
+        /// IMeasurable.GuidId - returns the collection Id.
         /// </summary>
-        Guid IMeasurable.GuidId => Guid.Empty;
+        Guid IMeasurable.GuidId => Id;
 
         /// <summary>
-        /// IMeasurable.Id - returns the collection Id.
+        /// IMeasurable.Id - legacy int, deprecated.
         /// </summary>
         [Obsolete("Use GuidId instead")]
-        int IMeasurable.Id => Id;
+        int IMeasurable.Id => 0;
 
         /// <summary>
         /// IMeasurable.DisplayName - returns the collection name.
         /// </summary>
+        [NotMapped]
         public string DisplayName => Name;
 
         /// <summary>
@@ -62,13 +101,9 @@ namespace Tracker.DataModels
         decimal IMeasurable.CurrentProgress => Progress;
 
         /// <summary>
-        /// Legacy MeasurableId for backwards compatibility.
-        /// </summary>
-        public int MeasurableId => Id;
-
-        /// <summary>
         /// Progress - percentage of completed tasks (0-100).
         /// </summary>
+        [NotMapped]
         public decimal Progress
         {
             get
@@ -82,6 +117,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// DisplayValue - shows completed/total tasks.
         /// </summary>
+        [NotMapped]
         public string DisplayValue
         {
             get
@@ -95,6 +131,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// MeasurableType - always TaskCollection.
         /// </summary>
+        [NotMapped]
         public MeasurableType MeasurableType => MeasurableType.TaskCollection;
 
         #endregion
@@ -102,14 +139,15 @@ namespace Tracker.DataModels
         #region IKpiSource Implementation
 
         /// <summary>
-        /// IKpiSource.SourceId - returns the collection Id.
+        /// IKpiSource.SourceId - legacy int, deprecated.
         /// </summary>
-        public int SourceId => Id;
+        [Obsolete("Use Id (Guid) instead")]
+        int IKpiSource.SourceId => 0;
 
         /// <summary>
         /// IKpiSource.SourceDisplayName - returns the collection name.
         /// </summary>
-        public string SourceDisplayName => Name;
+        string IKpiSource.SourceDisplayName => Name;
 
         /// <summary>
         /// IKpiSource.GetValue - returns the count of completed tasks.
@@ -123,7 +161,7 @@ namespace Tracker.DataModels
         /// <summary>
         /// IKpiSource.SourceType - always TaskQuery for collections.
         /// </summary>
-        public KpiSourceType SourceType => KpiSourceType.TaskQuery;
+        KpiSourceType IKpiSource.SourceType => KpiSourceType.TaskQuery;
 
         #endregion
 
@@ -132,16 +170,19 @@ namespace Tracker.DataModels
         /// <summary>
         /// Total number of tasks in the collection.
         /// </summary>
+        [NotMapped]
         public int TotalTasks => Items?.Count ?? 0;
 
         /// <summary>
         /// Number of completed tasks.
         /// </summary>
+        [NotMapped]
         public int CompletedTasks => Items?.Count(i => i.Task?.IsCompleted == true) ?? 0;
 
         /// <summary>
         /// Number of incomplete tasks.
         /// </summary>
+        [NotMapped]
         public int IncompleteTasks => TotalTasks - CompletedTasks;
 
         #endregion

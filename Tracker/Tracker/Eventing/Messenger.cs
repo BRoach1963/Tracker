@@ -1,4 +1,4 @@
-﻿namespace Tracker.Eventing
+namespace Tracker.Eventing
 {
     public class Messenger
     {

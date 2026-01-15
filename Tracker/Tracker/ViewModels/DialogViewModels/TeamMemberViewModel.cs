@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Microsoft.Win32;
 using System.Globalization;
@@ -13,7 +13,7 @@ using Tracker.Helpers;
 using Tracker.Managers;
 using Tracker.Controls;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.Eventing;
 using Tracker.Eventing.Messages;
 using Tracker.Logging;

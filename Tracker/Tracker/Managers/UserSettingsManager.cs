@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.Json;
 using DeepEndControls.Theming;
 using Tracker.Classes;
@@ -89,9 +89,9 @@ namespace Tracker.Managers
 
         /// <summary>
         /// Gets or sets the currently logged in user's database ID (runtime only, not persisted).
-        /// This is the User.Id from the Users table.
+        /// This is the User.Id from the Users table (UUID).
         /// </summary>
-        public int? CurrentUserId { get; set; }
+        public Guid? CurrentUserId { get; set; }
 
         /// <summary>
         /// Gets or sets the reminder settings.

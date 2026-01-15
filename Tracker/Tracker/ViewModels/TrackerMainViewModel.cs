@@ -1189,19 +1189,19 @@ namespace Tracker.ViewModels
         /// Count of on-track OKRs.
         /// </summary>
         public int OnTrackOkrCount => StrategicGoals?
-            .Count(o => o.Status == Common.Enums.OkrStatus.OnTrack) ?? 0;
+            .Count(o => o.Status == Common.Enums.GoalStatus.OnTrack) ?? 0;
 
         /// <summary>
         /// Count of at-risk OKRs.
         /// </summary>
         public int AtRiskOkrCount => StrategicGoals?
-            .Count(o => o.Status == Common.Enums.OkrStatus.AtRisk) ?? 0;
+            .Count(o => o.Status == Common.Enums.GoalStatus.AtRisk) ?? 0;
 
         /// <summary>
         /// Count of off-track OKRs.
         /// </summary>
         public int OffTrackOkrCount => StrategicGoals?
-            .Count(o => o.Status == Common.Enums.OkrStatus.OffTrack) ?? 0;
+            .Count(o => o.Status == Common.Enums.GoalStatus.OffTrack) ?? 0;
 
         /// <summary>
         /// Search text for filtering OKRs.
@@ -1225,13 +1225,13 @@ namespace Tracker.ViewModels
         /// Count of KPIs meeting target (green).
         /// </summary>
         public int OnTargetKpiCount => KeyPerformanceIndicators?
-            .Count(k => k.Status == Common.Enums.OkrStatus.OnTrack || k.Status == Common.Enums.OkrStatus.Completed) ?? 0;
+            .Count(k => k.Status == Common.Enums.GoalStatus.OnTrack || k.Status == Common.Enums.GoalStatus.Completed) ?? 0;
 
         /// <summary>
         /// Count of KPIs below target (red/amber).
         /// </summary>
         public int BelowTargetKpiCount => KeyPerformanceIndicators?
-            .Count(k => k.Status != Common.Enums.OkrStatus.OnTrack && k.Status != Common.Enums.OkrStatus.Completed) ?? 0;
+            .Count(k => k.Status != Common.Enums.GoalStatus.OnTrack && k.Status != Common.Enums.GoalStatus.Completed) ?? 0;
 
         /// <summary>
         /// Search text for filtering KPIs.
@@ -1251,8 +1251,8 @@ namespace Tracker.ViewModels
         /// <summary>
         /// Status filter for KPIs (null = All).
         /// </summary>
-        private Common.Enums.OkrStatus? _kpiStatusFilter;
-        public Common.Enums.OkrStatus? KpiStatusFilter
+        private Common.Enums.GoalStatus? _kpiStatusFilter;
+        public Common.Enums.GoalStatus? KpiStatusFilter
         {
             get => _kpiStatusFilter;
             set
@@ -1297,14 +1297,14 @@ namespace Tracker.ViewModels
             // Apply status filter
             if (KpiStatusFilter.HasValue)
             {
-                if (KpiStatusFilter.Value == Common.Enums.OkrStatus.OnTrack || KpiStatusFilter.Value == Common.Enums.OkrStatus.Completed)
+                if (KpiStatusFilter.Value == Common.Enums.GoalStatus.OnTrack || KpiStatusFilter.Value == Common.Enums.GoalStatus.Completed)
                 {
-                    filtered = filtered.Where(k => k.Status == Common.Enums.OkrStatus.OnTrack || k.Status == Common.Enums.OkrStatus.Completed);
+                    filtered = filtered.Where(k => k.Status == Common.Enums.GoalStatus.OnTrack || k.Status == Common.Enums.GoalStatus.Completed);
                 }
                 else
                 {
                     // "Below Target" includes AtRisk and OffTrack
-                    filtered = filtered.Where(k => k.Status != Common.Enums.OkrStatus.OnTrack && k.Status != Common.Enums.OkrStatus.Completed);
+                    filtered = filtered.Where(k => k.Status != Common.Enums.GoalStatus.OnTrack && k.Status != Common.Enums.GoalStatus.Completed);
                 }
             }
 

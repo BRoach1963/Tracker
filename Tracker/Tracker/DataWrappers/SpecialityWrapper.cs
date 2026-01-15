@@ -1,4 +1,4 @@
-﻿namespace Tracker.DataWrappers
+namespace Tracker.DataWrappers
 {
     class SpecialityWrapper
     {

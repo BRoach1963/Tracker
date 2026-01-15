@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 

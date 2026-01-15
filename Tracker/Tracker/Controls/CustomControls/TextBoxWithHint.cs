@@ -1,4 +1,4 @@
-﻿using DeepEndControls.Controls.TextBox.ValidationRules;
+using DeepEndControls.Controls.TextBox.ValidationRules;
 using DeepEndControls.Enums;
 using System.Windows.Controls;
 using System.Windows.Data;

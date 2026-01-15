@@ -19,10 +19,11 @@ namespace Tracker.Common.Converters
                 return status switch
                 {
                     GoalStatus.NotStarted => new SolidColorBrush(Color.FromRgb(107, 114, 128)),   // Gray
-                    GoalStatus.InProgress => new SolidColorBrush(Color.FromRgb(59, 130, 246)),    // Blue
-                    GoalStatus.Completed => new SolidColorBrush(Color.FromRgb(34, 197, 94)),      // Green
-                    GoalStatus.OnHold => new SolidColorBrush(Color.FromRgb(249, 115, 22)),        // Orange
-                    GoalStatus.Cancelled => new SolidColorBrush(Color.FromRgb(239, 68, 68)),      // Red
+                    GoalStatus.OnTrack => new SolidColorBrush(Color.FromRgb(34, 197, 94)),        // Green
+                    GoalStatus.AtRisk => new SolidColorBrush(Color.FromRgb(249, 115, 22)),        // Orange
+                    GoalStatus.OffTrack => new SolidColorBrush(Color.FromRgb(239, 68, 68)),       // Red
+                    GoalStatus.Completed => new SolidColorBrush(Color.FromRgb(59, 130, 246)),     // Blue
+                    GoalStatus.Cancelled => new SolidColorBrush(Color.FromRgb(156, 163, 175)),    // Light gray
                     _ => new SolidColorBrush(Color.FromRgb(107, 114, 128))  // Gray
                 };
             }

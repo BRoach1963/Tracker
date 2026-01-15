@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database;
-using Tracker.Database.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
@@ -55,22 +53,20 @@ namespace Tracker.Services.AI.Insights.Analyzers
 
             try
             {
-                var taskRepository = CreateTaskRepository();
-                if (taskRepository == null)
+                var userId = OrganizationContext.Current.UserIdOrNull;
+                if (!userId.HasValue || userId.Value == Guid.Empty)
                 {
-                    _logger.Debug("No current user or database context available, skipping action item analysis");
+                    _logger.Debug("No current user available, skipping action item analysis");
                     return insights;
                 }
 
                 var today = DateTime.Today;
                 var staleDate = today.AddDays(-StaleThresholdDays);
 
-                // Get all uncompleted tasks that are either:
-                // 1. Overdue (past due date)
-                // 2. Stale (created more than X days ago with no due date or future due date)
-                var allTasks = await taskRepository.GetTasksAsync();
-                var uncompletedTasks = allTasks
-                    .Where(t => !t.IsCompleted)
+                // Get all uncompleted tasks from TrackerDataManager
+                var dataManager = TrackerDataManager.Instance;
+                var uncompletedTasks = dataManager.Tasks
+                    .Where(t => !t.IsCompleted && !t.IsDeleted)
                     .ToList();
 
                 foreach (var task in uncompletedTasks)
@@ -102,19 +98,6 @@ namespace Tracker.Services.AI.Insights.Analyzers
             }
 
             return insights;
-        }
-
-        private static TrackerTaskRepository? CreateTaskRepository()
-        {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue || userId.Value == Guid.Empty)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TrackerTaskRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private static Insight CreateOverdueInsight(TrackerTask task, int daysOverdue, InsightSeverity severity)

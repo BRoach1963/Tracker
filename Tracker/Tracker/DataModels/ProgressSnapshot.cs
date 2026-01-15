@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Tracker.DataModels
 {
     /// <summary>
@@ -12,71 +15,86 @@ namespace Tracker.DataModels
     }
 
     /// <summary>
-    /// Represents a point-in-time snapshot of progress for a unified entity
-    /// (Goal, Target, Project, or Task) in the new schema.
-    /// Used for trajectory analysis and predictive analytics.
-    /// 
-    /// Snapshots are captured periodically and stored for historical trend analysis.
-    /// This data enables:
-    /// - Velocity calculations (progress per day)
-    /// - Trajectory projections (will we hit the target?)
-    /// - Confidence intervals (how reliable is the prediction?)
-    /// - Trend visualization (charts showing progress over time)
+    /// Represents a point-in-time snapshot of progress for an entity.
+    /// Maps to Supabase 'progress_snapshots' table.
+    /// Used for trajectory analysis and trend visualization.
     /// </summary>
+    [Table("progress_snapshots")]
     public class ProgressSnapshot
     {
         /// <summary>
-        /// Primary key for the snapshot.
+        /// Primary key (UUID).
+        /// Maps to: id UUID NOT NULL DEFAULT gen_random_uuid()
         /// </summary>
-        public Guid Id { get; set; }
+        [Column("id")]
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>
-        /// The type of entity being tracked: Goal, Target, Project, or Task.
+        /// Organization this snapshot belongs to.
+        /// Maps to: organization_id UUID NOT NULL
         /// </summary>
-        public SnapshotEntityType EntityType { get; set; } = SnapshotEntityType.Goal;
+        [Column("organization_id")]
+        public Guid OrganizationId { get; set; }
 
         /// <summary>
-        /// The unique identifier of the entity (Goal, Target, Project, or Task).
-        /// Uses Guid to align with unified schema.
+        /// The type of entity being tracked (goal, project, task, etc.).
+        /// Maps to: entity_type VARCHAR(50) NOT NULL
         /// </summary>
+        [Column("entity_type")]
+        [MaxLength(50)]
+        public string EntityType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The unique identifier of the entity.
+        /// Maps to: entity_id UUID NOT NULL
+        /// </summary>
+        [Column("entity_id")]
         public Guid EntityId { get; set; }
 
         /// <summary>
-        /// The date of the snapshot (date only, no time component).
+        /// The date of the snapshot.
+        /// Maps to: snapshot_date DATE NOT NULL
         /// </summary>
+        [Column("snapshot_date")]
         public DateTime SnapshotDate { get; set; }
 
         /// <summary>
-        /// The current value at the time of snapshot.
-        /// For goals/targets/projects this is typically the completion percentage
-        /// or current progress value. For metrics-style entities this is the
-        /// current measured value.
+        /// Period type for the snapshot (stored as string).
+        /// Maps to: period_type snapshot_period (enum) NOT NULL DEFAULT 'weekly'
+        /// Values: daily, weekly, monthly, quarterly
         /// </summary>
-        public decimal CurrentValue { get; set; }
+        [Column("period_type")]
+        [MaxLength(50)]
+        public string PeriodType { get; set; } = "weekly";
 
         /// <summary>
-        /// The target value at the time of snapshot.
-        /// For goals/projects this is often 100 (representing 100% complete).
-        /// For metrics-style entities this is the numeric target value.
+        /// Metrics data as JSON.
+        /// Maps to: metrics JSONB NOT NULL DEFAULT '{}'
+        /// Contains progress, velocity, and other calculated values.
         /// </summary>
-        public decimal TargetValue { get; set; }
+        [Column("metrics")]
+        public string Metrics { get; set; } = "{}";
 
         /// <summary>
-        /// The progress percentage (0-100+) at the time of snapshot.
-        /// Calculated as (CurrentValue / TargetValue) * 100 for most entities,
-        /// or directly stored for OKRs/Projects.
+        /// Overall score for this snapshot period.
+        /// Maps to: overall_score NUMERIC NULL
         /// </summary>
-        public decimal Progress { get; set; }
+        [Column("overall_score")]
+        public decimal? OverallScore { get; set; }
 
         /// <summary>
-        /// The user who owns this snapshot data.
-        /// Enables multi-user support in shared databases.
+        /// Trend direction indicator.
+        /// Maps to: trend_direction INT4 NULL
+        /// Negative = declining, 0 = stable, Positive = improving
         /// </summary>
-        public int UserId { get; set; }
+        [Column("trend_direction")]
+        public int? TrendDirection { get; set; }
 
         /// <summary>
         /// When this snapshot was created.
+        /// Maps to: created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         /// </summary>
+        [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

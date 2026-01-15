@@ -1,4 +1,4 @@
-﻿namespace Tracker.Classes
+namespace Tracker.Classes
 {
     public class SystemStats
     {

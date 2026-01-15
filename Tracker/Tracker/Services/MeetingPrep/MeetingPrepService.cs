@@ -3,6 +3,7 @@ using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
 using Tracker.DataModels;
+using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services.MeetingPrep.Gatherers;
@@ -76,7 +77,7 @@ namespace Tracker.Services.MeetingPrep
         /// </summary>
         /// <param name="meeting">The meeting to prepare for.</param>
         /// <returns>A populated MeetingPrep object.</returns>
-        public async Task<DataModels.MeetingPrep> GeneratePrepAsync(Meeting meeting)
+        public async Task<DTOs.MeetingPrep> GeneratePrepAsync(Meeting meeting)
         {
             if (meeting == null)
                 throw new ArgumentNullException(nameof(meeting));
@@ -84,7 +85,7 @@ namespace Tracker.Services.MeetingPrep
             _logger.Info("Generating meeting prep for 1:1 with {0} on {1}", 
                 meeting.Report?.FullName ?? "Unknown", meeting.ScheduledAt.ToShortDateString());
 
-            var prep = new DataModels.MeetingPrep
+            var prep = new DTOs.MeetingPrep
             {
                 MeetingId = meeting.Id.GetHashCode(), // Convert Guid to int for compatibility
                 TeamMember = meeting.Report, // Use Report for 1:1 meetings
@@ -148,7 +149,7 @@ namespace Tracker.Services.MeetingPrep
         /// <summary>
         /// Generates a meeting prep package for a team member and date.
         /// </summary>
-        public async Task<DataModels.MeetingPrep> GeneratePrepAsync(TeamMember teamMember, DateTime meetingDate)
+        public async Task<DTOs.MeetingPrep> GeneratePrepAsync(TeamMember teamMember, DateTime meetingDate)
         {
             var meeting = new Meeting
             {
@@ -211,7 +212,7 @@ namespace Tracker.Services.MeetingPrep
             }
         }
 
-        private void CalculateStatistics(DataModels.MeetingPrep prep, TeamMember teamMember)
+        private void CalculateStatistics(DTOs.MeetingPrep prep, TeamMember teamMember)
         {
             // Count overdue tasks
             var taskSection = prep.Sections.FirstOrDefault(s => s.Type == PrepSectionType.TaskStatus);
@@ -246,7 +247,7 @@ namespace Tracker.Services.MeetingPrep
             }
         }
 
-        private async Task<string> GenerateAiSuggestionsAsync(DataModels.MeetingPrep prep)
+        private async Task<string> GenerateAiSuggestionsAsync(DTOs.MeetingPrep prep)
         {
             if (_aiService == null || !_aiService.IsAvailable)
             {
@@ -263,7 +264,7 @@ namespace Tracker.Services.MeetingPrep
             return response ?? string.Empty;
         }
 
-        private string BuildAiPrompt(DataModels.MeetingPrep prep)
+        private string BuildAiPrompt(DTOs.MeetingPrep prep)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Preparing for 1:1 with {prep.TeamMember.FullName}");

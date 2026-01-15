@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Tracker.Controls;
@@ -120,14 +120,14 @@ namespace Tracker.Views.Dialogs
                 PasswordTextBox.Text = PasswordBox.Password;
                 PasswordBox.Visibility = Visibility.Collapsed;
                 PasswordTextBox.Visibility = Visibility.Visible;
-                ShowPasswordButton.Content = "🙈";
+                ShowPasswordButton.Content = "??";
             }
             else
             {
                 PasswordBox.Password = PasswordTextBox.Text;
                 PasswordTextBox.Visibility = Visibility.Collapsed;
                 PasswordBox.Visibility = Visibility.Visible;
-                ShowPasswordButton.Content = "👁";
+                ShowPasswordButton.Content = "??";
             }
         }
 
@@ -164,14 +164,14 @@ namespace Tracker.Views.Dialogs
                 ConfirmPasswordTextBox.Text = ConfirmPasswordBox.Password;
                 ConfirmPasswordBox.Visibility = Visibility.Collapsed;
                 ConfirmPasswordTextBox.Visibility = Visibility.Visible;
-                ShowConfirmPasswordButton.Content = "🙈";
+                ShowConfirmPasswordButton.Content = "??";
             }
             else
             {
                 ConfirmPasswordBox.Password = ConfirmPasswordTextBox.Text;
                 ConfirmPasswordTextBox.Visibility = Visibility.Collapsed;
                 ConfirmPasswordBox.Visibility = Visibility.Visible;
-                ShowConfirmPasswordButton.Content = "👁";
+                ShowConfirmPasswordButton.Content = "??";
             }
         }
 

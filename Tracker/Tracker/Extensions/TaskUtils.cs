@@ -1,4 +1,4 @@
-﻿using Tracker.Logging;
+using Tracker.Logging;
 
 namespace Tracker.Extensions
 {

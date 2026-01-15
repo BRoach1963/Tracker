@@ -2,6 +2,7 @@ using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
 using Tracker.DataModels;
+using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
 

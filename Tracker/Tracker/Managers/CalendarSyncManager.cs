@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Tracker.Classes;
 using Tracker.DataModels;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services;
@@ -50,22 +50,31 @@ namespace Tracker.Managers
                     }
                 }
 
+                // Check if already synced to a different provider
+                if (!string.IsNullOrEmpty(meeting.CalendarEventId) && meeting.CalendarProviderString != "google")
+                {
+                    _logger.Warn("Meeting {0} is already synced to {1}, cannot sync to Google", meeting.Id, meeting.CalendarProviderString);
+                    return false;
+                }
+
                 // Create or update event
-                if (string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
+                if (string.IsNullOrEmpty(meeting.CalendarEventId))
                 {
                     // Create new event
                     var createdEvent = await GoogleCalendarService.Instance.CreateEventAsync(meeting, createGoogleMeet);
                     if (createdEvent != null)
                     {
-                        meeting.GoogleCalendarEventId = createdEvent.Id;
-                        meeting.LastSyncedAt = DateTime.Now;
-                        meeting.SyncStatus = "Synced";
+                        meeting.CalendarEventId = createdEvent.Id;
+                        meeting.CalendarProviderString = "google";
+                        meeting.LastSyncedAt = DateTime.UtcNow;
+                        meeting.CalendarSyncStatus = "synced";
                         
                         // Extract Google Meet URL if created
                         var meetUrl = GoogleCalendarService.GetGoogleMeetUrl(createdEvent);
                         if (!string.IsNullOrEmpty(meetUrl))
                         {
-                            meeting.GoogleMeetUrl = meetUrl;
+                            meeting.VideoConferenceUrl = meetUrl;
+                            meeting.VideoConferenceProviderString = "google_meet";
                         }
                         
                         var meetingRepository = CreateMeetingRepository();
@@ -81,11 +90,11 @@ namespace Tracker.Managers
                 else
                 {
                     // Update existing event
-                    var updatedEvent = await GoogleCalendarService.Instance.UpdateEventAsync(meeting.GoogleCalendarEventId, meeting);
+                    var updatedEvent = await GoogleCalendarService.Instance.UpdateEventAsync(meeting.CalendarEventId, meeting);
                     if (updatedEvent != null)
                     {
-                        meeting.LastSyncedAt = DateTime.Now;
-                        meeting.SyncStatus = "Synced";
+                        meeting.LastSyncedAt = DateTime.UtcNow;
+                        meeting.CalendarSyncStatus = "synced";
                         var meetingRepository = CreateMeetingRepository();
                         if (meetingRepository != null)
                         {
@@ -111,7 +120,8 @@ namespace Tracker.Managers
         /// </summary>
         public async Task<bool> UnsyncFromGoogleCalendarAsync(Meeting meeting)
         {
-            if (string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
+            // Only unsync if it's synced to Google
+            if (string.IsNullOrEmpty(meeting.CalendarEventId) || meeting.CalendarProviderString != "google")
             {
                 return true; // Nothing to unsync
             }
@@ -135,13 +145,22 @@ namespace Tracker.Managers
                     }
                 }
 
-                var success = await GoogleCalendarService.Instance.DeleteEventAsync(meeting.GoogleCalendarEventId);
+                var success = await GoogleCalendarService.Instance.DeleteEventAsync(meeting.CalendarEventId);
                 
                 if (success)
                 {
-                    meeting.GoogleCalendarEventId = null;
-                    meeting.GoogleMeetUrl = null;
-                    meeting.SyncStatus = "NotSynced";
+                    meeting.CalendarEventId = null;
+                    meeting.CalendarProviderString = null;
+                    meeting.CalendarEtag = null;
+                    meeting.CalendarSyncStatus = "not_synced";
+                    
+                    // Clear video conference if it was Google Meet
+                    if (meeting.VideoConferenceProviderString == "google_meet")
+                    {
+                        meeting.VideoConferenceUrl = null;
+                        meeting.VideoConferenceProviderString = null;
+                        meeting.VideoConferenceId = null;
+                    }
 
                     var meetingRepository = CreateMeetingRepository();
                     if (meetingRepository != null)
@@ -169,22 +188,18 @@ namespace Tracker.Managers
         /// <returns>True if calendar was fetched and time was updated.</returns>
         public async Task<bool> RefreshTimeFromCalendarAsync(Meeting meeting)
         {
-            bool timeUpdated = false;
-
-            // Try Outlook first (via CalendarSyncService)
-            if (!string.IsNullOrEmpty(meeting.OutlookCalendarEventId))
+            if (string.IsNullOrEmpty(meeting.CalendarEventId))
             {
-                timeUpdated = await Services.Microsoft365.CalendarSyncService.Instance.RefreshTimeFromCalendarAsync(meeting);
-                if (timeUpdated) return true;
+                return false;
             }
 
-            // Try Google Calendar
-            if (!string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
+            // Route to appropriate provider
+            return meeting.CalendarProviderString switch
             {
-                timeUpdated = await RefreshTimeFromGoogleCalendarAsync(meeting);
-            }
-
-            return timeUpdated;
+                "microsoft" => await Services.Microsoft365.CalendarSyncService.Instance.RefreshTimeFromCalendarAsync(meeting),
+                "google" => await RefreshTimeFromGoogleCalendarAsync(meeting),
+                _ => false
+            };
         }
 
         /// <summary>
@@ -193,7 +208,7 @@ namespace Tracker.Managers
         private async Task<bool> RefreshTimeFromGoogleCalendarAsync(Meeting meeting)
         {
             var settings = UserSettingsManager.Instance.Settings.Google;
-            if (!settings.IsConnected || string.IsNullOrEmpty(meeting.GoogleCalendarEventId))
+            if (!settings.IsConnected || string.IsNullOrEmpty(meeting.CalendarEventId) || meeting.CalendarProviderString != "google")
             {
                 return false;
             }
@@ -207,7 +222,7 @@ namespace Tracker.Managers
                     if (!success) return false;
                 }
 
-                var calEvent = await GoogleCalendarService.Instance.GetEventAsync(meeting.GoogleCalendarEventId);
+                var calEvent = await GoogleCalendarService.Instance.GetEventAsync(meeting.CalendarEventId);
                 if (calEvent == null)
                 {
                     _logger.Warn("Google Calendar event not found for meeting {0}, may have been deleted", meeting.Id);
@@ -239,7 +254,7 @@ namespace Tracker.Managers
                     }
                 }
 
-                meeting.LastSyncedAt = DateTime.Now;
+                meeting.LastSyncedAt = DateTime.UtcNow;
 
                 if (timeChanged)
                 {

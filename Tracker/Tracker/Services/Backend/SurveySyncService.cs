@@ -4,7 +4,7 @@ using Supabase;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Services;

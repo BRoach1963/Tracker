@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
+using Tracker.DTOs;
 using Tracker.Interfaces;
 using Tracker.Logging;
 using Tracker.Managers;

@@ -6,15 +6,16 @@ using System.Threading.Tasks;
 using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
-using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
+using Tracker.Services.Data.Repositories;
 
 namespace Tracker.Services.AI.Insights
 {
     /// <summary>
     /// Coordinates insight analyzers and manages the insight generation lifecycle.
+    /// Now uses IInsightRepository (Dapper) instead of SQLite InsightStore.
     /// </summary>
     public class InsightEngine : IDisposable
     {
@@ -23,10 +24,13 @@ namespace Tracker.Services.AI.Insights
         private readonly ILogger _logger;
 
         private readonly List<IInsightAnalyzer> _analyzers = new();
-        private readonly InsightStore _store;
+        private IInsightRepository? _repository;
+        private Guid _organizationId;
+        private Guid _currentUserId;
         private CancellationTokenSource? _periodicAnalysisCts;
         private bool _isRunning;
         private bool _disposed;
+        private bool _isInitialized;
 
         /// <summary>
         /// Event fired when a new insight is generated.
@@ -62,6 +66,11 @@ namespace Tracker.Services.AI.Insights
         public bool IsRunning => _isRunning;
 
         /// <summary>
+        /// Whether the engine has been initialized with a repository.
+        /// </summary>
+        public bool IsInitialized => _isInitialized;
+
+        /// <summary>
         /// The registered analyzers.
         /// </summary>
         public IReadOnlyList<IInsightAnalyzer> Analyzers => _analyzers.AsReadOnly();
@@ -69,26 +78,68 @@ namespace Tracker.Services.AI.Insights
         private InsightEngine()
         {
             _logger = LoggingManager.GetComponentLogger("InsightEngine");
-            _store = InsightStore.Instance;
         }
 
         /// <summary>
-        /// Initializes the insight engine and registers default analyzers.
+        /// Initializes the insight engine with the repository.
+        /// Must be called before using the engine.
         /// </summary>
-        public async Task InitializeAsync()
+        /// <param name="repository">The insight repository for data access.</param>
+        /// <param name="organizationId">The current organization ID.</param>
+        /// <param name="userId">The current user ID.</param>
+        public async Task InitializeAsync(IInsightRepository repository, Guid organizationId, Guid userId)
         {
-            _logger.Info("Initializing InsightEngine...");
+            if (_isInitialized)
+            {
+                _logger.Debug("InsightEngine already initialized");
+                return;
+            }
 
-            // Initialize the store
-            await _store.InitializeAsync();
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _organizationId = organizationId;
+            _currentUserId = userId;
+
+            _logger.Info("Initializing InsightEngine with Dapper repository...");
 
             // Register default analyzers
             RegisterDefaultAnalyzers();
 
             // Cleanup old insights
-            await _store.CleanupOldInsightsAsync();
+            await _repository.CleanupOldInsightsAsync();
 
+            _isInitialized = true;
             _logger.Info("InsightEngine initialized with {0} analyzers", _analyzers.Count);
+        }
+
+        /// <summary>
+        /// Legacy initialization method for backward compatibility.
+        /// Will attempt to get repository from OrganizationContext.
+        /// </summary>
+        public async Task InitializeAsync()
+        {
+            if (_isInitialized)
+            {
+                _logger.Debug("InsightEngine already initialized");
+                return;
+            }
+
+            // For backward compatibility, just register analyzers
+            // The repository will need to be set separately
+            _logger.Warn("InsightEngine.InitializeAsync() called without repository - limited functionality");
+            RegisterDefaultAnalyzers();
+            _logger.Info("InsightEngine partially initialized with {0} analyzers (no repository)", _analyzers.Count);
+        }
+
+        /// <summary>
+        /// Sets the repository after construction (for DI scenarios).
+        /// </summary>
+        public void SetRepository(IInsightRepository repository, Guid organizationId, Guid userId)
+        {
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _organizationId = organizationId;
+            _currentUserId = userId;
+            _isInitialized = true;
+            _logger.Info("InsightEngine repository set for organization {0}", organizationId);
         }
 
         /// <summary>
@@ -303,20 +354,12 @@ namespace Tracker.Services.AI.Insights
 
         /// <summary>
         /// Generates AI-powered insights by gathering team data and calling AIInsightGenerator.
+        /// Uses TrackerDataManager for data access (singleton-to-singleton, no DI needed).
         /// </summary>
         private async Task<List<Insight>> GenerateAIInsightsAsync(CancellationToken cancellationToken)
         {
             try
             {
-                var teamMemberRepository = CreateTeamMemberRepository();
-                var taskRepository = CreateTaskRepository();
-                var goalRepository = CreateGoalRepository();
-
-                if (teamMemberRepository == null || taskRepository == null || goalRepository == null)
-                {
-                    return new List<Insight>();
-                }
-
                 // Check if AI is enabled
                 var settings = UserSettingsManager.Instance?.Settings?.AI;
                 if (settings == null || !settings.IsEnabled)
@@ -325,13 +368,27 @@ namespace Tracker.Services.AI.Insights
                     return new List<Insight>();
                 }
 
-                // Gather data for AI analysis
-                var teamMembers = await teamMemberRepository.GetTeamMembersAsync();
-                var allTasks = await taskRepository.GetTasksAsync();
-                var overdueTasks = allTasks?.Where(t => 
-                    !t.IsCompleted && 
-                    t.DueDate < DateTime.Now).ToList();
-                var atRiskGoals = await GetAtRiskGoalsAsync(goalRepository);
+                // Get data from TrackerDataManager (already loaded/cached)
+                var dataManager = TrackerDataManager.Instance;
+                var teamMembers = (await dataManager.GetTeamMembers()).ToList();
+                var allTasks = (await dataManager.GetTasks()).ToList();
+                var allGoals = (await dataManager.GetStrategicGoals()).ToList();
+
+                // Filter for overdue tasks
+                var overdueTasks = allTasks
+                    .Where(t => !t.IsCompleted && t.DueDate < DateTime.Now)
+                    .Select(t => new TrackerTask 
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        DueDate = t.DueDate,
+                        Status = t.Status,
+                        AssigneeId = t.AssigneeId
+                    })
+                    .ToList();
+
+                // Filter for at-risk goals
+                var atRiskGoals = GetAtRiskGoalsFromCollection(allGoals);
 
                 var context = new TeamDataContext
                 {
@@ -351,13 +408,12 @@ namespace Tracker.Services.AI.Insights
         }
 
         /// <summary>
-        /// Gets goals that are at risk of missing their targets.
+        /// Gets goals that are at risk of missing their targets from a collection.
         /// </summary>
-        private async Task<List<DataModels.Goal>> GetAtRiskGoalsAsync(GoalRepository goalRepository)
+        private List<DataModels.Goal> GetAtRiskGoalsFromCollection(IEnumerable<DataModels.Goal> goals)
         {
             try
             {
-                var goals = await goalRepository.GetGoalsAsync();
                 if (goals == null) return new List<DataModels.Goal>();
 
                 var today = DateTime.Now;
@@ -378,45 +434,6 @@ namespace Tracker.Services.AI.Insights
             {
                 return new List<DataModels.Goal>();
             }
-        }
-
-        private static TeamMemberRepository? CreateTeamMemberRepository()
-        {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TeamMemberRepository(context, userId.Value, () => contextFactory.CreateContext());
-        }
-
-        private static TrackerTaskRepository? CreateTaskRepository()
-        {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new TrackerTaskRepository(context, userId.Value, () => contextFactory.CreateContext());
-        }
-
-        private static GoalRepository? CreateGoalRepository()
-        {
-            var userId = OrganizationContext.Current.UserIdOrNull;
-            if (!userId.HasValue)
-            {
-                return null;
-            }
-
-            var contextFactory = TrackerDbContextFactory.Instance;
-            var context = contextFactory.CreateContext();
-            return new GoalRepository(context, userId.Value, () => contextFactory.CreateContext());
         }
 
         private static string GetCurrentUserName()

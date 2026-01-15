@@ -2,7 +2,7 @@ namespace Tracker.Common.Enums
 {
     /// <summary>
     /// Types of meetings.
-    /// Maps to PostgreSQL meeting_type enum.
+    /// Maps to PostgreSQL meeting_type enum: one_on_one, team_meeting, all_hands, project, interview, other
     /// </summary>
     public enum MeetingType
     {
@@ -23,6 +23,12 @@ namespace Tracker.Common.Enums
 
         /// <summary>Planning session.</summary>
         Planning = 5,
+
+        /// <summary>Project-related meeting.</summary>
+        Project = 7,
+
+        /// <summary>Interview meeting.</summary>
+        Interview = 8,
 
         /// <summary>Other type of meeting.</summary>
         Other = 6

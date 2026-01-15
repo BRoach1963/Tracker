@@ -7,7 +7,7 @@ using Tracker.Classes;
 using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Database;
-using Tracker.Database.Repositories;
+using Tracker.Services.Data.Repositories;
 using Tracker.Logging;
 using Tracker.Managers;
 

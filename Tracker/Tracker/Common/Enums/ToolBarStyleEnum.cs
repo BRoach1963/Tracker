@@ -1,4 +1,4 @@
-﻿namespace Tracker.Common.Enums
+namespace Tracker.Common.Enums
 {
     public enum ToolBarStyleEnum
     {

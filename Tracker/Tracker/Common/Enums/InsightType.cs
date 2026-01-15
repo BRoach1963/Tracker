@@ -39,6 +39,9 @@ namespace Tracker.Common.Enums
         Trend,
 
         /// <summary>Opportunity identified.</summary>
-        Opportunity
+        Opportunity,
+
+        /// <summary>General insight (default/fallback).</summary>
+        General
     }
 }

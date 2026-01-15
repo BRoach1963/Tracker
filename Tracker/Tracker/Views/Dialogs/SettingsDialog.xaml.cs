@@ -1,4 +1,4 @@
-﻿using Tracker.Common.Enums;
+using Tracker.Common.Enums;
 using Tracker.Controls;
 using Tracker.ViewModels.DialogViewModels;
 

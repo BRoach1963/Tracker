@@ -1,4 +1,4 @@
-﻿namespace Tracker.Interfaces
+namespace Tracker.Interfaces
 {
     public interface ICloseable
     {

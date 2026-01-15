@@ -5,7 +5,7 @@ using Tracker.Common.Enums;
 using Tracker.DataModels;
 using Tracker.Logging;
 using Tracker.Services;
-using Tracker.Services.Kudos;
+using Tracker.Services.Recognition;
 
 namespace Tracker.ViewModels.DialogViewModels
 {

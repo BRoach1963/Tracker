@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using Tracker.Command;
 using Tracker.DataModels;
+using Tracker.DTOs;
 using Tracker.Logging;
 using Tracker.Managers;
 using Tracker.Services.MeetingPrep;
@@ -18,7 +19,7 @@ namespace Tracker.ViewModels
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("MeetingPrepVM");
         private readonly MeetingPrepService _prepService;
         
-        private DataModels.MeetingPrep? _meetingPrep;
+        private DTOs.MeetingPrep? _meetingPrep;
         private Meeting? _meeting;
         private bool _isLoading;
         private Action<string>? _onAgendaItemAdded;
@@ -31,7 +32,7 @@ namespace Tracker.ViewModels
         /// <summary>
         /// The generated meeting prep.
         /// </summary>
-        public DataModels.MeetingPrep? MeetingPrep
+        public DTOs.MeetingPrep? MeetingPrep
         {
             get => _meetingPrep;
             set

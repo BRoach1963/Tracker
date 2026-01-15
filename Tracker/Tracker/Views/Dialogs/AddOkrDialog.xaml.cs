@@ -1,4 +1,4 @@
-﻿using Tracker.Help.Attributes;
+using Tracker.Help.Attributes;
 using Tracker.ViewModels.DialogViewModels;
 
 namespace Tracker.Views.Dialogs

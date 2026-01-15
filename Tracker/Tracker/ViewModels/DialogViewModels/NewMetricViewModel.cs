@@ -274,7 +274,7 @@ namespace Tracker.ViewModels.DialogViewModels
         /// <summary>
         /// Gets the calculated Metric status (OnTarget, CloseToTarget, OffTarget) - read-only.
         /// </summary>
-        public OkrStatus Status => _metric.Status;
+        public GoalStatus Status => _metric.Status;
 
         /// <summary>
         /// Gets the last updated timestamp.
