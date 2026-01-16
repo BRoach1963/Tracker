@@ -1,0 +1,98 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ========================================== -->
+  <!-- COLORS -->
+  <!-- ========================================== -->
+
+  <Color x:Key="ColorPrimary">#FF3C6248</Color>
+  <Color x:Key="ColorPrimaryHover">#FF32533D</Color>
+  <Color x:Key="ColorPrimaryPressed">#FF284333</Color>
+  <Color x:Key="ColorPrimarySoft">#FFE7EFEA</Color>
+
+  <Color x:Key="ColorSecondary">#FF2E3A5A</Color>
+  <Color x:Key="ColorSecondaryHover">#FF26304A</Color>
+  <Color x:Key="ColorSecondaryPressed">#FF1E263A</Color>
+  <Color x:Key="ColorSecondarySoft">#FFE7EAF1</Color>
+
+  <Color x:Key="ColorHighlight">#FFD0AF5F</Color>
+  <Color x:Key="ColorHighlightHover">#FFC29F4A</Color>
+  <Color x:Key="ColorHighlightPressed">#FFB38F3A</Color>
+  <Color x:Key="ColorHighlightSoft">#FFF6EEDB</Color>
+
+  <Color x:Key="ColorBackground">#FFFFFFFF</Color>
+  <Color x:Key="ColorSurface">#FFF7F8FA</Color>
+  <Color x:Key="ColorSurfaceAlt">#FFF1F3F6</Color>
+
+  <Color x:Key="ColorBorder">#FFCDD3DD</Color>
+  <Color x:Key="ColorBorderStrong">#FFB6BECB</Color>
+
+  <Color x:Key="ColorTextPrimary">#FF111827</Color>
+  <Color x:Key="ColorTextSecondary">#FF374151</Color>
+  <Color x:Key="ColorTextTertiary">#FF6B7280</Color>
+  <Color x:Key="ColorTextOnPrimary">#FFFFFFFF</Color>
+
+  <Color x:Key="ColorFocus">#FF2E3A5A</Color>
+  <Color x:Key="ColorSelection">#332E3A5A</Color>
+
+  <Color x:Key="ColorError">#FFB42318</Color>
+  <Color x:Key="ColorWarning">#FFB54708</Color>
+  <Color x:Key="ColorSuccess">#FF067647</Color>
+  <Color x:Key="ColorInfo">#FF175CD3</Color>
+
+  <!-- ========================================== -->
+  <!-- BRUSHES -->
+  <!-- ========================================== -->
+
+  <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}" />
+  <SolidColorBrush x:Key="BrushPrimaryHover" Color="{StaticResource ColorPrimaryHover}" />
+  <SolidColorBrush x:Key="BrushPrimaryPressed" Color="{StaticResource ColorPrimaryPressed}" />
+  <SolidColorBrush x:Key="BrushPrimarySoft" Color="{StaticResource ColorPrimarySoft}" />
+
+  <SolidColorBrush x:Key="BrushSecondary" Color="{StaticResource ColorSecondary}" />
+  <SolidColorBrush x:Key="BrushSecondaryHover" Color="{StaticResource ColorSecondaryHover}" />
+  <SolidColorBrush x:Key="BrushSecondaryPressed" Color="{StaticResource ColorSecondaryPressed}" />
+  <SolidColorBrush x:Key="BrushSecondarySoft" Color="{StaticResource ColorSecondarySoft}" />
+
+  <SolidColorBrush x:Key="BrushHighlight" Color="{StaticResource ColorHighlight}" />
+  <SolidColorBrush x:Key="BrushHighlightHover" Color="{StaticResource ColorHighlightHover}" />
+  <SolidColorBrush x:Key="BrushHighlightPressed" Color="{StaticResource ColorHighlightPressed}" />
+  <SolidColorBrush x:Key="BrushHighlightSoft" Color="{StaticResource ColorHighlightSoft}" />
+
+  <SolidColorBrush x:Key="BrushBackground" Color="{StaticResource ColorBackground}" />
+  <SolidColorBrush x:Key="BrushSurface" Color="{StaticResource ColorSurface}" />
+  <SolidColorBrush x:Key="BrushSurfaceAlt" Color="{StaticResource ColorSurfaceAlt}" />
+
+  <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}" />
+  <SolidColorBrush x:Key="BrushBorderStrong" Color="{StaticResource ColorBorderStrong}" />
+
+  <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ColorTextPrimary}" />
+  <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ColorTextSecondary}" />
+  <SolidColorBrush x:Key="BrushTextTertiary" Color="{StaticResource ColorTextTertiary}" />
+  <SolidColorBrush x:Key="BrushTextOnPrimary" Color="{StaticResource ColorTextOnPrimary}" />
+
+  <SolidColorBrush x:Key="BrushFocus" Color="{StaticResource ColorFocus}" />
+  <SolidColorBrush x:Key="BrushSelection" Color="{StaticResource ColorSelection}" />
+
+  <SolidColorBrush x:Key="BrushError" Color="{StaticResource ColorError}" />
+  <SolidColorBrush x:Key="BrushWarning" Color="{StaticResource ColorWarning}" />
+  <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}" />
+  <SolidColorBrush x:Key="BrushInfo" Color="{StaticResource ColorInfo}" />
+
+  <!-- ========================================== -->
+  <!-- DESIGN TOKENS -->
+  <!-- ========================================== -->
+
+  <Thickness x:Key="ThicknessControlBorder">1</Thickness>
+  <Thickness x:Key="ThicknessFocusRing">2</Thickness>
+  <CornerRadius x:Key="CornerRadiusControl">10</CornerRadius>
+  <CornerRadius x:Key="CornerRadiusSmall">6</CornerRadius>
+
+  <x:Double x:Key="OpacityDisabled">0.55</x:Double>
+
+  <FontFamily x:Key="FontFamilyDefault">Inter, Segoe UI, Arial</FontFamily>
+  <x:Double x:Key="FontSizeBody">14</x:Double>
+  <x:Double x:Key="FontSizeCaption">12</x:Double>
+  <x:Double x:Key="FontSizeTitle">18</x:Double>
+
+</ResourceDictionary>

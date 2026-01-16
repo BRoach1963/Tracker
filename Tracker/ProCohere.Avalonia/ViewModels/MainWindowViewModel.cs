@@ -1,0 +1,297 @@
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ProCohere.Avalonia.Services;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace ProCohere.Avalonia.ViewModels;
+
+/// <summary>
+/// Main window ViewModel - manages navigation and application state.
+/// </summary>
+public partial class MainWindowViewModel : ViewModelBase
+{
+    #region Navigation
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PageTitle))]
+    private NavigationItem _selectedNavigation = NavigationItem.Today;
+
+    [ObservableProperty]
+    private string _selectedSubNavigation = string.Empty;
+
+    [ObservableProperty]
+    private bool _isNavigationExpanded = true;
+
+    #endregion
+
+    #region Page Title
+
+    /// <summary>
+    /// Gets the page title - shows "Welcome, [Name]" for Today, otherwise the nav item name.
+    /// </summary>
+    public string PageTitle => SelectedNavigation == NavigationItem.Today && !string.IsNullOrEmpty(UserDisplayName)
+        ? $"Welcome, {UserDisplayName}"
+        : SelectedNavigation.ToString();
+
+    #endregion
+
+    #region Search
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    #endregion
+
+    #region User Info
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PageTitle))]
+    private string _userDisplayName = string.Empty;
+
+    [ObservableProperty]
+    private string _userEmail = string.Empty;
+
+    [ObservableProperty]
+    private string _userInitials = string.Empty;
+
+    [ObservableProperty]
+    private string? _userAvatarUrl;
+
+    #endregion
+
+    #region Theme
+
+    [ObservableProperty]
+    private bool _isDarkTheme = false;  // Start in light mode (Pro Cohere default)
+
+    #endregion
+
+    #region Status
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string _statusMessage = string.Empty;
+
+    /// <summary>
+    /// Database proof - shows profile data loaded from Supabase.
+    /// </summary>
+    [ObservableProperty]
+    private string _databaseProof = "Loading from database...";
+
+    #endregion
+
+    public MainWindowViewModel()
+    {
+        LoadUserInfo();
+        // Load profile from database async
+        _ = LoadProfileFromDatabaseAsync();
+    }
+
+    /// <summary>
+    /// Converts a string to Title Case (first letter of each word capitalized).
+    /// </summary>
+    private static string ToTitleCase(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return input;
+        
+        var words = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < words.Length; i++)
+        {
+            if (words[i].Length > 0)
+            {
+                words[i] = char.ToUpper(words[i][0]) + 
+                          (words[i].Length > 1 ? words[i][1..].ToLower() : string.Empty);
+            }
+        }
+        return string.Join(" ", words);
+    }
+
+    /// <summary>
+    /// Loads profile from the Supabase database to prove connectivity.
+    /// </summary>
+    private async Task LoadProfileFromDatabaseAsync()
+    {
+        try
+        {
+            DatabaseProof = "🔄 Loading from Supabase...";
+            
+            // Get the auth user ID we're searching for
+            var authUser = AuthService.Instance.CurrentUser;
+            var authUserId = authUser?.Id ?? "null";
+            
+            DatabaseProof = $"🔄 Querying for auth ID:\n{authUserId}";
+            
+            var profile = await AuthService.Instance.LoadUserProfileAsync();
+            
+            if (profile != null)
+            {
+                // Update user info from database
+                if (!string.IsNullOrEmpty(profile.DisplayName))
+                {
+                    UserDisplayName = ToTitleCase(profile.DisplayName);
+                }
+                if (!string.IsNullOrEmpty(profile.FirstName) || !string.IsNullOrEmpty(profile.LastName))
+                {
+                    UserDisplayName = ToTitleCase($"{profile.FirstName} {profile.LastName}".Trim());
+                }
+                UserInitials = profile.Initials;
+                UserAvatarUrl = profile.AvatarUrl;
+                
+                // Get data counts
+                DatabaseProof = $"✅ Profile loaded! Getting data counts...";
+                var counts = await AuthService.Instance.GetDataCountsAsync();
+                var dataError = AuthService.Instance.LastDataCountError;
+                
+                // Build the proof string with data counts
+                var proofBuilder = new System.Text.StringBuilder();
+                proofBuilder.AppendLine("✅ DATABASE CONNECTED!");
+                proofBuilder.AppendLine();
+                proofBuilder.AppendLine($"👤 Profile: {profile.FirstName} {profile.LastName}");
+                proofBuilder.AppendLine($"📧 Email: {profile.Email}");
+                proofBuilder.AppendLine($"🆔 User ID: {profile.Id}");
+                proofBuilder.AppendLine($"💼 {profile.JobTitle ?? "(no title)"} @ {profile.Company ?? "(no company)"}");
+                proofBuilder.AppendLine();
+                proofBuilder.AppendLine("📊 YOUR DATA:");
+                proofBuilder.AppendLine("━━━━━━━━━━━━━━━━━━");
+                proofBuilder.AppendLine($"👥 Team Members: {counts.TeamMembers}");
+                proofBuilder.AppendLine($"📅 Meetings: {counts.Meetings}");
+                proofBuilder.AppendLine($"🎯 Goals: {counts.Goals}");
+                proofBuilder.AppendLine($"✅ Tasks: {counts.Tasks}");
+                proofBuilder.AppendLine($"📁 Projects: {counts.Projects}");
+                proofBuilder.AppendLine("━━━━━━━━━━━━━━━━━━");
+                
+                if (!string.IsNullOrEmpty(dataError))
+                {
+                    proofBuilder.AppendLine();
+                    proofBuilder.AppendLine($"⚠️ Data errors: {dataError}");
+                }
+                
+                DatabaseProof = proofBuilder.ToString();
+            }
+            else
+            {
+                var authId = authUser?.Id ?? "null";
+                var error = AuthService.Instance.LastProfileError ?? "No error info";
+                DatabaseProof = $"⚠️ No profile found in database.\n\n" +
+                               $"Auth User ID: {authId}\n" +
+                               $"Auth Email: {authUser?.Email ?? "null"}\n\n" +
+                               $"Error: {error}\n\n" +
+                               $"Check Supabase Table Editor:\n" +
+                               $"SELECT * FROM users\n" +
+                               $"WHERE supabase_auth_id = '{authId}'";
+            }
+        }
+        catch (Exception ex)
+        {
+            DatabaseProof = $"❌ DATABASE ERROR:\n{ex.Message}\n\n{ex.StackTrace?.Split('\n').FirstOrDefault()}";
+        }
+    }
+
+    private void LoadUserInfo()
+    {
+        var session = AuthService.Instance.CurrentSession;
+        if (session?.User != null)
+        {
+            UserEmail = session.User.Email ?? string.Empty;
+            
+            // Try to get display name from user metadata
+            var metadata = session.User.UserMetadata;
+            string rawName;
+            if (metadata != null && metadata.TryGetValue("full_name", out var fullName))
+            {
+                rawName = fullName?.ToString() ?? string.Empty;
+            }
+            else
+            {
+                // Fallback to email prefix
+                rawName = UserEmail.Split('@')[0];
+            }
+            
+            // Properly capitalize the name
+            UserDisplayName = ToTitleCase(rawName);
+
+            // Generate initials
+            var parts = UserDisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                UserInitials = $"{parts[0][0]}{parts[1][0]}".ToUpper();
+            }
+            else if (parts.Length == 1 && parts[0].Length >= 2)
+            {
+                UserInitials = parts[0][..2].ToUpper();
+            }
+            else
+            {
+                UserInitials = "PC";
+            }
+        }
+    }
+
+    #region Commands
+
+    [RelayCommand]
+    private void NavigateTo(NavigationItem item)
+    {
+        SelectedNavigation = item;
+        SelectedSubNavigation = string.Empty;
+    }
+
+    [RelayCommand]
+    private void NavigateToSub(string subItem)
+    {
+        SelectedSubNavigation = subItem;
+    }
+
+    [RelayCommand]
+    private void ToggleNavigation()
+    {
+        IsNavigationExpanded = !IsNavigationExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleTheme()
+    {
+        IsDarkTheme = !IsDarkTheme;
+        // Theme switching will be handled by the view
+    }
+
+    [RelayCommand]
+    private async Task SignOutAsync()
+    {
+        await AuthService.Instance.SignOutAsync();
+        // The view will handle closing and showing login
+    }
+
+    [RelayCommand]
+    private void OpenSearch()
+    {
+        // TODO: Implement command palette / search
+        StatusMessage = "Search coming soon...";
+    }
+
+    [RelayCommand]
+    private void OpenHelp()
+    {
+        // TODO: Open help / AI assistant
+        StatusMessage = "Help coming soon...";
+    }
+
+    #endregion
+}
+
+/// <summary>
+/// Main navigation items (the 5 pillars).
+/// </summary>
+public enum NavigationItem
+{
+    Today,      // Dashboard - what's relevant now
+    Circle,     // Team, 1:1s, Feedback, Goals
+    Pulse,      // OKRs, KPIs, Projects, Tasks
+    Chronicle,  // Notes, Reports
+    Settings    // App settings
+}

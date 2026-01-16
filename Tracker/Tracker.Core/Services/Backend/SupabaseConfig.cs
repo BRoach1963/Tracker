@@ -1,4 +1,4 @@
-namespace Tracker.Services.Backend
+namespace Tracker.Core.Services.Backend
 {
     /// <summary>
     /// Configuration for Supabase connection.

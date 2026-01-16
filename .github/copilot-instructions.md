@@ -1,5 +1,12 @@
 # Copilot Instructions for Tracker Project
 
+## ⚠️ CRITICAL RULES - NEVER BREAK THESE
+
+1. **NEVER VIOLATE MVVM** (unless there is absolutely no other option)
+2. **NEVER TAKE SHORTCUTS** - Always fix things the right way, not the easy way
+
+---
+
 ## Project Overview
 Tracker is a WPF desktop application for professional relationship management, built with .NET 8 and following MVVM architecture.
 

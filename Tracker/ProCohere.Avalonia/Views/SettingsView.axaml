@@ -1,0 +1,455 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:conv="using:ProCohere.Avalonia.Converters"
+             x:Class="ProCohere.Avalonia.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <Design.DataContext>
+        <vm:SettingsViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto"
+                  Background="{DynamicResource BrushBackground}">
+        <StackPanel Spacing="24"
+                    Margin="0,0,40,40"
+                    MaxWidth="700">
+            
+            <!-- Profile Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <Grid RowDefinitions="Auto,Auto,Auto">
+                    
+                    <!-- Header with Edit button -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+                        <TextBlock Grid.Column="0"
+                                   Text="Profile"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="#2E3A5A" />
+                        
+                        <!-- Edit button (visible when NOT editing) -->
+                        <Button Grid.Column="1"
+                                Command="{Binding EditProfileCommand}"
+                                IsVisible="{Binding !IsEditingProfile}"
+                                Background="Transparent"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="1"
+                                Padding="12,6"
+                                CornerRadius="6"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6.02 20.71,5.63L18.37,3.29C17.98,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z"
+                                          Width="14" Height="14"
+                                          Foreground="#64748B" />
+                                <TextBlock Text="Edit"
+                                           FontSize="13"
+                                           Foreground="#2E3A5A" />
+                            </StackPanel>
+                        </Button>
+                        
+                        <!-- Save/Cancel buttons (visible when editing) -->
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    IsVisible="{Binding IsEditingProfile}">
+                            <Button Command="{Binding CancelEditProfileCommand}"
+                                    Background="Transparent"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    Padding="12,6"
+                                    CornerRadius="6"
+                                    Cursor="Hand">
+                                <TextBlock Text="Cancel"
+                                           FontSize="13"
+                                           Foreground="#64748B" />
+                            </Button>
+                            <Button Command="{Binding SaveProfileCommand}"
+                                    IsEnabled="{Binding !IsSavingProfile}"
+                                    Background="#3C6248"
+                                    BorderThickness="0"
+                                    Padding="16,6"
+                                    CornerRadius="6"
+                                    Cursor="Hand">
+                                <TextBlock Text="{Binding IsSavingProfile, Converter={x:Static vm:SettingsViewModel.SaveTextConverter}}"
+                                           FontSize="13"
+                                           Foreground="White"
+                                           FontWeight="Medium" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- Error Message -->
+                    <Border Grid.Row="1"
+                            Background="#FEF2F2"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            Margin="0,0,0,12"
+                            IsVisible="{Binding ProfileErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding ProfileErrorMessage}"
+                                   FontSize="13"
+                                   Foreground="#DC2626"
+                                   TextWrapping="Wrap" />
+                    </Border>
+                    
+                    <!-- Profile Content -->
+                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*">
+                        
+                        <!-- Avatar with hover overlay -->
+                        <Grid Grid.Column="0" 
+                              Width="80" Height="80" 
+                              Margin="0,0,24,0"
+                              VerticalAlignment="Top"
+                              Name="AvatarContainer">
+                            <!-- Avatar circle -->
+                            <Border Background="#3C6248"
+                                    CornerRadius="40">
+                                <TextBlock Text="{Binding Initials}"
+                                           FontSize="28"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            
+                            <!-- Hover overlay with camera icon (always available, shows on hover) -->
+                            <Border Name="AvatarOverlay"
+                                    CornerRadius="40"
+                                    Background="#80000000"
+                                    Opacity="0"
+                                    Cursor="Hand">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                    </Transitions>
+                                </Border.Transitions>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
+                                    <!-- Camera icon -->
+                                    <PathIcon Data="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"
+                                              Width="20" Height="20"
+                                              Foreground="White" />
+                                    <TextBlock Text="Change"
+                                               FontSize="10"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Invisible button for click handling -->
+                            <Button Command="{Binding ChangeAvatarCommand}"
+                                    Width="80" Height="80"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="Transparent" />
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            
+                            <!-- Hover trigger using Grid styles -->
+                            <Grid.Styles>
+                                <Style Selector="Grid#AvatarContainer:pointerover Border#AvatarOverlay">
+                                    <Setter Property="Opacity" Value="1" />
+                                </Style>
+                            </Grid.Styles>
+                        </Grid>
+                        
+                        <!-- Profile Info -->
+                        <StackPanel Grid.Column="1" Spacing="12">
+                            
+                            <!-- VIEW MODE -->
+                            <StackPanel IsVisible="{Binding !IsEditingProfile}" Spacing="8">
+                                <!-- Name -->
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontSize="20"
+                                           FontWeight="SemiBold"
+                                           Foreground="#2E3A5A" />
+                                
+                                <!-- Email -->
+                                <TextBlock Text="{Binding Email}"
+                                           FontSize="14"
+                                           Foreground="#64748B" />
+                                
+                                <!-- Job Title & Company -->
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            IsVisible="{Binding JobTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="{Binding JobTitle}"
+                                               FontSize="14"
+                                               Foreground="#475569" />
+                                    <TextBlock Text="at"
+                                               FontSize="14"
+                                               Foreground="#94A3B8"
+                                               IsVisible="{Binding Company, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                    <TextBlock Text="{Binding Company}"
+                                               FontSize="14"
+                                               Foreground="#475569"
+                                               IsVisible="{Binding Company, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                
+                                <!-- Phone (formatted) -->
+                                <TextBlock Text="{Binding Phone, Converter={x:Static conv:PhoneNumberConverter.Instance}}"
+                                           FontSize="14"
+                                           Foreground="#64748B"
+                                           IsVisible="{Binding Phone, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                            
+                            <!-- EDIT MODE -->
+                            <StackPanel IsVisible="{Binding IsEditingProfile}" Spacing="12">
+                                <!-- First/Last Name Row -->
+                                <Grid ColumnDefinitions="*,12,*">
+                                    <StackPanel Grid.Column="0" Spacing="4">
+                                        <TextBlock Text="First Name" 
+                                                   FontSize="12" 
+                                                   Foreground="#64748B" />
+                                        <TextBox Text="{Binding FirstName, Mode=TwoWay}"
+                                                 Watermark="First name"
+                                                 FontSize="14"
+                                                 Padding="12,10"
+                                                 CornerRadius="6" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Spacing="4">
+                                        <TextBlock Text="Last Name" 
+                                                   FontSize="12" 
+                                                   Foreground="#64748B" />
+                                        <TextBox Text="{Binding LastName, Mode=TwoWay}"
+                                                 Watermark="Last name"
+                                                 FontSize="14"
+                                                 Padding="12,10"
+                                                 CornerRadius="6" />
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- Job Title -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Job Title" 
+                                               FontSize="12" 
+                                               Foreground="#64748B" />
+                                    <TextBox Text="{Binding JobTitle, Mode=TwoWay}"
+                                             Watermark="e.g. Product Manager"
+                                             FontSize="14"
+                                             Padding="12,10"
+                                             CornerRadius="6" />
+                                </StackPanel>
+                                
+                                <!-- Company -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Company" 
+                                               FontSize="12" 
+                                               Foreground="#64748B" />
+                                    <TextBox Text="{Binding Company, Mode=TwoWay}"
+                                             Watermark="e.g. Acme Corp"
+                                             FontSize="14"
+                                             Padding="12,10"
+                                             CornerRadius="6" />
+                                </StackPanel>
+                                
+                                <!-- Phone -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Phone" 
+                                               FontSize="12" 
+                                               Foreground="#64748B" />
+                                    <TextBox Text="{Binding Phone, Mode=TwoWay}"
+                                             Watermark="e.g. +1 (555) 123-4567"
+                                             FontSize="14"
+                                             Padding="12,10"
+                                             CornerRadius="6" />
+                                </StackPanel>
+                            </StackPanel>
+                            
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+            
+            <!-- Account Actions Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Account"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E3A5A" />
+                    
+                    <!-- Change Password -->
+                    <Button Command="{Binding ChangePasswordCommand}"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            Padding="16,12"
+                            CornerRadius="8"
+                            HorizontalContentAlignment="Stretch"
+                            Cursor="Hand">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <PathIcon Grid.Column="0"
+                                      Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                                      Width="20" Height="20"
+                                      Foreground="#64748B"
+                                      Margin="0,0,12,0" />
+                            <TextBlock Grid.Column="1"
+                                       Text="Change Password"
+                                       FontSize="14"
+                                       Foreground="#2E3A5A"
+                                       VerticalAlignment="Center" />
+                            <PathIcon Grid.Column="2"
+                                      Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                      Width="14" Height="14"
+                                      Foreground="#94A3B8" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <!-- Appearance Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Appearance"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E3A5A" />
+                    
+                    <!-- Theme Toggle -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Dark Theme"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="#2E3A5A" />
+                            <TextBlock Text="Switch between light and dark appearance"
+                                       FontSize="13"
+                                       Foreground="#64748B" />
+                        </StackPanel>
+                        
+                        <ToggleSwitch Grid.Column="1"
+                                      IsChecked="{Binding IsDarkTheme}"
+                                      OnContent=""
+                                      OffContent=""
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
+            <!-- Security Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Security"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E3A5A" />
+                    
+                    <!-- Stay Signed In -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Stay Signed In"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="#2E3A5A" />
+                            <TextBlock Text="Automatically sign in when you open the app"
+                                       FontSize="13"
+                                       Foreground="#64748B" />
+                        </StackPanel>
+                        
+                        <ToggleSwitch Grid.Column="1"
+                                      IsChecked="{Binding StaySignedIn}"
+                                      OnContent=""
+                                      OffContent=""
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                    
+                    <Separator Background="#E2E8F0" Margin="0,8" />
+                    
+                    <!-- Sign Out Button -->
+                    <Button Command="{Binding LogoutCommand}"
+                            IsEnabled="{Binding !IsLoggingOut}"
+                            HorizontalAlignment="Left"
+                            Background="#FEF2F2"
+                            BorderBrush="#FECACA"
+                            BorderThickness="1"
+                            Padding="20,10"
+                            CornerRadius="8"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"
+                                      Width="18" Height="18"
+                                      Foreground="#DC2626" />
+                            <TextBlock Text="{Binding IsLoggingOut, Converter={x:Static vm:SettingsViewModel.LogoutTextConverter}}"
+                                       Foreground="#DC2626"
+                                       FontSize="14"
+                                       FontWeight="Medium" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <!-- About Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="About"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E3A5A" />
+                    
+                    <!-- Version -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Version"
+                                   FontSize="14"
+                                   Foreground="#475569" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding AppVersion}"
+                                   FontSize="14"
+                                   Foreground="#64748B" />
+                    </Grid>
+                    
+                    <Separator Background="#E2E8F0" Margin="0,4" />
+                    
+                    <!-- Links -->
+                    <StackPanel Orientation="Horizontal" Spacing="24">
+                        <Button Command="{Binding OpenPrivacyPolicyCommand}"
+                                Background="Transparent"
+                                Padding="0"
+                                Cursor="Hand">
+                            <TextBlock Text="Privacy Policy"
+                                       FontSize="14"
+                                       Foreground="#3C6248"
+                                       TextDecorations="Underline" />
+                        </Button>
+                        
+                        <Button Command="{Binding OpenTermsOfServiceCommand}"
+                                Background="Transparent"
+                                Padding="0"
+                                Cursor="Hand">
+                            <TextBlock Text="Terms of Service"
+                                       FontSize="14"
+                                       Foreground="#3C6248"
+                                       TextDecorations="Underline" />
+                        </Button>
+                    </StackPanel>
+                    
+                    <!-- Copyright -->
+                    <TextBlock Text="© 2025 Pro Cohere. All rights reserved."
+                               FontSize="12"
+                               Foreground="#94A3B8"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

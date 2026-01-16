@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ProCohere.Avalonia (Debug)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-procohere",
+            "program": "${workspaceFolder}/Tracker/ProCohere.Avalonia/bin/Debug/net8.0/ProCohere.Avalonia.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Tracker/ProCohere.Avalonia",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Tracker WPF (Debug)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tracker",
+            "program": "${workspaceFolder}/Tracker/Tracker/bin/Debug/net8.0-windows10.0.17763.0/Tracker.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Tracker/Tracker",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}

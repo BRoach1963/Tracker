@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ProCohere.Avalonia.Views.SplashWindow"
+        Title="Pro Cohere"
+        Width="300" Height="200"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        SystemDecorations="None"
+        Background="#F8FAFC"
+        TransparencyLevelHint="None">
+    
+    <Border Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+            <!-- Logo -->
+            <Image Source="/Assets/procohere.png" 
+                   Width="64" Height="64"
+                   HorizontalAlignment="Center"/>
+            
+            <!-- App Name -->
+            <TextBlock Text="Pro Cohere" 
+                       FontSize="20" 
+                       FontWeight="SemiBold"
+                       Foreground="#1F2937"
+                       HorizontalAlignment="Center"/>
+            
+            <!-- Loading indicator -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                <ProgressBar IsIndeterminate="True" 
+                             Width="120" 
+                             Height="4"
+                             Foreground="#3C6248"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

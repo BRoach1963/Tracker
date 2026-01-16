@@ -1,0 +1,388 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+        xmlns:views="using:ProCohere.Avalonia.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
+        mc:Ignorable="d" 
+        d:DesignWidth="1200" 
+        d:DesignHeight="800"
+        x:Class="ProCohere.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/procohere.ico"
+        Title="Pro Cohere"
+        Width="1200"
+        Height="800"
+        MinWidth="900"
+        MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BrushBackground}">
+
+    <!-- Keyboard Shortcuts -->
+    <Window.KeyBindings>
+        <!-- Search -->
+        <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenSearchCommand}"/>
+        <KeyBinding Gesture="Ctrl+F" Command="{Binding OpenSearchCommand}"/>
+        <!-- Help -->
+        <KeyBinding Gesture="F1" Command="{Binding OpenHelpCommand}"/>
+        <!-- Navigation: Ctrl+1-5 -->
+        <KeyBinding Gesture="Ctrl+D1" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Today}"/>
+        <KeyBinding Gesture="Ctrl+D2" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Circle}"/>
+        <KeyBinding Gesture="Ctrl+D3" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Pulse}"/>
+        <KeyBinding Gesture="Ctrl+D4" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Chronicle}"/>
+        <KeyBinding Gesture="Ctrl+D5" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Settings}"/>
+        <!-- Toggle sidebar -->
+        <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleNavigationCommand}"/>
+    </Window.KeyBindings>
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <!-- Navigation Rail -->
+            <ColumnDefinition Width="Auto"/>
+            <!-- Main Content -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ================================ -->
+        <!-- NAVIGATION RAIL - Dark navy sidebar -->
+        <!-- ================================ -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource BrushSecondary}"
+                Width="{Binding IsNavigationExpanded, Converter={StaticResource NavWidthConverter}}">
+            
+            <Grid RowDefinitions="Auto,*,Auto">
+                
+                <!-- Logo / Brand -->
+                <StackPanel Grid.Row="0" 
+                            Margin="0,16,0,24"
+                            HorizontalAlignment="Center">
+                    <Ellipse Width="32" Height="32"
+                             HorizontalAlignment="Center">
+                        <Ellipse.Fill>
+                            <ImageBrush Source="/Assets/procohere.png" Stretch="UniformToFill"/>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <TextBlock Text="Pro Cohere"
+                               FontSize="13"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource BrushHighlight}"
+                               HorizontalAlignment="Center"
+                               Margin="0,8,0,0"
+                               IsVisible="{Binding IsNavigationExpanded}"/>
+                </StackPanel>
+
+                <!-- Navigation Items -->
+                <StackPanel Grid.Row="1" Spacing="4" Margin="8,0">
+                    
+                    <!-- Today -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Today}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Today}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Today (Ctrl+1)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Today}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Fluent: Calendar outline -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M17.75 3A3.25 3.25 0 0 1 21 6.25v11.5A3.25 3.25 0 0 1 17.75 21H6.25A3.25 3.25 0 0 1 3 17.75V6.25A3.25 3.25 0 0 1 6.25 3h11.5Zm0 1.5H6.25A1.75 1.75 0 0 0 4.5 6.25v11.5c0 .966.784 1.75 1.75 1.75h11.5a1.75 1.75 0 0 0 1.75-1.75V6.25a1.75 1.75 0 0 0-1.75-1.75ZM17.75 9.5H6.25a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5Z"/>
+                                <TextBlock Text="Today" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <!-- Circle -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Circle}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Circle}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Circle (Ctrl+2)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Circle}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Fluent: People outline -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M14.75 15c.966 0 1.75.784 1.75 1.75l-.001.962c.117 2.19-1.511 3.297-4.432 3.297-2.91 0-4.567-1.09-4.567-3.259v-1c0-.966.784-1.75 1.75-1.75h5.5Zm0 1.5h-5.5a.25.25 0 0 0-.25.25v1c0 1.176.887 1.759 3.067 1.759 2.168 0 2.995-.564 2.933-1.757V16.75a.25.25 0 0 0-.25-.25ZM12 8a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM18.5 9a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm-13 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm13 1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm-13 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/>
+                                <TextBlock Text="Circle" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <!-- Pulse -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Pulse}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Pulse (Ctrl+3)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Fluent: Pulse/trending outline -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M5.25 3A2.25 2.25 0 0 0 3 5.25v13.5A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V5.25A2.25 2.25 0 0 0 18.75 3H5.25ZM4.5 5.25a.75.75 0 0 1 .75-.75h13.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V5.25Zm3.22 7.47 2.25-2.25a.75.75 0 0 1 1.06 0l1.72 1.72 3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L10.5 12.06l-1.72 1.72a.75.75 0 0 1-1.06-1.06Z"/>
+                                <TextBlock Text="Pulse" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <!-- Chronicle -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Chronicle}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Chronicle}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Chronicle (Ctrl+4)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Chronicle}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Fluent: Book outline -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M4 4.5A2.5 2.5 0 0 1 6.5 2H18a2.5 2.5 0 0 1 2.5 2.5v14.25a.75.75 0 0 1-.75.75H5.5a1 1 0 0 0 1 1h13.25a.75.75 0 0 1 0 1.5H6.5A2.5 2.5 0 0 1 4 19.5v-15Zm2.5-1a1 1 0 0 0-1 1V18h13V4.5a1 1 0 0 0-1-1H6.5Z"/>
+                                <TextBlock Text="Chronicle" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <!-- Bottom: Settings + Collapse -->
+                <StackPanel Grid.Row="2" Spacing="0" Margin="8,0,8,16">
+                    <!-- Settings -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Settings}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Settings (Ctrl+5)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Fluent: Settings outline -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M12.012 2.25c.734.008 1.465.093 2.182.253a.75.75 0 0 1 .582.649l.17 1.527a1.384 1.384 0 0 0 1.927 1.116l1.4-.615a.75.75 0 0 1 .85.174 9.793 9.793 0 0 1 2.204 3.792.75.75 0 0 1-.271.825l-1.242.916a1.38 1.38 0 0 0 0 2.226l1.243.916a.75.75 0 0 1 .271.826 9.798 9.798 0 0 1-2.204 3.79.75.75 0 0 1-.848.175l-1.407-.617a1.38 1.38 0 0 0-1.926 1.114l-.169 1.526a.75.75 0 0 1-.572.647 9.518 9.518 0 0 1-4.406 0 .75.75 0 0 1-.572-.647l-.168-1.524a1.382 1.382 0 0 0-1.926-1.11l-1.406.616a.75.75 0 0 1-.849-.175 9.798 9.798 0 0 1-2.204-3.796.75.75 0 0 1 .272-.826l1.243-.916a1.38 1.38 0 0 0 0-2.226l-1.243-.914a.75.75 0 0 1-.271-.826 9.793 9.793 0 0 1 2.204-3.792.75.75 0 0 1 .85-.174l1.4.615a1.387 1.387 0 0 0 1.93-1.118l.17-1.526a.75.75 0 0 1 .583-.65c.718-.159 1.45-.243 2.201-.252ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1.5 3a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"/>
+                                <TextBlock Text="Settings" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+                    
+                    <!-- Collapse Toggle - subtle, left-aligned -->
+                    <Button Classes="nav-collapse"
+                            Command="{Binding ToggleNavigationCommand}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Toggle sidebar (Ctrl+B)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <PathIcon Width="14" Height="14"
+                                  Data="{Binding IsNavigationExpanded, Converter={StaticResource CollapseIconConverter}}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ================================ -->
+        <!-- MAIN CONTENT AREA -->
+        <!-- ================================ -->
+        <Grid Grid.Column="1" 
+              Background="{DynamicResource BrushBackground}"
+              Margin="0">
+            
+            <Grid.RowDefinitions>
+                <!-- Header bar -->
+                <RowDefinition Height="Auto"/>
+                <!-- Content -->
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header Bar -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource BrushBackground}"
+                    Padding="24,16"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Page Title -->
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding PageTitle}"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               VerticalAlignment="Center"/>
+
+                    <!-- Search + Actions -->
+                    <StackPanel Grid.Column="1" 
+                                Orientation="Horizontal" 
+                                Spacing="8">
+                        
+                        <!-- Search TextBox -->
+                        <Border Background="{DynamicResource BrushSurface}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8,6"
+                                Width="220">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <PathIcon Grid.Column="0"
+                                          Data="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+                                          Width="16" Height="16"
+                                          Foreground="{DynamicResource BrushTextTertiary}"
+                                          Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding SearchText, Mode=TwoWay}"
+                                         Watermark="Search..."
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         Foreground="{DynamicResource BrushTextPrimary}"
+                                         FontSize="14"
+                                         VerticalAlignment="Center"
+                                         AutomationProperties.Name="Search"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Help Button -->
+                        <Button Classes="icon-button"
+                                Command="{Binding OpenHelpCommand}"
+                                ToolTip.Tip="Help (F1)"
+                                AutomationProperties.Name="Help">
+                            <PathIcon Data="M15.07,11.25L14.17,12.17C13.45,12.89 13,13.5 13,15H11V14.5C11,13.39 11.45,12.39 12.17,11.67L13.41,10.41C13.78,10.05 14,9.55 14,9C14,7.89 13.1,7 12,7A2,2 0 0,0 10,9H8A4,4 0 0,1 12,5A4,4 0 0,1 16,9C16,9.88 15.64,10.67 15.07,11.25M13,19H11V17H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z"
+                                      Width="24" Height="24"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Content Panels -->
+            <Grid Grid.Row="1" Margin="24">
+                
+                <!-- TODAY / Dashboard -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Today}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" 
+                                  Width="64" Height="64" 
+                                  Opacity="0.3"/>
+                        <TextBlock Text="Today"
+                                   FontSize="24"
+                                   FontWeight="Light"
+                                   Opacity="0.5"
+                                   HorizontalAlignment="Center"/>
+                        
+                        <!-- DATABASE PROOF CARD -->
+                        <Border Background="#F0FDF4" 
+                                BorderBrush="#86EFAC" 
+                                BorderThickness="2"
+                                CornerRadius="12"
+                                Padding="24"
+                                Margin="0,24,0,0"
+                                MinWidth="400">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="🗃️ Supabase Database Check"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Foreground="#166534"/>
+                                <TextBlock Text="{Binding DatabaseProof}"
+                                           FontSize="13"
+                                           Foreground="#15803D"
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas, monospace"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- CIRCLE -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Circle}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+                        <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z" 
+                                  Width="64" Height="64" 
+                                  Opacity="0.3"/>
+                        <TextBlock Text="Circle"
+                                   FontSize="24"
+                                   FontWeight="Light"
+                                   Opacity="0.5"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Team management coming soon"
+                                   FontSize="14"
+                                   Opacity="0.3"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- PULSE -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+                        <PathIcon Data="M3.5,18.5L9.5,12.5L13.5,16.5L22,6.92L20.59,5.5L13.5,13.5L9.5,9.5L2,17L3.5,18.5Z" 
+                                  Width="64" Height="64" 
+                                  Opacity="0.3"/>
+                        <TextBlock Text="Pulse"
+                                   FontSize="24"
+                                   FontWeight="Light"
+                                   Opacity="0.5"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Goals and metrics coming soon"
+                                   FontSize="14"
+                                   Opacity="0.3"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- CHRONICLE -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Chronicle}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+                        <PathIcon Data="M19,1L14,6V17L19,12.5V1M21,5V18.5C19.9,18.15 18.7,18 17.5,18C15.8,18 13.35,18.65 12,19.5V6C10.55,4.9 8.45,4.5 6.5,4.5C4.55,4.5 2.45,4.9 1,6V20.65C1,20.9 1.25,21.15 1.5,21.15C1.6,21.15 1.65,21.1 1.75,21.1C3.1,20.45 5.05,20 6.5,20C8.45,20 10.55,20.4 12,21.5C13.35,20.65 15.8,20 17.5,20C19.15,20 20.85,20.3 22.25,21.05C22.35,21.1 22.4,21.1 22.5,21.1C22.75,21.1 23,20.85 23,20.6V6C22.4,5.55 21.75,5.25 21,5Z" 
+                                  Width="64" Height="64" 
+                                  Opacity="0.3"/>
+                        <TextBlock Text="Chronicle"
+                                   FontSize="24"
+                                   FontWeight="Light"
+                                   Opacity="0.5"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Notes and reports coming soon"
+                                   FontSize="14"
+                                   Opacity="0.3"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- SETTINGS -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}">
+                    <views:SettingsView x:Name="SettingsView" />
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
+

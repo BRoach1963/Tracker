@@ -37,26 +37,34 @@ namespace Tracker
 
         public App()
         {
-            // Note: Npgsql.EnableLegacyTimestampBehavior is set in ModuleInitializer.cs
-            // It must run before any Npgsql types are loaded.
-            
-            // Register Syncfusion license with error handling
             try
             {
-                var licenseKey = "Ngo9BigBOggjHTQxAR8/V1NCaF1cWWhAYVJ2WmFZfVpgcl9GYlZVQmYuP1ZhSXxXdkxjWn9YcHZRQGFYWEM=";
-                if (!string.IsNullOrWhiteSpace(licenseKey))
+                // Note: Npgsql.EnableLegacyTimestampBehavior is set in ModuleInitializer.cs
+                // It must run before any Npgsql types are loaded.
+                
+                // Register Syncfusion license with error handling
+                try
                 {
-                    Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+                    var licenseKey = "Ngo9BigBOggjHTQxAR8/V1NCaF1cWWhAYVJ2WmFZfVpgcl9GYlZVQmYuP1ZhSXxXdkxjWn9YcHZRQGFYWEM=";
+                    if (!string.IsNullOrWhiteSpace(licenseKey))
+                    {
+                        Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+                    }
                 }
+                catch (Exception ex)
+                {
+                    // Log the error but don't crash the app
+                    // Syncfusion controls will show a license watermark if registration fails
+                    LoggingManager.GetComponentLogger("App").Warn("Syncfusion license registration failed: {0}", ex.Message);
+                }
+                
+                RegisterAppForToastNotifications();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log the error but don't crash the app
-                // Syncfusion controls will show a license watermark if registration fails
-                LoggingManager.GetComponentLogger("App").Warn("Syncfusion license registration failed: {0}", ex.Message);
+                // Constructor errors will propagate naturally
+                throw;
             }
-            
-            RegisterAppForToastNotifications();
         }
 
         private void InitializeTheme()

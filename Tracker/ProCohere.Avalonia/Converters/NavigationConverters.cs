@@ -1,0 +1,131 @@
+using Avalonia.Data.Converters;
+using Avalonia.Media;
+using ProCohere.Avalonia.ViewModels;
+using System;
+using System.Globalization;
+
+namespace ProCohere.Avalonia.Converters;
+
+/// <summary>
+/// Converts enum values to boolean for selection comparison.
+/// </summary>
+public class EnumEqualConverter : IValueConverter
+{
+    public static readonly EnumEqualConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value == null || parameter == null)
+            return false;
+
+        return value.Equals(parameter);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is true && parameter != null)
+            return parameter;
+        return null;
+    }
+}
+
+/// <summary>
+/// Converts boolean (expanded state) to navigation rail width.
+/// </summary>
+public class NavWidthConverter : IValueConverter
+{
+    public static readonly NavWidthConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isExpanded)
+        {
+            return isExpanded ? 200.0 : 64.0;
+        }
+        return 200.0;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts dark theme boolean to appropriate icon path.
+/// </summary>
+public class ThemeIconConverter : IValueConverter
+{
+    public static readonly ThemeIconConverter Instance = new();
+
+    // Sun icon for dark mode (click to switch to light)
+    private const string SunIcon = "M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z";
+    
+    // Moon icon for light mode (click to switch to dark)
+    private const string MoonIcon = "M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95Z";
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isDark)
+        {
+            // Show sun when dark (to switch to light), moon when light (to switch to dark)
+            return StreamGeometry.Parse(isDark ? SunIcon : MoonIcon);
+        }
+        return StreamGeometry.Parse(SunIcon);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts dark theme boolean to text label.
+/// </summary>
+public class ThemeTextConverter : IValueConverter
+{
+    public static readonly ThemeTextConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isDark)
+        {
+            return isDark ? "Light Mode" : "Dark Mode";
+        }
+        return "Theme";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts expanded state to collapse/expand icon.
+/// </summary>
+public class CollapseIconConverter : IValueConverter
+{
+    public static readonly CollapseIconConverter Instance = new();
+
+    // Chevron left (collapse)
+    private const string CollapseIcon = "M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z";
+    
+    // Chevron right (expand)
+    private const string ExpandIcon = "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z";
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isExpanded)
+        {
+            return StreamGeometry.Parse(isExpanded ? CollapseIcon : ExpandIcon);
+        }
+        return StreamGeometry.Parse(CollapseIcon);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}

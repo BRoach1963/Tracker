@@ -1,0 +1,86 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Color x:Key="ColorPrimary">#FF3C6248</Color>
+  <Color x:Key="ColorPrimaryHover">#FF4F7A5D</Color>
+  <Color x:Key="ColorPrimaryPressed">#FF2F4F3B</Color>
+  <Color x:Key="ColorPrimarySoft">#334F7A5D</Color>
+
+  <Color x:Key="ColorSecondary">#FF2E3A5A</Color>
+  <Color x:Key="ColorSecondaryHover">#FF3A4A72</Color>
+  <Color x:Key="ColorSecondaryPressed">#FF242E47</Color>
+  <Color x:Key="ColorSecondarySoft">#333A4A72</Color>
+
+  <Color x:Key="ColorHighlight">#FFD0AF5F</Color>
+  <Color x:Key="ColorHighlightHover">#FFE0C57A</Color>
+  <Color x:Key="ColorHighlightPressed">#FFB89645</Color>
+  <Color x:Key="ColorHighlightSoft">#33D0AF5F</Color>
+
+  <Color x:Key="ColorBackground">#FF2E3A5A</Color>
+  <Color x:Key="ColorSurface">#FF35436A</Color>
+  <Color x:Key="ColorSurfaceAlt">#FF3D4C78</Color>
+
+  <Color x:Key="ColorBorder">#FF4B5C86</Color>
+  <Color x:Key="ColorBorderStrong">#FF6273A0</Color>
+
+  <Color x:Key="ColorTextPrimary">#FFF9FAFB</Color>
+  <Color x:Key="ColorTextSecondary">#FFD1D5DB</Color>
+  <Color x:Key="ColorTextTertiary">#FF9CA3AF</Color>
+  <Color x:Key="ColorTextOnPrimary">#FFFFFFFF</Color>
+
+  <Color x:Key="ColorFocus">#FFD0AF5F</Color>
+  <Color x:Key="ColorSelection">#334B5C86</Color>
+
+  <Color x:Key="ColorError">#FFF97066</Color>
+  <Color x:Key="ColorWarning">#FFFBBF24</Color>
+  <Color x:Key="ColorSuccess">#FF34D399</Color>
+  <Color x:Key="ColorInfo">#FF60A5FA</Color>
+
+  <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}" />
+  <SolidColorBrush x:Key="BrushPrimaryHover" Color="{StaticResource ColorPrimaryHover}" />
+  <SolidColorBrush x:Key="BrushPrimaryPressed" Color="{StaticResource ColorPrimaryPressed}" />
+  <SolidColorBrush x:Key="BrushPrimarySoft" Color="{StaticResource ColorPrimarySoft}" />
+
+  <SolidColorBrush x:Key="BrushSecondary" Color="{StaticResource ColorSecondary}" />
+  <SolidColorBrush x:Key="BrushSecondaryHover" Color="{StaticResource ColorSecondaryHover}" />
+  <SolidColorBrush x:Key="BrushSecondaryPressed" Color="{StaticResource ColorSecondaryPressed}" />
+  <SolidColorBrush x:Key="BrushSecondarySoft" Color="{StaticResource ColorSecondarySoft}" />
+
+  <SolidColorBrush x:Key="BrushHighlight" Color="{StaticResource ColorHighlight}" />
+  <SolidColorBrush x:Key="BrushHighlightHover" Color="{StaticResource ColorHighlightHover}" />
+  <SolidColorBrush x:Key="BrushHighlightPressed" Color="{StaticResource ColorHighlightPressed}" />
+  <SolidColorBrush x:Key="BrushHighlightSoft" Color="{StaticResource ColorHighlightSoft}" />
+
+  <SolidColorBrush x:Key="BrushBackground" Color="{StaticResource ColorBackground}" />
+  <SolidColorBrush x:Key="BrushSurface" Color="{StaticResource ColorSurface}" />
+  <SolidColorBrush x:Key="BrushSurfaceAlt" Color="{StaticResource ColorSurfaceAlt}" />
+
+  <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}" />
+  <SolidColorBrush x:Key="BrushBorderStrong" Color="{StaticResource ColorBorderStrong}" />
+
+  <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ColorTextPrimary}" />
+  <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ColorTextSecondary}" />
+  <SolidColorBrush x:Key="BrushTextTertiary" Color="{StaticResource ColorTextTertiary}" />
+  <SolidColorBrush x:Key="BrushTextOnPrimary" Color="{StaticResource ColorTextOnPrimary}" />
+
+  <SolidColorBrush x:Key="BrushFocus" Color="{StaticResource ColorFocus}" />
+  <SolidColorBrush x:Key="BrushSelection" Color="{StaticResource ColorSelection}" />
+
+  <SolidColorBrush x:Key="BrushError" Color="{StaticResource ColorError}" />
+  <SolidColorBrush x:Key="BrushWarning" Color="{StaticResource ColorWarning}" />
+  <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}" />
+  <SolidColorBrush x:Key="BrushInfo" Color="{StaticResource ColorInfo}" />
+
+  <Thickness x:Key="ThicknessControlBorder">1</Thickness>
+  <Thickness x:Key="ThicknessFocusRing">2</Thickness>
+  <CornerRadius x:Key="CornerRadiusControl">10</CornerRadius>
+  <CornerRadius x:Key="CornerRadiusSmall">6</CornerRadius>
+
+  <x:Double x:Key="OpacityDisabled">0.55</x:Double>
+
+  <FontFamily x:Key="FontFamilyDefault">Inter, Segoe UI, Arial</FontFamily>
+  <x:Double x:Key="FontSizeBody">14</x:Double>
+  <x:Double x:Key="FontSizeCaption">12</x:Double>
+  <x:Double x:Key="FontSizeTitle">18</x:Double>
+
+</ResourceDictionary>

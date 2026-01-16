@@ -1,0 +1,369 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+        xmlns:material="using:Material.Styles.Controls"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
+        x:Class="ProCohere.Avalonia.Views.LoginWindow"
+        x:DataType="vm:LoginViewModel"
+        Title="Pro Cohere"
+        Icon="/Assets/procohere.png"
+        Width="1000" Height="650"
+        MinWidth="850" MinHeight="550"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        SystemDecorations="None"
+        PointerPressed="Window_PointerPressed">
+
+    <!-- Enter key triggers sign-in from anywhere in the form -->
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Enter" Command="{Binding SignInCommand}"/>
+    </Window.KeyBindings>
+
+    <Window.Styles>
+        <!-- Modern TextBox Style -->
+        <Style Selector="TextBox.modern">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="InnerLeftContent">
+                <Template>
+                    <Border Width="4"/>
+                </Template>
+            </Setter>
+        </Style>
+        <Style Selector="TextBox.modern:focus">
+            <Setter Property="BorderBrush" Value="#C7A450"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        <Style Selector="TextBox.modern:pointerover">
+            <Setter Property="BorderBrush" Value="#C7A450"/>
+        </Style>
+
+        <!-- Primary Button Style -->
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#C7A450"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Padding" Value="24,14"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="#D4B466"/>
+        </Style>
+        <Style Selector="Button.primary:pressed">
+            <Setter Property="Background" Value="#B89940"/>
+        </Style>
+        <Style Selector="Button.primary:disabled">
+            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#9CA3AF"/>
+        </Style>
+
+        <!-- Link Button Style -->
+        <Style Selector="Button.link">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.link:pointerover">
+            <Setter Property="Foreground" Value="#C7A450"/>
+        </Style>
+
+        <!-- CheckBox Style -->
+        <Style Selector="CheckBox.modern">
+            <Setter Property="Foreground" Value="#4B5563"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Styles>
+
+    <!-- Main Container with Shadow -->
+    <Border Background="#FFFFFF"
+            CornerRadius="12"
+            Margin="10"
+            BoxShadow="0 3 25 0 #26000000">
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="350"/>
+                <ColumnDefinition Width="1.1*" MinWidth="400"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT PANEL - Branding -->
+            <Grid Grid.Column="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Vertical accent bar with gradient -->
+                <Border Grid.Column="0" CornerRadius="12,0,0,12">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Color="#2E3843" Offset="0"/>
+                            <GradientStop Color="#C7A450" Offset="0.4"/>
+                            <GradientStop Color="#C7A450" Offset="0.6"/>
+                            <GradientStop Color="#2E3843" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- Main branding area -->
+                <Border Grid.Column="1">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#FAFAFA" Offset="0"/>
+                            <GradientStop Color="#F5F3EF" Offset="0.5"/>
+                            <GradientStop Color="#F0EDE7" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Margin="40">
+
+                            <!-- Logo with gold accent ring -->
+                            <Border Width="120" Height="120" Margin="0,0,0,24">
+                                <Border BorderThickness="4" CornerRadius="60">
+                                    <Border.BorderBrush>
+                                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                            <GradientStop Color="#C7A450" Offset="0"/>
+                                            <GradientStop Color="#D4B466" Offset="0.5"/>
+                                            <GradientStop Color="#C7A450" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.BorderBrush>
+                                    <!-- Pro Cohere Logo as background fill -->
+                                    <Border CornerRadius="56">
+                                        <Border.Background>
+                                            <ImageBrush Source="/Assets/procohere.png" Stretch="UniformToFill"/>
+                                        </Border.Background>
+                                    </Border>
+                                </Border>
+                            </Border>
+
+                            <!-- App Name with accent underline -->
+                            <StackPanel HorizontalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock Text="Pro Cohere"
+                                           FontSize="40"
+                                           FontWeight="Bold"
+                                           Foreground="#1F2937"
+                                           HorizontalAlignment="Center"/>
+                                <Border Width="80" Height="4"
+                                        CornerRadius="2"
+                                        Background="#C7A450"
+                                        Margin="0,6,0,0"/>
+                            </StackPanel>
+
+                            <!-- Tagline -->
+                            <TextBlock Text="Team Performance, Simplified"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="#6B7280"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,32"/>
+
+                            <!-- Feature Highlights -->
+                            <StackPanel Margin="0,16,0,0" HorizontalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Ellipse Width="10" Height="10" Fill="#C7A450" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Track team goals &amp; metrics"
+                                               Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Ellipse Width="10" Height="10" Fill="#1F2937" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Streamline 1:1 meetings"
+                                               Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Ellipse Width="10" Height="10" Fill="#C7A450" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Give meaningful feedback"
+                                               Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="10" Height="10" Fill="#1F2937" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Develop your people"
+                                               Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Version at bottom -->
+                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20">
+                            <Border Width="30" Height="2" Background="#C7A450" CornerRadius="1" Margin="0,0,0,8"/>
+                            <TextBlock Text="Version 3.0"
+                                       FontSize="11"
+                                       Foreground="#9CA3AF"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- RIGHT PANEL - Login Form -->
+            <Grid Grid.Column="1" Background="#FFFFFF" Margin="44,24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Window Controls -->
+                <StackPanel Grid.Row="0"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Margin="0,0,0,16">
+                    <Button x:Name="CloseButton"
+                            Click="CloseButton_Click"
+                            Width="36" Height="36"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            ToolTip.Tip="Close">
+                        <PathIcon Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                  Foreground="#9CA3AF"
+                                  Width="14" Height="14"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Login Form Content -->
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <!-- Welcome Text -->
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock Text="Welcome back"
+                                   FontSize="30"
+                                   FontWeight="Bold"
+                                   Foreground="#1F2937"/>
+                        <Border Width="50" Height="3"
+                                Background="#C7A450"
+                                CornerRadius="1.5"
+                                HorizontalAlignment="Left"
+                                Margin="0,8,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="Sign in to continue to Pro Cohere"
+                               FontSize="14"
+                               Foreground="#6B7280"
+                               Margin="0,8,0,36"/>
+
+                    <!-- Email -->
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Email"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="#6B7280"
+                                   Margin="0,0,0,8"/>
+                        <TextBox Classes="modern"
+                                 Text="{Binding Email}"
+                                 Watermark="Enter your email"/>
+                    </StackPanel>
+
+                    <!-- Password -->
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Password"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="#6B7280"
+                                   Margin="0,0,0,8"/>
+                        <Grid>
+                            <TextBox Classes="modern"
+                                     Text="{Binding Password}"
+                                     PasswordChar="•"
+                                     RevealPassword="{Binding IsPasswordVisible}"
+                                     Watermark="Enter your password"/>
+                            <Button HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Width="36" Height="36"
+                                    Margin="0,0,4,0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    Command="{Binding TogglePasswordVisibilityCommand}"
+                                    ToolTip.Tip="Show/Hide password">
+                                <PathIcon Data="M12,4.5C7,4.5 2.73,7.61 1,12c1.73,4.39 6,7.5 11,7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12,17c-2.76,0-5-2.24-5-5s2.24-5 5-5 5,2.24 5,5-2.24,5-5,5m0-8c-1.66,0-3,1.34-3,3s1.34,3 3,3 3-1.34 3-3-1.34-3-3-3"
+                                          Foreground="#9CA3AF"
+                                          Width="18" Height="18"/>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Keep Me Signed In & Forgot Password -->
+                    <Grid Margin="0,0,0,28">
+                        <CheckBox Classes="modern"
+                                  Content="Keep me signed in"
+                                  IsChecked="{Binding KeepMeSignedIn}"
+                                  ToolTip.Tip="Skip the login screen next time"
+                                  HorizontalAlignment="Left"/>
+                        <Button Classes="link"
+                                Content="Forgot password?"
+                                Command="{Binding ForgotPasswordCommand}"
+                                HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <!-- Error Message -->
+                    <Border Background="#FEF2F2"
+                            BorderBrush="#EF4444"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Margin="0,0,0,20"
+                            Padding="14,10"
+                            IsVisible="{Binding HasError}">
+                        <StackPanel Orientation="Horizontal">
+                            <PathIcon Data="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10-4.48 10-10S17.52,2 12,2m1,15h-2v-2h2v2m0-4h-2V7h2v6z"
+                                      Foreground="#EF4444"
+                                      Width="18" Height="18"
+                                      Margin="0,0,10,0"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="#EF4444"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Sign In Button -->
+                    <Button Classes="primary"
+                            Content="Sign In"
+                            Command="{Binding SignInCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Margin="0,0,0,16"/>
+
+                    <!-- Loading Indicator -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                IsVisible="{Binding IsLoading}"
+                                Margin="0,0,0,16">
+                        <TextBlock Text="Signing in..."
+                                   Foreground="#6B7280"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Footer -->
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Margin="0,16,0,8">
+                    <Button Classes="link" Content="Help" Margin="0,0,20,0"/>
+                    <Button Classes="link" Content="Privacy" Margin="0,0,20,0"/>
+                    <Button Classes="link" Content="Terms"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
