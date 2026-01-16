@@ -45,6 +45,11 @@ public class AuthService
     /// </summary>
     public UserProfile? CurrentProfile { get; private set; }
 
+    /// <summary>
+    /// Gets the Supabase client for use by other services.
+    /// </summary>
+    public Supabase.Client? GetSupabaseClient() => _client;
+
     #endregion
 
     #region Events

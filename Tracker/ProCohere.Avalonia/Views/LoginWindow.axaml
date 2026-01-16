@@ -186,7 +186,7 @@
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                                     <Ellipse Width="10" Height="10" Fill="#1F2937" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Streamline 1:1 meetings"
+                                    <TextBlock Text="Streamline team meetings"
                                                Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">

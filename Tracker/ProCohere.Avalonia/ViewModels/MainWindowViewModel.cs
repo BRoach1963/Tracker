@@ -29,11 +29,17 @@ public partial class MainWindowViewModel : ViewModelBase
     #region Page Title
 
     /// <summary>
-    /// Gets the page title - shows "Welcome, [Name]" for Today, otherwise the nav item name.
+    /// Gets the page title - shows "Today" for dashboard, otherwise the nav item name.
     /// </summary>
-    public string PageTitle => SelectedNavigation == NavigationItem.Today && !string.IsNullOrEmpty(UserDisplayName)
-        ? $"Welcome, {UserDisplayName}"
-        : SelectedNavigation.ToString();
+    public string PageTitle => SelectedNavigation switch
+    {
+        NavigationItem.Today => "Today",
+        NavigationItem.Circle => "Circle",
+        NavigationItem.Pulse => "Pulse",
+        NavigationItem.Chronicle => "Chronicle",
+        NavigationItem.Settings => "Settings",
+        _ => SelectedNavigation.ToString()
+    };
 
     #endregion
 
@@ -291,7 +297,7 @@ public enum NavigationItem
 {
     Today,      // Dashboard - what's relevant now
     Circle,     // Team, 1:1s, Feedback, Goals
-    Pulse,      // OKRs, KPIs, Projects, Tasks
+    Pulse,      // Goals, Metrics, Projects, Tasks
     Chronicle,  // Notes, Reports
     Settings    // App settings
 }

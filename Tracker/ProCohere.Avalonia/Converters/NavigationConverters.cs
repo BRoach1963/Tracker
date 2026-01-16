@@ -2,6 +2,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media;
 using ProCohere.Avalonia.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace ProCohere.Avalonia.Converters;
@@ -122,6 +123,135 @@ public class CollapseIconConverter : IValueConverter
             return StreamGeometry.Parse(isExpanded ? CollapseIcon : ExpandIcon);
         }
         return StreamGeometry.Parse(CollapseIcon);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean (IsActive) to status color.
+/// </summary>
+public class BoolToColorConverter : IMultiValueConverter
+{
+    public static readonly BoolToColorConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values.Count > 0 && values[0] is bool isActive)
+        {
+            return isActive ? Brushes.Green : Brushes.Gray;
+        }
+        return Brushes.Gray;
+    }
+}
+
+/// <summary>
+/// Converts meeting status (NeedsAttention) to color.
+/// </summary>
+public class MeetingStatusColorConverter : IMultiValueConverter
+{
+    public static readonly MeetingStatusColorConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values.Count > 0 && values[0] is bool needsAttention)
+        {
+            return needsAttention 
+                ? new SolidColorBrush(Color.Parse("#EF4444"))  // Red
+                : new SolidColorBrush(Color.Parse("#1F2937")); // Normal text
+        }
+        return new SolidColorBrush(Color.Parse("#1F2937"));
+    }
+}
+
+/// <summary>
+/// Converts a number to boolean (true if zero).
+/// </summary>
+public class EqualToZeroConverter : IValueConverter
+{
+    public static readonly EqualToZeroConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is int intVal)
+            return intVal == 0;
+        if (value is long longVal)
+            return longVal == 0;
+        if (value is double doubleVal)
+            return doubleVal == 0;
+        return false;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean to width for animated panel (340 when open to include margin and scrollbar space, 0 when closed).
+/// </summary>
+public class BoolToWidthConverter : IValueConverter
+{
+    public static readonly BoolToWidthConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isOpen)
+        {
+            return isOpen ? 328.0 : 0.0; // 320 panel width + 8 left margin
+        }
+        return 0.0;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean IsToday to highlight background color (single-value version).
+/// Returns Primary color for true, Transparent for false.
+/// </summary>
+public class BoolToHighlightBackgroundConverter : IValueConverter
+{
+    public static readonly BoolToHighlightBackgroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isToday && isToday)
+        {
+            return new SolidColorBrush(Color.Parse("#6366F1")); // Primary color
+        }
+        return Brushes.Transparent;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean IsToday to text foreground color.
+/// Returns White for true (today), TextPrimary for false.
+/// </summary>
+public class BoolToForegroundConverter : IValueConverter
+{
+    public static readonly BoolToForegroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isToday && isToday)
+        {
+            return Brushes.White;
+        }
+        // Return a neutral dark color for non-today
+        return new SolidColorBrush(Color.Parse("#E5E7EB")); // TextPrimary-ish
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
