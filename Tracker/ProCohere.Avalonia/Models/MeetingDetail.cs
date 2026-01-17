@@ -26,7 +26,7 @@ public class MeetingDetail : BaseModel
     public DateTime? ScheduledAt { get; set; }
 
     [Column("duration_minutes")]
-    public int DurationMinutes { get; set; } = 30;
+    public int? DurationMinutes { get; set; } = 30;
 
     [Column("location")]
     public string? Location { get; set; }
@@ -40,8 +40,8 @@ public class MeetingDetail : BaseModel
     [Column("team_member_id")]
     public Guid? TeamMemberId { get; set; }
 
-    [Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
+    [Column("created_by")]
+    public Guid? CreatedByTeamMemberId { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
@@ -131,7 +131,7 @@ public class MeetingDetail : BaseModel
     /// <summary>
     /// End time display.
     /// </summary>
-    public string EndTimeDisplay => ScheduledAt?.ToLocalTime().AddMinutes(DurationMinutes).ToString("h:mm tt") ?? "";
+    public string EndTimeDisplay => ScheduledAt?.ToLocalTime().AddMinutes(DurationMinutes ?? 30).ToString("h:mm tt") ?? "";
 
     /// <summary>
     /// Time range display (e.g. "9:00 AM - 10:00 AM").
@@ -141,14 +141,21 @@ public class MeetingDetail : BaseModel
     /// <summary>
     /// Duration text.
     /// </summary>
-    public string DurationText => DurationMinutes switch
+    public string DurationText
     {
-        < 60 => $"{DurationMinutes} min",
-        60 => "1 hour",
-        _ => DurationMinutes % 60 == 0 
-            ? $"{DurationMinutes / 60} hours" 
-            : $"{DurationMinutes / 60}h {DurationMinutes % 60}m"
-    };
+        get
+        {
+            var mins = DurationMinutes ?? 30;
+            return mins switch
+            {
+                < 60 => $"{mins} min",
+                60 => "1 hour",
+                _ => mins % 60 == 0
+                    ? $"{mins / 60} hours"
+                    : $"{mins / 60}h {mins % 60}m"
+            };
+        }
+    }
 
     /// <summary>
     /// Date display for list grouping.
@@ -197,7 +204,7 @@ public class MeetingDetail : BaseModel
     /// <summary>
     /// Height in day/week calendar based on duration.
     /// </summary>
-    public double CalendarHeight => Math.Max(DurationMinutes, 15); // Minimum 15px
+    public double CalendarHeight => Math.Max(DurationMinutes ?? 30, 15); // Minimum 15px
 
     /// <summary>
     /// Day of week index (0=Sunday, 6=Saturday).
@@ -228,25 +235,111 @@ public class MeetingDetail : BaseModel
 }
 
 /// <summary>
-/// Meeting attendee for display.
+/// Meeting attendee - maps to the meeting_attendees table in Supabase.
 /// </summary>
-public class MeetingAttendee
+[Table("meeting_attendees")]
+public class MeetingAttendee : BaseModel
 {
+    [PrimaryKey("id", false)]
     public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("meeting_id")]
+    public Guid MeetingId { get; set; }
+
+    [Column("team_member_id")]
+    public Guid TeamMemberId { get; set; }
+
+    [Column("role")]
+    public string Role { get; set; } = "attendee";
+
+    [Column("response_status")]
+    public string ResponseStatus { get; set; } = "pending";
+
+    [Column("attended")]
+    public bool? Attended { get; set; }
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    #region Non-DB Properties (set by service)
+
+    /// <summary>
+    /// Team member name (set by service after join with team_members).
+    /// </summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Team member email (set by service).
+    /// </summary>
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Initials for avatar display.
+    /// </summary>
     public string Initials => string.Join("", Name.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => p[0])).ToUpper();
-    public bool IsOrganizer { get; set; }
-    public string ResponseStatus { get; set; } = "pending"; // accepted, declined, tentative, pending
+
+    /// <summary>
+    /// Whether this attendee is the organizer.
+    /// </summary>
+    public bool IsOrganizer => Role?.ToLower() == "organizer";
+
+    #endregion
 }
 
 /// <summary>
-/// Meeting agenda item.
+/// Meeting agenda item - maps to the meeting_agenda_items table in Supabase.
 /// </summary>
-public class MeetingAgendaItem
+[Table("meeting_agenda_items")]
+public class MeetingAgendaItem : BaseModel
 {
+    [PrimaryKey("id", false)]
     public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("meeting_id")]
+    public Guid MeetingId { get; set; }
+
+    [Column("added_by")]
+    public Guid AddedBy { get; set; }
+
+    [Column("title")]
     public string Title { get; set; } = string.Empty;
-    public bool IsCompleted { get; set; }
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("sort_order")]
     public int SortOrder { get; set; }
+
+    [Column("is_private")]
+    public bool IsPrivate { get; set; }
+
+    [Column("is_completed")]
+    public bool IsCompleted { get; set; }
+
+    [Column("completed_at")]
+    public DateTime? CompletedAt { get; set; }
+
+    [Column("linked_entity_type")]
+    public string? LinkedEntityType { get; set; }
+
+    [Column("linked_entity_id")]
+    public Guid? LinkedEntityId { get; set; }
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
 }

@@ -11,6 +11,25 @@
         <vm:TodayViewModel/>
     </Design.DataContext>
 
+    <UserControl.Styles>
+        <!-- Toggle button style for Today/Week selector -->
+        <Style Selector="Button.toggle-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.toggle-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Button.toggle-button.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.toggle-button.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </UserControl.Styles>
+
     <!-- Main grid layout - no scrolling needed -->
     <Grid RowDefinitions="Auto,Auto,Auto,*">
         
@@ -27,15 +46,42 @@
                            FontSize="20"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource BrushTextPrimary}"/>
-                <TextBlock Text="{Binding TodayDateText}"
+                <TextBlock Text="{Binding DateRangeText}"
                            FontSize="12"
                            Foreground="{DynamicResource BrushTextSecondary}"/>
             </StackPanel>
             
-            <!-- Refresh button -->
-            <Button Grid.Column="1" Command="{Binding RefreshCommand}" Classes="icon-button" ToolTip.Tip="Refresh">
-                <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" Width="18" Height="18"/>
-            </Button>
+            <!-- Today/Week toggle + Refresh button -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <!-- Scope Toggle -->
+                <Border Background="{DynamicResource BrushSurface}" 
+                        CornerRadius="6" 
+                        BorderBrush="{DynamicResource BrushBorder}" 
+                        BorderThickness="1"
+                        Padding="2">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Classes="toggle-button" 
+                                Classes.selected="{Binding IsTodayScope}"
+                                Command="{Binding SetScopeCommand}"
+                                CommandParameter="Today"
+                                Padding="10,4">
+                            <TextBlock Text="Today" FontSize="12"/>
+                        </Button>
+                        <Button Classes="toggle-button"
+                                Classes.selected="{Binding IsWeekScope}"
+                                Command="{Binding SetScopeCommand}"
+                                CommandParameter="Week"
+                                Padding="10,4">
+                            <TextBlock Text="Week" FontSize="12"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Refresh button -->
+                <Button Command="{Binding RefreshCommand}" Classes="icon-button" ToolTip.Tip="Refresh">
+                    <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" Width="18" Height="18"/>
+                </Button>
+            </StackPanel>
         </Grid>
         
         <!-- Row 1: Compact Stat Cards -->

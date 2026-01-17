@@ -25,6 +25,7 @@
             <converters:BoolToWidthConverter x:Key="BoolToWidthConverter"/>
             <converters:BoolToHighlightBackgroundConverter x:Key="BoolToHighlightBackgroundConverter"/>
             <converters:BoolToForegroundConverter x:Key="BoolToForegroundConverter"/>
+            <converters:GoalStatusToBackgroundConverter x:Key="GoalStatusToBackgroundConverter"/>
         </ResourceDictionary>
     </Application.Resources>
   

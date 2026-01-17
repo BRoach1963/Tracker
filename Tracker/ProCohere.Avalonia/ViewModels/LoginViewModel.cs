@@ -60,6 +60,17 @@ public partial class LoginViewModel : ViewModelBase
 
             if (success)
             {
+                // Get the full user session (includes access check, team member, and role)
+                var session = await AuthService.Instance.GetUserSessionAsync("procohere");
+                
+                if (!session.HasAccess)
+                {
+                    // Sign them out - they authenticated but don't have product access
+                    await AuthService.Instance.SignOutAsync();
+                    SetError(session.Error ?? "You don't have access to ProCohere. Please contact your administrator.");
+                    return;
+                }
+                
                 SaveRememberedSettings();
                 LoginSuccessful?.Invoke();
             }

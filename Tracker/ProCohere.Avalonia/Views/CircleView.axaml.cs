@@ -69,4 +69,98 @@ public partial class CircleView : UserControl
             }
         }
     }
+
+    #region Goals Tab Handlers
+
+    private void GoalFilter_All_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetGoalFilterCommand.Execute(GoalFilter.All);
+        }
+    }
+
+    private void GoalFilter_OnTrack_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetGoalFilterCommand.Execute(GoalFilter.OnTrack);
+        }
+    }
+
+    private void GoalFilter_AtRisk_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetGoalFilterCommand.Execute(GoalFilter.AtRisk);
+        }
+    }
+
+    private void GoalFilter_OffTrack_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetGoalFilterCommand.Execute(GoalFilter.OffTrack);
+        }
+    }
+
+    private void GoalCard_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is GoalDetail goal)
+        {
+            if (DataContext is CircleViewModel vm)
+            {
+                vm.SelectGoalCommand.Execute(goal);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Feedback Tab Handlers
+
+    private void FeedbackFilter_All_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetFeedbackFilterCommand.Execute(FeedbackFilter.All);
+        }
+    }
+
+    private void FeedbackFilter_Praise_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetFeedbackFilterCommand.Execute(FeedbackFilter.Praise);
+        }
+    }
+
+    private void FeedbackFilter_Constructive_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetFeedbackFilterCommand.Execute(FeedbackFilter.Constructive);
+        }
+    }
+
+    private void FeedbackFilter_Coaching_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetFeedbackFilterCommand.Execute(FeedbackFilter.Coaching);
+        }
+    }
+
+    private void FeedbackCard_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is FeedbackDetail feedback)
+        {
+            if (DataContext is CircleViewModel vm)
+            {
+                vm.SelectFeedbackCommand.Execute(feedback);
+            }
+        }
+    }
+
+    #endregion
 }

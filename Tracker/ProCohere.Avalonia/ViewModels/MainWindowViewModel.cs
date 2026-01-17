@@ -16,7 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PageTitle))]
-    private NavigationItem _selectedNavigation = NavigationItem.Today;
+    private NavigationItem _selectedNavigation = NavigationItem.Briefing;
 
     [ObservableProperty]
     private string _selectedSubNavigation = string.Empty;
@@ -29,11 +29,11 @@ public partial class MainWindowViewModel : ViewModelBase
     #region Page Title
 
     /// <summary>
-    /// Gets the page title - shows "Today" for dashboard, otherwise the nav item name.
+    /// Gets the page title based on current navigation.
     /// </summary>
     public string PageTitle => SelectedNavigation switch
     {
-        NavigationItem.Today => "Today",
+        NavigationItem.Briefing => "Briefing",
         NavigationItem.Circle => "Circle",
         NavigationItem.Pulse => "Pulse",
         NavigationItem.Chronicle => "Chronicle",
@@ -295,7 +295,7 @@ public partial class MainWindowViewModel : ViewModelBase
 /// </summary>
 public enum NavigationItem
 {
-    Today,      // Dashboard - what's relevant now
+    Briefing,   // Dashboard - what's relevant now (today/week view)
     Circle,     // Team, 1:1s, Feedback, Goals
     Pulse,      // Goals, Metrics, Projects, Tasks
     Chronicle,  // Notes, Reports

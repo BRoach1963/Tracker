@@ -29,6 +29,63 @@ public partial class TodayViewModel : ViewModelBase
 
     #endregion
 
+    #region Scope (Today/Week)
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTodayScope))]
+    [NotifyPropertyChangedFor(nameof(IsWeekScope))]
+    [NotifyPropertyChangedFor(nameof(DateRangeText))]
+    private BriefingScope _currentScope = BriefingScope.Today;
+
+    /// <summary>
+    /// Whether the current scope is Today.
+    /// </summary>
+    public bool IsTodayScope => CurrentScope == BriefingScope.Today;
+
+    /// <summary>
+    /// Whether the current scope is Week.
+    /// </summary>
+    public bool IsWeekScope => CurrentScope == BriefingScope.Week;
+
+    /// <summary>
+    /// Date range text based on scope.
+    /// </summary>
+    public string DateRangeText => CurrentScope switch
+    {
+        BriefingScope.Today => DateTime.Now.ToString("dddd, MMMM d, yyyy"),
+        BriefingScope.Week => GetWeekRangeText(),
+        _ => DateTime.Now.ToString("dddd, MMMM d, yyyy")
+    };
+
+    private static string GetWeekRangeText()
+    {
+        var today = DateTime.Now;
+        var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+        var endOfWeek = startOfWeek.AddDays(6);
+        
+        if (startOfWeek.Month == endOfWeek.Month)
+            return $"{startOfWeek:MMMM d} - {endOfWeek:d}, {endOfWeek:yyyy}";
+        else if (startOfWeek.Year == endOfWeek.Year)
+            return $"{startOfWeek:MMM d} - {endOfWeek:MMM d}, {endOfWeek:yyyy}";
+        else
+            return $"{startOfWeek:MMM d, yyyy} - {endOfWeek:MMM d, yyyy}";
+    }
+
+    [RelayCommand]
+    private async Task SetScope(string scope)
+    {
+        CurrentScope = scope switch
+        {
+            "Week" => BriefingScope.Week,
+            _ => BriefingScope.Today
+        };
+        
+        // Refresh data with new scope
+        await LoadDataAsync();
+    }
+
+    #endregion
+
     #region Stats
 
     [ObservableProperty]
@@ -57,11 +114,6 @@ public partial class TodayViewModel : ViewModelBase
     public string TaskCompletionText => $"{TaskCompletionPercent}%";
     public string GoalsOnTrackText => $"{GoalsOnTrackPercent}%";
     public string ActiveProjectCountText => ActiveProjectCount.ToString();
-
-    /// <summary>
-    /// Today's date formatted nicely for the header.
-    /// </summary>
-    public string TodayDateText => DateTime.Now.ToString("dddd, MMMM d, yyyy");
 
     /// <summary>
     /// Color for task completion (green > 75%, amber 50-75%, red < 50%).
@@ -291,4 +343,13 @@ public partial class TodayViewModel : ViewModelBase
         }
         return string.Join(" ", words);
     }
+}
+
+/// <summary>
+/// Briefing view scope options.
+/// </summary>
+public enum BriefingScope
+{
+    Today,
+    Week
 }

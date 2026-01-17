@@ -12,14 +12,11 @@ namespace ProCohere.Avalonia.Models;
 [Table("users")]
 public class UserProfile : BaseModel
 {
+    /// <summary>
+    /// Primary key - same as auth.users.id (no separate supabase_auth_id in new schema).
+    /// </summary>
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
-
-    /// <summary>
-    /// Links to Supabase auth.users.id
-    /// </summary>
-    [Column("supabase_auth_id")]
-    public Guid? SupabaseAuthId { get; set; }
 
     /// <summary>
     /// Organization this user belongs to.

@@ -29,11 +29,11 @@ public class TaskDetail : BaseModel
     [Column("due_date")]
     public DateTime? DueDate { get; set; }
 
-    [Column("owner_team_member_id")]
+    [Column("assigned_to")]
     public Guid? OwnerTeamMemberId { get; set; }
 
-    [Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
+    [Column("created_by")]
+    public Guid? CreatedByTeamMemberId { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }

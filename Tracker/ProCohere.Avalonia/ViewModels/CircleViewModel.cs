@@ -189,6 +189,66 @@ public partial class CircleViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isDetailPanelOpen;
 
+    [ObservableProperty]
+    private MemberDetailTab _memberDetailTab = MemberDetailTab.Overview;
+
+    /// <summary>
+    /// Goals owned by the selected team member.
+    /// </summary>
+    public ObservableCollection<GoalDetail> MemberGoals { get; } = new();
+
+    /// <summary>
+    /// Meetings involving the selected team member.
+    /// </summary>
+    public ObservableCollection<MeetingDetail> MemberMeetings { get; } = new();
+
+    /// <summary>
+    /// Feedback for the selected team member.
+    /// </summary>
+    public ObservableCollection<FeedbackDetail> MemberFeedback { get; } = new();
+
+    partial void OnSelectedTeamMemberChanged(TeamMemberDetail? value)
+    {
+        // Reset to Overview tab when member changes
+        MemberDetailTab = MemberDetailTab.Overview;
+        LoadMemberRelatedData();
+    }
+
+    private void LoadMemberRelatedData()
+    {
+        MemberGoals.Clear();
+        MemberMeetings.Clear();
+        MemberFeedback.Clear();
+
+        if (SelectedTeamMember == null) return;
+
+        // Filter goals owned by this member
+        foreach (var goal in _allGoals.Where(g => g.OwnerTeamMemberId == SelectedTeamMember.Id))
+        {
+            MemberGoals.Add(goal);
+        }
+
+        // Filter meetings with this member (by linked team member or attendee name match)
+        foreach (var meeting in Meetings.Where(m => 
+            m.TeamMemberId == SelectedTeamMember.Id ||
+            m.Attendees?.Any(a => a.Name == SelectedTeamMember.FullName || a.Email == SelectedTeamMember.Email) == true))
+        {
+            MemberMeetings.Add(meeting);
+        }
+
+        // Filter feedback for this member
+        foreach (var fb in _allFeedback.Where(f => f.TeamMemberId == SelectedTeamMember.Id))
+        {
+            MemberFeedback.Add(fb);
+        }
+    }
+
+    [RelayCommand]
+    private void SetMemberDetailTab(MemberDetailTab tab)
+    {
+        MemberDetailTab = tab;
+    }
+
     /// <summary>
     /// Select a team member and open the detail panel.
     /// </summary>
@@ -263,6 +323,21 @@ public partial class CircleViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isMeetingDetailOpen;
+
+    [ObservableProperty]
+    private MeetingDetailTab _meetingDetailTab = MeetingDetailTab.Overview;
+
+    partial void OnSelectedMeetingChanged(MeetingDetail? value)
+    {
+        // Reset to Overview tab when meeting changes
+        MeetingDetailTab = MeetingDetailTab.Overview;
+    }
+
+    [RelayCommand]
+    private void SetMeetingDetailTab(MeetingDetailTab tab)
+    {
+        MeetingDetailTab = tab;
+    }
 
     /// <summary>
     /// Meetings filtered for the current view (based on date range).
@@ -546,9 +621,9 @@ public partial class CircleViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void GiveFeedback(TeamMemberDetail? member)
+    private void GiveFeedback()
     {
-        Debug.WriteLine($"Give Feedback to: {member?.FullName ?? "team member"}");
+        Debug.WriteLine("Give Feedback clicked");
         // TODO: Open feedback dialog
     }
 
@@ -556,6 +631,361 @@ public partial class CircleViewModel : ViewModelBase
     private async Task RefreshAsync()
     {
         await LoadDataAsync();
+    }
+
+    #endregion
+
+    #region Goals Tab
+
+    [ObservableProperty]
+    private GoalDetail? _selectedGoal;
+
+    [ObservableProperty]
+    private bool _isGoalDetailOpen;
+
+    [ObservableProperty]
+    private GoalFilter _goalFilter = GoalFilter.All;
+
+    /// <summary>
+    /// All goals.
+    /// </summary>
+    private readonly ObservableCollection<GoalDetail> _allGoals = new();
+
+    /// <summary>
+    /// Filtered goals displayed in the list.
+    /// </summary>
+    public ObservableCollection<GoalDetail> FilteredGoals { get; } = new();
+
+    // Goal stats
+    public int OnTrackGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "on_track" or "on-track");
+    public int AtRiskGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "at_risk" or "at-risk");
+    public int OffTrackGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "off_track" or "off-track");
+    public int TotalGoalsCount => _allGoals.Count;
+
+    partial void OnGoalFilterChanged(GoalFilter value)
+    {
+        ApplyGoalFilters();
+        // Close detail panel when filter changes
+        IsGoalDetailOpen = false;
+        SelectedGoal = null;
+    }
+
+    private void ApplyGoalFilters()
+    {
+        FilteredGoals.Clear();
+        
+        var filtered = GoalFilter switch
+        {
+            GoalFilter.OnTrack => _allGoals.Where(g => g.Status?.ToLower() is "on_track" or "on-track"),
+            GoalFilter.AtRisk => _allGoals.Where(g => g.Status?.ToLower() is "at_risk" or "at-risk"),
+            GoalFilter.OffTrack => _allGoals.Where(g => g.Status?.ToLower() is "off_track" or "off-track"),
+            _ => _allGoals.AsEnumerable()
+        };
+
+        foreach (var goal in filtered)
+        {
+            FilteredGoals.Add(goal);
+        }
+    }
+
+    [RelayCommand]
+    private void SetGoalFilter(GoalFilter filter)
+    {
+        GoalFilter = filter;
+    }
+
+    [RelayCommand]
+    private void SelectGoal(GoalDetail? goal)
+    {
+        if (goal == null)
+        {
+            SelectedGoal = null;
+            IsGoalDetailOpen = false;
+            return;
+        }
+
+        if (SelectedGoal?.Id == goal.Id)
+        {
+            IsGoalDetailOpen = !IsGoalDetailOpen;
+            if (!IsGoalDetailOpen)
+                SelectedGoal = null;
+        }
+        else
+        {
+            SelectedGoal = goal;
+            IsGoalDetailOpen = true;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseGoalDetail()
+    {
+        IsGoalDetailOpen = false;
+        SelectedGoal = null;
+    }
+
+    private void LoadSampleGoals()
+    {
+        _allGoals.Clear();
+        var members = _allTeamMembers.ToList();
+        
+        _allGoals.Add(new GoalDetail
+        {
+            Id = Guid.NewGuid(),
+            Title = "Increase Customer Satisfaction Score",
+            Description = "Improve NPS from 42 to 55 through targeted initiatives focusing on response time and product quality.",
+            Status = "on_track",
+            ProgressPercent = 75,
+            StartDate = DateTime.Today.AddMonths(-2),
+            EndDate = DateTime.Today.AddMonths(1),
+            OwnerName = members.FirstOrDefault()?.FullName ?? "Team"
+        });
+        
+        _allGoals.Add(new GoalDetail
+        {
+            Id = Guid.NewGuid(),
+            Title = "Launch Mobile App v2.0",
+            Description = "Complete redesign and launch of mobile application with new features including offline mode and push notifications.",
+            Status = "at_risk",
+            ProgressPercent = 45,
+            StartDate = DateTime.Today.AddMonths(-3),
+            EndDate = DateTime.Today.AddDays(21),
+            OwnerName = members.Skip(1).FirstOrDefault()?.FullName ?? "Engineering"
+        });
+        
+        _allGoals.Add(new GoalDetail
+        {
+            Id = Guid.NewGuid(),
+            Title = "Reduce Support Ticket Volume",
+            Description = "Decrease monthly support tickets by 30% through improved documentation and self-service tools.",
+            Status = "on_track",
+            ProgressPercent = 88,
+            StartDate = DateTime.Today.AddMonths(-4),
+            EndDate = DateTime.Today.AddDays(14),
+            OwnerName = members.Skip(2).FirstOrDefault()?.FullName ?? "Support"
+        });
+        
+        _allGoals.Add(new GoalDetail
+        {
+            Id = Guid.NewGuid(),
+            Title = "Implement CI/CD Pipeline",
+            Description = "Establish automated testing and deployment pipeline to reduce release cycle time from 2 weeks to 2 days.",
+            Status = "off_track",
+            ProgressPercent = 25,
+            StartDate = DateTime.Today.AddMonths(-2),
+            EndDate = DateTime.Today.AddDays(-7), // Overdue
+            OwnerName = members.Skip(3).FirstOrDefault()?.FullName ?? "DevOps"
+        });
+        
+        _allGoals.Add(new GoalDetail
+        {
+            Id = Guid.NewGuid(),
+            Title = "Expand to European Market",
+            Description = "Complete GDPR compliance and launch marketing campaigns in UK, Germany, and France.",
+            Status = "on_track",
+            ProgressPercent = 60,
+            StartDate = DateTime.Today.AddMonths(-1),
+            EndDate = DateTime.Today.AddMonths(3),
+            OwnerName = members.Skip(4).FirstOrDefault()?.FullName ?? "Marketing"
+        });
+        
+        _allGoals.Add(new GoalDetail
+        {
+            Id = Guid.NewGuid(),
+            Title = "Team Training Program",
+            Description = "Complete leadership training for all senior team members and technical certifications for engineers.",
+            Status = "at_risk",
+            ProgressPercent = 35,
+            StartDate = DateTime.Today.AddMonths(-2),
+            EndDate = DateTime.Today.AddMonths(1),
+            OwnerName = "HR"
+        });
+
+        ApplyGoalFilters();
+        OnPropertyChanged(nameof(OnTrackGoalsCount));
+        OnPropertyChanged(nameof(AtRiskGoalsCount));
+        OnPropertyChanged(nameof(OffTrackGoalsCount));
+        OnPropertyChanged(nameof(TotalGoalsCount));
+    }
+
+    #endregion
+
+    #region Feedback Tab
+
+    [ObservableProperty]
+    private FeedbackDetail? _selectedFeedback;
+
+    [ObservableProperty]
+    private bool _isFeedbackDetailOpen;
+
+    [ObservableProperty]
+    private FeedbackFilter _feedbackFilter = FeedbackFilter.All;
+
+    /// <summary>
+    /// All feedback items.
+    /// </summary>
+    private readonly ObservableCollection<FeedbackDetail> _allFeedback = new();
+
+    /// <summary>
+    /// Filtered feedback displayed in the list.
+    /// </summary>
+    public ObservableCollection<FeedbackDetail> FilteredFeedback { get; } = new();
+
+    // Feedback stats
+    public int PraiseFeedbackCount => _allFeedback.Count(f => f.FeedbackType?.ToLower() == "praise");
+    public int ConstructiveFeedbackCount => _allFeedback.Count(f => f.FeedbackType?.ToLower() == "constructive");
+    public int CoachingFeedbackCount => _allFeedback.Count(f => f.FeedbackType?.ToLower() == "coaching");
+    public int TotalFeedbackCount => _allFeedback.Count;
+
+    partial void OnFeedbackFilterChanged(FeedbackFilter value)
+    {
+        ApplyFeedbackFilters();
+        // Close detail panel when filter changes
+        IsFeedbackDetailOpen = false;
+        SelectedFeedback = null;
+    }
+
+    private void ApplyFeedbackFilters()
+    {
+        FilteredFeedback.Clear();
+        
+        var filtered = FeedbackFilter switch
+        {
+            FeedbackFilter.Praise => _allFeedback.Where(f => f.FeedbackType?.ToLower() == "praise"),
+            FeedbackFilter.Constructive => _allFeedback.Where(f => f.FeedbackType?.ToLower() == "constructive"),
+            FeedbackFilter.Coaching => _allFeedback.Where(f => f.FeedbackType?.ToLower() == "coaching"),
+            _ => _allFeedback.AsEnumerable()
+        };
+
+        foreach (var feedback in filtered.OrderByDescending(f => f.CreatedAt))
+        {
+            FilteredFeedback.Add(feedback);
+        }
+    }
+
+    [RelayCommand]
+    private void SetFeedbackFilter(FeedbackFilter filter)
+    {
+        FeedbackFilter = filter;
+    }
+
+    [RelayCommand]
+    private void SelectFeedback(FeedbackDetail? feedback)
+    {
+        if (feedback == null)
+        {
+            SelectedFeedback = null;
+            IsFeedbackDetailOpen = false;
+            return;
+        }
+
+        if (SelectedFeedback?.Id == feedback.Id)
+        {
+            IsFeedbackDetailOpen = !IsFeedbackDetailOpen;
+            if (!IsFeedbackDetailOpen)
+                SelectedFeedback = null;
+        }
+        else
+        {
+            SelectedFeedback = feedback;
+            IsFeedbackDetailOpen = true;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseFeedbackDetail()
+    {
+        IsFeedbackDetailOpen = false;
+        SelectedFeedback = null;
+    }
+
+    private void LoadSampleFeedback()
+    {
+        _allFeedback.Clear();
+        var members = _allTeamMembers.ToList();
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.FirstOrDefault()?.Id,
+            RecipientName = members.FirstOrDefault()?.FullName ?? "Alex Martinez",
+            FeedbackType = "praise",
+            Content = "Outstanding presentation at the quarterly review! Your ability to communicate complex technical concepts to non-technical stakeholders was impressive. The visualizations really helped everyone understand the project status.",
+            Context = "Q4 Quarterly Review",
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        });
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.Skip(1).FirstOrDefault()?.Id,
+            RecipientName = members.Skip(1).FirstOrDefault()?.FullName ?? "Sarah Chen",
+            FeedbackType = "constructive",
+            Content = "The code review feedback could be more specific. Instead of 'this needs work', try pointing to specific lines and suggesting concrete improvements. This will help junior developers learn faster.",
+            Context = "Code Review Process",
+            CreatedAt = DateTime.UtcNow.AddDays(-3)
+        });
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id,
+            RecipientName = members.Skip(2).FirstOrDefault()?.FullName ?? "Michael Johnson",
+            FeedbackType = "coaching",
+            Content = "Great progress on stakeholder management! For next level growth, focus on anticipating questions before meetings and preparing concise data-backed answers. Consider shadowing a senior PM for a week.",
+            Context = "Career Development",
+            CreatedAt = DateTime.UtcNow.AddDays(-5)
+        });
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.Skip(3).FirstOrDefault()?.Id,
+            RecipientName = members.Skip(3).FirstOrDefault()?.FullName ?? "Emily Davis",
+            FeedbackType = "praise",
+            Content = "Thank you for mentoring the new team members! Your patience and clear explanations have helped them ramp up 50% faster than expected. This is exactly the culture we want to build.",
+            Context = "New Hire Onboarding",
+            CreatedAt = DateTime.UtcNow.AddDays(-7)
+        });
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.FirstOrDefault()?.Id,
+            RecipientName = members.FirstOrDefault()?.FullName ?? "Alex Martinez",
+            FeedbackType = "constructive",
+            Content = "Meeting facilitation could be improved. Try using timeboxing for each agenda item and designating someone to take notes. This will help keep discussions focused and ensure action items are captured.",
+            Context = "Team Meetings",
+            CreatedAt = DateTime.UtcNow.AddDays(-10)
+        });
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.Skip(4).FirstOrDefault()?.Id,
+            RecipientName = members.Skip(4).FirstOrDefault()?.FullName ?? "David Kim",
+            FeedbackType = "praise",
+            Content = "Exceptional debugging skills demonstrated on the production incident last week. You remained calm under pressure and methodically isolated the issue. The post-mortem documentation was thorough and actionable.",
+            Context = "Production Incident Response",
+            CreatedAt = DateTime.UtcNow.AddDays(-14)
+        });
+        
+        _allFeedback.Add(new FeedbackDetail
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id,
+            RecipientName = members.Skip(2).FirstOrDefault()?.FullName ?? "Michael Johnson",
+            FeedbackType = "coaching",
+            Content = "To develop your technical leadership, consider leading a tech talk on your recent architecture decisions. Also, try writing RFC documents for major changes - this builds trust and creates alignment.",
+            Context = "Technical Leadership",
+            CreatedAt = DateTime.UtcNow.AddDays(-21)
+        });
+
+        ApplyFeedbackFilters();
+        OnPropertyChanged(nameof(PraiseFeedbackCount));
+        OnPropertyChanged(nameof(ConstructiveFeedbackCount));
+        OnPropertyChanged(nameof(CoachingFeedbackCount));
+        OnPropertyChanged(nameof(TotalFeedbackCount));
     }
 
     #endregion
@@ -600,9 +1030,20 @@ public partial class CircleViewModel : ViewModelBase
             var dashboardData = await DashboardService.Instance.LoadDashboardDataAsync();
             Log($"[CircleViewModel] Got {dashboardData.TeamMembers.Count} team members");
             
+            // Get current user's team member ID to filter them out
+            var currentTeamMember = AuthService.Instance.CurrentTeamMember;
+            var currentTeamMemberId = currentTeamMember?.Id;
+            Log($"[CircleViewModel] Current user team member ID: {currentTeamMemberId}");
+            
             _allTeamMembers.Clear();
             foreach (var member in dashboardData.TeamMembers)
             {
+                // Exclude the current user from the team list
+                if (currentTeamMemberId.HasValue && member.Id == currentTeamMemberId.Value)
+                {
+                    Log($"[CircleViewModel] Filtering out current user: {member.FullName}");
+                    continue;
+                }
                 _allTeamMembers.Add(member);
             }
             
@@ -622,9 +1063,69 @@ public partial class CircleViewModel : ViewModelBase
             // Apply filters
             ApplyFilters();
 
-            // Load sample meetings for testing
-            LoadSampleMeetings();
+            // Load meetings from dashboard data
+            Meetings.Clear();
+            foreach (var meeting in dashboardData.Meetings)
+            {
+                // Enrich with team member name if available
+                if (meeting.TeamMemberId.HasValue)
+                {
+                    var member = _allTeamMembers.FirstOrDefault(m => m.Id == meeting.TeamMemberId.Value);
+                    if (member != null)
+                    {
+                        meeting.TeamMemberName = member.FullName;
+                        // Only add attendee if we don't already have them from the database
+                        if (!meeting.Attendees.Any(a => a.TeamMemberId == member.Id))
+                        {
+                            meeting.Attendees.Add(new MeetingAttendee 
+                            { 
+                                Id = Guid.NewGuid(), 
+                                TeamMemberId = member.Id,
+                                MeetingId = meeting.Id,
+                                Name = member.FullName, 
+                                Email = member.Email ?? "", 
+                                Role = "attendee",
+                                ResponseStatus = "accepted" 
+                            });
+                        }
+                    }
+                }
+                Meetings.Add(meeting);
+            }
             RefreshMeetingsView();
+
+            // Load real goals from database
+            _allGoals.Clear();
+            var memberDict = _allTeamMembers.ToDictionary(m => m.Id);
+            foreach (var goal in dashboardData.Goals)
+            {
+                // Enrich with owner name
+                if (goal.OwnerTeamMemberId.HasValue && memberDict.TryGetValue(goal.OwnerTeamMemberId.Value, out var owner))
+                {
+                    goal.OwnerName = owner.FullName;
+                }
+                _allGoals.Add(goal);
+            }
+            ApplyGoalFilters();
+            Log($"[CircleViewModel] Loaded {_allGoals.Count} goals from database");
+            
+            // Load real feedback from database
+            _allFeedback.Clear();
+            foreach (var feedback in dashboardData.Feedback)
+            {
+                // Enrich with recipient name
+                if (feedback.TeamMemberId.HasValue && memberDict.TryGetValue(feedback.TeamMemberId.Value, out var recipient))
+                {
+                    feedback.RecipientName = recipient.FullName;
+                }
+                _allFeedback.Add(feedback);
+            }
+            ApplyFeedbackFilters();
+            OnPropertyChanged(nameof(PraiseFeedbackCount));
+            OnPropertyChanged(nameof(ConstructiveFeedbackCount));
+            OnPropertyChanged(nameof(CoachingFeedbackCount));
+            OnPropertyChanged(nameof(TotalFeedbackCount));
+            Log($"[CircleViewModel] Loaded {_allFeedback.Count} feedback from database");
 
             Log("[CircleViewModel] LoadDataAsync completed");
         }
@@ -638,67 +1139,6 @@ public partial class CircleViewModel : ViewModelBase
         {
             IsLoading = false;
         }
-    }
-
-    private void LoadSampleMeetings()
-    {
-        Meetings.Clear();
-        var today = DateTime.Today;
-        var members = _allTeamMembers.ToList();
-
-        // Today's meetings
-        Meetings.Add(CreateMeeting("1:1 with Alex Martinez", "one_on_one", today.AddHours(9), 30, members.FirstOrDefault(m => m.FirstName == "Alex")));
-        Meetings.Add(CreateMeeting("Team Standup", "standup", today.AddHours(10), 15, null, true));
-        Meetings.Add(CreateMeeting("Project Review", "review", today.AddHours(14), 60, null, true));
-
-        // Tomorrow
-        Meetings.Add(CreateMeeting("1:1 with David Kim", "one_on_one", today.AddDays(1).AddHours(10), 30, members.FirstOrDefault(m => m.FirstName == "David")));
-        Meetings.Add(CreateMeeting("Sprint Planning", "team", today.AddDays(1).AddHours(13), 90, null, true));
-
-        // This week
-        Meetings.Add(CreateMeeting("1:1 with Emily Rodriguez", "one_on_one", today.AddDays(2).AddHours(11), 45, members.FirstOrDefault(m => m.FirstName == "Emily")));
-        Meetings.Add(CreateMeeting("Design Review", "review", today.AddDays(3).AddHours(15), 60, null, true));
-        Meetings.Add(CreateMeeting("1:1 with Jessica Thompson", "one_on_one", today.AddDays(4).AddHours(9).AddMinutes(30), 30, members.FirstOrDefault(m => m.FirstName == "Jessica")));
-
-        // Next week
-        Meetings.Add(CreateMeeting("Quarterly Planning", "team", today.AddDays(7).AddHours(10), 120, null, true));
-        Meetings.Add(CreateMeeting("1:1 with Michael Chen", "one_on_one", today.AddDays(8).AddHours(14), 30, members.FirstOrDefault(m => m.FirstName == "Michael")));
-    }
-
-    private MeetingDetail CreateMeeting(string title, string type, DateTime scheduledAt, int duration, TeamMemberDetail? member, bool isTeamMeeting = false)
-    {
-        var meeting = new MeetingDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = title,
-            MeetingType = type,
-            ScheduledAt = scheduledAt,
-            DurationMinutes = duration,
-            TeamMemberId = member?.Id,
-            TeamMemberName = member?.FullName,
-            Location = isTeamMeeting ? "Conference Room A" : null,
-            VideoLink = isTeamMeeting ? "https://teams.microsoft.com/meet/123" : null
-        };
-
-        // Add attendees
-        if (member != null)
-        {
-            meeting.Attendees.Add(new MeetingAttendee { Id = member.Id, Name = member.FullName, Email = member.Email ?? "", IsOrganizer = false, ResponseStatus = "accepted" });
-        }
-        
-        if (isTeamMeeting)
-        {
-            foreach (var m in _allTeamMembers.Take(5))
-            {
-                meeting.Attendees.Add(new MeetingAttendee { Id = m.Id, Name = m.FullName, Email = m.Email ?? "", IsOrganizer = false, ResponseStatus = "accepted" });
-            }
-        }
-
-        // Add sample agenda items
-        meeting.AgendaItems.Add(new MeetingAgendaItem { Id = Guid.NewGuid(), Title = "Review progress", SortOrder = 1, IsCompleted = false });
-        meeting.AgendaItems.Add(new MeetingAgendaItem { Id = Guid.NewGuid(), Title = "Discuss blockers", SortOrder = 2, IsCompleted = false });
-
-        return meeting;
     }
 }
 
@@ -733,6 +1173,50 @@ public enum MeetingsViewMode
     Week,
     Month,
     List
+}
+
+/// <summary>
+/// Filter options for goals.
+/// </summary>
+public enum GoalFilter
+{
+    All,
+    OnTrack,
+    AtRisk,
+    OffTrack
+}
+
+/// <summary>
+/// Filter options for feedback.
+/// </summary>
+public enum FeedbackFilter
+{
+    All,
+    Praise,
+    Constructive,
+    Coaching
+}
+
+/// <summary>
+/// Tabs within the team member detail flyout.
+/// </summary>
+public enum MemberDetailTab
+{
+    Overview,
+    Goals,
+    Meetings,
+    Feedback
+}
+
+/// <summary>
+/// Tabs within the meeting detail flyout.
+/// </summary>
+public enum MeetingDetailTab
+{
+    Overview,
+    Agenda,
+    Attendees,
+    Notes
 }
 
 /// <summary>

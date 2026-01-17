@@ -54,7 +54,19 @@ public partial class App : Application
 
             if (autoLoginSuccess)
             {
-                // Auto-login succeeded - go to main window
+                // Get the full user session (includes access check, team member, and role)
+                var session = await AuthService.Instance.GetUserSessionAsync("procohere");
+                
+                if (!session.HasAccess)
+                {
+                    // User authenticated but lost product access - sign them out
+                    System.Diagnostics.Debug.WriteLine($"Auto-login user no longer has ProCohere access: {session.Error}");
+                    await AuthService.Instance.SignOutAsync();
+                    ShowLoginWindow(desktop, splashWindow);
+                    return;
+                }
+                
+                // Auto-login succeeded and has product access - go to main window
                 var mainWindow = new MainWindow
                 {
                     DataContext = new MainWindowViewModel()

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -22,6 +24,29 @@ public class DashboardService
 
     #endregion
 
+    #region Logging
+
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ProCohere", "dashboard.log");
+
+    private static void Log(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
+        Debug.WriteLine(line);
+        Console.WriteLine(line);
+        try
+        {
+            var dir = Path.GetDirectoryName(_logPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            File.AppendAllText(_logPath, line + Environment.NewLine);
+        }
+        catch { }
+    }
+
+    #endregion
+
     #region Error Tracking
 
     /// <summary>
@@ -38,41 +63,46 @@ public class DashboardService
     /// </summary>
     public async Task<DashboardData> LoadDashboardDataAsync()
     {
-        Console.WriteLine("[DashboardService] LoadDashboardDataAsync starting...");
+        Log("LoadDashboardDataAsync starting...");
         var data = new DashboardData();
         LastError = null;
         var errors = new List<string>();
 
-        var client = AuthService.Instance.GetSupabaseClient();
+        // Use procohere client for app data (team_members, tasks, goals, etc.)
+        var client = AuthService.Instance.GetProCohereClient();
         var profile = AuthService.Instance.CurrentProfile;
 
-        Console.WriteLine($"[DashboardService] Client: {(client != null ? "OK" : "NULL")}, Profile: {(profile != null ? profile.Email : "NULL")}");
+        Log($"Client: {(client != null ? "OK" : "NULL")}, Profile: {(profile != null ? profile.Email : "NULL")}");
 
         if (client == null || profile == null)
         {
             LastError = "Not authenticated";
-            Console.WriteLine($"[DashboardService] ERROR: {LastError}");
+            Log($"ERROR: {LastError}");
             return data;
         }
 
         var userId = profile.Id;
-        Console.WriteLine($"[DashboardService] Loading data for user: {userId}");
+        Log($"Loading data for user: {userId}");
 
         // Load all data in parallel for speed
         var teamMembersTask = LoadTeamMembersAsync(client, userId);
         var tasksTask = LoadTasksAsync(client, userId);
         var goalsTask = LoadGoalsAsync(client, userId);
         var projectCountTask = LoadActiveProjectCountAsync(client, userId);
+        var meetingsTask = LoadMeetingsAsync(client, userId);
+        var feedbackTask = LoadFeedbackAsync(client, userId);
+        var agendaItemsTask = LoadAgendaItemsAsync(client, userId);
+        var attendeesTask = LoadAttendeesAsync(client, userId);
 
         try
         {
-            Console.WriteLine("[DashboardService] Awaiting parallel tasks...");
-            await Task.WhenAll(teamMembersTask, tasksTask, goalsTask, projectCountTask);
-            Console.WriteLine("[DashboardService] Parallel tasks complete");
+            Log("Awaiting parallel tasks...");
+            await Task.WhenAll(teamMembersTask, tasksTask, goalsTask, projectCountTask, meetingsTask, feedbackTask, agendaItemsTask, attendeesTask);
+            Log("Parallel tasks complete");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DashboardService] Parallel load error: {ex.Message}");
+            Log($"Parallel load error: {ex.Message}");
             errors.Add($"Parallel load: {ex.Message}");
         }
 
@@ -80,7 +110,47 @@ public class DashboardService
         data.TeamMembers = await teamMembersTask;
         data.Tasks = await tasksTask;
         data.Goals = await goalsTask;
-        Console.WriteLine($"[DashboardService] Results: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks, {data.Goals.Count} goals");
+        data.Meetings = await meetingsTask;
+        data.Feedback = await feedbackTask;
+        var agendaItems = await agendaItemsTask;
+        var attendees = await attendeesTask;
+        Log($"RESULTS: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks, {data.Goals.Count} goals, {data.Meetings.Count} meetings, {data.Feedback.Count} feedback, {agendaItems.Count} agenda items, {attendees.Count} attendees");
+
+        // Enrich meetings with agenda items
+        var agendaByMeeting = agendaItems
+            .GroupBy(a => a.MeetingId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(a => a.SortOrder).ToList());
+
+        foreach (var meeting in data.Meetings)
+        {
+            if (agendaByMeeting.TryGetValue(meeting.Id, out var items))
+            {
+                meeting.AgendaItems = items;
+            }
+        }
+
+        // Enrich meetings with attendees (and set attendee names from team members)
+        var attendeesByMeeting = attendees
+            .GroupBy(a => a.MeetingId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var memberDict = data.TeamMembers.ToDictionary(m => m.Id);
+        foreach (var meeting in data.Meetings)
+        {
+            if (attendeesByMeeting.TryGetValue(meeting.Id, out var meetingAttendees))
+            {
+                // Enrich attendee names from team members
+                foreach (var att in meetingAttendees)
+                {
+                    if (memberDict.TryGetValue(att.TeamMemberId, out var member))
+                    {
+                        att.Name = member.FullName;
+                        att.Email = member.Email ?? string.Empty;
+                    }
+                }
+                meeting.Attendees = meetingAttendees;
+            }
+        }
 
         // Calculate stats
         data.Stats = new DashboardStats
@@ -103,7 +173,6 @@ public class DashboardService
         }
 
         // Enrich tasks with owner names
-        var memberDict = data.TeamMembers.ToDictionary(m => m.Id);
         foreach (var task in data.Tasks)
         {
             if (task.OwnerTeamMemberId.HasValue && memberDict.TryGetValue(task.OwnerTeamMemberId.Value, out var owner))
@@ -136,17 +205,29 @@ public class DashboardService
     {
         try
         {
+            Log($"Loading team members...");
+            
+            // Query all active team members (RLS filters by organization)
             var result = await client.From<TeamMemberDetail>()
-                .Filter("manager_user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
                 .Filter("is_active", Supabase.Postgrest.Constants.Operator.Equals, "true")
                 .Order("first_name", Supabase.Postgrest.Constants.Ordering.Ascending)
                 .Get();
+
+            Log($"Team members returned: {result.Models?.Count ?? 0}");
+            if (result.Models != null)
+            {
+                foreach (var tm in result.Models.Take(3))
+                {
+                    Log($"  - {tm.FirstName} {tm.LastName}");
+                }
+            }
 
             return result.Models ?? new List<TeamMemberDetail>();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[DashboardService] TeamMembers error: {ex.Message}");
+            Log($"TEAM MEMBERS ERROR: {ex.Message}");
+            Log($"TEAM MEMBERS STACK: {ex.StackTrace}");
             return new List<TeamMemberDetail>();
         }
     }
@@ -155,17 +236,21 @@ public class DashboardService
     {
         try
         {
+            Log($"Loading tasks...");
+            
+            // Query all non-deleted tasks (RLS filters by organization)
             var result = await client.From<TaskDetail>()
-                .Filter("created_by_user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
                 .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Order("due_date", Supabase.Postgrest.Constants.Ordering.Ascending)
                 .Get();
 
+            Log($"Tasks returned: {result.Models?.Count ?? 0}");
             return result.Models ?? new List<TaskDetail>();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[DashboardService] Tasks error: {ex.Message}");
+            Log($"TASKS ERROR: {ex.Message}");
+            Log($"TASKS STACK: {ex.StackTrace}");
             return new List<TaskDetail>();
         }
     }
@@ -174,17 +259,21 @@ public class DashboardService
     {
         try
         {
+            Log($"Loading goals...");
+            
+            // Query all non-deleted goals (RLS filters by organization)
             var result = await client.From<GoalDetail>()
-                .Filter("created_by_user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
                 .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Order("title", Supabase.Postgrest.Constants.Ordering.Ascending)
                 .Get();
 
+            Log($"Goals returned: {result.Models?.Count ?? 0}");
             return result.Models ?? new List<GoalDetail>();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[DashboardService] Goals error: {ex.Message}");
+            Log($"GOALS ERROR: {ex.Message}");
+            Log($"GOALS STACK: {ex.StackTrace}");
             return new List<GoalDetail>();
         }
     }
@@ -202,8 +291,114 @@ public class DashboardService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[DashboardService] Projects error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[DashboardService] Project count error: {ex.Message}");
             return 0;
+        }
+    }
+
+    private async Task<List<MeetingDetail>> LoadMeetingsAsync(Supabase.Client client, Guid userId)
+    {
+        try
+        {
+            Log($"Loading meetings for user: {userId}");
+            
+            // First, let's see ALL meetings (RLS will still apply)
+            var allResult = await client.From<MeetingDetail>()
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Order("scheduled_at", Supabase.Postgrest.Constants.Ordering.Ascending)
+                .Get();
+            
+            Log($"All non-deleted meetings visible to this user: {allResult.Models?.Count ?? 0}");
+            
+            if (allResult.Models != null && allResult.Models.Count > 0)
+            {
+                foreach (var m in allResult.Models.Take(5))
+                {
+                    Log($"  - Meeting '{m.Title}' created_by: {m.CreatedByTeamMemberId}, scheduled: {m.ScheduledAt}");
+                }
+            }
+            else
+            {
+                Log("  (no meetings returned from database)");
+            }
+
+            // RLS already filters by organization, return all meetings for this org
+            Log($"Meetings for this user's org: {allResult.Models?.Count ?? 0}");
+            return allResult.Models ?? new List<MeetingDetail>();
+        }
+        catch (Exception ex)
+        {
+            Log($"MEETINGS ERROR: {ex.Message}");
+            Log($"MEETINGS STACK: {ex.StackTrace}");
+            return new List<MeetingDetail>();
+        }
+    }
+
+    private async Task<List<FeedbackDetail>> LoadFeedbackAsync(Supabase.Client client, Guid userId)
+    {
+        try
+        {
+            Log($"Loading feedback...");
+            
+            // Query all non-deleted feedback (RLS filters by organization)
+            var result = await client.From<FeedbackDetail>()
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                .Get();
+
+            Log($"Feedback returned: {result.Models?.Count ?? 0}");
+            return result.Models ?? new List<FeedbackDetail>();
+        }
+        catch (Exception ex)
+        {
+            Log($"FEEDBACK ERROR: {ex.Message}");
+            Log($"FEEDBACK STACK: {ex.StackTrace}");
+            return new List<FeedbackDetail>();
+        }
+    }
+
+    private async Task<List<MeetingAgendaItem>> LoadAgendaItemsAsync(Supabase.Client client, Guid userId)
+    {
+        try
+        {
+            Log($"Loading agenda items...");
+            
+            // Query all non-deleted agenda items (RLS filters by organization)
+            var result = await client.From<MeetingAgendaItem>()
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Order("sort_order", Supabase.Postgrest.Constants.Ordering.Ascending)
+                .Get();
+
+            Log($"Agenda items returned: {result.Models?.Count ?? 0}");
+            return result.Models ?? new List<MeetingAgendaItem>();
+        }
+        catch (Exception ex)
+        {
+            Log($"AGENDA ITEMS ERROR: {ex.Message}");
+            Log($"AGENDA ITEMS STACK: {ex.StackTrace}");
+            return new List<MeetingAgendaItem>();
+        }
+    }
+
+    private async Task<List<MeetingAttendee>> LoadAttendeesAsync(Supabase.Client client, Guid userId)
+    {
+        try
+        {
+            Log($"Loading attendees...");
+            
+            // Query all non-deleted attendees (RLS filters by organization)
+            var result = await client.From<MeetingAttendee>()
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Get();
+
+            Log($"Attendees returned: {result.Models?.Count ?? 0}");
+            return result.Models ?? new List<MeetingAttendee>();
+        }
+        catch (Exception ex)
+        {
+            Log($"ATTENDEES ERROR: {ex.Message}");
+            Log($"ATTENDEES STACK: {ex.StackTrace}");
+            return new List<MeetingAttendee>();
         }
     }
 }
@@ -217,6 +412,8 @@ public class DashboardData
     public List<TeamMemberDetail> TeamMembers { get; set; } = new();
     public List<TaskDetail> Tasks { get; set; } = new();
     public List<GoalDetail> Goals { get; set; } = new();
+    public List<MeetingDetail> Meetings { get; set; } = new();
+    public List<FeedbackDetail> Feedback { get; set; } = new();
 
     /// <summary>
     /// Gets upcoming tasks (not completed, due within 7 days or overdue).

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -26,7 +27,16 @@ public class AuthService
 
     #region Fields
 
-    private Supabase.Client? _client;
+    /// <summary>
+    /// Client configured for public schema - used for auth and licensing operations.
+    /// </summary>
+    private Supabase.Client? _publicClient;
+    
+    /// <summary>
+    /// Client configured for procohere schema - used for app data operations.
+    /// </summary>
+    private Supabase.Client? _procohereClient;
+    
     private bool _isInitialized;
     private readonly ICredentialService _credentialService;
 
@@ -35,10 +45,10 @@ public class AuthService
     #region Properties
 
     public bool IsInitialized => _isInitialized;
-    public bool IsSignedIn => _client?.Auth.CurrentUser != null;
-    public User? CurrentUser => _client?.Auth.CurrentUser;
-    public Session? CurrentSession => _client?.Auth.CurrentSession;
-    public string? AccessToken => _client?.Auth.CurrentSession?.AccessToken;
+    public bool IsSignedIn => _publicClient?.Auth.CurrentUser != null;
+    public User? CurrentUser => _publicClient?.Auth.CurrentUser;
+    public Session? CurrentSession => _publicClient?.Auth.CurrentSession;
+    public string? AccessToken => _publicClient?.Auth.CurrentSession?.AccessToken;
     
     /// <summary>
     /// The current user's profile from the database.
@@ -46,9 +56,30 @@ public class AuthService
     public UserProfile? CurrentProfile { get; private set; }
 
     /// <summary>
-    /// Gets the Supabase client for use by other services.
+    /// The current user's session data including team member and role info.
+    /// Populated after successful login via GetUserSessionAsync.
     /// </summary>
-    public Supabase.Client? GetSupabaseClient() => _client;
+    public ProCohereUserSessionDto? CurrentSession_ProCohere { get; private set; }
+
+    /// <summary>
+    /// The current user's team member record. Shortcut to CurrentSession_ProCohere?.TeamMember.
+    /// </summary>
+    public TeamMemberDto? CurrentTeamMember => CurrentSession_ProCohere?.TeamMember;
+
+    /// <summary>
+    /// The current user's role. Shortcut to CurrentSession_ProCohere?.Role.
+    /// </summary>
+    public RoleDto? CurrentRole => CurrentSession_ProCohere?.Role;
+
+    /// <summary>
+    /// Gets the public schema Supabase client (for auth and licensing operations).
+    /// </summary>
+    public Supabase.Client? GetSupabaseClient() => _publicClient;
+    
+    /// <summary>
+    /// Gets the procohere schema Supabase client (for app data operations).
+    /// </summary>
+    public Supabase.Client? GetProCohereClient() => _procohereClient;
 
     #endregion
 
@@ -71,7 +102,7 @@ public class AuthService
     }
 
     /// <summary>
-    /// Initializes the Supabase client. Does NOT attempt to restore session.
+    /// Initializes the Supabase clients. Does NOT attempt to restore session.
     /// Call TryAutoLoginAsync() separately to attempt auto-login.
     /// </summary>
     public async Task InitializeAsync()
@@ -80,18 +111,36 @@ public class AuthService
 
         try
         {
-            var options = new SupabaseOptions
+            // Public schema client - for auth and licensing operations
+            var publicOptions = new SupabaseOptions
             {
                 AutoRefreshToken = true,
                 AutoConnectRealtime = false
+                // Schema defaults to "public"
             };
 
-            _client = new Supabase.Client(
+            _publicClient = new Supabase.Client(
                 SupabaseConfig.ProjectUrl,
                 SupabaseConfig.AnonKey,
-                options);
+                publicOptions);
 
-            await _client.InitializeAsync();
+            await _publicClient.InitializeAsync();
+
+            // ProCohere schema client - for app data operations
+            var procohereOptions = new SupabaseOptions
+            {
+                AutoRefreshToken = false,  // Only public client manages auth
+                AutoConnectRealtime = false,
+                Schema = "procohere"
+            };
+
+            _procohereClient = new Supabase.Client(
+                SupabaseConfig.ProjectUrl,
+                SupabaseConfig.AnonKey,
+                procohereOptions);
+
+            await _procohereClient.InitializeAsync();
+
             _isInitialized = true;
         }
         catch (Exception ex)
@@ -127,7 +176,7 @@ public class AuthService
             }
 
             // Try to restore the session using the refresh token
-            var session = await _client!.Auth.SetSession(accessToken!, refreshToken);
+            var session = await _publicClient!.Auth.SetSession(accessToken!, refreshToken);
 
             if (session?.User != null)
             {
@@ -136,6 +185,9 @@ public class AuthService
                 {
                     _credentialService.StoreSession(session.AccessToken, session.RefreshToken);
                 }
+
+                // Sync auth to procohere client so it can make authenticated requests
+                await SyncAuthToProCohereClientAsync();
 
                 AuthStateChanged?.Invoke(this, session.User);
                 return true;
@@ -157,6 +209,20 @@ public class AuthService
 
     #region Authentication
 
+    /// <summary>
+    /// Syncs the auth session from the public client to the procohere client.
+    /// Must be called after any successful authentication (signin, signup, session restore).
+    /// </summary>
+    private async Task SyncAuthToProCohereClientAsync()
+    {
+        var session = _publicClient?.Auth.CurrentSession;
+        if (session != null && _procohereClient != null)
+        {
+            await _procohereClient.Auth.SetSession(session.AccessToken!, session.RefreshToken!);
+            System.Diagnostics.Debug.WriteLine("Auth session synced to procohere client");
+        }
+    }
+
     public async Task<(bool Success, string? Error)> SignInAsync(string email, string password, bool persistSession = false)
     {
         if (!_isInitialized)
@@ -166,10 +232,13 @@ public class AuthService
 
         try
         {
-            var session = await _client!.Auth.SignIn(email, password);
+            var session = await _publicClient!.Auth.SignIn(email, password);
 
             if (session?.User != null)
             {
+                // Sync auth to procohere client so it can make authenticated requests
+                await SyncAuthToProCohereClientAsync();
+
                 if (persistSession && !string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
                 {
                     // Store in Windows Credential Manager for auto-login
@@ -206,7 +275,7 @@ public class AuthService
 
         try
         {
-            var session = await _client!.Auth.SignUp(email, password, new SignUpOptions
+            var session = await _publicClient!.Auth.SignUp(email, password, new SignUpOptions
             {
                 Data = new Dictionary<string, object>
                 {
@@ -216,6 +285,9 @@ public class AuthService
 
             if (session?.User != null)
             {
+                // Sync auth to procohere client so it can make authenticated requests
+                await SyncAuthToProCohereClientAsync();
+
                 // Always persist session for new sign-ups (they can disable later in settings)
                 if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
                 {
@@ -239,12 +311,13 @@ public class AuthService
 
     public async Task SignOutAsync()
     {
-        if (_client?.Auth != null)
+        if (_publicClient?.Auth != null)
         {
-            await _client.Auth.SignOut();
+            await _publicClient.Auth.SignOut();
         }
-        // Clear stored credentials on logout
+        // Clear stored credentials and session data on logout
         _credentialService.ClearSession();
+        ClearSessionData();
         AuthStateChanged?.Invoke(this, null);
     }
 
@@ -253,7 +326,7 @@ public class AuthService
     /// </summary>
     public async Task<bool> UpdateUserMetadataAsync(Dictionary<string, object> metadata)
     {
-        if (_client?.Auth?.CurrentUser == null)
+        if (_publicClient?.Auth?.CurrentUser == null)
         {
             throw new InvalidOperationException("User is not signed in.");
         }
@@ -265,7 +338,7 @@ public class AuthService
                 Data = metadata
             };
 
-            var user = await _client.Auth.Update(attributes);
+            var user = await _publicClient.Auth.Update(attributes);
             
             if (user != null)
             {
@@ -292,7 +365,7 @@ public class AuthService
     /// <returns>The user profile, or null if not found.</returns>
     public async Task<UserProfile?> LoadUserProfileAsync()
     {
-        if (_client?.Auth?.CurrentUser == null)
+        if (_publicClient?.Auth?.CurrentUser == null)
         {
             System.Diagnostics.Debug.WriteLine("LoadUserProfileAsync: No current user");
             return null;
@@ -300,13 +373,14 @@ public class AuthService
 
         try
         {
-            var authId = _client.Auth.CurrentUser.Id;
-            System.Diagnostics.Debug.WriteLine($"LoadUserProfileAsync: Querying for auth ID: {authId}");
+            var authId = _publicClient.Auth.CurrentUser.Id;
+            System.Diagnostics.Debug.WriteLine($"LoadUserProfileAsync: Querying for user ID: {authId}");
             
             var userId = Guid.Parse(authId);
             
-            var result = await _client.From<UserProfile>()
-                .Where(p => p.SupabaseAuthId == userId)
+            // In new schema, users.id = auth.users.id (no separate supabase_auth_id)
+            var result = await _publicClient.From<UserProfile>()
+                .Where(p => p.Id == userId)
                 .Single();
 
             CurrentProfile = result;
@@ -344,25 +418,25 @@ public class AuthService
         string? company,
         string? phone)
     {
-        if (_client?.Auth?.CurrentUser == null)
+        if (_publicClient?.Auth?.CurrentUser == null)
         {
             return (false, "Not signed in.");
         }
 
         try
         {
-            var userId = Guid.Parse(_client.Auth.CurrentUser.Id);
+            var userId = Guid.Parse(_publicClient.Auth.CurrentUser.Id);
             
             // Build display name from first/last
             var displayName = $"{firstName} {lastName}".Trim();
             if (string.IsNullOrEmpty(displayName))
             {
-                displayName = _client.Auth.CurrentUser.Email?.Split('@')[0] ?? "User";
+                displayName = _publicClient.Auth.CurrentUser.Email?.Split('@')[0] ?? "User";
             }
 
-            // Update the profile in the users table
-            var updatedProfiles = await _client.From<UserProfile>()
-                .Where(p => p.SupabaseAuthId == userId)
+            // Update the profile in the users table (id = auth.uid in new schema)
+            var updatedProfiles = await _publicClient.From<UserProfile>()
+                .Where(p => p.Id == userId)
                 .Set(p => p.FirstName!, firstName ?? string.Empty)
                 .Set(p => p.LastName!, lastName ?? string.Empty)
                 .Set(p => p.DisplayName!, displayName)
@@ -383,6 +457,185 @@ public class AuthService
             System.Diagnostics.Debug.WriteLine($"Failed to update profile: {ex.Message}");
             return (false, $"Failed to update profile: {ex.Message}");
         }
+    }
+
+    #endregion
+
+    #region Product Access
+
+    /// <summary>
+    /// Checks if the current user has active access to a specific product.
+    /// This verifies both: user has a seat AND organization has active license.
+    /// </summary>
+    /// <param name="productCode">The product code (e.g., "procohere")</param>
+    /// <returns>True if user has active access to the product.</returns>
+    public async Task<bool> HasProductAccessAsync(string productCode = "procohere")
+    {
+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ProCohere", "auth.log");
+        void Log(string msg) => File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss.fff}] {msg}\n");
+        
+        Log($"HasProductAccessAsync called with productCode={productCode}");
+        Log($"CurrentUser: {_publicClient?.Auth?.CurrentUser?.Id ?? "NULL"}");
+        
+        if (_publicClient?.Auth?.CurrentUser == null)
+        {
+            Log("ERROR: No current user - returning false");
+            return false;
+        }
+
+        try
+        {
+            Log($"Calling RPC: user_has_active_product_access(product_code={productCode})");
+            
+            // Call the helper function we defined in the public schema
+            var result = await _publicClient.Rpc("user_has_active_product_access", new { product_code = productCode });
+            
+            Log($"RPC result type: {result?.GetType().FullName ?? "NULL"}");
+            Log($"RPC result Content: {result?.Content ?? "NULL"}");
+            
+            // BaseResponse has a Content property with the actual JSON result
+            if (result?.Content != null)
+            {
+                var content = result.Content.Trim();
+                Log($"Content trimmed: '{content}'");
+                
+                // The RPC returns just "true" or "false" as JSON
+                if (bool.TryParse(content, out var hasAccess))
+                {
+                    Log($"Parsed as boolean: {hasAccess}");
+                    return hasAccess;
+                }
+                
+                // Try parsing as JSON boolean in case it's wrapped
+                if (content == "true" || content == "\"true\"")
+                {
+                    Log("Matched true string");
+                    return true;
+                }
+            }
+            
+            Log("Could not parse result as boolean - returning false");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Log($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            Log($"Stack: {ex.StackTrace}");
+            // On error, deny access to be safe
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets the user's role for a specific product (admin, user, viewer).
+    /// </summary>
+    /// <param name="productCode">The product code (e.g., "procohere")</param>
+    /// <returns>The role name, or null if no access.</returns>
+    public async Task<string?> GetProductRoleAsync(string productCode = "procohere")
+    {
+        if (_publicClient?.Auth?.CurrentUser == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var result = await _publicClient.Rpc("get_user_product_role", new { product_code = productCode });
+            return result?.ToString();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetProductRoleAsync failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the signed-in user's session payload including product access, team member, and role data.
+    /// This is the primary method to call after authentication to get all session context.
+    /// </summary>
+    /// <param name="productKey">The product key (e.g., "procohere")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The user session DTO with access status, team member, and role info.</returns>
+    public async Task<ProCohereUserSessionDto> GetUserSessionAsync(string productKey = "procohere", CancellationToken cancellationToken = default)
+    {
+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ProCohere", "auth.log");
+        void Log(string msg) => File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss.fff}] [GetUserSession] {msg}\n");
+
+        Log($"GetUserSessionAsync called with productKey={productKey}");
+
+        if (string.IsNullOrWhiteSpace(productKey))
+            throw new ArgumentException("Product key is required.", nameof(productKey));
+
+        if (_publicClient?.Auth?.CurrentUser == null)
+        {
+            Log("ERROR: No current user");
+            return new ProCohereUserSessionDto
+            {
+                HasAccess = false,
+                Error = "Not authenticated"
+            };
+        }
+
+        try
+        {
+            Log("Calling RPC: get_user_session (procohere schema)");
+            // Use procohere client for procohere schema RPC
+            var result = await _procohereClient!.Rpc("get_user_session", new { p_product_key = productKey });
+            
+            Log($"RPC result Content: {result?.Content ?? "NULL"}");
+
+            if (result?.Content == null)
+            {
+                Log("ERROR: RPC returned null content");
+                return new ProCohereUserSessionDto
+                {
+                    HasAccess = false,
+                    Error = "Session RPC returned no data"
+                };
+            }
+
+            // Parse the JSON response
+            var session = System.Text.Json.JsonSerializer.Deserialize<ProCohereUserSessionDto>(
+                result.Content,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+
+            if (session == null)
+            {
+                Log("ERROR: Failed to deserialize session");
+                return new ProCohereUserSessionDto
+                {
+                    HasAccess = false,
+                    Error = "Failed to parse session data"
+                };
+            }
+
+            Log($"Session parsed: HasAccess={session.HasAccess}, TeamMember={session.TeamMember?.FullName ?? "NULL"}, Role={session.Role?.Name ?? "NULL"}");
+
+            // Store the session for later use
+            CurrentSession_ProCohere = session;
+
+            return session;
+        }
+        catch (Exception ex)
+        {
+            Log($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            return new ProCohereUserSessionDto
+            {
+                HasAccess = false,
+                Error = $"Session lookup failed: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Clears the stored session data. Called on sign out.
+    /// </summary>
+    private void ClearSessionData()
+    {
+        CurrentSession_ProCohere = null;
+        CurrentProfile = null;
     }
 
     #endregion
@@ -429,7 +682,7 @@ public class AuthService
         var counts = new DataCounts();
         var errors = new List<string>();
         
-        if (_client == null || CurrentProfile == null)
+        if (_procohereClient == null || CurrentProfile == null)
         {
             LastDataCountError = "Client or profile is null";
             return counts;
@@ -440,7 +693,7 @@ public class AuthService
         // Get team members managed by this user
         try
         {
-            var teamMembersResult = await _client.From<TeamMemberSimple>()
+            var teamMembersResult = await _procohereClient.From<TeamMemberSimple>()
                 .Where(t => t.ManagerUserId == CurrentProfile.Id)
                 .Get();
             counts.TeamMembers = teamMembersResult.Models?.Count ?? 0;
@@ -455,7 +708,7 @@ public class AuthService
         // Get meetings created by this user
         try
         {
-            var meetingsResult = await _client.From<MeetingSimple>()
+            var meetingsResult = await _procohereClient.From<MeetingSimple>()
                 .Where(m => m.CreatedByUserId == CurrentProfile.Id)
                 .Get();
             counts.Meetings = meetingsResult.Models?.Count ?? 0;
@@ -470,7 +723,7 @@ public class AuthService
         // Get goals created by this user
         try
         {
-            var goalsResult = await _client.From<GoalSimple>()
+            var goalsResult = await _procohereClient.From<GoalSimple>()
                 .Where(g => g.CreatedByUserId == CurrentProfile.Id)
                 .Get();
             counts.Goals = goalsResult.Models?.Count ?? 0;
@@ -485,7 +738,7 @@ public class AuthService
         // Get tasks created by this user
         try
         {
-            var tasksResult = await _client.From<TaskSimple>()
+            var tasksResult = await _procohereClient.From<TaskSimple>()
                 .Where(t => t.CreatedByUserId == CurrentProfile.Id)
                 .Get();
             counts.Tasks = tasksResult.Models?.Count ?? 0;
@@ -500,7 +753,7 @@ public class AuthService
         // Get projects created by this user
         try
         {
-            var projectsResult = await _client.From<ProjectSimple>()
+            var projectsResult = await _procohereClient.From<ProjectSimple>()
                 .Where(p => p.CreatedByUserId == CurrentProfile.Id)
                 .Get();
             counts.Projects = projectsResult.Models?.Count ?? 0;

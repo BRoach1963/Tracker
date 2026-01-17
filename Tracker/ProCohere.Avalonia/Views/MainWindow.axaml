@@ -27,7 +27,7 @@
         <!-- Help -->
         <KeyBinding Gesture="F1" Command="{Binding OpenHelpCommand}"/>
         <!-- Navigation: Ctrl+1-5 -->
-        <KeyBinding Gesture="Ctrl+D1" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Today}"/>
+        <KeyBinding Gesture="Ctrl+D1" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Briefing}"/>
         <KeyBinding Gesture="Ctrl+D2" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Circle}"/>
         <KeyBinding Gesture="Ctrl+D3" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Pulse}"/>
         <KeyBinding Gesture="Ctrl+D4" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Chronicle}"/>
@@ -79,23 +79,23 @@
                 <!-- Navigation Items -->
                 <StackPanel Grid.Row="1" Spacing="4" Margin="8,0">
                     
-                    <!-- Today -->
+                    <!-- Briefing -->
                     <Button Classes="nav-item-dark"
                             Command="{Binding NavigateToCommand}"
-                            CommandParameter="{x:Static vm:NavigationItem.Today}"
-                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Today}}">
+                            CommandParameter="{x:Static vm:NavigationItem.Briefing}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Today (Ctrl+1)" Foreground="#1F2937"/>
+                            <TextBlock Text="Briefing (Ctrl+1)" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
                                     Classes="nav-indicator"
-                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Today}}"/>
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
                                 <!-- Fluent: Calendar outline -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M17.75 3A3.25 3.25 0 0 1 21 6.25v11.5A3.25 3.25 0 0 1 17.75 21H6.25A3.25 3.25 0 0 1 3 17.75V6.25A3.25 3.25 0 0 1 6.25 3h11.5Zm0 1.5H6.25A1.75 1.75 0 0 0 4.5 6.25v11.5c0 .966.784 1.75 1.75 1.75h11.5a1.75 1.75 0 0 0 1.75-1.75V6.25a1.75 1.75 0 0 0-1.75-1.75ZM17.75 9.5H6.25a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5Z"/>
-                                <TextBlock Text="Today" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="Briefing" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -288,8 +288,8 @@
             <!-- Content Panels -->
             <Grid Grid.Row="1" Margin="24">
                 
-                <!-- TODAY / Dashboard -->
-                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Today}}">
+                <!-- BRIEFING / Dashboard -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}">
                     <views:TodayView />
                 </Grid>
 

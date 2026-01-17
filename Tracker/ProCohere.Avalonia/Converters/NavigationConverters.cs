@@ -259,3 +259,31 @@ public class BoolToForegroundConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+/// <summary>
+/// Converts goal status string to background color.
+/// on_track = green, at_risk = amber, off_track = red
+/// </summary>
+public class GoalStatusToBackgroundConverter : IValueConverter
+{
+    public static readonly GoalStatusToBackgroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var status = value?.ToString()?.ToLowerInvariant();
+        
+        return status switch
+        {
+            "on_track" => Color.Parse("#10B981"),    // Green
+            "at_risk" => Color.Parse("#F59E0B"),     // Amber
+            "off_track" => Color.Parse("#EF4444"),   // Red
+            "completed" => Color.Parse("#6366F1"),   // Primary/Indigo
+            _ => Color.Parse("#6B7280")              // Gray default
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}

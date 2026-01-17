@@ -29,14 +29,13 @@ public class GoalDetail : BaseModel
     [Column("start_date")]
     public DateTime? StartDate { get; set; }
 
-    [Column("end_date")]
+    [Column("due_date")]
     public DateTime? EndDate { get; set; }
 
-    [Column("owner_team_member_id")]
+    [Column("owner_id")]
     public Guid? OwnerTeamMemberId { get; set; }
 
-    [Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
+    // Note: goals table doesn't have created_by_user_id, only owner_id
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
