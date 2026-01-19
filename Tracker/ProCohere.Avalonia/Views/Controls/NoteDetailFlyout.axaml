@@ -1,0 +1,352 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             mc:Ignorable="d" d:DesignWidth="280" d:DesignHeight="500"
+             x:Class="ProCohere.Avalonia.Views.Controls.NoteDetailFlyout"
+             x:DataType="vm:ChronicleViewModel">
+    
+    <UserControl.Styles>
+        <!-- Flyout Tab Button - Matches navigation rail style -->
+        <Style Selector="Button.flyout-tab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Padding" Value="8,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="52"/>
+        </Style>
+        <!-- Unselected state -->
+        <Style Selector="Button.flyout-tab PathIcon">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <Style Selector="Button.flyout-tab TextBlock">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <!-- Hover state -->
+        <Style Selector="Button.flyout-tab:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover PathIcon">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <!-- Selected state - gold icon, white text -->
+        <Style Selector="Button.flyout-tab.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <!-- Detail Section Header -->
+        <Style Selector="TextBlock.detail-section-header">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextTertiary}"/>
+            <Setter Property="Margin" Value="0,16,0,8"/>
+        </Style>
+        
+        <!-- Entity Badge Style -->
+        <Style Selector="Border.entity-badge">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondary}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.entity-badge:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        
+        <!-- Tag Badge Style -->
+        <Style Selector="Border.tag-badge">
+            <Setter Property="Background" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <Grid ColumnDefinitions="Auto,*">
+        
+        <!-- Vertical Tab Bar - Navy blue like navigation -->
+        <Border Grid.Column="0" Background="{DynamicResource BrushSecondary}" CornerRadius="8,0,0,8">
+            <StackPanel Spacing="2" Margin="0,8">
+                <!-- Content Tab -->
+                <Button Classes="flyout-tab" ToolTip.Tip="Content"
+                        Classes.selected="{Binding NoteDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NoteDetailTab.Content}}"
+                        Command="{Binding SetNoteDetailTabCommand}" CommandParameter="{x:Static vm:NoteDetailTab.Content}">
+                    <StackPanel Spacing="4">
+                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9,13V15H14V13H9M9,17V19H14V17H9M9,9V11H11V9H9Z"
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Content" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <!-- Activity Tab -->
+                <Button Classes="flyout-tab" ToolTip.Tip="Activity"
+                        Classes.selected="{Binding NoteDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NoteDetailTab.Activity}}"
+                        Command="{Binding SetNoteDetailTabCommand}" CommandParameter="{x:Static vm:NoteDetailTab.Activity}">
+                    <StackPanel Spacing="4">
+                        <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Activity" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+        
+        <!-- Content Area -->
+        <Grid Grid.Column="1">
+            <!-- Close Button (always visible) -->
+            <Button Classes="icon-button" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,8,8,0" ZIndex="10" ToolTip.Tip="Close"
+                    Command="{Binding CloseNoteDetailCommand}">
+                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                          Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+            </Button>
+            
+            <!-- ===== CONTENT TAB ===== -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding NoteDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NoteDetailTab.Content}}">
+                <StackPanel DataContext="{Binding SelectedNote}" Margin="12,8,18,12">
+                    
+                    <!-- Category Badge Header -->
+                    <Border CornerRadius="6" Padding="10,6" HorizontalAlignment="Left" Margin="0,24,0,16"
+                            IsVisible="{Binding Category, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="{DynamicResource BrushPrimarySoft}">
+                        <TextBlock Text="{Binding Category}" FontSize="12" FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource BrushPrimary}"/>
+                    </Border>
+                    
+                    <!-- Pin indicator if pinned -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,8"
+                                IsVisible="{Binding IsPinned}">
+                        <PathIcon Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z"
+                                  Width="12" Height="12" Foreground="{DynamicResource BrushHighlight}"/>
+                        <TextBlock Text="Pinned" FontSize="11" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushHighlight}"/>
+                    </StackPanel>
+                    
+                    <!-- Title -->
+                    <TextBlock Text="{Binding DisplayTitle}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    
+                    <!-- Full Content Section -->
+                    <TextBlock Text="CONTENT" Classes="detail-section-header"/>
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12">
+                        <TextBlock Text="{Binding Content}" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource BrushTextPrimary}" LineHeight="20"/>
+                    </Border>
+                    
+                    <!-- Linked Entities Section -->
+                    <TextBlock Text="LINKED TO" Classes="detail-section-header"
+                               IsVisible="{Binding HasLinks}"/>
+                    <ItemsControl ItemsSource="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).SelectedNoteLinkedEntities}"
+                                  IsVisible="{Binding HasLinks}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:LinkedEntityInfo">
+                                <Border Classes="entity-badge">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="{Binding IconPath}" Width="12" Height="12" Foreground="White"/>
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="White"
+                                                   MaxWidth="150" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Tags Section -->
+                    <TextBlock Text="TAGS" Classes="detail-section-header"
+                               IsVisible="{Binding HasTags}"/>
+                    <ItemsControl ItemsSource="{Binding Tags}"
+                                  IsVisible="{Binding HasTags}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="tag-badge">
+                                    <TextBlock Text="{Binding}" FontSize="11" Foreground="White"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Metadata Section -->
+                    <TextBlock Text="DETAILS" Classes="detail-section-header"/>
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12">
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="80,*">
+                            <!-- Created -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Created" FontSize="11" 
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" 
+                                       Text="{Binding CreatedAt, StringFormat='{}{0:MMM d, yyyy h:mm tt}'}" 
+                                       FontSize="11" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                            
+                            <!-- Updated -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Updated" FontSize="11" 
+                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,6,0,0"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" 
+                                       Text="{Binding UpdatedAt, StringFormat='{}{0:MMM d, yyyy h:mm tt}'}" 
+                                       FontSize="11" FontWeight="Medium" Margin="0,6,0,0"
+                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                            
+                            <!-- Author -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Author" FontSize="11" 
+                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,6,0,0"
+                                       IsVisible="{Binding AuthorName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" 
+                                       Text="{Binding AuthorName}" 
+                                       FontSize="11" FontWeight="Medium" Margin="0,6,0,0"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       IsVisible="{Binding AuthorName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            
+                            <!-- Privacy -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Visibility" FontSize="11" 
+                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,6,0,0"/>
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="0,6,0,0">
+                                <PathIcon Data="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyIconConverter}}"
+                                          Width="10" Height="10" 
+                                          Foreground="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyColorConverter}}"/>
+                                <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyTextConverter}}" 
+                                           FontSize="11" FontWeight="Medium"
+                                           Foreground="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyColorConverter}}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Quick Actions -->
+                    <StackPanel Margin="0,16,0,0" Spacing="6">
+                        <Button Classes="action-button" HorizontalAlignment="Stretch"
+                                Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).EditNoteCommand}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" Width="12" Height="12"/>
+                                <TextBlock Text="Edit Note" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                        <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
+                            <Button Grid.Column="0" Classes="secondary-button" HorizontalAlignment="Stretch" Margin="0,0,4,0"
+                                    Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).TogglePinnedCommand}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" Width="12" Height="12"/>
+                                    <TextBlock Text="{Binding IsPinned, Converter={StaticResource BoolToPinTextConverter}}" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="1" Classes="secondary-button" HorizontalAlignment="Stretch" Margin="4,0,0,0"
+                                    Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).ArchiveNoteCommand}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="M3,3H21V7H3V3M4,8H20V21H4V8M9.5,11A0.5,0.5 0 0,0 9,11.5V13H15V11.5A0.5,0.5 0 0,0 14.5,11H9.5Z" Width="12" Height="12"/>
+                                    <TextBlock Text="Archive" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <Button Classes="secondary-button" HorizontalAlignment="Stretch"
+                                Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).DeleteNoteCommand}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" Width="12" Height="12" Foreground="#DC2626"/>
+                                <TextBlock Text="Delete Note" FontSize="12" Foreground="#DC2626"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+            
+            <!-- ===== ACTIVITY TAB ===== -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding NoteDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NoteDetailTab.Activity}}">
+                <StackPanel Margin="12,8,12,12">
+                    <TextBlock Text="ACTIVITY" Classes="detail-section-header" Margin="0,24,0,8"/>
+                    
+                    <!-- Activity timeline placeholder -->
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12">
+                        <StackPanel Spacing="12">
+                            
+                            <!-- Created entry -->
+                            <Grid ColumnDefinitions="Auto,*" DataContext="{Binding SelectedNote}">
+                                <Border Width="8" Height="8" CornerRadius="4" 
+                                        Background="{DynamicResource BrushPrimary}" 
+                                        VerticalAlignment="Top" Margin="0,4,12,0"/>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="Note created" FontSize="12" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:MMMM d, yyyy} at {0:h:mm tt}'}" 
+                                               FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Updated entry (if different from created) -->
+                            <Grid ColumnDefinitions="Auto,*" DataContext="{Binding SelectedNote}"
+                                  IsVisible="{Binding UpdatedAt, Converter={StaticResource DateDifferentFromCreatedConverter}}">
+                                <Border Width="8" Height="8" CornerRadius="4" 
+                                        Background="{DynamicResource BrushHighlight}" 
+                                        VerticalAlignment="Top" Margin="0,4,12,0"/>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="Note updated" FontSize="12" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:MMMM d, yyyy} at {0:h:mm tt}'}" 
+                                               FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Pinned entry (if pinned) -->
+                            <Grid ColumnDefinitions="Auto,*" DataContext="{Binding SelectedNote}"
+                                  IsVisible="{Binding IsPinned}">
+                                <Border Width="8" Height="8" CornerRadius="4" 
+                                        Background="{DynamicResource BrushHighlight}" 
+                                        VerticalAlignment="Top" Margin="0,4,12,0"/>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="Note pinned" FontSize="12" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="{Binding PinnedAt, StringFormat='{}{0:MMMM d, yyyy} at {0:h:mm tt}'}" 
+                                               FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"
+                                               IsVisible="{Binding PinnedAt, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Future: AI Insights Section -->
+                    <TextBlock Text="AI INSIGHTS" Classes="detail-section-header"
+                               IsVisible="{Binding SelectedNote.AiSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12"
+                            IsVisible="{Binding SelectedNote.AiSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M21.7,13.35L20.7,14.35L18.65,12.3L19.65,11.3C19.86,11.09 20.21,11.09 20.42,11.3L21.7,12.58C21.91,12.79 21.91,13.14 21.7,13.35M12,18.94L18.06,12.88L20.11,14.93L14.06,21H12V18.94M12,14C7.58,14 4,15.79 4,18V20H10V18.11L14,14.11C13.34,14.03 12.67,14 12,14M12,4A4,4 0 0,0 8,8A4,4 0 0,0 12,12A4,4 0 0,0 16,8A4,4 0 0,0 12,4Z"
+                                          Width="14" Height="14" Foreground="{DynamicResource BrushPrimary}"/>
+                                <TextBlock Text="AI Summary" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushPrimary}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedNote.AiSummary}" FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -347,6 +347,12 @@ public class MeetingAgendaItem : BaseModel
     [Column("description")]
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Agenda item status: 'open', 'discussed', 'action_created', 'deferred', 'dropped'.
+    /// </summary>
+    [Column("status")]
+    public string Status { get; set; } = "open";
+
     [Column("sort_order")]
     public int SortOrder { get; set; }
 
@@ -373,4 +379,51 @@ public class MeetingAgendaItem : BaseModel
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; }
+
+    #region Computed Properties
+
+    /// <summary>
+    /// Display text for the status.
+    /// </summary>
+    public string StatusDisplay => Status?.ToLower() switch
+    {
+        "open" => "Open",
+        "discussed" => "Discussed",
+        "action_created" => "Action Created",
+        "deferred" => "Deferred",
+        "dropped" => "Dropped",
+        _ => "Open"
+    };
+
+    /// <summary>
+    /// Status color for badges.
+    /// </summary>
+    public string StatusColor => Status?.ToLower() switch
+    {
+        "open" => "#6B7280",        // Gray
+        "discussed" => "#3B82F6",    // Blue
+        "action_created" => "#10B981", // Green
+        "deferred" => "#F59E0B",     // Amber
+        "dropped" => "#EF4444",      // Red
+        _ => "#6B7280"               // Gray
+    };
+
+    /// <summary>
+    /// Whether this agenda item has a linked entity (task, goal, etc.).
+    /// </summary>
+    public bool HasLinkedEntity => !string.IsNullOrEmpty(LinkedEntityType) && LinkedEntityId.HasValue;
+
+    /// <summary>
+    /// Display text for the linked entity type.
+    /// </summary>
+    public string LinkedEntityTypeDisplay => LinkedEntityType?.ToLower() switch
+    {
+        "task" => "Task",
+        "goal" => "Goal",
+        "metric" => "Metric",
+        "project" => "Project",
+        _ => ""
+    };
+
+    #endregion
 }

@@ -1,0 +1,138 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:views="using:ProCohere.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="ProCohere.Avalonia.Views.PulseView"
+             x:DataType="vm:PulseViewModel">
+    
+    <Design.DataContext>
+        <vm:PulseViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <!-- Sub-tab toggle button style -->
+        <Style Selector="Button.subtab-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="MinWidth" Value="100"/>
+        </Style>
+        <Style Selector="Button.subtab-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Button.subtab-button.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.subtab-button.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.subtab-button.selected PathIcon">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        
+        <!-- Row 0: Header with title and primary action -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Pulse"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                <TextBlock Text="Goals, metrics, and tasks that drive your work"
+                           FontSize="12"
+                           Foreground="{DynamicResource BrushTextSecondary}"/>
+            </StackPanel>
+            
+            <!-- Primary action button - context-sensitive -->
+            <Button Grid.Column="1" 
+                    Command="{Binding PrimaryActionCommand}" 
+                    Classes="primary-button">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                              Width="14" Height="14"/>
+                    <TextBlock Text="{Binding PrimaryActionText}" FontSize="13"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Row 1: Sub-tab toggle buttons -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource BrushSurface}" 
+                CornerRadius="8" 
+                Padding="8"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="1"
+                Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                
+                <!-- Goals tab -->
+                <Button Classes="subtab-button"
+                        Classes.selected="{Binding IsSubTabGoals}"
+                        Command="{Binding SetSubTabCommand}"
+                        CommandParameter="0">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M9,9V15H15V9H9M11,11H13V13H11V11Z" 
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Goals" FontSize="13" FontWeight="Medium"/>
+                    </StackPanel>
+                </Button>
+                
+                <!-- Metrics tab -->
+                <Button Classes="subtab-button"
+                        Classes.selected="{Binding IsSubTabMetrics}"
+                        Command="{Binding SetSubTabCommand}"
+                        CommandParameter="1">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Metrics" FontSize="13" FontWeight="Medium"/>
+                    </StackPanel>
+                </Button>
+                
+                <!-- Tasks tab -->
+                <Button Classes="subtab-button"
+                        Classes.selected="{Binding IsSubTabTasks}"
+                        Command="{Binding SetSubTabCommand}"
+                        CommandParameter="2">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9,13V19H7V13H9M15,15V19H13V15H15M11,11V19H9V11H11M13,13V19H11V13H13" 
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Tasks" FontSize="13" FontWeight="Medium"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 2: Content area -->
+        <Grid Grid.Row="2">
+            
+            <!-- Goals content -->
+            <Grid IsVisible="{Binding IsSubTabGoals}">
+                <views:GoalsView DataContext="{Binding GoalsViewModel}"/>
+            </Grid>
+            
+            <!-- Metrics content -->
+            <Grid IsVisible="{Binding IsSubTabMetrics}">
+                <views:MetricsView DataContext="{Binding MetricsViewModel}"/>
+            </Grid>
+            
+            <!-- Tasks content -->
+            <Grid IsVisible="{Binding IsSubTabTasks}">
+                <views:TasksView DataContext="{Binding TasksViewModel}"/>
+            </Grid>
+            
+        </Grid>
+    </Grid>
+</UserControl>

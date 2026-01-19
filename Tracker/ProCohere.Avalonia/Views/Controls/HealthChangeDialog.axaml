@@ -1,0 +1,173 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+             x:Class="ProCohere.Avalonia.Views.Controls.HealthChangeDialog"
+             x:DataType="vm:GoalsViewModel">
+    
+    <UserControl.Styles>
+        <!-- Health Option Button -->
+        <Style Selector="Button.health-option">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="Button.health-option:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Button.health-option.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimarySoft}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <!-- Modal Overlay -->
+    <Border Background="#80000000">
+        <Border Background="{DynamicResource BrushSurface}" CornerRadius="12" 
+                Width="400" MaxHeight="520" VerticalAlignment="Center" HorizontalAlignment="Center"
+                BoxShadow="0 8 32 0 #40000000">
+            <Grid RowDefinitions="Auto,*,Auto">
+                
+                <!-- Header -->
+                <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="12,12,0,0" Padding="20,16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Update Health" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Text="{Binding SelectedGoal.Title}" FontSize="12" Foreground="#94A3B8"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Cancel"
+                                Command="{Binding CancelHealthDialogCommand}">
+                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                      Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </Button>
+                    </Grid>
+                </Border>
+                
+                <!-- Content -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,16,20,20" Spacing="16">
+                        
+                        <!-- Philosophy Banner -->
+                        <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="💡 Reflection-Based Health" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushPrimary}"/>
+                                <TextBlock Text="Health describes current state, not a judgment. Choose what best reflects your situation now." 
+                                           FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Health Options -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="SELECT HEALTH STATUS" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                            
+                            <!-- On Track -->
+                            <Button Classes="health-option"
+                                    Classes.selected="{Binding SelectedHealth, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.OnTrack}}"
+                                    Command="{Binding SelectHealthCommand}" CommandParameter="{x:Static models:GoalHealth.OnTrack}">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="8" Height="8" CornerRadius="4" Background="#3B82F6" 
+                                            VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="On Track" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="Progressing well, team feels aligned" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            
+                            <!-- Needs Attention -->
+                            <Button Classes="health-option"
+                                    Classes.selected="{Binding SelectedHealth, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.NeedsAttention}}"
+                                    Command="{Binding SelectHealthCommand}" CommandParameter="{x:Static models:GoalHealth.NeedsAttention}">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="8" Height="8" CornerRadius="4" Background="#6366F1" 
+                                            VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="Needs Attention" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="Some concerns worth discussing" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            
+                            <!-- At Risk -->
+                            <Button Classes="health-option"
+                                    Classes.selected="{Binding SelectedHealth, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.AtRisk}}"
+                                    Command="{Binding SelectHealthCommand}" CommandParameter="{x:Static models:GoalHealth.AtRisk}">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="8" Height="8" CornerRadius="4" Background="#8B5CF6" 
+                                            VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="At Risk" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="Significant challenges present" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            
+                            <!-- Reframing Needed -->
+                            <Button Classes="health-option"
+                                    Classes.selected="{Binding SelectedHealth, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.ReframingNeeded}}"
+                                    Command="{Binding SelectHealthCommand}" CommandParameter="{x:Static models:GoalHealth.ReframingNeeded}">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="8" Height="8" CornerRadius="4" Background="#A855F7" 
+                                            VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="Reframing Needed" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="Goal intent may need reconsideration" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                        </StackPanel>
+                        
+                        <!-- Reflection Prompt -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="REFLECTION" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <Border Background="{DynamicResource BrushPrimarySoft}" CornerRadius="6" Padding="10,8">
+                                <TextBlock Text="{Binding HealthReflectionPrompt}" FontSize="12" FontStyle="Italic"
+                                           TextWrapping="Wrap" Foreground="{DynamicResource BrushPrimary}"/>
+                            </Border>
+                            <TextBox Text="{Binding HealthReason}" 
+                                     Watermark="Share your thoughts on why this status..."
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     MinHeight="80" MaxHeight="120"/>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- Actions -->
+                <Border Grid.Row="2" Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="0,0,12,12" Padding="20,16">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <TextBlock Text="This change will be recorded in the goal's history."
+                                   FontSize="10" Foreground="{DynamicResource BrushTextTertiary}"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="secondary-button" Content="Cancel" Margin="0,0,8,0"
+                                Command="{Binding CancelHealthDialogCommand}"/>
+                        <Button Grid.Column="2" Classes="action-button" Content="Save Health"
+                                Command="{Binding SaveHealthChangeCommand}"/>
+                    </Grid>
+                </Border>
+                
+            </Grid>
+        </Border>
+    </Border>
+</UserControl>

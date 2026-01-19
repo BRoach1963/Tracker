@@ -1,0 +1,259 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="ProCohere.Avalonia.Views.MetricsView"
+             x:DataType="vm:MetricsViewModel">
+    
+    <Design.DataContext>
+        <vm:MetricsViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <!-- Scope toggle button style -->
+        <Style Selector="Button.scope-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+        <Style Selector="Button.scope-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Button.scope-button.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.scope-button.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Metric row style -->
+        <Style Selector="Border.metric-row">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.metric-row:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+
+        <!-- Badge styles -->
+        <Style Selector="Border.scope-badge">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Border.source-badge">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+        
+        <!-- Row 0: Scope filter -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource BrushSurface}" 
+                CornerRadius="8" 
+                Padding="8"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="1"
+                Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button Classes="scope-button"
+                        Classes.selected="{Binding IsScopeMyMetrics}"
+                        Command="{Binding SetScopeCommand}"
+                        CommandParameter="0">
+                    <TextBlock Text="My Metrics" FontSize="13"/>
+                </Button>
+                
+                <Button Classes="scope-button"
+                        Classes.selected="{Binding IsScopeTeamMetrics}"
+                        Command="{Binding SetScopeCommand}"
+                        CommandParameter="1">
+                    <TextBlock Text="Team Metrics" FontSize="13"/>
+                </Button>
+                
+                <Button Classes="scope-button"
+                        Classes.selected="{Binding IsScopeAllMetrics}"
+                        Command="{Binding SetScopeCommand}"
+                        CommandParameter="2">
+                    <TextBlock Text="All Metrics" FontSize="13"/>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 1: Metrics list + detail panel -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            
+            <!-- Metrics list -->
+            <Grid Grid.Column="0">
+                <!-- Loading indicator -->
+                <StackPanel VerticalAlignment="Center" 
+                            HorizontalAlignment="Center" 
+                            Spacing="12"
+                            IsVisible="{Binding IsLoading}">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="200"
+                                 Classes="circular"/>
+                    <TextBlock Text="Loading metrics..." 
+                               Opacity="0.6"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Empty state -->
+                <StackPanel VerticalAlignment="Center" 
+                            HorizontalAlignment="Center" 
+                            Spacing="16"
+                            IsVisible="{Binding !IsLoading}">
+                    <StackPanel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="!IsLoading"/>
+                            <Binding Path="Metrics.Count" Converter="{x:Static ObjectConverters.IsNull}" FallbackValue="True"/>
+                        </MultiBinding>
+                    </StackPanel.IsVisible>
+                    
+                    <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                              Width="64" Height="64" 
+                              Opacity="0.3"/>
+                    <TextBlock Text="No metrics yet"
+                               FontSize="18"
+                               FontWeight="Light"
+                               Opacity="0.5"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Create your first metric to start observing signals"
+                               FontSize="14"
+                               Opacity="0.3"
+                               HorizontalAlignment="Center"/>
+                    <Button Command="{Binding CreateNewMetricCommand}"
+                            Classes="primary-button"
+                            HorizontalAlignment="Center"
+                            Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                      Width="14" Height="14"/>
+                            <TextBlock Text="Create Metric" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Metrics list when we have data -->
+                <ScrollViewer IsVisible="{Binding !IsLoading}"
+                              VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Metrics}"
+                                  Margin="0,0,16,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="metric-row"
+                                        PointerPressed="OnMetricRowPressed">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                                        <!-- Trend indicator -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding TrendDisplay}"
+                                                   FontSize="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                                        
+                                        <!-- Name and steward -->
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding StewardName, FallbackValue='Steward: Unassigned'}"
+                                                       FontSize="12"
+                                                       Opacity="0.6"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Scope badge -->
+                                        <Border Grid.Column="2" 
+                                                Classes="scope-badge"
+                                                Margin="8,0">
+                                            <TextBlock Text="{Binding Scope, FallbackValue='Individual'}"
+                                                       FontSize="11"
+                                                       Opacity="0.8"/>
+                                        </Border>
+                                        
+                                        <!-- Source badge -->
+                                        <Border Grid.Column="3" 
+                                                Classes="source-badge"
+                                                Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Source, FallbackValue='Manual'}"
+                                                       FontSize="11"
+                                                       Opacity="0.8"/>
+                                        </Border>
+                                        
+                                        <!-- Lifecycle -->
+                                        <TextBlock Grid.Column="4"
+                                                   Text="{Binding LifecycleDisplay}"
+                                                   FontSize="12"
+                                                   Opacity="0.6"
+                                                   VerticalAlignment="Center"
+                                                   Width="60"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+            
+            <!-- Detail flyout panel (placeholder) -->
+            <Border Grid.Column="1"
+                    Width="400"
+                    Background="{DynamicResource BrushSurface}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1,0,0,0"
+                    Margin="16,0,0,0"
+                    IsVisible="{Binding IsDetailFlyoutOpen}">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Header -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="16">
+                        <TextBlock Text="{Binding SelectedMetric.Name, FallbackValue='Metric Details'}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <Button Grid.Column="1"
+                                Command="{Binding CloseDetailFlyoutCommand}"
+                                Classes="icon-button">
+                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                                      Width="16" Height="16"/>
+                        </Button>
+                    </Grid>
+                    
+                    <!-- Content -->
+                    <ScrollViewer Grid.Row="1" Margin="16,0">
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="Metric detail view coming soon..."
+                                       Opacity="0.5"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    
+                    <!-- Footer -->
+                    <StackPanel Grid.Row="2" 
+                                Orientation="Horizontal" 
+                                Spacing="8"
+                                Margin="16"
+                                HorizontalAlignment="Right">
+                        <Button Content="Update Value"
+                                Classes="secondary-button"/>
+                        <Button Content="Edit"
+                                Command="{Binding EditMetricCommand}"
+                                CommandParameter="{Binding SelectedMetric}"
+                                Classes="secondary-button"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -5,11 +5,11 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.ViewModels;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 
 namespace ProCohere.Avalonia.Views;
@@ -27,8 +27,6 @@ public partial class CircleView : UserControl
         _viewModel = new CircleViewModel();
         DataContext = _viewModel;
         
-        Debug.WriteLine("[CircleView] Constructor - subscribing to PropertyChanged");
-        
         // Subscribe to property changes to refresh views
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         
@@ -38,29 +36,27 @@ public partial class CircleView : UserControl
 
     private void CircleView_Loaded(object? sender, RoutedEventArgs e)
     {
-        Debug.WriteLine($"[CircleView] Loaded event - DayMeetings count: {_viewModel?.DayMeetings.Count() ?? -1}");
-        Debug.WriteLine($"[CircleView] Loaded event - WeekDays count: {_viewModel?.WeekDays.Count ?? -1}");
         BuildDayView();
         BuildWeekView();
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        Debug.WriteLine($"[CircleView] PropertyChanged: {e.PropertyName}");
-        
-        if (e.PropertyName == nameof(CircleViewModel.DayMeetings) || 
-            e.PropertyName == nameof(CircleViewModel.CurrentDate))
+        // Dispatch to UI thread since PropertyChanged may come from background thread
+        Dispatcher.UIThread.Post(() =>
         {
-            Debug.WriteLine($"[CircleView] Rebuilding DayView - DayMeetings count: {_viewModel?.DayMeetings.Count() ?? -1}");
-            BuildDayView();
-        }
-        
-        if (e.PropertyName == nameof(CircleViewModel.WeekDays) ||
-            e.PropertyName == nameof(CircleViewModel.CurrentDate))
-        {
-            Debug.WriteLine($"[CircleView] Rebuilding WeekView - WeekDays count: {_viewModel?.WeekDays.Count ?? -1}");
-            BuildWeekView();
-        }
+            if (e.PropertyName == nameof(CircleViewModel.DayMeetings) || 
+                e.PropertyName == nameof(CircleViewModel.CurrentDate))
+            {
+                BuildDayView();
+            }
+            
+            if (e.PropertyName == nameof(CircleViewModel.WeekDays) ||
+                e.PropertyName == nameof(CircleViewModel.CurrentDate))
+            {
+                BuildWeekView();
+            }
+        });
     }
 
     #region Day View Building

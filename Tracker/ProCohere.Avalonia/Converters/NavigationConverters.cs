@@ -1,9 +1,11 @@
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace ProCohere.Avalonia.Converters;
 
@@ -27,6 +29,27 @@ public class EnumEqualConverter : IValueConverter
         if (value is true && parameter != null)
             return parameter;
         return null;
+    }
+}
+
+/// <summary>
+/// Converts enum values to boolean for NOT equal comparison.
+/// </summary>
+public class EnumNotEqualConverter : IValueConverter
+{
+    public static readonly EnumNotEqualConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value == null || parameter == null)
+            return true;
+
+        return !value.Equals(parameter);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
     }
 }
 
@@ -366,5 +389,227 @@ public class TopOffsetToMarginConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean to strikethrough text decoration.
+/// </summary>
+public class BoolToStrikethroughConverter : IValueConverter
+{
+    public static readonly BoolToStrikethroughConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isCompleted && isCompleted)
+        {
+            return TextDecorations.Strikethrough;
+        }
+        return null;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean (overdue) to color - red if overdue, normal text color otherwise.
+/// </summary>
+public class BoolToOverdueColorConverter : IValueConverter
+{
+    public static readonly BoolToOverdueColorConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isOverdue && isOverdue)
+        {
+            return new SolidColorBrush(Color.Parse("#EF4444")); // Red
+        }
+        return new SolidColorBrush(Color.Parse("#6B7280")); // Gray (text tertiary)
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts priority string to background color for badges.
+/// </summary>
+public class PriorityToBgColorConverter : IMultiValueConverter
+{
+    public static readonly PriorityToBgColorConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var priority = values.FirstOrDefault()?.ToString()?.ToLowerInvariant();
+        
+        return priority switch
+        {
+            "high" => new SolidColorBrush(Color.Parse("#FEE2E2")),    // Light red
+            "medium" => new SolidColorBrush(Color.Parse("#FEF3C7")), // Light amber
+            "low" => new SolidColorBrush(Color.Parse("#D1FAE5")),    // Light green
+            _ => new SolidColorBrush(Color.Parse("#F3F4F6"))         // Light gray
+        };
+    }
+}
+
+/// <summary>
+/// Converts priority string to foreground color for badge text.
+/// </summary>
+public class PriorityToFgColorConverter : IMultiValueConverter
+{
+    public static readonly PriorityToFgColorConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var priority = values.FirstOrDefault()?.ToString()?.ToLowerInvariant();
+        
+        return priority switch
+        {
+            "high" => new SolidColorBrush(Color.Parse("#991B1B")),    // Dark red
+            "medium" => new SolidColorBrush(Color.Parse("#92400E")), // Dark amber
+            "low" => new SolidColorBrush(Color.Parse("#065F46")),    // Dark green
+            _ => new SolidColorBrush(Color.Parse("#374151"))         // Dark gray
+        };
+    }
+}
+
+/// <summary>
+/// Converts a Guid to "New Goal" or "Edit Goal" text.
+/// </summary>
+public class GuidIsEmptyToNewOrEditConverter : IValueConverter
+{
+    public static readonly GuidIsEmptyToNewOrEditConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is Guid guid)
+        {
+            return guid == Guid.Empty ? "New Goal" : "Edit Goal";
+        }
+        return "New Goal";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Converts GoalType enum to ComboBox index and back.
+/// </summary>
+public class GoalTypeToIndexConverter : IValueConverter
+{
+    public static readonly GoalTypeToIndexConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is ProCohere.Avalonia.Models.GoalType goalType)
+        {
+            return goalType switch
+            {
+                ProCohere.Avalonia.Models.GoalType.Growth => 0,
+                ProCohere.Avalonia.Models.GoalType.Execution => 1,
+                ProCohere.Avalonia.Models.GoalType.Operational => 2,
+                ProCohere.Avalonia.Models.GoalType.Directional => 3,
+                _ => 0
+            };
+        }
+        return 0;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is int index)
+        {
+            return index switch
+            {
+                0 => ProCohere.Avalonia.Models.GoalType.Growth,
+                1 => ProCohere.Avalonia.Models.GoalType.Execution,
+                2 => ProCohere.Avalonia.Models.GoalType.Operational,
+                3 => ProCohere.Avalonia.Models.GoalType.Directional,
+                _ => ProCohere.Avalonia.Models.GoalType.Growth
+            };
+        }
+        return ProCohere.Avalonia.Models.GoalType.Growth;
+    }
+}
+
+/// <summary>
+/// Converts GoalHealth to display text.
+/// </summary>
+public class GoalHealthToDisplayConverter : IValueConverter
+{
+    public static readonly GoalHealthToDisplayConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is ProCohere.Avalonia.Models.GoalHealth health)
+        {
+            return health.ToDisplayName();
+        }
+        return "Unknown";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Converts GoalHealth to background color (neutral blues, NO red/yellow/green).
+/// Philosophy: Use blue-scale to indicate state without judgment.
+/// </summary>
+public class GoalHealthToBackgroundConverter : IValueConverter
+{
+    public static readonly GoalHealthToBackgroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is ProCohere.Avalonia.Models.GoalHealth health)
+        {
+            return health switch
+            {
+                ProCohere.Avalonia.Models.GoalHealth.OnTrack => new SolidColorBrush(Color.Parse("#3B82F6")), // Blue
+                ProCohere.Avalonia.Models.GoalHealth.NeedsAttention => new SolidColorBrush(Color.Parse("#6366F1")), // Indigo
+                ProCohere.Avalonia.Models.GoalHealth.AtRisk => new SolidColorBrush(Color.Parse("#8B5CF6")), // Purple
+                ProCohere.Avalonia.Models.GoalHealth.ReframingNeeded => new SolidColorBrush(Color.Parse("#A855F7")), // Light Purple
+                _ => new SolidColorBrush(Color.Parse("#64748B")) // Slate
+            };
+        }
+        return new SolidColorBrush(Color.Parse("#64748B"));
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Converts GoalHealth to reflection prompt text.
+/// </summary>
+public class GoalHealthToPromptConverter : IValueConverter
+{
+    public static readonly GoalHealthToPromptConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is ProCohere.Avalonia.Models.GoalHealth health)
+        {
+            return health.GetReflectionPrompt();
+        }
+        return "What has changed?";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
     }
 }

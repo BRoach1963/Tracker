@@ -919,95 +919,12 @@
                         </ItemsControl>
                     </ScrollViewer>
                     
-                    <!-- Goal Detail Panel -->
+                    <!-- Goal Detail Flyout -->
                     <Border Grid.Column="1" Width="{Binding IsGoalDetailOpen, Converter={StaticResource BoolToWidthConverter}}"
                             ClipToBounds="True">
                         <Border Classes="detail-panel" Classes.open="{Binding IsGoalDetailOpen}" 
                                 Width="320" Margin="8,0,0,0">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel DataContext="{Binding SelectedGoal}" Margin="0,0,18,0">
-                                
-                                <!-- Close Button -->
-                                <Button Classes="icon-button" HorizontalAlignment="Right" 
-                                        Command="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext).CloseGoalDetailCommand}">
-                                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                              Width="16" Height="16" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                </Button>
-                                
-                                <!-- Status Badge -->
-                                <Border CornerRadius="6" Padding="10,6" HorizontalAlignment="Left" Margin="0,0,0,16">
-                                    <Border.Background>
-                                        <SolidColorBrush Color="{Binding Status, Converter={StaticResource GoalStatusToBackgroundConverter}}"/>
-                                    </Border.Background>
-                                    <TextBlock Text="{Binding StatusDisplay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
-                                </Border>
-                                
-                                <!-- Title -->
-                                <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold"
-                                           Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap" Margin="0,0,0,12"/>
-                                
-                                <!-- Progress Section -->
-                                <TextBlock Text="PROGRESS" Classes="detail-section-header"/>
-                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                                    <ProgressBar Classes="goal-progress" Value="{Binding Progress}" Minimum="0" Maximum="100"/>
-                                    <TextBlock Grid.Column="1" FontSize="14" FontWeight="Bold" Margin="12,0,0,0"
-                                               Foreground="{DynamicResource BrushPrimary}" VerticalAlignment="Center">
-                                        <Run Text="{Binding Progress}"/><Run Text="%"/>
-                                    </TextBlock>
-                                </Grid>
-                                
-                                <!-- Owner Section -->
-                                <TextBlock Text="OWNER" Classes="detail-section-header"/>
-                                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
-                                    <Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource BrushPrimary}">
-                                        <TextBlock Text="👤" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <TextBlock Grid.Column="1" Text="{Binding OwnerName}" FontSize="14" FontWeight="Medium"
-                                               Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                </Grid>
-                                
-                                <!-- Timeline Section -->
-                                <TextBlock Text="TIMELINE" Classes="detail-section-header"/>
-                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,0,0,8">
-                                    <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2"
-                                              Width="14" Height="14" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                        <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextPrimary}">
-                                            <Run Text="Started:"/>
-                                            <Run Text="{Binding StartDate, StringFormat='{}{0:MMM d, yyyy}'}" FontWeight="Medium"/>
-                                        </TextBlock>
-                                        <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextPrimary}">
-                                            <Run Text="Due:"/>
-                                            <Run Text="{Binding EndDate, StringFormat='{}{0:MMM d, yyyy}'}" FontWeight="Medium"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Grid>
-                                
-                                <!-- Description Section -->
-                                <TextBlock Text="DESCRIPTION" Classes="detail-section-header"/>
-                                <TextBlock Text="{Binding Description}" FontSize="13" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,16"/>
-                                
-                                <!-- Actions -->
-                                <StackPanel Margin="0,8,0,0" Spacing="8">
-                                    <Button Classes="secondary-button" HorizontalContentAlignment="Left">
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
-                                                      Width="14" Height="14"/>
-                                            <TextBlock Text="Edit Goal"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Classes="secondary-button" HorizontalContentAlignment="Left">
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
-                                                      Width="14" Height="14" Foreground="#DC2626"/>
-                                            <TextBlock Text="Delete Goal" Foreground="#DC2626"/>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                                
-                            </StackPanel>
-                            </ScrollViewer>
+                            <controls:GoalDetailFlyout DataContext="{Binding}"/>
                         </Border>
                     </Border>
                 </Grid>

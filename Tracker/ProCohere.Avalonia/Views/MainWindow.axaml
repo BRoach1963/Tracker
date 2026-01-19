@@ -300,20 +300,7 @@
 
                 <!-- PULSE -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
-                        <PathIcon Data="M3.5,18.5L9.5,12.5L13.5,16.5L22,6.92L20.59,5.5L13.5,13.5L9.5,9.5L2,17L3.5,18.5Z" 
-                                  Width="64" Height="64" 
-                                  Opacity="0.3"/>
-                        <TextBlock Text="Pulse"
-                                   FontSize="24"
-                                   FontWeight="Light"
-                                   Opacity="0.5"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="Goals and metrics coming soon"
-                                   FontSize="14"
-                                   Opacity="0.3"
-                                   HorizontalAlignment="Center"/>
-                    </StackPanel>
+                    <views:PulseView />
                 </Grid>
 
                 <!-- CHRONICLE -->

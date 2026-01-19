@@ -1,0 +1,218 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="ProCohere.Avalonia.Views.GoalsView"
+             x:DataType="vm:GoalsViewModel">
+    
+    <Design.DataContext>
+        <vm:GoalsViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <!-- Scope toggle button style -->
+        <Style Selector="Button.scope-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+        <Style Selector="Button.scope-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Button.scope-button.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.scope-button.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+        
+        <!-- Row 0: Scope filter + Stats + New Goal button -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+            <!-- Scope filter -->
+            <Border Background="{DynamicResource BrushSurface}" 
+                    CornerRadius="8" 
+                    Padding="8"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <Button Classes="scope-button"
+                            Classes.selected="{Binding IsScopeMyGoals}"
+                            Command="{Binding SetScopeCommand}"
+                            CommandParameter="0">
+                        <TextBlock Text="My Goals" FontSize="13"/>
+                    </Button>
+                    
+                    <Button Classes="scope-button"
+                            Classes.selected="{Binding IsScopeTeamGoals}"
+                            Command="{Binding SetScopeCommand}"
+                            CommandParameter="1">
+                        <TextBlock Text="Team Goals" FontSize="13"/>
+                    </Button>
+                    
+                    <Button Classes="scope-button"
+                            Classes.selected="{Binding IsScopeSharedGoals}"
+                            Command="{Binding SetScopeCommand}"
+                            CommandParameter="2">
+                        <TextBlock Text="Shared Goals" FontSize="13"/>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <!-- Stats summary (subtle, non-judgmental) -->
+            <StackPanel Grid.Column="1" 
+                        Orientation="Horizontal" 
+                        Spacing="24" 
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding ActiveGoalsCount}" 
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Text="on track" 
+                               FontSize="13" Opacity="0.6"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6"
+                            IsVisible="{Binding NeedsAttentionCount, Converter={StaticResource GreaterThanZeroConverter}}">
+                    <TextBlock Text="{Binding NeedsAttentionCount}" 
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Text="need attention" 
+                               FontSize="13" Opacity="0.6"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- New Goal button -->
+            <Button Grid.Column="2"
+                    Command="{Binding CreateNewGoalCommand}"
+                    Classes="primary-button">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                              Width="14" Height="14"/>
+                    <TextBlock Text="New Goal" FontSize="13"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Row 1: Goals list + detail panel -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            
+            <!-- Goals list -->
+            <Grid Grid.Column="0">
+                <!-- Loading indicator -->
+                <StackPanel VerticalAlignment="Center" 
+                            HorizontalAlignment="Center" 
+                            Spacing="12"
+                            IsVisible="{Binding IsLoading}">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="200"
+                                 Classes="circular"/>
+                    <TextBlock Text="Loading goals..." 
+                               Opacity="0.6"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Empty state -->
+                <StackPanel VerticalAlignment="Center" 
+                            HorizontalAlignment="Center" 
+                            Spacing="16"
+                            IsVisible="{Binding !Goals.Count}">
+                    <StackPanel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="!IsLoading"/>
+                            <Binding Path="!Goals.Count"/>
+                        </MultiBinding>
+                    </StackPanel.IsVisible>
+                    
+                    <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M9,9V15H15V9H9M11,11H13V13H11V11Z" 
+                              Width="64" Height="64" 
+                              Opacity="0.3"/>
+                    <TextBlock Text="No goals yet"
+                               FontSize="18"
+                               FontWeight="Light"
+                               Opacity="0.5"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Goals express your intent - what matters to you and your team"
+                               FontSize="14"
+                               Opacity="0.3"
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="300"
+                               TextAlignment="Center"/>
+                    <Button Command="{Binding CreateNewGoalCommand}"
+                            Classes="primary-button"
+                            HorizontalAlignment="Center"
+                            Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                      Width="14" Height="14"/>
+                            <TextBlock Text="Create Goal" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Error message -->
+                <Border Background="#FEF2F2"
+                        BorderBrush="#FECACA"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0,0,16,0"
+                        VerticalAlignment="Top"
+                        IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <PathIcon Data="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+                                  Width="20" Height="20"
+                                  Foreground="#DC2626"/>
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="#DC2626"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Goals list when we have data -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="!IsLoading"/>
+                            <Binding Path="Goals.Count" Converter="{StaticResource GreaterThanZeroConverter}"/>
+                        </MultiBinding>
+                    </ScrollViewer.IsVisible>
+                    <ItemsControl ItemsSource="{Binding Goals}"
+                                  Margin="0,0,16,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:GoalDetail">
+                                <Border Margin="0,0,0,8" PointerPressed="OnGoalCardPressed">
+                                    <controls:GoalCard DataContext="{Binding}"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+            
+            <!-- Detail flyout panel -->
+            <controls:GoalDetailFlyout Grid.Column="1"
+                                        Width="400"
+                                        IsVisible="{Binding IsDetailFlyoutOpen}"
+                                        Margin="16,0,0,0"/>
+            
+            <!-- Editor flyout panel -->
+            <controls:GoalEditorFlyout Grid.Column="1"
+                                        Width="400"
+                                        IsVisible="{Binding IsEditorFlyoutOpen}"
+                                        Margin="16,0,0,0"/>
+        </Grid>
+    </Grid>
+</UserControl>

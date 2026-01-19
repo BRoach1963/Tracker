@@ -1,0 +1,263 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             mc:Ignorable="d"
+             x:DataType="vm:TasksViewModel"
+             x:Class="ProCohere.Avalonia.Views.Controls.TaskDetailFlyout">
+
+    <UserControl.Styles>
+        <!-- Flyout Tab Style -->
+        <Style Selector="Button.flyout-tab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="48"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.flyout-tab PathIcon">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover PathIcon">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="48,*">
+        <!-- Vertical Tab Bar -->
+        <Border Grid.Column="0" Background="{StaticResource BrushSecondary}" CornerRadius="8,0,0,8">
+            <StackPanel Margin="0,8">
+                <!-- Close Button -->
+                <Button Classes="icon-button-small" 
+                        Margin="10,0,10,16"
+                        Command="{Binding CloseTaskDetailCommand}"
+                        ToolTip.Tip="Close">
+                    <PathIcon Data="{StaticResource icon_dismiss}" 
+                              Foreground="{StaticResource BrushTextLight}"
+                              Width="16" Height="16"/>
+                </Button>
+                
+                <!-- Overview Tab -->
+                <Button Classes="flyout-tab"
+                        Classes.selected="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Overview}}"
+                        Command="{Binding SetTaskDetailTabCommand}"
+                        CommandParameter="{x:Static vm:TaskDetailTab.Overview}"
+                        ToolTip.Tip="Overview">
+                    <PathIcon Data="{StaticResource icon_info}" 
+                              Width="20" Height="20"/>
+                </Button>
+                
+                <!-- Activity Tab -->
+                <Button Classes="flyout-tab"
+                        Classes.selected="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Activity}}"
+                        Command="{Binding SetTaskDetailTabCommand}"
+                        CommandParameter="{x:Static vm:TaskDetailTab.Activity}"
+                        ToolTip.Tip="Activity">
+                    <PathIcon Data="{StaticResource icon_history}" 
+                              Width="20" Height="20"/>
+                </Button>
+            </StackPanel>
+        </Border>
+        
+        <!-- Content Area -->
+        <Border Grid.Column="1" Background="{StaticResource BrushSurface}" Padding="24,16" CornerRadius="0,8,8,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Overview Tab Content -->
+                    <StackPanel IsVisible="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Overview}}">
+                        
+                        <!-- Task Title and Status -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+                            <TextBlock Grid.Column="0" 
+                                       Text="{Binding SelectedTask.Title}" 
+                                       FontSize="20" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       TextWrapping="Wrap"/>
+                            <!-- Status Badge - Complete (green) -->
+                            <Border Grid.Column="1" 
+                                    Background="#10B981"
+                                    CornerRadius="12" Padding="12,4" VerticalAlignment="Top"
+                                    IsVisible="{Binding SelectedTask.IsCompleted}">
+                                <TextBlock Text="Complete" FontSize="12" FontWeight="Medium" Foreground="White"/>
+                            </Border>
+                            <!-- Status Badge - In Progress (amber) -->
+                            <Border Grid.Column="1" 
+                                    Background="#F59E0B"
+                                    CornerRadius="12" Padding="12,4" VerticalAlignment="Top"
+                                    IsVisible="{Binding !SelectedTask.IsCompleted}">
+                                <TextBlock Text="In Progress" FontSize="12" FontWeight="Medium" Foreground="White"/>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Due Date -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12"
+                                    IsVisible="{Binding SelectedTask.DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <PathIcon Data="{StaticResource icon_calendar}"
+                                      Width="16" Height="16"
+                                      Foreground="{StaticResource BrushTextSecondary}"
+                                      Margin="0,0,8,0"/>
+                            <TextBlock Text="Due:" 
+                                       Foreground="{StaticResource BrushTextSecondary}"
+                                       FontSize="13" Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding SelectedTask.DueDate, StringFormat='{}{0:MMM d, yyyy}'}"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       FontSize="13"/>
+                        </StackPanel>
+                        
+                        <!-- Priority -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12"
+                                    IsVisible="{Binding SelectedTask.Priority, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <PathIcon Data="{StaticResource icon_flag}"
+                                      Width="16" Height="16"
+                                      Foreground="{StaticResource BrushTextSecondary}"
+                                      Margin="0,0,8,0"/>
+                            <TextBlock Text="Priority:" 
+                                       Foreground="{StaticResource BrushTextSecondary}"
+                                       FontSize="13" Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding SelectedTask.Priority}"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       FontSize="13" FontWeight="Medium"/>
+                        </StackPanel>
+                        
+                        <!-- Provenance Badge -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16"
+                                    IsVisible="{Binding SelectedTask.HasSource}">
+                            <Border Background="{StaticResource BrushSecondary}"
+                                    CornerRadius="10" Padding="10,5">
+                                <StackPanel Orientation="Horizontal">
+                                    <PathIcon Data="{Binding SelectedTask.SourceIconPath}"
+                                              Width="14" Height="14"
+                                              Foreground="{StaticResource BrushHighlight}"
+                                              Margin="0,0,8,0"
+                                              IsVisible="{Binding SelectedTask.SourceIconPath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    <TextBlock Text="{Binding SelectedTask.ProvenanceDisplay}"
+                                               FontSize="12" 
+                                               Foreground="White"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        
+                        <!-- Separator -->
+                        <Border Height="1" Background="{StaticResource BrushBorder}" Margin="0,8,0,16"/>
+                        
+                        <!-- Description Section -->
+                        <TextBlock Text="Description" 
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushTextPrimary}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding SelectedTask.Description}"
+                                   Foreground="{StaticResource BrushTextSecondary}"
+                                   FontSize="13" TextWrapping="Wrap"
+                                   Margin="0,0,0,24"
+                                   IsVisible="{Binding SelectedTask.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        <TextBlock Text="No description provided."
+                                   Foreground="{StaticResource BrushTextTertiary}"
+                                   FontSize="13" FontStyle="Italic"
+                                   Margin="0,0,0,24"
+                                   IsVisible="{Binding SelectedTask.Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                        
+                        <!-- Linked Source Section -->
+                        <StackPanel IsVisible="{Binding SelectedTask.HasSource}"
+                                    Margin="0,0,0,24">
+                            <TextBlock Text="Source" 
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       Margin="0,0,0,8"/>
+                            <Border Background="{StaticResource BrushCardBackground}"
+                                    CornerRadius="8" Padding="12"
+                                    BorderBrush="{StaticResource BrushBorder}"
+                                    BorderThickness="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <PathIcon Data="{Binding SelectedTask.SourceIconPath}"
+                                              Width="16" Height="16"
+                                              Foreground="{StaticResource BrushHighlight}"
+                                              Margin="0,0,10,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SelectedTask.SourceTypeDisplay}"
+                                                   Foreground="{StaticResource BrushTextPrimary}"
+                                                   FontSize="13" FontWeight="Medium"/>
+                                        <TextBlock Text="{Binding SelectedTask.SourceName}"
+                                                   Foreground="{StaticResource BrushTextSecondary}"
+                                                   FontSize="12"
+                                                   IsVisible="{Binding SelectedTask.SourceName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                            <Button Classes="button-secondary"
+                                    Command="{Binding EditTaskCommand}"
+                                    CommandParameter="{Binding SelectedTask}"
+                                    ToolTip.Tip="Edit Task">
+                                <StackPanel Orientation="Horizontal">
+                                    <PathIcon Data="{StaticResource icon_edit}"
+                                              Width="14" Height="14"
+                                              Foreground="{StaticResource BrushTextPrimary}"
+                                              Margin="0,0,6,0"/>
+                                    <TextBlock Text="Edit" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="button-danger"
+                                    Command="{Binding DeleteTaskCommand}"
+                                    CommandParameter="{Binding SelectedTask}"
+                                    ToolTip.Tip="Delete Task">
+                                <StackPanel Orientation="Horizontal">
+                                    <PathIcon Data="{StaticResource icon_delete}"
+                                              Width="14" Height="14"
+                                              Foreground="{StaticResource BrushTextLight}"
+                                              Margin="0,0,6,0"/>
+                                    <TextBlock Text="Delete" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                    
+                    <!-- Activity Tab Content -->
+                    <StackPanel IsVisible="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Activity}}">
+                        <TextBlock Text="Activity" 
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushTextPrimary}"
+                                   Margin="0,0,0,16"/>
+                        
+                        <!-- Activity Placeholder -->
+                        <Border Background="{StaticResource BrushCardBackground}"
+                                CornerRadius="8" Padding="24"
+                                HorizontalAlignment="Center">
+                            <StackPanel HorizontalAlignment="Center">
+                                <PathIcon Data="{StaticResource icon_history}"
+                                          Width="32" Height="32"
+                                          Foreground="{StaticResource BrushTextTertiary}"
+                                          HorizontalAlignment="Center"
+                                          Margin="0,0,0,12"/>
+                                <TextBlock Text="Activity history coming soon"
+                                           Foreground="{StaticResource BrushTextTertiary}"
+                                           FontSize="14"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Track changes, comments, and updates"
+                                           Foreground="{StaticResource BrushTextTertiary}"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

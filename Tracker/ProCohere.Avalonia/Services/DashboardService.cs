@@ -159,7 +159,7 @@ public class DashboardService
             TotalTasks = data.Tasks.Count,
             CompletedTasks = data.Tasks.Count(t => t.Status == "completed"),
             TotalGoals = data.Goals.Count,
-            GoalsOnTrack = data.Goals.Count(g => g.IsOnTrack),
+            GoalsOnTrack = data.Goals.Count(g => g.Health == GoalHealth.OnTrack),
             ActiveProjectCount = await projectCountTask
         };
 

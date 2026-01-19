@@ -436,6 +436,11 @@ public partial class CircleViewModel : ViewModelBase
     public ObservableCollection<TeamMemberDetail> MemberDirectReports { get; } = new();
 
     /// <summary>
+    /// Tasks assigned to the selected team member.
+    /// </summary>
+    public ObservableCollection<TaskDetail> MemberTasks { get; } = new();
+
+    /// <summary>
     /// Whether the selected team member is a manager (has direct reports).
     /// </summary>
     public bool SelectedMemberIsManager => SelectedTeamMember?.IsManager == true;
@@ -462,8 +467,12 @@ public partial class CircleViewModel : ViewModelBase
         MemberMeetings.Clear();
         MemberFeedback.Clear();
         MemberDirectReports.Clear();
+        MemberTasks.Clear();
 
         if (SelectedTeamMember == null) return;
+
+        // Load tasks asynchronously
+        _ = LoadMemberTasksAsync();
 
         // Get direct reports for this member (if they're a manager)
         foreach (var report in _allTeamMembers.Where(m => m.ManagerTeamMemberId == SelectedTeamMember.Id))
@@ -489,6 +498,28 @@ public partial class CircleViewModel : ViewModelBase
         foreach (var fb in _allFeedback.Where(f => f.TeamMemberId == SelectedTeamMember.Id))
         {
             MemberFeedback.Add(fb);
+        }
+    }
+
+    /// <summary>
+    /// Loads tasks for the selected team member asynchronously.
+    /// </summary>
+    private async System.Threading.Tasks.Task LoadMemberTasksAsync()
+    {
+        if (SelectedTeamMember == null) return;
+
+        try
+        {
+            var tasks = await TaskService.Instance.GetTasksByAssigneeAsync(SelectedTeamMember.Id, includeCompleted: false);
+            MemberTasks.Clear();
+            foreach (var task in tasks)
+            {
+                MemberTasks.Add(task);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading member tasks: {ex.Message}");
         }
     }
 
@@ -706,6 +737,137 @@ public partial class CircleViewModel : ViewModelBase
         SelectedMeeting = null;
     }
 
+    /// <summary>
+    /// Creates a task from an agenda item.
+    /// </summary>
+    [RelayCommand]
+    private async Task CreateTaskFromAgendaItemAsync(MeetingAgendaItem? item)
+    {
+        if (item == null) return;
+
+        Log($"Creating task from agenda item: {item.Title}");
+
+        try
+        {
+            // Create the task via service
+            var task = await MeetingAgendaItemService.Instance.CreateTaskFromAgendaItemAsync(
+                item.Id,
+                item.Description,
+                "medium",   // Default priority
+                null,       // No due date by default
+                null        // Unassigned by default
+            );
+
+            if (task != null)
+            {
+                Log($"Task created: {task.Id} - {task.Title}");
+
+                // Update the local item state
+                item.Status = "action_created";
+                item.IsCompleted = true;
+                item.LinkedEntityType = "task";
+                item.LinkedEntityId = task.Id;
+
+                // Refresh the meeting to show updated status
+                if (SelectedMeeting != null)
+                {
+                    var updatedItem = SelectedMeeting.AgendaItems.FirstOrDefault(a => a.Id == item.Id);
+                    if (updatedItem != null)
+                    {
+                        updatedItem.Status = "action_created";
+                        updatedItem.IsCompleted = true;
+                        updatedItem.LinkedEntityType = "task";
+                        updatedItem.LinkedEntityId = task.Id;
+                    }
+                }
+            }
+            else
+            {
+                Log($"Failed to create task: {MeetingAgendaItemService.Instance.LastError}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Error creating task from agenda item: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sets agenda item status to Open.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetAgendaItemOpenAsync(MeetingAgendaItem? item)
+    {
+        await SetAgendaItemStatusInternalAsync(item, "open");
+    }
+
+    /// <summary>
+    /// Sets agenda item status to Discussed.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetAgendaItemDiscussedAsync(MeetingAgendaItem? item)
+    {
+        await SetAgendaItemStatusInternalAsync(item, "discussed");
+    }
+
+    /// <summary>
+    /// Sets agenda item status to Deferred.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetAgendaItemDeferredAsync(MeetingAgendaItem? item)
+    {
+        await SetAgendaItemStatusInternalAsync(item, "deferred");
+    }
+
+    /// <summary>
+    /// Sets agenda item status to Dropped.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetAgendaItemDroppedAsync(MeetingAgendaItem? item)
+    {
+        await SetAgendaItemStatusInternalAsync(item, "dropped");
+    }
+
+    /// <summary>
+    /// Internal helper to update agenda item status.
+    /// </summary>
+    private async Task SetAgendaItemStatusInternalAsync(MeetingAgendaItem? item, string newStatus)
+    {
+        if (item == null) return;
+
+        Log($"Setting agenda item '{item.Title}' status to: {newStatus}");
+
+        try
+        {
+            var updated = await MeetingAgendaItemService.Instance.UpdateStatusAsync(item.Id, newStatus);
+            if (updated != null)
+            {
+                // Update local state
+                item.Status = newStatus;
+                
+                // If marked as discussed/deferred/dropped, also mark completed
+                if (newStatus == "discussed" || newStatus == "deferred" || newStatus == "dropped")
+                {
+                    item.IsCompleted = true;
+                }
+                else if (newStatus == "open")
+                {
+                    item.IsCompleted = false;
+                }
+
+                Log($"Agenda item status updated to: {newStatus}");
+            }
+            else
+            {
+                Log($"Failed to update status: {MeetingAgendaItemService.Instance.LastError}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Error updating agenda item status: {ex.Message}");
+        }
+    }
+
     private static DateTime GetWeekStart(DateTime date)
     {
         int diff = (7 + (date.DayOfWeek - DayOfWeek.Sunday)) % 7;
@@ -783,6 +945,8 @@ public partial class CircleViewModel : ViewModelBase
                            .OrderBy(m => m.ScheduledAt))
             });
         }
+        // Notify view to rebuild week view (ObservableCollection changes don't trigger PropertyChanged)
+        OnPropertyChanged(nameof(WeekDays));
     }
 
     private void RefreshCalendarDays()
@@ -895,6 +1059,9 @@ public partial class CircleViewModel : ViewModelBase
     [ObservableProperty]
     private GoalFilter _goalFilter = GoalFilter.All;
 
+    [ObservableProperty]
+    private GoalDetailTab _goalDetailTab = GoalDetailTab.Overview;
+
     /// <summary>
     /// All goals.
     /// </summary>
@@ -904,6 +1071,16 @@ public partial class CircleViewModel : ViewModelBase
     /// Filtered goals displayed in the list.
     /// </summary>
     public ObservableCollection<GoalDetail> FilteredGoals { get; } = new();
+
+    /// <summary>
+    /// Targets (key results) for the selected goal.
+    /// </summary>
+    public ObservableCollection<TargetDetail> GoalTargets { get; } = new();
+
+    /// <summary>
+    /// Tasks linked to the selected goal.
+    /// </summary>
+    public ObservableCollection<TaskDetail> GoalTasks { get; } = new();
 
     // Goal stats
     public int OnTrackGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "on_track" or "on-track");
@@ -944,6 +1121,54 @@ public partial class CircleViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void SetGoalDetailTab(GoalDetailTab tab)
+    {
+        GoalDetailTab = tab;
+    }
+
+    partial void OnSelectedGoalChanged(GoalDetail? oldValue, GoalDetail? newValue)
+    {
+        // Reset to Overview tab when goal changes
+        GoalDetailTab = GoalDetailTab.Overview;
+        LoadGoalRelatedData();
+    }
+
+    private void LoadGoalRelatedData()
+    {
+        GoalTargets.Clear();
+        GoalTasks.Clear();
+
+        if (SelectedGoal == null) return;
+
+        // Load targets and tasks asynchronously
+        _ = LoadGoalTargetsAndTasksAsync();
+    }
+
+    private async System.Threading.Tasks.Task LoadGoalTargetsAndTasksAsync()
+    {
+        if (SelectedGoal == null) return;
+
+        try
+        {
+            // Load tasks linked to this goal
+            var tasks = await TaskService.Instance.GetTasksBySourceAsync("goal", SelectedGoal.Id);
+            GoalTasks.Clear();
+            foreach (var task in tasks)
+            {
+                GoalTasks.Add(task);
+            }
+
+            // TODO: Load targets when TargetService is implemented
+            // For now, just clear
+            GoalTargets.Clear();
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading goal related data: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
     private void SelectGoal(GoalDetail? goal)
     {
         if (goal == null)
@@ -971,6 +1196,54 @@ public partial class CircleViewModel : ViewModelBase
     {
         IsGoalDetailOpen = false;
         SelectedGoal = null;
+    }
+
+    [RelayCommand]
+    private void EditGoal(GoalDetail? goal)
+    {
+        if (goal == null) return;
+        // TODO: Open goal edit dialog
+        Log($"Edit goal: {goal.Title}");
+    }
+
+    [RelayCommand]
+    private async System.Threading.Tasks.Task DeleteGoalAsync(GoalDetail? goal)
+    {
+        if (goal == null) return;
+        // TODO: Confirm and delete goal
+        Log($"Delete goal: {goal.Title}");
+    }
+
+    [RelayCommand]
+    private void AddTarget()
+    {
+        if (SelectedGoal == null) return;
+        // TODO: Open add target dialog
+        Log($"Add target to goal: {SelectedGoal.Title}");
+    }
+
+    [RelayCommand]
+    private async System.Threading.Tasks.Task CreateTaskFromGoalAsync()
+    {
+        if (SelectedGoal == null) return;
+
+        try
+        {
+            var created = await TaskService.Instance.CreateTaskAsync(
+                title: $"Task for: {SelectedGoal.Title}",
+                sourceType: "goal",
+                sourceId: SelectedGoal.Id
+            );
+            if (created != null)
+            {
+                GoalTasks.Add(created);
+                Log($"Created task from goal: {SelectedGoal.Title}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Error creating task from goal: {ex.Message}");
+        }
     }
 
     private void LoadSampleGoals()
@@ -1468,6 +1741,7 @@ public enum MemberDetailTab
 {
     Overview,
     Goals,
+    Tasks,
     Meetings,
     Feedback,
     Team
@@ -1482,6 +1756,16 @@ public enum MeetingDetailTab
     Agenda,
     Attendees,
     Notes
+}
+
+/// <summary>
+/// Tabs within the goal detail flyout.
+/// </summary>
+public enum GoalDetailTab
+{
+    Overview,
+    Targets,
+    Tasks
 }
 
 /// <summary>
