@@ -2,23 +2,409 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="ProCohere.Avalonia.Views.Pulse.GoalsTabView">
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:local="using:ProCohere.Avalonia.Views.Pulse"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="ProCohere.Avalonia.Views.Pulse.GoalsTabView"
+             x:DataType="vm:GoalsViewModel">
     
-    <Grid>
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
-            <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
-                      Width="48" Height="48" 
-                      Foreground="{DynamicResource BrushTextSecondary}"/>
-            <TextBlock Text="Goals" 
-                       FontSize="18" 
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource BrushTextPrimary}"
-                       HorizontalAlignment="Center"/>
-            <TextBlock Text="Goals content will go here" 
-                       FontSize="13"
-                       Foreground="{DynamicResource BrushTextSecondary}"
-                       HorizontalAlignment="Center"/>
-        </StackPanel>
+    <UserControl.Styles>
+        <!-- Scope Filter Button Style -->
+        <Style Selector="Border.scope-filter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.scope-filter:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Border.scope-filter.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        
+        <!-- Goal Card Style -->
+        <Style Selector="Border.goal-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style Selector="Border.goal-card:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Border.goal-card.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        
+        <!-- Health Badge -->
+        <Style Selector="Border.health-badge">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+        </Style>
+        
+        <!-- Detail Panel Style - with slide animation -->
+        <Style Selector="Border.detail-panel">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RenderTransform" Value="translate(320px, 0)"/>
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.detail-panel.open">
+            <Setter Property="RenderTransform" Value="translate(0, 0)"/>
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <Grid RowDefinitions="Auto,*" ClipToBounds="True">
+        
+        <!-- Row 0: Filter Bar -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Scope Filters -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                <!-- My Goals -->
+                <Border Classes="scope-filter" Classes.selected="{Binding IsScopeMyGoals}"
+                        Tapped="ScopeMyGoals_Tapped">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
+                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="My Goals" FontSize="13" 
+                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Team Goals -->
+                <Border Classes="scope-filter" Classes.selected="{Binding IsScopeTeamGoals}"
+                        Tapped="ScopeTeamGoals_Tapped">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
+                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="Team Goals" FontSize="13" 
+                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Shared Goals -->
+                <Border Classes="scope-filter" Classes.selected="{Binding IsScopeSharedGoals}"
+                        Tapped="ScopeSharedGoals_Tapped">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M18,21L14,17H17V7H14L18,3L22,7H19V17H22M2,19V17H12V19M2,13V11H9V13M2,7V5H6V7H2Z" 
+                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="Shared" FontSize="13" 
+                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Divider -->
+                <Border Width="1" Background="{DynamicResource BrushBorder}" Margin="8,4"/>
+                
+                <!-- Stats -->
+                <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="{Binding ActiveGoalsCount}" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="#22C55E"/>
+                        <TextBlock Text="On Track" FontSize="12" 
+                                   Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="{Binding NeedsAttentionCount}" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="#F59E0B"/>
+                        <TextBlock Text="Needs Attention" FontSize="12" 
+                                   Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="{Binding AtRiskCount}" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="#EF4444"/>
+                        <TextBlock Text="At Risk" FontSize="12" 
+                                   Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- Add Button -->
+            <Button Grid.Column="1" Classes="primary" Command="{Binding CreateNewGoalCommand}"
+                    Padding="12,8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="14" Height="14"/>
+                    <TextBlock Text="New Goal" FontSize="13"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+        
+        <!-- Row 1: Content Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Main List Area -->
+            <Grid Grid.Column="0">
+                <!-- Loading State -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            IsVisible="{Binding IsLoading}">
+                    <TextBlock Text="Loading goals..." FontSize="14"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+                
+                <!-- Error State -->
+                <Border Background="#1EEF4444" CornerRadius="8" Padding="16"
+                        IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                        Margin="0,0,0,8" VerticalAlignment="Top">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+                                  Width="16" Height="16" Foreground="#EF4444"/>
+                        <TextBlock Text="{Binding ErrorMessage}" 
+                                   Foreground="#EF4444" FontSize="13"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Empty State -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12"
+                            IsVisible="{Binding !Goals.Count}">
+                    <Panel IsVisible="{Binding !IsLoading}">
+                        <StackPanel Spacing="12" HorizontalAlignment="Center">
+                            <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
+                                      Width="48" Height="48" 
+                                      Foreground="{DynamicResource BrushTextSecondary}" Opacity="0.4"/>
+                            <TextBlock Text="No goals yet" FontSize="16" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Goals express your intent and direction" FontSize="13"
+                                       Foreground="{DynamicResource BrushTextSecondary}" Opacity="0.7"
+                                       HorizontalAlignment="Center"/>
+                            <Button Classes="primary" Command="{Binding CreateNewGoalCommand}"
+                                    HorizontalAlignment="Center" Margin="0,8,0,0">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="14" Height="14"/>
+                                    <TextBlock Text="Create your first goal"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Panel>
+                </StackPanel>
+                
+                <!-- Goals List -->
+                <ScrollViewer IsVisible="{Binding !!Goals.Count}">
+                    <ItemsControl ItemsSource="{Binding Goals}" Margin="0,0,16,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:GoalDetail">
+                                <Border Classes="goal-card" 
+                                        Tapped="GoalCard_Tapped"
+                                        Tag="{Binding}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <!-- Goal Info -->
+                                        <StackPanel Grid.Column="0" Spacing="6">
+                                            <!-- Title Row -->
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <!-- Health Indicator -->
+                                                <Border Grid.Column="0" Width="4" Height="24" CornerRadius="2"
+                                                        Background="{Binding Health, Converter={x:Static local:GoalsTabView.HealthToColorConverter}}"
+                                                        Margin="0,0,10,0"/>
+                                                
+                                                <!-- Title -->
+                                                <TextBlock Grid.Column="1" Text="{Binding Title}"
+                                                           FontSize="15" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                
+                                                <!-- Goal Type Badge -->
+                                                <Border Grid.Column="2" Classes="health-badge"
+                                                        Background="{DynamicResource BrushSurfaceAlt}"
+                                                        Margin="8,0,0,0">
+                                                    <TextBlock Text="{Binding GoalTypeDisplay}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                </Border>
+                                            </Grid>
+                                            
+                                            <!-- Description -->
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       MaxLines="2"
+                                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            
+                                            <!-- Meta Row -->
+                                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
+                                                <!-- Health Badge -->
+                                                <Border Classes="health-badge"
+                                                        Background="{Binding Health, Converter={x:Static local:GoalsTabView.HealthToBackgroundConverter}}">
+                                                    <TextBlock Text="{Binding HealthDisplay}" FontSize="11"
+                                                               Foreground="{Binding Health, Converter={x:Static local:GoalsTabView.HealthToColorConverter}}"/>
+                                                </Border>
+                                                
+                                                <!-- Time Period -->
+                                                <StackPanel Orientation="Horizontal" Spacing="4"
+                                                            IsVisible="{Binding TimePeriod, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                    <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"
+                                                              Width="12" Height="12" 
+                                                              Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Text="{Binding TimePeriod}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Text="{Binding Year}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                                               IsVisible="{Binding Year, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Owner -->
+                                                <StackPanel Orientation="Horizontal" Spacing="4"
+                                                            IsVisible="{Binding OwnerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                    <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                                              Width="12" Height="12" 
+                                                              Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Text="{Binding OwnerName}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        
+                                        <!-- Chevron -->
+                                        <PathIcon Grid.Column="1" 
+                                                  Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                  Width="16" Height="16"
+                                                  Foreground="{DynamicResource BrushTextSecondary}"
+                                                  VerticalAlignment="Center"
+                                                  Opacity="0.5"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+            
+            <!-- Detail Flyout Panel -->
+            <Border Grid.Column="1" Classes="detail-panel"
+                    Classes.open="{Binding IsDetailFlyoutOpen}"
+                    Width="340" Margin="0,0,0,0"
+                    IsVisible="{Binding SelectedGoal, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Header -->
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource BrushBorder}" 
+                            BorderThickness="0,0,0,1" Padding="16">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="Goal Details" 
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                            <Button Grid.Column="1" Classes="ghost" Padding="4"
+                                    Command="{Binding CloseDetailFlyoutCommand}">
+                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                          Width="14" Height="14"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Content -->
+                    <ScrollViewer Grid.Row="1" Padding="16">
+                        <StackPanel Spacing="16" DataContext="{Binding SelectedGoal}">
+                            <!-- Title -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Title" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding Title}" FontSize="14"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                            
+                            <!-- Description -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="Description" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding Description}" FontSize="13"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                            
+                            <!-- Health -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Health" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <Border Classes="health-badge" HorizontalAlignment="Left"
+                                        Background="{Binding Health, Converter={x:Static local:GoalsTabView.HealthToBackgroundConverter}}">
+                                    <TextBlock Text="{Binding HealthDisplay}" FontSize="12"
+                                               Foreground="{Binding Health, Converter={x:Static local:GoalsTabView.HealthToColorConverter}}"/>
+                                </Border>
+                                <TextBlock Text="{Binding HealthReason}" FontSize="12"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           TextWrapping="Wrap" Margin="0,4,0,0"
+                                           IsVisible="{Binding HealthReason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            </StackPanel>
+                            
+                            <!-- Goal Type -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Type" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding GoalTypeDisplay}" FontSize="13"
+                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                            </StackPanel>
+                            
+                            <!-- Time Period -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding TimePeriod, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="Time Period" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{Binding TimePeriod}" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="{Binding Year}" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               IsVisible="{Binding Year, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <!-- Lifecycle -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Lifecycle" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding LifecycleDisplay}" FontSize="13"
+                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                            </StackPanel>
+                            
+                            <!-- Owner -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding OwnerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="Owner" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding OwnerName}" FontSize="13"
+                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                            </StackPanel>
+                            
+                            <!-- Visibility -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Visibility" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding VisibilityDisplay}" FontSize="13"
+                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+        
     </Grid>
 </UserControl>

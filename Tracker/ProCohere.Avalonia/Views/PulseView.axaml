@@ -99,16 +99,16 @@
             </StackPanel>
         </Border>
         
-        <!-- Row 2: Content Area -->
-        <Grid Grid.Row="2">
+        <!-- Row 2: Content Area - Visibility controlled from code-behind -->
+        <Grid Grid.Row="2" x:Name="TabContentArea">
             <!-- Goals Tab Content -->
-            <pulse:GoalsTabView IsVisible="{Binding IsSubTabGoals}"/>
+            <pulse:GoalsTabView x:Name="GoalsTab"/>
             
             <!-- Metrics Tab Content -->
-            <pulse:MetricsTabView IsVisible="{Binding IsSubTabMetrics}"/>
+            <pulse:MetricsTabView x:Name="MetricsTab"/>
             
             <!-- Tasks Tab Content -->
-            <pulse:TasksTabView IsVisible="{Binding IsSubTabTasks}"/>
+            <pulse:TasksTabView x:Name="TasksTab"/>
         </Grid>
         
     </Grid>
