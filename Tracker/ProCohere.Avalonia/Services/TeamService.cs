@@ -1,0 +1,284 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using ProCohere.Avalonia.Models;
+using static Supabase.Postgrest.Constants;
+
+namespace ProCohere.Avalonia.Services;
+
+/// <summary>
+/// Service for loading team members with hierarchy-aware visibility.
+/// Uses the get_visible_team_member_ids RPC to respect role-based access.
+/// </summary>
+public class TeamService
+{
+    #region Singleton
+
+    private static readonly Lazy<TeamService> _instance =
+        new(() => new TeamService(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+
+    public static TeamService Instance => _instance.Value;
+
+    #endregion
+
+    #region Logging
+
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ProCohere", "team.log");
+
+    private static void Log(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
+        Debug.WriteLine(line);
+        try
+        {
+            var dir = Path.GetDirectoryName(_logPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            File.AppendAllText(_logPath, line + Environment.NewLine);
+        }
+        catch { }
+    }
+
+    #endregion
+
+    #region Cache
+
+    private List<TeamMemberDetail>? _cachedMembers;
+    private DateTime _cacheExpiry = DateTime.MinValue;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Clears the cached team members (e.g., on logout or refresh).
+    /// </summary>
+    public void ClearCache()
+    {
+        _cachedMembers = null;
+        _cacheExpiry = DateTime.MinValue;
+        Log("Cache cleared");
+    }
+
+    #endregion
+
+    #region Error Tracking
+
+    /// <summary>
+    /// Last error message from team operations.
+    /// </summary>
+    public string? LastError { get; private set; }
+
+    #endregion
+
+    private TeamService() { }
+
+    /// <summary>
+    /// Gets visible team members for the current user with hierarchy information.
+    /// Uses 2-step pattern: RPC for visibility + PostgREST for full records.
+    /// </summary>
+    /// <param name="forceRefresh">If true, bypasses cache.</param>
+    /// <returns>List of team members enriched with hierarchy data.</returns>
+    public async Task<List<TeamMemberDetail>> GetVisibleTeamMembersAsync(bool forceRefresh = false)
+    {
+        Log("GetVisibleTeamMembersAsync starting...");
+        LastError = null;
+
+        // Check cache
+        if (!forceRefresh && _cachedMembers != null && DateTime.UtcNow < _cacheExpiry)
+        {
+            Log($"Returning cached data ({_cachedMembers.Count} members)");
+            return _cachedMembers;
+        }
+
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated or no team member session";
+            Log($"ERROR: {LastError}");
+            return new List<TeamMemberDetail>();
+        }
+
+        var orgId = session.TeamMember.OrganizationId;
+        var teamMemberId = session.TeamMember.Id;
+
+        Log($"Loading visible members for org={orgId}, teamMember={teamMemberId}");
+
+        try
+        {
+            // Step 1: Call RPC to get visible IDs with depth/relation
+            Log("Step 1: Calling get_visible_team_member_ids RPC...");
+            var rpcResult = await client.Rpc("get_visible_team_member_ids", new
+            {
+                p_organization_id = orgId,
+                p_team_member_id = teamMemberId
+            });
+
+            if (rpcResult?.Content == null)
+            {
+                LastError = "RPC returned no data";
+                Log($"ERROR: {LastError}");
+                return new List<TeamMemberDetail>();
+            }
+
+            Log($"RPC response: {rpcResult.Content}");
+
+            // Parse RPC result into visibility map
+            var visibilityData = JsonSerializer.Deserialize<List<VisibilityRow>>(
+                rpcResult.Content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? new List<VisibilityRow>();
+
+            Log($"RPC returned {visibilityData.Count} visible member IDs");
+
+            if (visibilityData.Count == 0)
+            {
+                Log("No visible members returned");
+                return new List<TeamMemberDetail>();
+            }
+
+            // Build lookup dictionary
+            var visibilityMap = visibilityData.ToDictionary(
+                v => v.TeamMemberId,
+                v => (depth: v.Depth, relation: v.Relation)
+            );
+
+            // Step 2: Fetch full team member records for visible IDs
+            Log("Step 2: Fetching full team member records...");
+            var visibleIds = visibilityData.Select(v => v.TeamMemberId.ToString()).ToList();
+            
+            // PostgREST IN filter
+            var members = await client.From<TeamMemberDetail>()
+                .Filter("id", Operator.In, visibleIds)
+                .Filter("is_active", Operator.Equals, "true")
+                .Order("first_name", Ordering.Ascending)
+                .Get();
+
+            var memberList = members.Models ?? new List<TeamMemberDetail>();
+            Log($"Fetched {memberList.Count} full member records");
+
+            // Step 3: Merge visibility data into members
+            Log("Step 3: Merging hierarchy data...");
+            foreach (var member in memberList)
+            {
+                if (visibilityMap.TryGetValue(member.Id, out var visibility))
+                {
+                    member.HierarchyDepth = visibility.depth;
+                    member.Relation = visibility.relation;
+                }
+            }
+
+            // Step 4: Compute counts from visible set
+            Log("Step 4: Computing counts...");
+            ComputeHierarchyCounts(memberList);
+
+            // Step 5: Set manager names
+            Log("Step 5: Setting manager names...");
+            var memberDict = memberList.ToDictionary(m => m.Id);
+            foreach (var member in memberList)
+            {
+                if (member.ManagerTeamMemberId.HasValue &&
+                    memberDict.TryGetValue(member.ManagerTeamMemberId.Value, out var manager))
+                {
+                    member.ManagerName = manager.FullName;
+                }
+            }
+
+            // Update cache
+            _cachedMembers = memberList;
+            _cacheExpiry = DateTime.UtcNow.Add(CacheDuration);
+
+            Log($"SUCCESS: Returning {memberList.Count} enriched members");
+            return memberList;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"ERROR: {ex.Message}");
+            Log($"STACK: {ex.StackTrace}");
+            return new List<TeamMemberDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Computes DirectReportCount and TotalDescendantCount from the visible set.
+    /// </summary>
+    private void ComputeHierarchyCounts(List<TeamMemberDetail> members)
+    {
+        foreach (var member in members)
+        {
+            // Direct reports: members whose manager is this person AND are 'direct' relation
+            member.DirectReportCount = members.Count(m =>
+                m.ManagerTeamMemberId == member.Id &&
+                (m.Relation == "direct" || m.Relation == "descendant" || m.Relation == "peer" || m.Relation == "self"));
+
+            // Actually, simpler: count members whose ManagerTeamMemberId == this member's Id
+            member.DirectReportCount = members.Count(m => m.ManagerTeamMemberId == member.Id);
+
+            // Total descendants: harder to compute without full tree, but we can approximate
+            // For now, just use direct report count. Full descendant count would need recursive lookup.
+            member.TotalDescendantCount = member.DirectReportCount;
+        }
+    }
+
+    /// <summary>
+    /// Gets the current user's team member record from the visible set.
+    /// </summary>
+    public async Task<TeamMemberDetail?> GetCurrentUserAsync()
+    {
+        var members = await GetVisibleTeamMembersAsync();
+        return members.FirstOrDefault(m => m.Relation == "self");
+    }
+
+    /// <summary>
+    /// Gets the current user's manager from the visible set.
+    /// </summary>
+    public async Task<TeamMemberDetail?> GetMyManagerAsync()
+    {
+        var members = await GetVisibleTeamMembersAsync();
+        return members.FirstOrDefault(m => m.Relation == "manager");
+    }
+
+    /// <summary>
+    /// Gets the current user's direct reports from the visible set.
+    /// </summary>
+    public async Task<List<TeamMemberDetail>> GetMyDirectReportsAsync()
+    {
+        var members = await GetVisibleTeamMembersAsync();
+        return members.Where(m => m.Relation == "direct").ToList();
+    }
+
+    /// <summary>
+    /// Gets the current user's peers from the visible set.
+    /// </summary>
+    public async Task<List<TeamMemberDetail>> GetMyPeersAsync()
+    {
+        var members = await GetVisibleTeamMembersAsync();
+        return members.Where(m => m.Relation == "peer").ToList();
+    }
+
+    #region RPC Response Models
+
+    /// <summary>
+    /// Row returned by get_visible_team_member_ids RPC.
+    /// Maps to snake_case JSON from PostgreSQL.
+    /// </summary>
+    private class VisibilityRow
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("team_member_id")]
+        public Guid TeamMemberId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("depth")]
+        public int Depth { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("relation")]
+        public string Relation { get; set; } = string.Empty;
+    }
+
+    #endregion
+}

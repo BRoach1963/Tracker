@@ -76,6 +76,24 @@ public partial class SettingsViewModel : ViewModelBase
     private string _phone = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BirthdayDisplay))]
+    private DateTime? _birthday;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HireDateDisplay))]
+    private DateTime? _hireDate;
+
+    /// <summary>
+    /// Display text for birthday (e.g., "Jan 15").
+    /// </summary>
+    public string BirthdayDisplay => Birthday?.ToString("MMM d") ?? "";
+
+    /// <summary>
+    /// Display text for hire date (e.g., "Jan 15, 2020").
+    /// </summary>
+    public string HireDateDisplay => HireDate?.ToString("MMM d, yyyy") ?? "";
+
+    [ObservableProperty]
     private string? _profileErrorMessage;
 
     // Backup values for cancel
@@ -84,6 +102,8 @@ public partial class SettingsViewModel : ViewModelBase
     private string _backupJobTitle = string.Empty;
     private string _backupCompany = string.Empty;
     private string _backupPhone = string.Empty;
+    private DateTime? _backupBirthday;
+    private DateTime? _backupHireDate;
 
     #endregion
 
@@ -189,6 +209,8 @@ public partial class SettingsViewModel : ViewModelBase
             JobTitle = profile.JobTitle ?? string.Empty;
             Company = profile.Company ?? string.Empty;
             Phone = profile.Phone ?? string.Empty;
+            Birthday = profile.Birthday;
+            HireDate = profile.HireDate;
             AvatarUrl = profile.AvatarUrl;
             
             // Set display fields
@@ -305,6 +327,8 @@ public partial class SettingsViewModel : ViewModelBase
         _backupJobTitle = JobTitle;
         _backupCompany = Company;
         _backupPhone = Phone;
+        _backupBirthday = Birthday;
+        _backupHireDate = HireDate;
         
         IsEditingProfile = true;
     }
@@ -318,6 +342,8 @@ public partial class SettingsViewModel : ViewModelBase
         JobTitle = _backupJobTitle;
         Company = _backupCompany;
         Phone = _backupPhone;
+        Birthday = _backupBirthday;
+        HireDate = _backupHireDate;
         
         IsEditingProfile = false;
     }
@@ -337,7 +363,9 @@ public partial class SettingsViewModel : ViewModelBase
                 LastName.Trim(),
                 JobTitle.Trim(),
                 Company.Trim(),
-                Phone.Trim());
+                Phone.Trim(),
+                Birthday,
+                HireDate);
 
             if (success)
             {
@@ -371,13 +399,48 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Func to be set by the View to open a file picker and return the selected file path.
+    /// Returns null if user cancels.
+    /// </summary>
+    public Func<Task<string?>>? OpenFilePickerFunc { get; set; }
+
     [RelayCommand]
     private async Task ChangeAvatarAsync()
     {
-        // TODO: Implement avatar picker
-        // For now, this would open a file dialog, upload to Supabase Storage,
-        // and update the profile's avatar_url
-        await Task.CompletedTask;
+        try
+        {
+            // Use the file picker function set by the View
+            if (OpenFilePickerFunc == null)
+            {
+                System.Diagnostics.Debug.WriteLine("OpenFilePickerFunc not set");
+                return;
+            }
+
+            var filePath = await OpenFilePickerFunc();
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return; // User cancelled
+            }
+
+            // Upload the avatar
+            var (success, newUrl, error) = await AuthService.Instance.UploadAvatarAsync(filePath);
+            
+            if (success && !string.IsNullOrEmpty(newUrl))
+            {
+                AvatarUrl = newUrl;
+                ProfileUpdated?.Invoke();
+            }
+            else
+            {
+                ProfileErrorMessage = error ?? "Failed to upload avatar.";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to change avatar: {ex.Message}");
+            ProfileErrorMessage = $"Error: {ex.Message}";
+        }
     }
 
     #endregion

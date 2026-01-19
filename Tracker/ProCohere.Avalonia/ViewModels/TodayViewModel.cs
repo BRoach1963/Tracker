@@ -205,8 +205,18 @@ public partial class TodayViewModel : ViewModelBase
         Log("[TodayViewModel] Constructor called");
         // Subscribe to profile changes
         AuthService.Instance.ProfileChanged += OnProfileChanged;
-        // Load data when created (will fail if profile not loaded yet, but that's ok)
-        _ = LoadDataAsync();
+        
+        // Only load data if profile is already available (auto-login case)
+        // Otherwise wait for ProfileChanged event
+        if (AuthService.Instance.CurrentProfile != null)
+        {
+            Log("[TodayViewModel] Profile already available, loading data");
+            _ = LoadDataAsync();
+        }
+        else
+        {
+            Log("[TodayViewModel] Profile not yet available, waiting for ProfileChanged");
+        }
     }
 
     private void OnProfileChanged(object? sender, Models.UserProfile? profile)
@@ -260,17 +270,50 @@ public partial class TodayViewModel : ViewModelBase
             Log("[TodayViewModel] Calling DashboardService.LoadDashboardDataAsync...");
             var data = await DashboardService.Instance.LoadDashboardDataAsync();
             Log($"[TodayViewModel] Data loaded: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks");
+            
+            // Load visible team members (excludes self)
+            var visibleMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            var teamMembersExcludingSelf = visibleMembers.Where(m => m.Relation != "self").ToList();
+            Log($"[TodayViewModel] Visible team members (excluding self): {teamMembersExcludingSelf.Count}");
 
-            // Update stats
-            TeamMemberCount = data.Stats.TeamMemberCount;
+            // Merge stats from dashboard data into visible members
+            // DashboardService computes OpenTaskCount/ActiveGoalCount, but TeamService loads hierarchy
+            var dashboardMemberDict = data.TeamMembers.ToDictionary(m => m.Id);
+            foreach (var member in teamMembersExcludingSelf)
+            {
+                if (dashboardMemberDict.TryGetValue(member.Id, out var dashMember))
+                {
+                    member.OpenTaskCount = dashMember.OpenTaskCount;
+                    member.ActiveGoalCount = dashMember.ActiveGoalCount;
+                    member.LastMeetingDate = dashMember.LastMeetingDate;
+                }
+                else
+                {
+                    // Compute stats directly from dashboard data
+                    member.OpenTaskCount = data.Tasks.Count(t => 
+                        t.OwnerTeamMemberId == member.Id && t.Status != "completed");
+                    member.ActiveGoalCount = data.Goals.Count(g => 
+                        g.OwnerTeamMemberId == member.Id && g.Status != "completed");
+                    // Find last meeting for this member
+                    var lastMeeting = data.Meetings
+                        .Where(m => m.Attendees?.Any(a => a.TeamMemberId == member.Id) == true)
+                        .OrderByDescending(m => m.ScheduledAt)
+                        .FirstOrDefault();
+                    member.LastMeetingDate = lastMeeting?.ScheduledAt;
+                }
+            }
+            Log($"[TodayViewModel] Stats merged into visible members");
+
+            // Update stats - use visible count instead of dashboard count
+            TeamMemberCount = teamMembersExcludingSelf.Count;
             TaskCompletionPercent = data.Stats.TaskCompletionPercent;
             GoalsOnTrackPercent = data.Stats.GoalsOnTrackPercent;
             ActiveProjectCount = data.Stats.ActiveProjectCount;
             Log($"[TodayViewModel] Stats: {TeamMemberCount} members, {TaskCompletionPercent}% tasks, {GoalsOnTrackPercent}% goals, {ActiveProjectCount} projects");
 
-            // Update collections
+            // Update collections - use visible members excluding self
             TeamMembers.Clear();
-            foreach (var member in data.TeamMembers)
+            foreach (var member in teamMembersExcludingSelf)
             {
                 TeamMembers.Add(member);
             }

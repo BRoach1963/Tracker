@@ -69,6 +69,7 @@ public class GoalDetail : BaseModel
         "on_track" or "on-track" => "🟢 On Track",
         "at_risk" or "at-risk" => "🟡 At Risk",
         "off_track" or "off-track" => "🔴 Off Track",
+        "in_progress" or "in-progress" => "🔵 In Progress",
         "completed" => "✅ Completed",
         "not_started" or "not-started" => "⚪ Not Started",
         _ => "⚪ " + (Status ?? "Unknown")

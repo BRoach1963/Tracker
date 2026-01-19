@@ -1,16 +1,44 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
 namespace ProCohere.Avalonia.Models;
 
 /// <summary>
-/// Team member model with computed counts - maps to the team_members table.
+/// Team member model with computed counts - maps to v_team_members view.
+/// The view joins team_members with users to expose birthday from users table.
 /// Used for dashboard display.
 /// </summary>
-[Table("team_members")]
-public class TeamMemberDetail : BaseModel
+[Table("v_team_members")]
+public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
 {
+    private bool _isSelected;
+
+    /// <summary>
+    /// Whether this team member is currently selected in the UI.
+    /// </summary>
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected != value)
+            {
+                _isSelected = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
@@ -55,6 +83,87 @@ public class TeamMemberDetail : BaseModel
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    #region Hierarchy Properties (from database)
+
+    /// <summary>
+    /// FK to the manager's team_member record.
+    /// </summary>
+    [Column("manager_team_member_id")]
+    public Guid? ManagerTeamMemberId { get; set; }
+
+    #endregion
+
+    #region Hierarchy Properties (from RPC / computed)
+
+    /// <summary>
+    /// Hierarchy depth relative to the viewer.
+    /// 0 = self, 1 = direct report, 2+ = skip-level descendant, -1 = manager.
+    /// Set by TeamService from get_visible_team_member_ids RPC.
+    /// </summary>
+    public int HierarchyDepth { get; set; }
+
+    /// <summary>
+    /// Display depth for tree view indentation.
+    /// Computed at runtime based on visible tree structure.
+    /// </summary>
+    public int DisplayDepth { get; set; }
+
+    /// <summary>
+    /// Relationship to the current user.
+    /// Values: 'self', 'manager', 'peer', 'direct', 'descendant'.
+    /// Set by TeamService from get_visible_team_member_ids RPC.
+    /// </summary>
+    public string Relation { get; set; } = "self";
+
+    /// <summary>
+    /// Number of direct reports (depth=1) visible to the current user.
+    /// Computed from visible set, not global org.
+    /// </summary>
+    public int DirectReportCount { get; set; }
+
+    /// <summary>
+    /// Total descendants visible to the current user.
+    /// </summary>
+    public int TotalDescendantCount { get; set; }
+
+    /// <summary>
+    /// Display name of this person's manager.
+    /// Populated from visible set.
+    /// </summary>
+    public string ManagerName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True if this person has direct reports (is a manager).
+    /// </summary>
+    public bool IsManager => DirectReportCount > 0;
+
+    /// <summary>
+    /// True if this person is a peer of the current user.
+    /// </summary>
+    public bool IsPeer => Relation == "peer";
+
+    /// <summary>
+    /// True if this person is the current user's manager.
+    /// </summary>
+    public bool IsMyManager => Relation == "manager";
+
+    /// <summary>
+    /// True if this person is the current user.
+    /// </summary>
+    public bool IsSelf => Relation == "self";
+
+    /// <summary>
+    /// True if this person is a direct report of the current user.
+    /// </summary>
+    public bool IsDirectReport => Relation == "direct";
+
+    /// <summary>
+    /// True if this person is a skip-level descendant of the current user.
+    /// </summary>
+    public bool IsDescendant => Relation == "descendant";
+
+    #endregion
 
     #region Computed Properties (for dashboard)
 

@@ -79,6 +79,18 @@
   <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}" />
   <SolidColorBrush x:Key="BrushInfo" Color="{StaticResource ColorInfo}" />
 
+  <!-- Text on dark backgrounds -->
+  <Color x:Key="ColorTextOnSecondary">#FFFFFFFF</Color>
+  <SolidColorBrush x:Key="BrushTextOnSecondary" Color="{StaticResource ColorTextOnSecondary}" />
+
+  <!-- Button surface colors -->
+  <Color x:Key="ColorButtonSurface">#FFFFFFFF</Color>
+  <Color x:Key="ColorButtonSurfaceHover">#FFE5E7EB</Color>
+  <Color x:Key="ColorButtonSurfacePressed">#FFD1D5DB</Color>
+  <SolidColorBrush x:Key="BrushButtonSurface" Color="{StaticResource ColorButtonSurface}" />
+  <SolidColorBrush x:Key="BrushButtonSurfaceHover" Color="{StaticResource ColorButtonSurfaceHover}" />
+  <SolidColorBrush x:Key="BrushButtonSurfacePressed" Color="{StaticResource ColorButtonSurfacePressed}" />
+
   <!-- ========================================== -->
   <!-- DESIGN TOKENS -->
   <!-- ========================================== -->

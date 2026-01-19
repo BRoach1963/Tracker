@@ -21,6 +21,7 @@ This document captures ALL key architectural, UX, and data design decisions made
 5. [Tasks Architecture](#5-tasks-architecture)
 6. [Task Provenance](#6-task-provenance)
 7. [Agenda Item Lifecycle](#7-agenda-item-lifecycle)
+   - 7.1 [Agenda Item Deferral (Carry-Forward)](#71-agenda-item-deferral-carry-forward)
 8. [Database Schema Strategy](#8-database-schema-strategy)
 9. [Index Strategy](#9-index-strategy)
 10. [UI Component Decisions](#10-ui-component-decisions)
@@ -223,48 +224,73 @@ Tasks come from many sources. We need to track origin for:
 
 ### Current Schema (Already Exists)
 ```sql
-source_type     text,    -- 'meeting', 'agenda_item', 'goal', 'manual', etc.
+source_type     text,    -- 'meeting', 'agenda_item', 'goal', 'feedback', 'note'
 source_id       uuid,    -- Points to source entity
 ```
 
-### Integrity Concern (from ChatGPT review)
+### Integrity Rules (Implemented)
 
-**Problem:** `source_type` + `source_id` is a polymorphic reference with NO FK enforcement.
-
-Nothing stops:
-- `source_type = 'meeting'` with a `source_id` that isn't a meeting
-- `source_type = 'agenda_item'` pointing at deleted/wrong-org row
-- Typos: `'agendaItem'`, `'agenda-item'`, `'AGENDA_ITEM'`
-
-### Solution: Constrain + Optional FKs
-
-**1. Add CHECK constraint on source_type:**
+**1. CHECK constraint on source_type values:**
 ```sql
 ALTER TABLE procohere.tasks
 ADD CONSTRAINT chk_tasks_source_type 
-CHECK (source_type IN ('meeting', 'agenda_item', 'goal', 'feedback', 'manual', NULL));
+CHECK (source_type IS NULL OR source_type IN (
+    'meeting', 'agenda_item', 'goal', 'feedback', 'note'
+));
 ```
 
-**2. Add FK columns for high-volume sources:**
+**2. Pair constraint (both null or both set):**
+```sql
+ALTER TABLE procohere.tasks
+ADD CONSTRAINT chk_tasks_source_pair
+CHECK (
+    (source_type IS NULL AND source_id IS NULL)
+    OR (source_type IS NOT NULL AND source_id IS NOT NULL)
+);
+```
+
+### Key Decision: "Manual" = NULL/NULL
+
+**We dropped 'manual' from allowed values.** Manually created tasks are represented by:
+- `source_type = NULL`
+- `source_id = NULL`
+
+This is cleaner because:
+- `'manual'` would require a `source_id` pointing at... nothing
+- NULL/NULL is semantically correct: "no source"
+- One fewer enum value to maintain
+
+### Source Types
+
+| source_type | source_id points to | Use Case |
+|-------------|---------------------|----------|
+| `meeting` | `meetings.id` | Task created during meeting |
+| `agenda_item` | `meeting_agenda_items.id` | Task from agenda item action |
+| `goal` | `goals.id` | Task supporting a goal |
+| `feedback` | `feedback.id` | Task from feedback |
+| `note` | `notes.id` | Task from a note |
+| `NULL` | `NULL` | Manual creation (user created directly) |
+
+### Indexes for Provenance Queries
+```sql
+-- Basic provenance lookup
+CREATE INDEX idx_tasks_source
+ON procohere.tasks(source_type, source_id) WHERE is_deleted = false;
+
+-- Org-scoped provenance ("tasks spawned from X in this org")
+CREATE INDEX idx_tasks_org_source
+ON procohere.tasks(organization_id, source_type, source_id) WHERE is_deleted = false;
+```
+
+### Optional: FK Columns (Deferred)
+
+For even stronger integrity, could add explicit FK columns:
 ```sql
 source_meeting_id uuid REFERENCES procohere.meetings(id),
 source_agenda_item_id uuid REFERENCES procohere.meeting_agenda_items(id)
 ```
 
-These give:
-- FK integrity for the most common cases
-- Fast queries ("tasks from this meeting")
-- Polymorphic flexibility via `source_type`/`source_id` for edge cases
-
-### Source Types
-
-| source_type | source_id points to | FK column | Use Case |
-|-------------|---------------------|-----------|----------|
-| `meeting` | `meetings.id` | `source_meeting_id` | Task created during meeting |
-| `agenda_item` | `meeting_agenda_items.id` | `source_agenda_item_id` | Task from agenda item |
-| `goal` | `goals.id` | (none yet) | Task supporting a goal |
-| `feedback` | `feedback.id` | (none yet) | Task from feedback |
-| `manual` | NULL | (none) | User created directly |
+**Deferred** - the CHECK constraints are sufficient for now.
 
 ### UI Display
 - Task detail: "Created from: [Meeting Name] > [Agenda Item]"
@@ -314,6 +340,77 @@ Will add later when needed:
 - No breaking changes to existing code
 - Can deprecate `is_completed` after UI migrates
 - Lower risk, same end result
+
+---
+
+## 7.1 Agenda Item Deferral (Carry-Forward)
+
+### Decision: Option A - Copy + Link (Zero Schema Changes)
+
+We use the existing `linked_entity_type` / `linked_entity_id` columns to represent deferrals.
+
+**Why:**
+- Zero migrations required
+- Supports arbitrary chain length (A → B → C)
+- Supports "one deferred item becomes multiple follow-ups"
+- No FK constraint fights
+
+**Trade-off accepted:** This overloads `linked_entity_type` slightly - it normally means "what this agenda item is about", but for deferrals it means "this is a continuation of that agenda item."
+
+### Deferral Convention
+
+When deferring an agenda item:
+
+| Row | Field | Value |
+|-----|-------|-------|
+| **Old item** | `status` | `'deferred'` |
+| **New item** | `status` | `'open'` |
+| **New item** | `linked_entity_type` | `'agenda_item'` |
+| **New item** | `linked_entity_id` | `<old_item_id>` |
+
+**Result:**
+- Old meeting shows the item was deferred
+- New meeting shows the carried item as open
+- Ancestry is traceable by following the link chain
+
+### Semantic Clarity Rule
+
+**UI/query logic must treat `linked_entity_type='agenda_item'` as a special case** - it means "carry-forward chain", not "this item is about another agenda item."
+
+```
+linked_entity_type = 'agenda_item'  → This is a DEFERRAL (continuation)
+linked_entity_type = 'task'         → This item is ABOUT that task
+linked_entity_type = 'goal'         → This item is ABOUT that goal
+```
+
+### Auto Carry-Forward Logic (Hybrid Approach)
+
+**Default behavior:** Auto-carry-forward into the next matching meeting, **only if:**
+- Meeting is recurring (team sync, weekly 1:1)
+- Next meeting already exists (don't invent meetings)
+- Item is flagged as deferrable: `status = 'deferred'` AND not private AND not dropped
+
+**Always allow manual override:**
+- User can remove from next meeting
+- User can choose a different meeting ("defer to product sync instead")
+- User can split into multiple agenda items
+
+**Rationale:** 80% of deferrals are "same meeting next week" - don't make users do clerical work.
+
+### Future Consideration: Origin Columns (Not Now)
+
+If semantic ambiguity becomes a problem, we could add:
+```sql
+-- Where this agenda item came from
+origin_type text,  -- 'deferred', 'ai_suggestion', 'template', 'task_review', 'manual'
+origin_id uuid     -- Points to source (deferred agenda item, template, etc.)
+
+-- What this agenda item is about (unchanged)
+linked_entity_type text,
+linked_entity_id uuid
+```
+
+This separates "provenance" from "subject" cleanly. **Deferred until we feel the ambiguity biting us.**
 
 ---
 
@@ -475,22 +572,31 @@ Once flows stabilize:
 
 | Order | Change | Risk | Status |
 |-------|--------|------|--------|
-| 1 | `procohere.get_team_descendants()` function | None | 🔲 TODO |
+| 1 | `procohere.get_team_descendants()` function | None | ✅ DONE (2026-01-17) |
 | 2 | `meeting_agenda_items.status` + backfill | Low | ✅ DONE (2026-01-17) |
 | 3 | Indexes (agenda + tasks core filters) | None | ✅ DONE (2026-01-17) |
-| 4 | `tasks.source_type` CHECK constraint | Low | 🔲 TODO |
-| 5 | Optional: FK provenance columns | Low | 🔲 Optional |
-| 6 | RLS hardening | Medium | 🔲 Later |
+| 4 | `tasks.source_type` CHECK constraint | Low | ✅ DONE (2026-01-17) |
+| 5 | `tasks.source_pair` CHECK constraint | Low | ✅ DONE (2026-01-17) |
+| 6 | `idx_tasks_org_source` index | None | ✅ DONE (2026-01-17) |
+| 7 | `idx_meeting_agenda_items_org_status` index | None | ✅ DONE (2026-01-17) |
+| 8 | Optional: FK provenance columns | Low | 🔲 Deferred |
+| 9 | RLS hardening | Medium | 🔲 Later |
 
 ### Already Complete
 - ✅ `tasks.source_type` column
 - ✅ `tasks.source_id` column
-- ✅ `team_members.manager_id` (adjacency list)
+- ✅ `team_members.manager_team_member_id` (adjacency list)
 - ✅ All soft delete columns
 - ✅ Organization isolation via basic RLS
 - ✅ `meeting_agenda_items.status` column (2026-01-17)
 - ✅ `idx_tasks_source` index (2026-01-17)
 - ✅ `idx_meeting_agenda_items_status` index (2026-01-17)
+- ✅ `procohere.get_team_descendants()` function (2026-01-17)
+- ✅ `chk_tasks_source_type` constraint - values: meeting, agenda_item, goal, feedback, note (2026-01-17)
+- ✅ `chk_tasks_source_pair` constraint - both null or both set (2026-01-17)
+- ✅ `idx_tasks_org_source` index - org-scoped provenance queries (2026-01-17)
+- ✅ `idx_meeting_agenda_items_org_status` index - org-wide status queries (2026-01-17)
+- ✅ Dropped 'manual' from source_type - manual = NULL/NULL (2026-01-17)
 
 ---
 
@@ -583,10 +689,17 @@ WHERE is_deleted = false;
 
 | Topic | Options | Notes |
 |-------|---------|-------|
-| Deferred agenda items | Auto-copy to next meeting? Manual? | Need UX design |
 | Task auto-creation | From agenda items automatically? | Could be noisy |
 | Notifications | In-app? Email? Push? | Scope TBD |
 | Permission granularity | Can managers edit subordinate tasks? | Currently yes |
+
+### Decided (See Relevant Sections)
+
+| Topic | Decision | Section |
+|-------|----------|---------|
+| Deferred agenda items | Copy + link (Option A), hybrid auto-carry | §7.1 |
+| Task provenance | CHECK constraint on source_type | §6 |
+| Hierarchy queries | `get_team_descendants()` function | §3 |
 
 ### Explicitly Deferred to Phase 2+
 

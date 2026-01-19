@@ -262,7 +262,7 @@ public class BoolToForegroundConverter : IValueConverter
 
 /// <summary>
 /// Converts goal status string to background color.
-/// on_track = green, at_risk = amber, off_track = red
+/// on_track = green, at_risk = amber, off_track = red, in_progress = blue
 /// </summary>
 public class GoalStatusToBackgroundConverter : IValueConverter
 {
@@ -277,9 +277,90 @@ public class GoalStatusToBackgroundConverter : IValueConverter
             "on_track" => Color.Parse("#10B981"),    // Green
             "at_risk" => Color.Parse("#F59E0B"),     // Amber
             "off_track" => Color.Parse("#EF4444"),   // Red
+            "in_progress" => Color.Parse("#3B82F6"), // Blue
             "completed" => Color.Parse("#6366F1"),   // Primary/Indigo
             _ => Color.Parse("#6B7280")              // Gray default
         };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts DisplayDepth (int) to left margin for tree view indentation.
+/// Each level adds 24 pixels of left margin.
+/// </summary>
+public class TreeDepthToMarginConverter : IValueConverter
+{
+    public static readonly TreeDepthToMarginConverter Instance = new();
+
+    /// <summary>
+    /// Pixels per indent level.
+    /// </summary>
+    private const int IndentPerLevel = 28;
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is int depth)
+        {
+            var leftMargin = depth * IndentPerLevel;
+            // For tree view: left indent, small top/bottom for vertical list
+            return new global::Avalonia.Thickness(leftMargin, 0, 0, 6);
+        }
+        return new global::Avalonia.Thickness(0, 0, 0, 6);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Returns true if the integer value is greater than zero.
+/// Used to show tree connectors for indented items.
+/// </summary>
+public class GreaterThanZeroConverter : IValueConverter
+{
+    public static readonly GreaterThanZeroConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is int intValue)
+        {
+            return intValue > 0;
+        }
+        return false;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts a double (top offset) to a Thickness for absolute positioning via Margin.
+/// Used for calendar meeting positioning where Canvas.Top binding doesn't work.
+/// </summary>
+public class TopOffsetToMarginConverter : IValueConverter
+{
+    public static readonly TopOffsetToMarginConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is double offset)
+        {
+            return new global::Avalonia.Thickness(0, offset, 0, 0);
+        }
+        if (value is int intOffset)
+        {
+            return new global::Avalonia.Thickness(0, intOffset, 0, 0);
+        }
+        return new global::Avalonia.Thickness(0);
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

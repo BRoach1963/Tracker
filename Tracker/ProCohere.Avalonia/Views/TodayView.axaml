@@ -183,58 +183,98 @@
                                         <!-- Tooltip with team member details (1 second delay) -->
                                         <ToolTip.Tip>
                                             <Border Background="{DynamicResource BrushSurface}" 
-                                                    CornerRadius="8" Padding="12" MinWidth="200"
+                                                    CornerRadius="8" Padding="16" MinWidth="280"
                                                     BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
-                                                <StackPanel Spacing="10">
+                                                <StackPanel Spacing="12">
                                                     <!-- Header with avatar and name -->
-                                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                                        <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource BrushPrimary}">
-                                                            <TextBlock Text="{Binding Initials}" FontSize="12" FontWeight="Medium"
-                                                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                                        <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True">
+                                                            <Panel>
+                                                                <!-- Initials fallback -->
+                                                                <Border Background="{DynamicResource BrushPrimary}" CornerRadius="22"
+                                                                        IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                    <TextBlock Text="{Binding Initials}" FontSize="14" FontWeight="SemiBold"
+                                                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <!-- Avatar image when available -->
+                                                                <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="44" Height="44"
+                                                                       IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                            </Panel>
                                                         </Border>
-                                                        <StackPanel VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding FullName}" FontSize="13" FontWeight="SemiBold"
+                                                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="{Binding FullName}" FontSize="14" FontWeight="SemiBold"
                                                                        Foreground="{DynamicResource BrushTextPrimary}"/>
-                                                            <TextBlock Text="{Binding JobTitle}" FontSize="11" 
+                                                            <TextBlock Text="{Binding JobTitle}" FontSize="12" 
                                                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                                                         </StackPanel>
                                                     </StackPanel>
                                                     
-                                                    <!-- Stats row -->
+                                                    <!-- Divider -->
+                                                    <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,2"/>
+                                                    
+                                                    <!-- Info Grid -->
+                                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="12">
+                                                        <!-- Email -->
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Email" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Email}" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                                                        
+                                                        <!-- Birthday -->
+                                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Birthday" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BirthdayDisplay}" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                                                        
+                                                        <!-- Hire Date -->
+                                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Hire Date" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding HireDateDisplay}" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    
+                                                    <!-- Divider -->
+                                                    <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,2"/>
+                                                    
+                                                    <!-- Stats row - evenly spaced -->
                                                     <Grid ColumnDefinitions="*,*,*">
-                                                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                                                            <TextBlock Text="{Binding OpenTaskCount}" FontSize="16" FontWeight="Bold"
-                                                                       Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                            <TextBlock Text="open tasks" FontSize="10" 
+                                                        <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="{Binding OpenTaskCount}" FontSize="18" FontWeight="Bold"
+                                                                       Foreground="{DynamicResource BrushPrimary}" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Tasks" FontSize="10" 
                                                                        Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                                                            <TextBlock Text="{Binding ActiveGoalCount}" FontSize="16" FontWeight="Bold"
-                                                                       Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                            <TextBlock Text="active goals" FontSize="10" 
+                                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="2">
+                                                            <TextBlock Text="{Binding ActiveGoalCount}" FontSize="18" FontWeight="Bold"
+                                                                       Foreground="{DynamicResource BrushPrimary}" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Goals" FontSize="10" 
                                                                        Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" Spacing="2">
                                                             <TextBlock Text="{Binding LastMeetingText}" FontSize="14" FontWeight="SemiBold"
-                                                                       Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                            <TextBlock Text="last meeting" FontSize="10" 
+                                                                       Foreground="{DynamicResource BrushPrimary}" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Last Meeting" FontSize="10" 
                                                                        Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Grid>
-                                                    
-                                                    <!-- Email -->
-                                                    <TextBlock Text="{Binding Email}" FontSize="10" 
-                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
                                                 </StackPanel>
                                             </Border>
                                         </ToolTip.Tip>
                                         <ToolTip.ShowDelay>1000</ToolTip.ShowDelay>
                                         
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" 
-                                                    Background="{DynamicResource BrushPrimary}" Margin="0,0,8,0">
-                                                <TextBlock Text="{Binding Initials}" FontSize="10" FontWeight="Medium"
-                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" ClipToBounds="True" Margin="0,0,8,0">
+                                                <Panel>
+                                                    <!-- Initials fallback -->
+                                                    <Border Background="{DynamicResource BrushPrimary}" CornerRadius="14"
+                                                            IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                        <TextBlock Text="{Binding Initials}" FontSize="10" FontWeight="Medium"
+                                                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <!-- Avatar image -->
+                                                    <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="28" Height="28"
+                                                           IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </Panel>
                                             </Border>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding FullName}" FontSize="12" FontWeight="Medium"

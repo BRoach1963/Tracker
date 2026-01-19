@@ -26,6 +26,9 @@
             <converters:BoolToHighlightBackgroundConverter x:Key="BoolToHighlightBackgroundConverter"/>
             <converters:BoolToForegroundConverter x:Key="BoolToForegroundConverter"/>
             <converters:GoalStatusToBackgroundConverter x:Key="GoalStatusToBackgroundConverter"/>
+            <converters:TreeDepthToMarginConverter x:Key="TreeDepthToMarginConverter"/>
+            <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+            <converters:TopOffsetToMarginConverter x:Key="TopOffsetToMarginConverter"/>
         </ResourceDictionary>
     </Application.Resources>
   

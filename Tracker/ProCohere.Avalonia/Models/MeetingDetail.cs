@@ -71,6 +71,30 @@ public class MeetingDetail : BaseModel
     #region Computed Properties
 
     /// <summary>
+    /// ScheduledAt converted to local time. Handles case where Kind is Unspecified
+    /// by treating it as UTC (Supabase stores timestamps in UTC).
+    /// </summary>
+    public DateTime? ScheduledAtLocal
+    {
+        get
+        {
+            if (!ScheduledAt.HasValue) return null;
+            var dt = ScheduledAt.Value;
+            // If Kind is Unspecified, treat as UTC since Supabase stores in UTC
+            if (dt.Kind == DateTimeKind.Unspecified)
+            {
+                dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+            }
+            return dt.ToLocalTime();
+        }
+    }
+
+    /// <summary>
+    /// Local date of the meeting for filtering/grouping.
+    /// </summary>
+    public DateTime? LocalDate => ScheduledAtLocal?.Date;
+
+    /// <summary>
     /// Whether this is a 1:1 meeting.
     /// </summary>
     public bool IsOneOnOne => MeetingType?.ToLower() == "one_on_one" || MeetingType?.ToLower() == "1:1";
@@ -107,11 +131,11 @@ public class MeetingDetail : BaseModel
     {
         get
         {
-            if (!ScheduledAt.HasValue)
+            if (!ScheduledAtLocal.HasValue)
                 return "Not scheduled";
 
             var now = DateTime.Now;
-            var scheduled = ScheduledAt.Value.ToLocalTime();
+            var scheduled = ScheduledAtLocal.Value;
 
             if (scheduled.Date == now.Date)
                 return $"Today at {scheduled:h:mm tt}";
@@ -126,12 +150,12 @@ public class MeetingDetail : BaseModel
     /// <summary>
     /// Start time display (e.g. "9:00 AM").
     /// </summary>
-    public string StartTimeDisplay => ScheduledAt?.ToLocalTime().ToString("h:mm tt") ?? "";
+    public string StartTimeDisplay => ScheduledAtLocal?.ToString("h:mm tt") ?? "";
 
     /// <summary>
     /// End time display.
     /// </summary>
-    public string EndTimeDisplay => ScheduledAt?.ToLocalTime().AddMinutes(DurationMinutes ?? 30).ToString("h:mm tt") ?? "";
+    public string EndTimeDisplay => ScheduledAtLocal?.AddMinutes(DurationMinutes ?? 30).ToString("h:mm tt") ?? "";
 
     /// <summary>
     /// Time range display (e.g. "9:00 AM - 10:00 AM").
@@ -164,11 +188,11 @@ public class MeetingDetail : BaseModel
     {
         get
         {
-            if (!ScheduledAt.HasValue)
+            if (!ScheduledAtLocal.HasValue)
                 return "Unscheduled";
 
             var now = DateTime.Now.Date;
-            var scheduled = ScheduledAt.Value.ToLocalTime().Date;
+            var scheduled = ScheduledAtLocal.Value.Date;
 
             if (scheduled == now)
                 return "Today";
@@ -183,23 +207,30 @@ public class MeetingDetail : BaseModel
     /// <summary>
     /// Short date for calendar month view.
     /// </summary>
-    public string ShortTimeDisplay => ScheduledAt?.ToLocalTime().ToString("h:mm tt") ?? "";
+    public string ShortTimeDisplay => ScheduledAtLocal?.ToString("h:mm tt") ?? "";
 
     /// <summary>
     /// Hour of day (0-23) for positioning in day/week view.
     /// </summary>
-    public int StartHour => ScheduledAt?.ToLocalTime().Hour ?? 0;
+    public int StartHour => ScheduledAtLocal?.Hour ?? 0;
 
     /// <summary>
     /// Minutes past the hour (0-59).
     /// </summary>
-    public int StartMinute => ScheduledAt?.ToLocalTime().Minute ?? 0;
+    public int StartMinute => ScheduledAtLocal?.Minute ?? 0;
 
     /// <summary>
-    /// Top offset for day/week calendar view (pixels from top of hour block).
-    /// Assuming 60px per hour.
+    /// Start hour for calendar display (5 AM = hour 5).
+    /// This must match CalendarHours starting hour in CircleViewModel.
     /// </summary>
-    public double CalendarTopOffset => (StartHour * 60) + StartMinute;
+    private const int CalendarStartHour = 5;
+
+    /// <summary>
+    /// Top offset for day/week calendar view (pixels from top of calendar).
+    /// Assuming 60px per hour. Offset from CalendarStartHour (8 AM).
+    /// Returns 0 for meetings before the calendar start hour.
+    /// </summary>
+    public double CalendarTopOffset => Math.Max(0, ((StartHour - CalendarStartHour) * 60) + StartMinute);
 
     /// <summary>
     /// Height in day/week calendar based on duration.
@@ -209,7 +240,7 @@ public class MeetingDetail : BaseModel
     /// <summary>
     /// Day of week index (0=Sunday, 6=Saturday).
     /// </summary>
-    public int DayOfWeekIndex => ScheduledAt.HasValue ? (int)ScheduledAt.Value.ToLocalTime().DayOfWeek : 0;
+    public int DayOfWeekIndex => ScheduledAtLocal.HasValue ? (int)ScheduledAtLocal.Value.DayOfWeek : 0;
 
     /// <summary>
     /// Whether meeting has a video link.

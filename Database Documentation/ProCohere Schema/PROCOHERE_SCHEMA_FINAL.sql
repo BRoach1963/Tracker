@@ -284,6 +284,10 @@ create index if not exists idx_agenda_items_added_by
 create index if not exists idx_meeting_agenda_items_status
     on procohere.meeting_agenda_items(status) where is_deleted = false;
 
+-- Composite index for org-wide status queries (carry-forward, open items)
+create index if not exists idx_meeting_agenda_items_org_status
+    on procohere.meeting_agenda_items(organization_id, status) where is_deleted = false;
+
 drop trigger if exists tr_meeting_agenda_items_set_updated_at on procohere.meeting_agenda_items;
 create trigger tr_meeting_agenda_items_set_updated_at
     before update on procohere.meeting_agenda_items
@@ -574,6 +578,25 @@ create index if not exists idx_tasks_due_date
 
 create index if not exists idx_tasks_source
     on procohere.tasks(source_type, source_id) where is_deleted = false;
+
+-- Composite index for org-scoped provenance queries ("tasks spawned from X")
+create index if not exists idx_tasks_org_source
+    on procohere.tasks(organization_id, source_type, source_id) where is_deleted = false;
+
+-- Provenance integrity: source_type and source_id must both be null or both be set
+-- Note: 'manual' tasks are represented by (NULL, NULL) - no explicit 'manual' value needed
+alter table procohere.tasks
+    add constraint if not exists chk_tasks_source_type
+    check (source_type is null or source_type in (
+        'meeting', 'agenda_item', 'goal', 'feedback', 'note'
+    ));
+
+alter table procohere.tasks
+    add constraint if not exists chk_tasks_source_pair
+    check (
+        (source_type is null and source_id is null)
+        or (source_type is not null and source_id is not null)
+    );
 
 drop trigger if exists tr_tasks_set_updated_at on procohere.tasks;
 create trigger tr_tasks_set_updated_at
@@ -1588,6 +1611,146 @@ as $$
     where linked_user_id = auth.uid()
       and is_deleted = false
 $$;
+
+-- ============================================================
+-- HIERARCHY FUNCTION: get_team_descendants
+-- The canonical primitive for manager-of-managers visibility
+-- ============================================================
+
+drop function if exists procohere.get_team_descendants(uuid, uuid, boolean);
+
+create or replace function procohere.get_team_descendants(
+    p_organization_id uuid,
+    p_manager_id uuid,
+    p_include_self boolean default false
+)
+returns table (
+    team_member_id uuid,
+    depth int
+)
+language sql
+stable
+security definer
+set search_path = procohere, public
+as $$
+    with recursive descendants as (
+        select
+            tm.id as team_member_id,
+            1 as depth
+        from procohere.team_members tm
+        where tm.organization_id = p_organization_id
+          and tm.manager_team_member_id = p_manager_id
+          and tm.is_deleted = false
+          and tm.is_active = true
+
+        union all
+
+        select
+            tm.id,
+            d.depth + 1
+        from procohere.team_members tm
+        join descendants d
+          on tm.manager_team_member_id = d.team_member_id
+        where tm.organization_id = p_organization_id
+          and tm.is_deleted = false
+          and tm.is_active = true
+          and d.depth < 50
+    )
+    select team_member_id, depth
+    from descendants
+
+    union all
+    select p_manager_id, 0
+    where p_include_self = true
+      and exists (
+          select 1
+          from procohere.team_members
+          where id = p_manager_id
+            and organization_id = p_organization_id
+            and is_deleted = false
+            and is_active = true
+      );
+$$;
+
+grant execute on function procohere.get_team_descendants(uuid, uuid, boolean) to authenticated;
+
+-- ============================================================
+-- VISIBILITY FUNCTION: get_visible_team_member_ids
+-- Wrapper that returns visible team members based on role
+-- ============================================================
+
+drop function if exists procohere.get_visible_team_member_ids(uuid, uuid);
+
+create or replace function procohere.get_visible_team_member_ids(
+    p_organization_id uuid,
+    p_team_member_id uuid
+)
+returns table (
+    team_member_id uuid,
+    depth int,
+    relation text
+)
+language plpgsql
+stable
+security definer
+set search_path = procohere, public
+as $$
+declare
+    v_manager_id uuid;
+    v_has_descendants boolean;
+begin
+    -- Get caller's manager
+    select manager_team_member_id into v_manager_id
+    from procohere.team_members
+    where id = p_team_member_id 
+      and organization_id = p_organization_id
+      and is_deleted = false;
+    
+    -- Check if caller has any descendants (is a manager)
+    select exists(
+        select 1 
+        from procohere.team_members 
+        where manager_team_member_id = p_team_member_id
+          and organization_id = p_organization_id
+          and is_deleted = false
+          and is_active = true
+    ) into v_has_descendants;
+    
+    -- Always return self
+    return query 
+    select p_team_member_id, 0, 'self'::text;
+    
+    -- Return manager (if exists)
+    if v_manager_id is not null then
+        return query 
+        select v_manager_id, -1, 'manager'::text;
+    end if;
+    
+    -- Return peers (same manager, excluding self)
+    if v_manager_id is not null then
+        return query
+        select tm.id, 0, 'peer'::text
+        from procohere.team_members tm
+        where tm.manager_team_member_id = v_manager_id
+          and tm.id != p_team_member_id
+          and tm.organization_id = p_organization_id
+          and tm.is_active = true
+          and tm.is_deleted = false;
+    end if;
+    
+    -- Return descendants (if caller is a manager)
+    if v_has_descendants then
+        return query
+        select 
+            d.team_member_id,
+            d.depth,
+            case when d.depth = 1 then 'direct'::text else 'descendant'::text end
+        from procohere.get_team_descendants(p_organization_id, p_team_member_id, false) d;
+    end if;
+end;
+$$;
+
+grant execute on function procohere.get_visible_team_member_ids(uuid, uuid) to authenticated;
 
 -- ============================================================
 -- BASELINE RLS POLICIES (Org isolation)

@@ -87,6 +87,80 @@ public partial class CircleViewModel : ViewModelBase
 
     #endregion
 
+    #region Hierarchy Properties
+
+    /// <summary>
+    /// The current user's team member record.
+    /// </summary>
+    [ObservableProperty]
+    private TeamMemberDetail? _currentTeamMember;
+
+    /// <summary>
+    /// The current user's manager (if any).
+    /// </summary>
+    [ObservableProperty]
+    private TeamMemberDetail? _myManager;
+
+    /// <summary>
+    /// Direct reports of the current user.
+    /// </summary>
+    public ObservableCollection<TeamMemberDetail> MyDirectReports { get; } = new();
+
+    /// <summary>
+    /// Peers of the current user (same manager).
+    /// </summary>
+    public ObservableCollection<TeamMemberDetail> MyPeers { get; } = new();
+
+    /// <summary>
+    /// Number of direct reports for the current user.
+    /// </summary>
+    public int DirectReportCount => MyDirectReports.Count;
+
+    /// <summary>
+    /// Number of peers for the current user.
+    /// </summary>
+    public int PeerCount => MyPeers.Count;
+
+    /// <summary>
+    /// Whether the current user is a manager (has direct reports).
+    /// </summary>
+    public bool IsCurrentUserManager => MyDirectReports.Count > 0;
+
+    #endregion
+
+    #region View Mode
+
+    /// <summary>
+    /// Current view mode for the team list (Flat or Tree).
+    /// </summary>
+    [ObservableProperty]
+    private TeamViewMode _teamViewMode = TeamViewMode.Flat;
+
+    /// <summary>
+    /// Whether the current view mode is Flat.
+    /// </summary>
+    public bool IsFlatView => TeamViewMode == TeamViewMode.Flat;
+
+    /// <summary>
+    /// Whether the current view mode is Tree.
+    /// </summary>
+    public bool IsTreeView => TeamViewMode == TeamViewMode.Tree;
+
+    partial void OnTeamViewModeChanged(TeamViewMode value)
+    {
+        OnPropertyChanged(nameof(IsFlatView));
+        OnPropertyChanged(nameof(IsTreeView));
+        ApplyFilters(); // Re-apply to re-sort for tree view
+    }
+
+    [RelayCommand]
+    private void SetViewMode(TeamViewMode mode)
+    {
+        TeamViewMode = mode;
+    }
+
+    #endregion
+
     #region Filter & Search
 
     [ObservableProperty]
@@ -94,6 +168,29 @@ public partial class CircleViewModel : ViewModelBase
 
     [ObservableProperty]
     private TeamMemberFilter _memberFilter = TeamMemberFilter.All;
+
+    /// <summary>
+    /// When set, filters to show only this manager and their direct reports.
+    /// </summary>
+    [ObservableProperty]
+    private TeamMemberDetail? _filterByManager;
+
+    /// <summary>
+    /// Display name for the manager filter breadcrumb.
+    /// </summary>
+    public string FilterByManagerName => FilterByManager?.FullName ?? string.Empty;
+
+    /// <summary>
+    /// Whether a manager filter is active.
+    /// </summary>
+    public bool HasManagerFilter => FilterByManager != null;
+
+    partial void OnFilterByManagerChanged(TeamMemberDetail? value)
+    {
+        OnPropertyChanged(nameof(FilterByManagerName));
+        OnPropertyChanged(nameof(HasManagerFilter));
+        ApplyFilters();
+    }
 
     partial void OnSearchTextChanged(string value)
     {
@@ -105,13 +202,42 @@ public partial class CircleViewModel : ViewModelBase
         ApplyFilters();
     }
 
+    /// <summary>
+    /// Sets a manager filter to show their team.
+    /// </summary>
+    [RelayCommand]
+    private void SetManagerFilter(TeamMemberDetail? manager)
+    {
+        if (manager?.IsManager == true)
+        {
+            FilterByManager = manager;
+        }
+    }
+
+    /// <summary>
+    /// Clears the manager filter.
+    /// </summary>
+    [RelayCommand]
+    private void ClearManagerFilter()
+    {
+        FilterByManager = null;
+    }
+
     private void ApplyFilters()
     {
         FilteredTeamMembers.Clear();
         
         var filtered = _allTeamMembers.AsEnumerable();
         
-        // Apply filter
+        // Apply manager filter first (show manager + their direct reports)
+        if (FilterByManager != null)
+        {
+            var managerId = FilterByManager.Id;
+            filtered = filtered.Where(m => 
+                m.Id == managerId || m.ManagerTeamMemberId == managerId);
+        }
+        
+        // Apply status filter
         filtered = MemberFilter switch
         {
             TeamMemberFilter.Active => filtered.Where(m => m.IsActive),
@@ -130,12 +256,109 @@ public partial class CircleViewModel : ViewModelBase
                 (m.JobTitle?.ToLower().Contains(search) ?? false));
         }
         
+        // Apply sorting based on view mode
+        if (IsTreeView)
+        {
+            // Tree view: sort by hierarchy (manager first, then by depth, then alphabetically)
+            // Group by manager chain to create proper tree ordering
+            filtered = BuildTreeOrder(filtered);
+        }
+        else
+        {
+            // Flat view: sort alphabetically by name, reset display depth
+            foreach (var m in filtered)
+            {
+                m.DisplayDepth = 0;
+            }
+            filtered = filtered.OrderBy(m => m.FullName);
+        }
+        
         foreach (var member in filtered)
         {
             FilteredTeamMembers.Add(member);
         }
         
         OnPropertyChanged(nameof(FilteredMemberCount));
+    }
+
+    /// <summary>
+    /// Builds a tree-ordered sequence from team members based on hierarchy.
+    /// Order: At each level, leaf nodes (no reports) come first alphabetically,
+    /// then managers with their subtrees (manager shown, then their subtree indented).
+    /// </summary>
+    private IEnumerable<TeamMemberDetail> BuildTreeOrder(IEnumerable<TeamMemberDetail> members)
+    {
+        var memberList = members.ToList();
+        var memberDict = memberList.ToDictionary(m => m.Id);
+        var result = new List<TeamMemberDetail>();
+        var visited = new HashSet<Guid>();
+        
+        // Pre-compute who has reports in the visible set
+        var hasReportsInSet = new HashSet<Guid>(
+            memberList
+                .Where(m => m.ManagerTeamMemberId.HasValue && memberDict.ContainsKey(m.ManagerTeamMemberId.Value))
+                .Select(m => m.ManagerTeamMemberId!.Value)
+        );
+        
+        // Find root nodes (no manager or manager not in visible set)
+        var roots = memberList
+            .Where(m => m.ManagerTeamMemberId == null || !memberDict.ContainsKey(m.ManagerTeamMemberId.Value))
+            .ToList();
+        
+        void AddSubtree(IEnumerable<TeamMemberDetail> nodes, int depth)
+        {
+            var nodeList = nodes.ToList();
+            
+            // Split into leaf nodes (no reports in visible set) and managers (have reports)
+            var leafNodes = nodeList
+                .Where(m => !hasReportsInSet.Contains(m.Id))
+                .OrderBy(m => m.FullName)
+                .ToList();
+            
+            var managerNodes = nodeList
+                .Where(m => hasReportsInSet.Contains(m.Id))
+                .OrderBy(m => m.FullName)
+                .ToList();
+            
+            // First add all leaf nodes at this level
+            foreach (var leaf in leafNodes)
+            {
+                if (visited.Contains(leaf.Id)) continue;
+                visited.Add(leaf.Id);
+                leaf.DisplayDepth = depth;
+                result.Add(leaf);
+            }
+            
+            // Then add each manager followed by their subtree
+            foreach (var manager in managerNodes)
+            {
+                if (visited.Contains(manager.Id)) continue;
+                visited.Add(manager.Id);
+                manager.DisplayDepth = depth;
+                result.Add(manager);
+                
+                // Get this manager's direct reports and recurse
+                var reports = memberList
+                    .Where(m => m.ManagerTeamMemberId == manager.Id)
+                    .ToList();
+                
+                if (reports.Any())
+                {
+                    AddSubtree(reports, depth + 1);
+                }
+            }
+        }
+        
+        AddSubtree(roots, 0);
+        
+        // Add any orphaned members (shouldn't happen but safety net)
+        foreach (var member in memberList.Where(m => !visited.Contains(m.Id)))
+        {
+            member.DisplayDepth = 0;
+            result.Add(member);
+        }
+        
+        return result;
     }
 
     public int FilteredMemberCount => FilteredTeamMembers.Count;
@@ -207,11 +430,30 @@ public partial class CircleViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<FeedbackDetail> MemberFeedback { get; } = new();
 
-    partial void OnSelectedTeamMemberChanged(TeamMemberDetail? value)
+    /// <summary>
+    /// Direct reports of the selected team member (for managers).
+    /// </summary>
+    public ObservableCollection<TeamMemberDetail> MemberDirectReports { get; } = new();
+
+    /// <summary>
+    /// Whether the selected team member is a manager (has direct reports).
+    /// </summary>
+    public bool SelectedMemberIsManager => SelectedTeamMember?.IsManager == true;
+
+    partial void OnSelectedTeamMemberChanged(TeamMemberDetail? oldValue, TeamMemberDetail? newValue)
     {
+        // Update selection state on the models
+        if (oldValue != null)
+            oldValue.IsSelected = false;
+        if (newValue != null)
+            newValue.IsSelected = true;
+        
         // Reset to Overview tab when member changes
         MemberDetailTab = MemberDetailTab.Overview;
         LoadMemberRelatedData();
+        
+        // Notify that SelectedMemberIsManager may have changed
+        OnPropertyChanged(nameof(SelectedMemberIsManager));
     }
 
     private void LoadMemberRelatedData()
@@ -219,8 +461,15 @@ public partial class CircleViewModel : ViewModelBase
         MemberGoals.Clear();
         MemberMeetings.Clear();
         MemberFeedback.Clear();
+        MemberDirectReports.Clear();
 
         if (SelectedTeamMember == null) return;
+
+        // Get direct reports for this member (if they're a manager)
+        foreach (var report in _allTeamMembers.Where(m => m.ManagerTeamMemberId == SelectedTeamMember.Id))
+        {
+            MemberDirectReports.Add(report);
+        }
 
         // Filter goals owned by this member
         foreach (var goal in _allGoals.Where(g => g.OwnerTeamMemberId == SelectedTeamMember.Id))
@@ -355,9 +604,9 @@ public partial class CircleViewModel : ViewModelBase
     public ObservableCollection<CalendarDay> CalendarDays { get; } = new();
 
     /// <summary>
-    /// Hours for day/week view (8 AM to 6 PM).
+    /// Hours for day/week view (5 AM to 8 PM).
     /// </summary>
-    public List<CalendarHour> CalendarHours { get; } = Enumerable.Range(8, 11)
+    public List<CalendarHour> CalendarHours { get; } = Enumerable.Range(5, 16)
         .Select(h => new CalendarHour { Hour = h, DisplayText = DateTime.Today.AddHours(h).ToString("h tt") })
         .ToList();
 
@@ -381,7 +630,7 @@ public partial class CircleViewModel : ViewModelBase
     /// Meetings for the selected day in day view.
     /// </summary>
     public IEnumerable<MeetingDetail> DayMeetings => Meetings
-        .Where(m => m.ScheduledAt?.ToLocalTime().Date == CurrentDate.Date)
+        .Where(m => m.LocalDate == CurrentDate.Date)
         .OrderBy(m => m.ScheduledAt);
 
     [RelayCommand]
@@ -472,17 +721,17 @@ public partial class CircleViewModel : ViewModelBase
         FilteredMeetings.Clear();
         var meetings = MeetingsViewMode switch
         {
-            MeetingsViewMode.Day => Meetings.Where(m => m.ScheduledAt?.ToLocalTime().Date == CurrentDate.Date),
+            MeetingsViewMode.Day => Meetings.Where(m => m.LocalDate == CurrentDate.Date),
             MeetingsViewMode.Week => Meetings.Where(m => 
             {
                 var weekStart = GetWeekStart(CurrentDate);
                 var weekEnd = weekStart.AddDays(7);
-                var date = m.ScheduledAt?.ToLocalTime().Date;
+                var date = m.LocalDate;
                 return date >= weekStart && date < weekEnd;
             }),
             MeetingsViewMode.Month => Meetings.Where(m => 
             {
-                var date = m.ScheduledAt?.ToLocalTime();
+                var date = m.ScheduledAtLocal;
                 return date?.Year == CurrentDate.Year && date?.Month == CurrentDate.Month;
             }),
             _ => Meetings.OrderBy(m => m.ScheduledAt)
@@ -530,7 +779,7 @@ public partial class CircleViewModel : ViewModelBase
                 DayNumber = date.Day.ToString(),
                 IsToday = date.Date == DateTime.Today,
                 Meetings = new ObservableCollection<MeetingDetail>(
-                    Meetings.Where(m => m.ScheduledAt?.ToLocalTime().Date == date.Date)
+                    Meetings.Where(m => m.LocalDate == date.Date)
                            .OrderBy(m => m.ScheduledAt))
             });
         }
@@ -551,7 +800,7 @@ public partial class CircleViewModel : ViewModelBase
         {
             var date = calendarStart.AddDays(i);
             var dayMeetings = Meetings
-                .Where(m => m.ScheduledAt?.ToLocalTime().Date == date.Date)
+                .Where(m => m.LocalDate == date.Date)
                 .OrderBy(m => m.ScheduledAt)
                 .Take(3) // Show max 3 in month view
                 .ToList();
@@ -563,7 +812,7 @@ public partial class CircleViewModel : ViewModelBase
                 IsCurrentMonth = date.Month == CurrentDate.Month,
                 IsToday = date.Date == DateTime.Today,
                 Meetings = new ObservableCollection<MeetingDetail>(dayMeetings),
-                HasMoreMeetings = Meetings.Count(m => m.ScheduledAt?.ToLocalTime().Date == date.Date) > 3
+                HasMoreMeetings = Meetings.Count(m => m.LocalDate == date.Date) > 3
             });
         }
     }
@@ -1026,24 +1275,39 @@ public partial class CircleViewModel : ViewModelBase
                 return;
             }
 
-            // Load dashboard data which includes team members
+            // Load visible team members using TeamService (hierarchy-aware)
+            var visibleMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            Log($"[CircleViewModel] Got {visibleMembers.Count} visible team members");
+            
+            // Also load dashboard data for goals, meetings, feedback
             var dashboardData = await DashboardService.Instance.LoadDashboardDataAsync();
-            Log($"[CircleViewModel] Got {dashboardData.TeamMembers.Count} team members");
+            Log($"[CircleViewModel] Dashboard loaded");
             
-            // Get current user's team member ID to filter them out
-            var currentTeamMember = AuthService.Instance.CurrentTeamMember;
-            var currentTeamMemberId = currentTeamMember?.Id;
-            Log($"[CircleViewModel] Current user team member ID: {currentTeamMemberId}");
+            // Populate hierarchy-related collections
+            CurrentTeamMember = visibleMembers.FirstOrDefault(m => m.Relation == "self");
+            MyManager = visibleMembers.FirstOrDefault(m => m.Relation == "manager");
             
-            _allTeamMembers.Clear();
-            foreach (var member in dashboardData.TeamMembers)
+            MyDirectReports.Clear();
+            MyPeers.Clear();
+            foreach (var member in visibleMembers.Where(m => m.Relation == "direct"))
             {
-                // Exclude the current user from the team list
-                if (currentTeamMemberId.HasValue && member.Id == currentTeamMemberId.Value)
-                {
-                    Log($"[CircleViewModel] Filtering out current user: {member.FullName}");
-                    continue;
-                }
+                MyDirectReports.Add(member);
+            }
+            foreach (var member in visibleMembers.Where(m => m.Relation == "peer"))
+            {
+                MyPeers.Add(member);
+            }
+            
+            OnPropertyChanged(nameof(DirectReportCount));
+            OnPropertyChanged(nameof(PeerCount));
+            OnPropertyChanged(nameof(IsCurrentUserManager));
+            
+            Log($"[CircleViewModel] Hierarchy: Manager={MyManager?.FullName ?? "none"}, DirectReports={DirectReportCount}, Peers={PeerCount}");
+            
+            // Populate all team members (excluding self for the list)
+            _allTeamMembers.Clear();
+            foreach (var member in visibleMembers.Where(m => m.Relation != "self"))
+            {
                 _allTeamMembers.Add(member);
             }
             
@@ -1205,7 +1469,8 @@ public enum MemberDetailTab
     Overview,
     Goals,
     Meetings,
-    Feedback
+    Feedback,
+    Team
 }
 
 /// <summary>
@@ -1260,4 +1525,20 @@ public class CalendarDay
     public bool IsToday { get; set; }
     public bool HasMoreMeetings { get; set; }
     public ObservableCollection<MeetingDetail> Meetings { get; set; } = new();
+}
+
+/// <summary>
+/// View mode for the team members list.
+/// </summary>
+public enum TeamViewMode
+{
+    /// <summary>
+    /// Flat card grid (default).
+    /// </summary>
+    Flat,
+    
+    /// <summary>
+    /// Tree view with indentation based on hierarchy depth.
+    /// </summary>
+    Tree
 }

@@ -80,6 +80,17 @@
                         <TextBlock Text="Feed" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+                <!-- Team Tab - Only visible for managers -->
+                <Button Classes="flyout-tab" ToolTip.Tip="Direct Reports"
+                        IsVisible="{Binding SelectedMemberIsManager}"
+                        Classes.selected="{Binding MemberDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MemberDetailTab.Team}}"
+                        Command="{Binding SetMemberDetailTabCommand}" CommandParameter="{x:Static vm:MemberDetailTab.Team}">
+                    <StackPanel Spacing="4">
+                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Team" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Border>
         
@@ -100,10 +111,18 @@
                     
                     <!-- Profile Header -->
                     <StackPanel HorizontalAlignment="Center" Margin="0,24,0,16">
-                        <Border Width="64" Height="64" CornerRadius="32" 
-                                Background="{DynamicResource BrushPrimary}" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding Initials}" FontSize="22" FontWeight="SemiBold"
-                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Width="64" Height="64" CornerRadius="32" ClipToBounds="True" HorizontalAlignment="Center">
+                            <Panel>
+                                <!-- Initials fallback -->
+                                <Border Background="{DynamicResource BrushPrimary}" CornerRadius="32"
+                                        IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                    <TextBlock Text="{Binding Initials}" FontSize="22" FontWeight="SemiBold"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <!-- Avatar image -->
+                                <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="64" Height="64"
+                                       IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            </Panel>
                         </Border>
                         <TextBlock Text="{Binding FullName}" FontSize="16" FontWeight="Bold"
                                    Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"
@@ -290,6 +309,74 @@
                             <TextBlock Text="Give Feedback" FontSize="12"/>
                         </StackPanel>
                     </Button>
+                </StackPanel>
+            </ScrollViewer>
+            
+            <!-- ===== TEAM TAB ===== -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding MemberDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MemberDetailTab.Team}}">
+                <StackPanel Margin="12,8,12,12">
+                    <TextBlock Text="DIRECT REPORTS" Classes="detail-section-header" Margin="0,24,0,8"/>
+                    
+                    <!-- Report count -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding MemberDirectReports.Count}" FontSize="18" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushPrimary}"/>
+                        <TextBlock Text="team members" FontSize="13" VerticalAlignment="Bottom" Margin="0,0,0,2"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Text="No direct reports" FontSize="12" Opacity="0.5" Margin="0,8,0,0"
+                               IsVisible="{Binding MemberDirectReports.Count, Converter={StaticResource EqualToZeroConverter}}"/>
+                    
+                    <!-- Direct reports list -->
+                    <ItemsControl ItemsSource="{Binding MemberDirectReports}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                                        Cursor="Hand">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <!-- Avatar with image or initials -->
+                                        <Border Width="36" Height="36" CornerRadius="18" ClipToBounds="True">
+                                            <Panel>
+                                                <!-- Initials fallback -->
+                                                <Border Background="{DynamicResource BrushPrimary}" CornerRadius="18"
+                                                        IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                    <TextBlock Text="{Binding Initials}" FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource BrushTextOnPrimary}" 
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <!-- Avatar image -->
+                                                <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
+                                                       IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </Panel>
+                                        </Border>
+                                        
+                                        <!-- Name and Title -->
+                                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding FullName}" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding JobTitle}" FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Status indicator -->
+                                        <Border Grid.Column="2" CornerRadius="10" Padding="8,3" VerticalAlignment="Center">
+                                            <Border.Background>
+                                                <MultiBinding Converter="{StaticResource BoolToColorConverter}">
+                                                    <Binding Path="IsActive"/>
+                                                </MultiBinding>
+                                            </Border.Background>
+                                            <TextBlock Text="{Binding StatusDisplay}" FontSize="9" FontWeight="SemiBold" 
+                                                       Foreground="{DynamicResource BrushTextOnPrimary}"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

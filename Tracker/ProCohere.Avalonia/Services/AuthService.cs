@@ -410,13 +410,17 @@ public class AuthService
     /// <param name="jobTitle">Job title</param>
     /// <param name="company">Company name</param>
     /// <param name="phone">Phone number</param>
+    /// <param name="birthday">Birthday (optional)</param>
+    /// <param name="hireDate">Hire date (optional)</param>
     /// <returns>True if update succeeded.</returns>
     public async Task<(bool Success, string? Error)> UpdateUserProfileAsync(
         string? firstName,
         string? lastName,
         string? jobTitle,
         string? company,
-        string? phone)
+        string? phone,
+        DateTime? birthday = null,
+        DateTime? hireDate = null)
     {
         if (_publicClient?.Auth?.CurrentUser == null)
         {
@@ -435,7 +439,7 @@ public class AuthService
             }
 
             // Update the profile in the users table (id = auth.uid in new schema)
-            var updatedProfiles = await _publicClient.From<UserProfile>()
+            var updateQuery = _publicClient.From<UserProfile>()
                 .Where(p => p.Id == userId)
                 .Set(p => p.FirstName!, firstName ?? string.Empty)
                 .Set(p => p.LastName!, lastName ?? string.Empty)
@@ -443,8 +447,11 @@ public class AuthService
                 .Set(p => p.JobTitle!, jobTitle ?? string.Empty)
                 .Set(p => p.Company!, company ?? string.Empty)
                 .Set(p => p.Phone!, phone ?? string.Empty)
-                .Set(p => p.UpdatedAt, DateTime.UtcNow)
-                .Update();
+                .Set(p => p.Birthday, birthday)
+                .Set(p => p.HireDate, hireDate)
+                .Set(p => p.UpdatedAt, DateTime.UtcNow);
+            
+            await updateQuery.Update();
 
             // Reload the profile to get the updated data
             await LoadUserProfileAsync();
@@ -456,6 +463,97 @@ public class AuthService
         {
             System.Diagnostics.Debug.WriteLine($"Failed to update profile: {ex.Message}");
             return (false, $"Failed to update profile: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Uploads a new avatar image for the current user.
+    /// </summary>
+    /// <param name="filePath">Path to the image file to upload.</param>
+    /// <returns>Tuple with success flag, new avatar URL (if successful), and error message (if failed).</returns>
+    public async Task<(bool Success, string? AvatarUrl, string? Error)> UploadAvatarAsync(string filePath)
+    {
+        if (_publicClient?.Auth?.CurrentUser == null)
+        {
+            return (false, null, "Not signed in.");
+        }
+
+        try
+        {
+            var userId = _publicClient.Auth.CurrentUser.Id;
+            
+            // Read the file
+            if (!File.Exists(filePath))
+            {
+                return (false, null, "File not found.");
+            }
+
+            var fileInfo = new FileInfo(filePath);
+            
+            // Validate file size (max 5MB)
+            if (fileInfo.Length > 5 * 1024 * 1024)
+            {
+                return (false, null, "File too large. Maximum size is 5MB.");
+            }
+
+            // Read file bytes
+            var fileBytes = await File.ReadAllBytesAsync(filePath);
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            
+            // Validate file type
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            if (!Array.Exists(allowedExtensions, e => e == extension))
+            {
+                return (false, null, "Invalid file type. Allowed: JPG, PNG, GIF, WebP.");
+            }
+
+            // Generate a unique filename
+            var fileName = $"{userId}/avatar{extension}";
+            
+            // Determine content type
+            var contentType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+
+            // Upload to Supabase Storage
+            var storage = _publicClient.Storage;
+            var bucket = storage.From("avatars");
+            
+            // Upload (upsert to replace existing)
+            await bucket.Upload(fileBytes, fileName, new Supabase.Storage.FileOptions
+            {
+                ContentType = contentType,
+                Upsert = true
+            });
+
+            // Get public URL
+            var publicUrl = bucket.GetPublicUrl(fileName);
+            
+            // Add cache buster
+            var avatarUrl = $"{publicUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+
+            // Update user profile with new avatar URL
+            await _publicClient.From<UserProfile>()
+                .Where(p => p.Id == Guid.Parse(userId))
+                .Set(p => p.AvatarUrl!, avatarUrl)
+                .Set(p => p.UpdatedAt, DateTime.UtcNow)
+                .Update();
+
+            // Reload profile
+            await LoadUserProfileAsync();
+
+            System.Diagnostics.Debug.WriteLine($"Avatar uploaded: {avatarUrl}");
+            return (true, avatarUrl, null);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to upload avatar: {ex.Message}");
+            return (false, null, $"Failed to upload avatar: {ex.Message}");
         }
     }
 

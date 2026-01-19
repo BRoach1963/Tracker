@@ -104,15 +104,26 @@
                               Margin="0,0,24,0"
                               VerticalAlignment="Top"
                               Name="AvatarContainer">
-                            <!-- Avatar circle -->
-                            <Border Background="#3C6248"
-                                    CornerRadius="40">
-                                <TextBlock Text="{Binding Initials}"
-                                           FontSize="28"
-                                           FontWeight="SemiBold"
-                                           Foreground="White"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" />
+                            <!-- Avatar circle with image or initials -->
+                            <Border CornerRadius="40" ClipToBounds="True">
+                                <Panel>
+                                    <!-- Background for initials -->
+                                    <Border Background="#3C6248"
+                                            CornerRadius="40"
+                                            IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                        <TextBlock Text="{Binding Initials}"
+                                                   FontSize="28"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                    <!-- Avatar image when available -->
+                                    <Image Source="{Binding AvatarUrl}"
+                                           Stretch="UniformToFill"
+                                           Width="80" Height="80"
+                                           IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </Panel>
                             </Border>
                             
                             <!-- Hover overlay with camera icon (always available, shows on hover) -->
@@ -196,6 +207,24 @@
                                            FontSize="14"
                                            Foreground="#64748B"
                                            IsVisible="{Binding Phone, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                
+                                <!-- Birthday and Hire Date (view mode) -->
+                                <StackPanel Orientation="Horizontal" Spacing="16" 
+                                            IsVisible="{Binding Birthday, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="🎂" FontSize="13" />
+                                        <TextBlock Text="{Binding BirthdayDisplay}"
+                                                   FontSize="14"
+                                                   Foreground="#64748B" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                                IsVisible="{Binding HireDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <TextBlock Text="📅" FontSize="13" />
+                                        <TextBlock Text="{Binding HireDateDisplay}"
+                                                   FontSize="14"
+                                                   Foreground="#64748B" />
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                             
                             <!-- EDIT MODE -->
@@ -259,6 +288,26 @@
                                              Padding="12,10"
                                              CornerRadius="6" />
                                 </StackPanel>
+                                
+                                <!-- Birthday and Hire Date Row -->
+                                <Grid ColumnDefinitions="*,12,*">
+                                    <StackPanel Grid.Column="0" Spacing="4">
+                                        <TextBlock Text="Birthday" 
+                                                   FontSize="12" 
+                                                   Foreground="#64748B" />
+                                        <DatePicker SelectedDate="{Binding Birthday, Mode=TwoWay}"
+                                                    HorizontalAlignment="Stretch"
+                                                    FontSize="14" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Spacing="4">
+                                        <TextBlock Text="Hire Date" 
+                                                   FontSize="12" 
+                                                   Foreground="#64748B" />
+                                        <DatePicker SelectedDate="{Binding HireDate, Mode=TwoWay}"
+                                                    HorizontalAlignment="Stretch"
+                                                    FontSize="14" />
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
                             
                         </StackPanel>

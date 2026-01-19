@@ -163,13 +163,20 @@ public class DashboardService
             ActiveProjectCount = await projectCountTask
         };
 
-        // Enrich team members with task/goal counts
+        // Enrich team members with task/goal counts and last meeting date
         foreach (var member in data.TeamMembers)
         {
             member.OpenTaskCount = data.Tasks.Count(t => 
                 t.OwnerTeamMemberId == member.Id && t.Status != "completed");
             member.ActiveGoalCount = data.Goals.Count(g => 
                 g.OwnerTeamMemberId == member.Id && g.Status != "completed");
+            
+            // Find last meeting with this team member
+            var lastMeeting = data.Meetings
+                .Where(m => m.Attendees?.Any(a => a.TeamMemberId == member.Id) == true)
+                .OrderByDescending(m => m.ScheduledAt)
+                .FirstOrDefault();
+            member.LastMeetingDate = lastMeeting?.ScheduledAt;
         }
 
         // Enrich tasks with owner names

@@ -51,6 +51,18 @@ public class UserProfile : BaseModel
     [Column("phone")]
     public string? Phone { get; set; }
 
+    /// <summary>
+    /// User's birthday (month and day).
+    /// </summary>
+    [Column("birthday")]
+    public DateTime? Birthday { get; set; }
+
+    /// <summary>
+    /// User's hire date at their company.
+    /// </summary>
+    [Column("hire_date")]
+    public DateTime? HireDate { get; set; }
+
     [Column("timezone")]
     public string Timezone { get; set; } = "UTC";
 

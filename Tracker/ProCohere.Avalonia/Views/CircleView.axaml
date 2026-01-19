@@ -53,6 +53,24 @@
             <Setter Property="BorderThickness" Value="2"/>
         </Style>
         
+        <!-- Compact Member Card (Tree View) -->
+        <Style Selector="Border.member-card-compact">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.member-card-compact:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Border.member-card-compact.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        
         <!-- Detail Panel Style - with slide animation -->
         <Style Selector="Border.detail-panel">
             <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
@@ -112,7 +130,72 @@
         </Style>
         <Style Selector="Button.view-mode-button.selected">
             <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+        </Style>
+        
+        <!-- Team View Toggle Button (Flat/Tree) -->
+        <Style Selector="Button.view-toggle-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextTertiary}"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="28"/>
+            <Setter Property="MinHeight" Value="24"/>
+        </Style>
+        <Style Selector="Button.view-toggle-button PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextTertiary}"/>
+        </Style>
+        <Style Selector="Button.view-toggle-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+        </Style>
+        <Style Selector="Button.view-toggle-button:pointerover PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+        </Style>
+        <Style Selector="Button.view-toggle-button.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+        </Style>
+        <Style Selector="Button.view-toggle-button.selected PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+        </Style>
+        <Style Selector="Button.view-toggle-button.selected:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryHover}"/>
+        </Style>
+        
+        <!-- View Team Button (on manager cards) - with explicit Template for hover -->
+        <Style Selector="Button.view-team-button">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimarySubtle}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Content="{TemplateBinding Content}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.view-team-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.view-team-button:pointerover PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+        </Style>
+        <Style Selector="Button.view-team-button:pointerover TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
         </Style>
         
         <!-- Meeting Card Style -->
@@ -372,64 +455,339 @@
                 </Border>
             </StackPanel>
             
-            <!-- Showing count -->
-            <TextBlock Grid.Column="2" VerticalAlignment="Center"
-                       Foreground="{DynamicResource BrushTextTertiary}" FontSize="12">
-                <Run Text="Showing"/>
-                <Run Text="{Binding FilteredMemberCount}" FontWeight="SemiBold"/>
-                <Run Text="of"/>
-                <Run Text="{Binding TotalMemberCount}" FontWeight="SemiBold"/>
-            </TextBlock>
+            <!-- View Toggle + Showing count -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <!-- Flat/Tree Toggle -->
+                <Border Background="{DynamicResource BrushSurface}" CornerRadius="6" Padding="3"
+                        BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Classes="view-toggle-button"
+                                Classes.selected="{Binding IsFlatView}"
+                                Command="{Binding SetViewModeCommand}"
+                                CommandParameter="{x:Static vm:TeamViewMode.Flat}"
+                                ToolTip.Tip="Flat View">
+                            <PathIcon Data="M3,4H21V8H3V4M3,10H21V14H3V10M3,16H21V20H3V16Z"
+                                      Width="14" Height="14"/>
+                        </Button>
+                        <Button Classes="view-toggle-button"
+                                Classes.selected="{Binding IsTreeView}"
+                                Command="{Binding SetViewModeCommand}"
+                                CommandParameter="{x:Static vm:TeamViewMode.Tree}"
+                                ToolTip.Tip="Hierarchy View">
+                            <PathIcon Data="M12,5A2,2 0 0,1 14,7A2,2 0 0,1 12,9A2,2 0 0,1 10,7A2,2 0 0,1 12,5M12,11.5C12.83,11.5 13.63,11.57 14.38,11.7L12,18.12L9.62,11.7C10.37,11.57 11.17,11.5 12,11.5M3,19A2,2 0 0,1 5,17A2,2 0 0,1 7,19A2,2 0 0,1 5,21A2,2 0 0,1 3,19M17,19A2,2 0 0,1 19,17A2,2 0 0,1 21,19A2,2 0 0,1 19,21A2,2 0 0,1 17,19M10,19A2,2 0 0,1 12,17A2,2 0 0,1 14,19A2,2 0 0,1 12,21A2,2 0 0,1 10,19Z"
+                                      Width="14" Height="14"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Showing count -->
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource BrushTextTertiary}" FontSize="12">
+                    <Run Text="Showing"/>
+                    <Run Text="{Binding FilteredMemberCount}" FontWeight="SemiBold"/>
+                    <Run Text="of"/>
+                    <Run Text="{Binding TotalMemberCount}" FontWeight="SemiBold"/>
+                </TextBlock>
+            </StackPanel>
         </Grid>
         
         <!-- Row 3: Content Area -->
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="3" RowDefinitions="Auto,*">
+            
+            <!-- Manager Filter Banner - More Prominent -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" 
+                    CornerRadius="8" Padding="16,12" Margin="0,0,0,16"
+                    IsVisible="{Binding HasManagerFilter}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- Filter Icon -->
+                    <Border Grid.Column="0" Background="{DynamicResource BrushSecondaryHover}" CornerRadius="6" Padding="8" VerticalAlignment="Center">
+                        <PathIcon Data="M3,4H21V6H3V4M6,9H18V11H6V9M10,14H14V16H10V14Z"
+                                  Width="18" Height="18" Foreground="{DynamicResource BrushTextOnSecondary}"/>
+                    </Border>
+                    
+                    <!-- Filter Text -->
+                    <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center">
+                        <TextBlock Text="Filtered View" FontSize="11" FontWeight="Medium" 
+                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="Showing" Foreground="{DynamicResource BrushTextOnSecondary}" FontSize="14"/>
+                            <TextBlock Text="{Binding FilterByManagerName}" Foreground="{DynamicResource BrushHighlight}" 
+                                       FontWeight="Bold" FontSize="14"/>
+                            <TextBlock Text="and their direct reports" Foreground="{DynamicResource BrushTextOnSecondary}" FontSize="14"/>
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <!-- Clear Button with hover effect -->
+                    <Button Grid.Column="2" 
+                            Command="{Binding ClearManagerFilterCommand}"
+                            FontWeight="SemiBold" FontSize="13"
+                            Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="PART_Border" Background="{DynamicResource BrushButtonSurface}" CornerRadius="6" Padding="16,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                  Width="12" Height="12" Foreground="{DynamicResource BrushSecondary}"/>
+                                        <TextBlock Text="Show All Team" Foreground="{DynamicResource BrushSecondary}" 
+                                                   FontWeight="SemiBold" FontSize="13"/>
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource BrushButtonSurfaceHover}"/>
+                            </Style>
+                            <Style Selector="Button:pressed /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource BrushButtonSurfacePressed}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
             
             <!-- =============== TEAM TAB =============== -->
-            <Grid IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Team}}"
+            <Grid Grid.Row="1" IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Team}}"
                   ColumnDefinitions="*,Auto" ClipToBounds="True">
                 
                 <!-- Cards Grid - add right margin when panel is open -->
                 <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" 
                               Padding="0,0,12,0">
-                    <ItemsControl ItemsSource="{Binding FilteredTeamMembers}" Margin="0,0,4,0">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Classes="member-card" Width="280" Margin="0,0,12,12"
-                                        Tapped="MemberCard_Tapped"
-                                        DoubleTapped="MemberCard_DoubleTapped" Tag="{Binding}">
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                                        
-                                        <!-- Header: Avatar + Name + Status -->
-                                        <Grid Grid.Row="0" Margin="0,0,0,12">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
+                    <Grid>
+                        <!-- FLAT VIEW: Card Grid -->
+                        <ItemsControl ItemsSource="{Binding FilteredTeamMembers}" Margin="0,0,4,0"
+                                      IsVisible="{Binding IsFlatView}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="member-card" Width="280" Margin="0,0,12,12"
+                                            Classes.selected="{Binding IsSelected}"
+                                            Tapped="MemberCard_Tapped"
+                                            DoubleTapped="MemberCard_DoubleTapped" Tag="{Binding}">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto">
                                             
-                                            <!-- Avatar -->
-                                            <Border Grid.Column="0" Width="48" Height="48" CornerRadius="24" 
-                                                    Background="{DynamicResource BrushPrimary}">
-                                                <TextBlock Text="{Binding Initials}" FontSize="16" FontWeight="SemiBold"
-                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <!-- Header: Avatar + Name + Status -->
+                                            <Grid Grid.Row="0" Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <!-- Avatar with image or initials -->
+                                                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="24" ClipToBounds="True">
+                                                    <Panel>
+                                                        <!-- Initials fallback -->
+                                                        <Border Background="{DynamicResource BrushPrimary}" CornerRadius="24"
+                                                                IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                            <TextBlock Text="{Binding Initials}" FontSize="16" FontWeight="SemiBold"
+                                                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <!-- Avatar image -->
+                                                        <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="48" Height="48"
+                                                               IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    </Panel>
+                                                </Border>
+                                                
+                                                <!-- Name + Title + Hierarchy -->
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding FullName}" FontSize="14" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource BrushTextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding JobTitle}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}" TextTrimming="CharacterEllipsis"/>
+                                                    <!-- Hierarchy Info -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0" Spacing="8">
+                                                        <TextBlock FontSize="10" Foreground="{DynamicResource BrushTextTertiary}"
+                                                                   IsVisible="{Binding ManagerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                            <Run Text="Reports to: "/><Run Text="{Binding ManagerName}" FontWeight="Medium"/>
+                                                        </TextBlock>
+                                                        <!-- Clickable View Team Button -->
+                                                        <Button Classes="view-team-button"
+                                                                IsVisible="{Binding IsManager}"
+                                                                Tapped="ManagerBadge_Tapped"
+                                                                Tag="{Binding}">
+                                                            <ToolTip.Tip>
+                                                                <TextBlock Text="View this person's team" Foreground="#1F2937"/>
+                                                            </ToolTip.Tip>
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"
+                                                                          Width="12" Height="12" Foreground="{DynamicResource BrushPrimary}"/>
+                                                                <TextBlock FontSize="10" Foreground="{DynamicResource BrushPrimary}" FontWeight="SemiBold">
+                                                                    <Run Text="{Binding DirectReportCount}"/><Run Text=" team"/>
+                                                                </TextBlock>
+                                                                <PathIcon Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                                          Width="10" Height="10" Foreground="{DynamicResource BrushPrimary}"/>
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                
+                                                <!-- Status Badge -->
+                                                <Border Grid.Column="2" CornerRadius="10" Padding="8,3" VerticalAlignment="Top">
+                                                    <Border.Background>
+                                                        <MultiBinding Converter="{StaticResource BoolToColorConverter}">
+                                                            <Binding Path="IsActive"/>
+                                                        </MultiBinding>
+                                                    </Border.Background>
+                                                    <TextBlock Text="{Binding StatusDisplay}" FontSize="9" FontWeight="SemiBold" Foreground="White"/>
+                                                </Border>
+                                            </Grid>
+                                            
+                                            <!-- Stats Row -->
+                                            <Border Grid.Row="1" Background="{DynamicResource BrushBackground}"
+                                                    CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
+                                                <Grid ColumnDefinitions="*,Auto,*,Auto,*">
+                                                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding Tenure}" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Tenure" FontSize="9"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    
+                                                    <Border Grid.Column="1" Width="1" Background="{DynamicResource BrushBorder}" Margin="8,2"/>
+                                                    
+                                                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding OpenTaskCount}" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Tasks" FontSize="9"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    
+                                                    <Border Grid.Column="3" Width="1" Background="{DynamicResource BrushBorder}" Margin="8,2"/>
+                                                    
+                                                    <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding ActiveGoalCount}" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Goals" FontSize="9"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                            
+                                            <!-- Meeting Status -->
+                                            <Grid Grid.Row="2" Margin="0,0,0,12" ColumnDefinitions="*,*">
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="Last Meeting" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="{Binding LastMeetingText}" FontSize="12" FontWeight="Medium"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                                    <TextBlock Text="Next Meeting" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Right"/>
+                                                    <TextBlock Text="{Binding NextMeetingText}" FontSize="12" FontWeight="Medium"
+                                                               HorizontalAlignment="Right">
+                                                        <TextBlock.Foreground>
+                                                            <MultiBinding Converter="{StaticResource MeetingStatusColorConverter}">
+                                                                <Binding Path="NeedsAttention"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Foreground>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                            
+                                            <!-- Quick Actions -->
+                                            <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BrushBorder}" Padding="0,10,0,0">
+                                                <Grid ColumnDefinitions="*,*,*">
+                                                    <!-- Schedule Meeting -->
+                                                    <Button Grid.Column="0" Classes="icon-button" ToolTip.Tip="Schedule Meeting"
+                                                            Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).ScheduleMeetingCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"
+                                                                  Width="16" Height="16" Foreground="{DynamicResource BrushPrimary}"/>
+                                                    </Button>
+                                                    
+                                                    <!-- Send Email -->
+                                                    <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Send Email"
+                                                            Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).SendEmailCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <PathIcon Data="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"
+                                                                  Width="16" Height="16" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    </Button>
+                                                    
+                                                    <!-- Edit -->
+                                                    <Button Grid.Column="2" Classes="icon-button" ToolTip.Tip="Edit Details"
+                                                            Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).EditTeamMemberCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                                  Width="16" Height="16" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- TREE VIEW: Compact Hierarchical List -->
+                        <ItemsControl ItemsSource="{Binding FilteredTeamMembers}" Margin="0,0,4,0"
+                                      IsVisible="{Binding IsTreeView}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="member-card-compact"
+                                            Classes.selected="{Binding IsSelected}"
+                                            Margin="{Binding DisplayDepth, Converter={StaticResource TreeDepthToMarginConverter}}"
+                                            Tapped="MemberCard_Tapped"
+                                            DoubleTapped="MemberCard_DoubleTapped" Tag="{Binding}">
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                                            <!-- Tree Connector (shows for indented items) -->
+                                            <TextBlock Grid.Column="0" Text="──" FontSize="11" 
+                                                       Foreground="{DynamicResource BrushTextTertiary}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"
+                                                       IsVisible="{Binding DisplayDepth, Converter={StaticResource GreaterThanZeroConverter}}"/>
+                                            
+                                            <!-- Avatar with image or initials -->
+                                            <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" ClipToBounds="True">
+                                                <Panel>
+                                                    <!-- Initials fallback -->
+                                                    <Border Background="{DynamicResource BrushPrimary}" CornerRadius="18"
+                                                            IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                        <TextBlock Text="{Binding Initials}" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <!-- Avatar image -->
+                                                    <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
+                                                           IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </Panel>
                                             </Border>
                                             
                                             <!-- Name + Title -->
-                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding FullName}" FontSize="14" FontWeight="SemiBold"
+                                            <StackPanel Grid.Column="2" Margin="12,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FullName}" FontSize="13" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource BrushTextPrimary}" TextTrimming="CharacterEllipsis"/>
                                                 <TextBlock Text="{Binding JobTitle}" FontSize="11"
                                                            Foreground="{DynamicResource BrushTextSecondary}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                             
+                                            <!-- View Team Button (if manager) -->
+                                            <Button Grid.Column="3" Classes="view-team-button"
+                                                    IsVisible="{Binding IsManager}" Margin="0,0,8,0"
+                                                    Tapped="ManagerBadge_Tapped"
+                                                    Tag="{Binding}">
+                                                <ToolTip.Tip>
+                                                    <TextBlock Text="View this person's team" Foreground="#1F2937"/>
+                                                </ToolTip.Tip>
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"
+                                                              Width="12" Height="12" Foreground="{DynamicResource BrushPrimary}"/>
+                                                    <TextBlock FontSize="10" Foreground="{DynamicResource BrushPrimary}" FontWeight="SemiBold">
+                                                        <Run Text="{Binding DirectReportCount}"/>
+                                                    </TextBlock>
+                                                    <PathIcon Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                              Width="10" Height="10" Foreground="{DynamicResource BrushPrimary}"/>
+                                                </StackPanel>
+                                            </Button>
+                                            
                                             <!-- Status Badge -->
-                                            <Border Grid.Column="2" CornerRadius="10" Padding="8,3" VerticalAlignment="Top">
+                                            <Border Grid.Column="4" CornerRadius="10" Padding="8,3" VerticalAlignment="Center">
                                                 <Border.Background>
                                                     <MultiBinding Converter="{StaticResource BoolToColorConverter}">
                                                         <Binding Path="IsActive"/>
@@ -438,91 +796,11 @@
                                                 <TextBlock Text="{Binding StatusDisplay}" FontSize="9" FontWeight="SemiBold" Foreground="White"/>
                                             </Border>
                                         </Grid>
-                                        
-                                        <!-- Stats Row -->
-                                        <Border Grid.Row="1" Background="{DynamicResource BrushBackground}"
-                                                CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
-                                            <Grid ColumnDefinitions="*,Auto,*,Auto,*">
-                                                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding Tenure}" FontSize="12" FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Tenure" FontSize="9"
-                                                               Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                                
-                                                <Border Grid.Column="1" Width="1" Background="{DynamicResource BrushBorder}" Margin="8,2"/>
-                                                
-                                                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding OpenTaskCount}" FontSize="12" FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Tasks" FontSize="9"
-                                                               Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                                
-                                                <Border Grid.Column="3" Width="1" Background="{DynamicResource BrushBorder}" Margin="8,2"/>
-                                                
-                                                <StackPanel Grid.Column="4" HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding ActiveGoalCount}" FontSize="12" FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Goals" FontSize="9"
-                                                               Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Grid>
-                                        </Border>
-                                        
-                                        <!-- Meeting Status -->
-                                        <Grid Grid.Row="2" Margin="0,0,0,12" ColumnDefinitions="*,*">
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Last Meeting" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                                <TextBlock Text="{Binding LastMeetingText}" FontSize="12" FontWeight="Medium"
-                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                                <TextBlock Text="Next Meeting" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{Binding NextMeetingText}" FontSize="12" FontWeight="Medium"
-                                                           HorizontalAlignment="Right">
-                                                    <TextBlock.Foreground>
-                                                        <MultiBinding Converter="{StaticResource MeetingStatusColorConverter}">
-                                                            <Binding Path="NeedsAttention"/>
-                                                        </MultiBinding>
-                                                    </TextBlock.Foreground>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Grid>
-                                        
-                                        <!-- Quick Actions -->
-                                        <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BrushBorder}" Padding="0,10,0,0">
-                                            <Grid ColumnDefinitions="*,*,*">
-                                                <!-- Schedule Meeting -->
-                                                <Button Grid.Column="0" Classes="icon-button" ToolTip.Tip="Schedule Meeting"
-                                                        Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).ScheduleMeetingCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"
-                                                              Width="16" Height="16" Foreground="{DynamicResource BrushPrimary}"/>
-                                                </Button>
-                                                
-                                                <!-- Send Email -->
-                                                <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Send Email"
-                                                        Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).SendEmailCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <PathIcon Data="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"
-                                                              Width="16" Height="16" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                </Button>
-                                                
-                                                <!-- Edit -->
-                                                <Button Grid.Column="2" Classes="icon-button" ToolTip.Tip="Edit Details"
-                                                        Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).EditTeamMemberCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
-                                                              Width="16" Height="16" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                </Button>
-                                            </Grid>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
                 </ScrollViewer>
                 
                 <!-- ======= TEAM MEMBER DETAIL FLYOUT ======= -->
@@ -536,7 +814,7 @@
             </Grid>
             
             <!-- =============== GOALS TAB =============== -->
-            <Grid IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Goals}}"
+            <Grid Grid.Row="1" IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Goals}}"
                   RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
                 
                 <!-- Header Row: Stats + Actions -->
@@ -736,7 +1014,7 @@
             </Grid>
             
             <!-- =============== FEEDBACK TAB =============== -->
-            <Grid IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Feedback}}"
+            <Grid Grid.Row="1" IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Feedback}}"
                   RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
                 
                 <!-- Header Row: Stats + Actions -->
@@ -914,7 +1192,7 @@
             </Grid>
             
             <!-- =============== MEETINGS TAB =============== -->
-            <Grid IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Meetings}}"
+            <Grid Grid.Row="1" IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Meetings}}"
                   RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
                 
                 <!-- Header Row: View Modes + Navigation + Actions -->
@@ -1057,149 +1335,15 @@
                     <!-- ===== DAY VIEW ===== -->
                     <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto"
                                   IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Day}}">
-                        <Grid ColumnDefinitions="60,*" Margin="0,0,12,0">
-                            <!-- Hour Labels -->
-                            <ItemsControl Grid.Column="0" ItemsSource="{Binding CalendarHours}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Height="60" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
-                                            <TextBlock Text="{Binding DisplayText}" FontSize="11" 
-                                                       Foreground="{DynamicResource BrushTextTertiary}"
-                                                       VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,8,0"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            
-                            <!-- Day Column with meetings -->
-                            <Grid Grid.Column="1">
-                                <!-- Hour grid lines -->
-                                <ItemsControl ItemsSource="{Binding CalendarHours}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Height="60" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                
-                                <!-- Meetings positioned absolutely -->
-                                <ItemsControl ItemsSource="{Binding DayMeetings}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Classes="calendar-meeting" Background="{Binding TypeColor}"
-                                                    Tapped="MeetingCard_Tapped" Tag="{Binding}"
-                                                    Canvas.Top="{Binding CalendarTopOffset}"
-                                                    Width="280" Height="{Binding CalendarHeight}">
-                                                <StackPanel Margin="4,2">
-                                                    <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" 
-                                                               Foreground="White" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding TimeRangeDisplay}" FontSize="10" 
-                                                               Foreground="White" Opacity="0.9"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Grid>
-                        </Grid>
+                        <!-- Day view grid built in code-behind -->
+                        <Grid x:Name="DayViewGrid" Margin="0,0,12,0"/>
                     </ScrollViewer>
                     
                     <!-- ===== WEEK VIEW ===== -->
                     <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto"
                                   IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Week}}">
-                        <Grid RowDefinitions="Auto,*" Margin="0,0,12,0">
-                            <!-- Day Headers -->
-                            <Grid Grid.Row="0" ColumnDefinitions="60,*,*,*,*,*,*,*" Margin="0,0,0,8">
-                                <Border Grid.Column="0"/> <!-- Spacer for time column -->
-                                <ItemsControl Grid.Column="1" Grid.ColumnSpan="7" ItemsSource="{Binding WeekDays}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="7"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel HorizontalAlignment="Center" Margin="0,0,0,8">
-                                                <TextBlock Text="{Binding DayName}" FontSize="11" 
-                                                           Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                                <Border CornerRadius="16" Padding="8,4" Margin="0,4,0,0"
-                                                        Background="{Binding IsToday, Converter={StaticResource BoolToHighlightBackgroundConverter}}">
-                                                    <TextBlock Text="{Binding DayNumber}" FontSize="14" FontWeight="SemiBold"
-                                                               Foreground="{Binding IsToday, Converter={StaticResource BoolToForegroundConverter}}"
-                                                               HorizontalAlignment="Center"/>
-                                                </Border>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Grid>
-                            
-                            <!-- Week Grid -->
-                            <Grid Grid.Row="1" ColumnDefinitions="60,*">
-                                <!-- Hour Labels -->
-                                <ItemsControl Grid.Column="0" ItemsSource="{Binding CalendarHours}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Height="60" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
-                                                <TextBlock Text="{Binding DisplayText}" FontSize="11" 
-                                                           Foreground="{DynamicResource BrushTextTertiary}"
-                                                           VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,8,0"/>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                
-                                <!-- Day Columns -->
-                                <ItemsControl Grid.Column="1" ItemsSource="{Binding WeekDays}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="7"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid>
-                                                <!-- Hour grid lines -->
-                                                <ItemsControl ItemsSource="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext).CalendarHours}">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Height="60" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,1,1"/>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                                
-                                                <!-- Meetings for this day -->
-                                                <ItemsControl ItemsSource="{Binding Meetings}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <Canvas/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Classes="calendar-meeting" Background="{Binding TypeColor}"
-                                                                    Canvas.Top="{Binding CalendarTopOffset}"
-                                                                    Width="90" Height="{Binding CalendarHeight}"
-                                                                    ToolTip.Tip="{Binding Title}"
-                                                                    Tapped="MeetingCard_Tapped" Tag="{Binding}">
-                                                                <TextBlock Text="{Binding Title}" FontSize="10" FontWeight="Medium" 
-                                                                           Foreground="White" TextTrimming="CharacterEllipsis"
-                                                                           Margin="4,2"/>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Grid>
-                        </Grid>
+                        <!-- Week view grid built in code-behind -->
+                        <Grid x:Name="WeekViewGrid" Margin="0,0,12,0"/>
                     </ScrollViewer>
                     
                     <!-- ===== MONTH VIEW ===== -->
