@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ProCohere.Avalonia.Views.Pulse.MetricsTabView">
+    
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+            <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                      Width="48" Height="48" 
+                      Foreground="{DynamicResource BrushTextSecondary}"/>
+            <TextBlock Text="Metrics" 
+                       FontSize="18" 
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrushTextPrimary}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="Metrics content will go here" 
+                       FontSize="13"
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

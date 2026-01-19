@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="320"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.UpdateMetricValueDialog"
+        Title="Update Metric Value"
+        Width="420"
+        Height="340"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="False">
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*,Auto" Margin="24">
+        <!-- Form Content -->
+        <StackPanel Grid.Row="0" Spacing="16">
+            <!-- Current Value Display -->
+            <Border x:Name="CurrentValueBorder"
+                    Background="{DynamicResource BrushSurfaceHover}" 
+                    CornerRadius="8" 
+                    Padding="12"
+                    IsVisible="False">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Current:" FontSize="13" Opacity="0.7" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CurrentValueText" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- New Value -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="New Value" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <TextBox x:Name="NewValueTextBox"
+                         Watermark="Enter value..."
+                         FontSize="14"/>
+            </StackPanel>
+            
+            <!-- What Changed Note -->
+            <StackPanel Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="What Changed?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock x:Name="RequiredLabel"
+                               Text="(required)" 
+                               FontSize="12" 
+                               Opacity="0.5"/>
+                </StackPanel>
+                <TextBox x:Name="WhatChangedTextBox"
+                         Watermark="Describe what caused this change..."
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="80"
+                         MaxHeight="100"/>
+            </StackPanel>
+        </StackPanel>
+        
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+            <Button x:Name="CancelButton" 
+                    Content="Cancel" 
+                    Classes="secondary-button"
+                    Padding="16,8"
+                    Click="CancelButton_Click"/>
+            <Button x:Name="UpdateButton" 
+                    Content="Update" 
+                    Classes="primary-button"
+                    Padding="16,8"
+                    Click="UpdateButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

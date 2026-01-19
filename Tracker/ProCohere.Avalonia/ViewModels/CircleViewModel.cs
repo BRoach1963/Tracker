@@ -840,7 +840,7 @@ public partial class CircleViewModel : ViewModelBase
         try
         {
             var updated = await MeetingAgendaItemService.Instance.UpdateStatusAsync(item.Id, newStatus);
-            if (updated != null)
+            if (updated)
             {
                 // Update local state
                 item.Status = newStatus;

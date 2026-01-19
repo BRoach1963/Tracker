@@ -49,12 +49,31 @@ public partial class TasksViewModel : ViewModelBase
     {
         CurrentFilter = filter switch
         {
-            "Today" => TaskFilter.Today,
-            "Overdue" => TaskFilter.Overdue,
-            "Completed" => TaskFilter.Completed,
+            "1" or "Today" => TaskFilter.Today,
+            "2" or "Overdue" => TaskFilter.Overdue,
+            "3" or "Completed" => TaskFilter.Completed,
             _ => TaskFilter.All
         };
-        await LoadTasksAsync();
+        ApplyFilter();
+    }
+
+    #endregion
+
+    #region Add Task Dialog Request
+
+    /// <summary>
+    /// Event raised when the add task dialog should be shown.
+    /// The View subscribes to this to show the actual dialog window.
+    /// </summary>
+    public event EventHandler? AddTaskDialogRequested;
+
+    /// <summary>
+    /// Requests the View to show the Add Task dialog.
+    /// </summary>
+    [RelayCommand]
+    private void RequestAddTaskDialog()
+    {
+        AddTaskDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     #endregion
@@ -163,75 +182,46 @@ public partial class TasksViewModel : ViewModelBase
 
     #endregion
 
-    #region New Task Fields
+    #region New Task
 
-    [ObservableProperty]
-    private bool _isAddingTask;
-
-    [ObservableProperty]
-    private string _newTaskTitle = string.Empty;
-
-    [ObservableProperty]
-    private string? _newTaskDescription;
-
-    [ObservableProperty]
-    private string? _newTaskPriority;
-
-    [ObservableProperty]
-    private DateTime? _newTaskDueDate;
-
-    [ObservableProperty]
-    private Guid? _newTaskAssignee;
-
-    [RelayCommand]
-    private void StartAddTask()
+    /// <summary>
+    /// Creates a task from dialog result.
+    /// Called from code-behind after dialog closes.
+    /// </summary>
+    public async Task<bool> CreateTaskFromDialogAsync(
+        string title,
+        string? description,
+        string? priority,
+        DateTime? dueDate,
+        Guid? assigneeId)
     {
-        IsAddingTask = true;
-        NewTaskTitle = string.Empty;
-        NewTaskDescription = null;
-        NewTaskPriority = null;
-        NewTaskDueDate = DateTime.Now.AddDays(1); // Default to tomorrow
-        NewTaskAssignee = null;
-    }
-
-    [RelayCommand]
-    private void CancelAddTask()
-    {
-        IsAddingTask = false;
-        NewTaskTitle = string.Empty;
-    }
-
-    [RelayCommand]
-    private async Task SaveNewTaskAsync()
-    {
-        if (string.IsNullOrWhiteSpace(NewTaskTitle))
-            return;
-
         try
         {
             var task = await TaskService.Instance.CreateTaskAsync(
-                title: NewTaskTitle.Trim(),
-                description: NewTaskDescription,
-                priority: NewTaskPriority,
-                dueDate: NewTaskDueDate,
-                assignedTo: NewTaskAssignee
+                title: title,
+                description: description,
+                priority: priority,
+                dueDate: dueDate,
+                assignedTo: assigneeId
             );
 
             if (task != null)
             {
-                IsAddingTask = false;
                 await LoadTasksAsync();
+                return true;
             }
             else
             {
                 ErrorMessage = TaskService.Instance.LastError ?? "Failed to create task";
                 HasError = true;
+                return false;
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
             HasError = true;
+            return false;
         }
     }
 

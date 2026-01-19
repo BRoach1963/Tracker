@@ -374,6 +374,11 @@ public class AuthService
         try
         {
             var authId = _publicClient.Auth.CurrentUser.Id;
+            if (string.IsNullOrEmpty(authId))
+            {
+                System.Diagnostics.Debug.WriteLine("LoadUserProfileAsync: User ID is null or empty");
+                return null;
+            }
             System.Diagnostics.Debug.WriteLine($"LoadUserProfileAsync: Querying for user ID: {authId}");
             
             var userId = Guid.Parse(authId);
@@ -429,7 +434,12 @@ public class AuthService
 
         try
         {
-            var userId = Guid.Parse(_publicClient.Auth.CurrentUser.Id);
+            var currentUserId = _publicClient.Auth.CurrentUser.Id;
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return (false, "User ID not available.");
+            }
+            var userId = Guid.Parse(currentUserId);
             
             // Build display name from first/last
             var displayName = $"{firstName} {lastName}".Trim();
@@ -447,8 +457,8 @@ public class AuthService
                 .Set(p => p.JobTitle!, jobTitle ?? string.Empty)
                 .Set(p => p.Company!, company ?? string.Empty)
                 .Set(p => p.Phone!, phone ?? string.Empty)
-                .Set(p => p.Birthday, birthday)
-                .Set(p => p.HireDate, hireDate)
+                .Set(p => p.Birthday!, birthday)
+                .Set(p => p.HireDate!, hireDate)
                 .Set(p => p.UpdatedAt, DateTime.UtcNow);
             
             await updateQuery.Update();
@@ -538,8 +548,9 @@ public class AuthService
             var avatarUrl = $"{publicUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
             // Update user profile with new avatar URL
+            var userGuid = Guid.Parse(userId!);
             await _publicClient.From<UserProfile>()
-                .Where(p => p.Id == Guid.Parse(userId))
+                .Where(p => p.Id == userGuid)
                 .Set(p => p.AvatarUrl!, avatarUrl)
                 .Set(p => p.UpdatedAt, DateTime.UtcNow)
                 .Update();

@@ -1,14 +1,13 @@
 using Avalonia.Controls;
+using ProCohere.Avalonia.ViewModels;
 
 namespace ProCohere.Avalonia.Views;
 
-/// <summary>
-/// Pulse view - tabbed container for Goals, Metrics, and Tasks.
-/// </summary>
 public partial class PulseView : UserControl
 {
     public PulseView()
     {
         InitializeComponent();
+        DataContext = new PulseViewModel();
     }
 }

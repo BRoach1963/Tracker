@@ -67,15 +67,7 @@ public class MetricDetail : BaseModel
     /// <summary>
     /// Trend display with directional arrow.
     /// </summary>
-    public string TrendDisplay => Trend switch
-    {
-        MetricTrend.TrendingUp => "↗",
-        MetricTrend.Stable => "→",
-        MetricTrend.TrendingDown => "↘",
-        MetricTrend.MoreVariable => "~",
-        MetricTrend.Unknown => "?",
-        _ => "?"
-    };
+    public string TrendDisplay => Trend.GetArrow();
 
     #endregion
 
@@ -93,21 +85,9 @@ public class MetricDetail : BaseModel
     [Column("scope")]
     public string? Scope { get; set; }
 
-    public MetricSource SourceEnum => Source?.ToLower() switch
-    {
-        "system" => MetricSource.System,
-        "survey" => MetricSource.Survey,
-        "manual" => MetricSource.Manual,
-        _ => MetricSource.Manual
-    };
+    public MetricSource SourceEnum => MetricSourceExtensions.ParseMetricSource(Source);
 
-    public MetricScope ScopeEnum => Scope?.ToLower() switch
-    {
-        "individual" => MetricScope.Individual,
-        "team" => MetricScope.Team,
-        "organization" or "org" => MetricScope.Organization,
-        _ => MetricScope.Individual
-    };
+    public MetricScope ScopeEnum => MetricScopeExtensions.ParseMetricScope(Scope);
 
     #endregion
 
@@ -119,21 +99,9 @@ public class MetricDetail : BaseModel
     [Column("lifecycle")]
     public string Lifecycle { get; set; } = "active";
 
-    public MetricLifecycle LifecycleEnum => Lifecycle?.ToLower() switch
-    {
-        "active" => MetricLifecycle.Active,
-        "dormant" => MetricLifecycle.Dormant,
-        "retired" => MetricLifecycle.Retired,
-        _ => MetricLifecycle.Active
-    };
+    public MetricLifecycle LifecycleEnum => MetricLifecycleExtensions.ParseMetricLifecycle(Lifecycle);
 
-    public string LifecycleDisplay => LifecycleEnum switch
-    {
-        MetricLifecycle.Active => "Active",
-        MetricLifecycle.Dormant => "Dormant",
-        MetricLifecycle.Retired => "Retired",
-        _ => "Unknown"
-    };
+    public string LifecycleDisplay => LifecycleEnum.ToDisplayName();
 
     #endregion
 
@@ -197,48 +165,8 @@ public class MetricDetail : BaseModel
     #endregion
 }
 
-#region Enums
-
-/// <summary>
-/// Source of metric data.
-/// </summary>
-public enum MetricSource
-{
-    System,   // Automated from systems
-    Survey,   // From surveys/forms
-    Manual    // Human-curated
-}
-
-/// <summary>
-/// Scope of what metric measures.
-/// </summary>
-public enum MetricScope
-{
-    Individual,   // Personal metric
-    Team,         // Team-level metric
-    Organization  // Org-wide metric
-}
-
-/// <summary>
-/// Metric lifecycle state.
-/// </summary>
-public enum MetricLifecycle
-{
-    Active,   // Meaningful and relevant right now
-    Dormant,  // Exists but not being monitored
-    Retired   // No longer meaningful (terminal)
-}
-
-/// <summary>
-/// Trend indicator - directional only, NO numeric values!
-/// </summary>
-public enum MetricTrend
-{
-    TrendingUp,     // ↗
-    Stable,         // →
-    TrendingDown,   // ↘
-    MoreVariable,   // ~
-    Unknown         // ?
-}
-
-#endregion
+// Enums are defined in separate files:
+// - MetricSource.cs
+// - MetricScope.cs  
+// - MetricLifecycle.cs
+// - MetricTrend.cs

@@ -110,7 +110,7 @@ public partial class PulseViewModel : ViewModelBase
                 MetricsViewModel.CreateNewMetricCommand.Execute(null);
                 break;
             case 2:
-                TasksViewModel.StartAddTaskCommand.Execute(null);
+                TasksViewModel.RequestAddTaskDialogCommand.Execute(null);
                 break;
         }
     }
@@ -165,6 +165,36 @@ public partial class PulseViewModel : ViewModelBase
         // Load data for newly selected tab
         _ = LoadDataAsync();
     }
+
+    #region Detail Flyout
+
+    /// <summary>
+    /// Whether any item is selected (for showing detail flyout).
+    /// </summary>
+    public bool HasSelection => 
+        GoalsViewModel.SelectedGoal != null || 
+        MetricsViewModel.SelectedMetric != null || 
+        TasksViewModel.SelectedTask != null;
+
+    [RelayCommand]
+    private void CloseDetail()
+    {
+        GoalsViewModel.SelectedGoal = null;
+        MetricsViewModel.SelectedMetric = null;
+        TasksViewModel.SelectedTask = null;
+        OnPropertyChanged(nameof(HasSelection));
+    }
+
+    /// <summary>
+    /// Refresh HasSelection when child selections change.
+    /// Called by child ViewModels.
+    /// </summary>
+    public void NotifySelectionChanged()
+    {
+        OnPropertyChanged(nameof(HasSelection));
+    }
+
+    #endregion
 }
 
 /// <summary>

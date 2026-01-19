@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ProCohere.Avalonia.Views.Pulse.GoalsTabView">
+    
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+            <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
+                      Width="48" Height="48" 
+                      Foreground="{DynamicResource BrushTextSecondary}"/>
+            <TextBlock Text="Goals" 
+                       FontSize="18" 
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrushTextPrimary}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="Goals content will go here" 
+                       FontSize="13"
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

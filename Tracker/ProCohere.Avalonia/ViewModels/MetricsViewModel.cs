@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 
 namespace ProCohere.Avalonia.ViewModels;
 
@@ -12,7 +15,9 @@ namespace ProCohere.Avalonia.ViewModels;
 /// Implements signals-not-targets philosophy for metric observation.
 /// 
 /// Philosophy: "Metrics are signals that tell a story, NOT targets to chase."
-/// NO progress bars, percentages, or red/yellow/green status indicators.
+/// - Display DIRECTIONAL TRENDS (↗ → ↘), not numeric values by default
+/// - NO progress bars, percentages, or red/yellow/green status indicators
+/// - Metrics inform but never determine goal health
 /// </summary>
 public partial class MetricsViewModel : ViewModelBase
 {
@@ -29,17 +34,19 @@ public partial class MetricsViewModel : ViewModelBase
     #region Scope Filter
 
     /// <summary>
-    /// Metric scope filter: 0=My Metrics, 1=Team Metrics, 2=All Metrics
+    /// Metric scope filter: 0=Individual, 1=Team, 2=Organization, 3=All
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsScopeMyMetrics))]
-    [NotifyPropertyChangedFor(nameof(IsScopeTeamMetrics))]
-    [NotifyPropertyChangedFor(nameof(IsScopeAllMetrics))]
-    private int _selectedScope = 0;
+    [NotifyPropertyChangedFor(nameof(IsScopeIndividual))]
+    [NotifyPropertyChangedFor(nameof(IsScopeTeam))]
+    [NotifyPropertyChangedFor(nameof(IsScopeOrganization))]
+    [NotifyPropertyChangedFor(nameof(IsScopeAll))]
+    private int _selectedScope = 3; // Default to All
 
-    public bool IsScopeMyMetrics => SelectedScope == 0;
-    public bool IsScopeTeamMetrics => SelectedScope == 1;
-    public bool IsScopeAllMetrics => SelectedScope == 2;
+    public bool IsScopeIndividual => SelectedScope == 0;
+    public bool IsScopeTeam => SelectedScope == 1;
+    public bool IsScopeOrganization => SelectedScope == 2;
+    public bool IsScopeAll => SelectedScope == 3;
 
     [RelayCommand]
     private async Task SetScope(string scopeIndex)
@@ -53,18 +60,105 @@ public partial class MetricsViewModel : ViewModelBase
 
     #endregion
 
+    #region Lifecycle Filter
+
+    /// <summary>
+    /// Lifecycle filter: null=All, otherwise specific lifecycle
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLifecycleAll))]
+    [NotifyPropertyChangedFor(nameof(IsLifecycleActive))]
+    [NotifyPropertyChangedFor(nameof(IsLifecycleDormant))]
+    [NotifyPropertyChangedFor(nameof(IsLifecycleRetired))]
+    private MetricLifecycle? _lifecycleFilter = MetricLifecycle.Active; // Default to Active
+
+    public bool IsLifecycleAll => LifecycleFilter == null;
+    public bool IsLifecycleActive => LifecycleFilter == MetricLifecycle.Active;
+    public bool IsLifecycleDormant => LifecycleFilter == MetricLifecycle.Dormant;
+    public bool IsLifecycleRetired => LifecycleFilter == MetricLifecycle.Retired;
+
+    [RelayCommand]
+    private async Task SetLifecycleFilter(string? lifecycle)
+    {
+        LifecycleFilter = lifecycle switch
+        {
+            "active" => MetricLifecycle.Active,
+            "dormant" => MetricLifecycle.Dormant,
+            "retired" => MetricLifecycle.Retired,
+            _ => null
+        };
+        await LoadMetricsAsync();
+    }
+
+    #endregion
+
+    #region Source Filter
+
+    /// <summary>
+    /// Source filter: null=All, otherwise specific source
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSourceAll))]
+    [NotifyPropertyChangedFor(nameof(IsSourceSystem))]
+    [NotifyPropertyChangedFor(nameof(IsSourceSurvey))]
+    [NotifyPropertyChangedFor(nameof(IsSourceManual))]
+    private MetricSource? _sourceFilter;
+
+    public bool IsSourceAll => SourceFilter == null;
+    public bool IsSourceSystem => SourceFilter == MetricSource.System;
+    public bool IsSourceSurvey => SourceFilter == MetricSource.Survey;
+    public bool IsSourceManual => SourceFilter == MetricSource.Manual;
+
+    [RelayCommand]
+    private async Task SetSourceFilter(string? source)
+    {
+        SourceFilter = source switch
+        {
+            "system" => MetricSource.System,
+            "survey" => MetricSource.Survey,
+            "manual" => MetricSource.Manual,
+            _ => null
+        };
+        await LoadMetricsAsync();
+    }
+
+    #endregion
+
+    #region Search
+
+    [ObservableProperty]
+    private string _searchQuery = string.Empty;
+
+    partial void OnSearchQueryChanged(string value)
+    {
+        // Debounce could be added here for performance
+        _ = LoadMetricsAsync();
+    }
+
+    #endregion
+
     #region Collections
 
     /// <summary>
-    /// Active metrics for display.
+    /// Metrics for display (filtered by current scope/lifecycle/source).
     /// </summary>
     public ObservableCollection<MetricDetail> Metrics { get; } = new();
+
+    /// <summary>
+    /// History entries for the selected metric.
+    /// </summary>
+    public ObservableCollection<MetricHistoryEntry> MetricHistory { get; } = new();
 
     #endregion
 
     #region Selection State
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedMetricTrendDescription))]
+    [NotifyPropertyChangedFor(nameof(SelectedMetricSourceDisplay))]
+    [NotifyPropertyChangedFor(nameof(SelectedMetricScopeDisplay))]
+    [NotifyPropertyChangedFor(nameof(SelectedMetricLifecycleDisplay))]
+    [NotifyPropertyChangedFor(nameof(IsSelectedMetricManual))]
     private MetricDetail? _selectedMetric;
 
     [ObservableProperty]
@@ -76,9 +170,76 @@ public partial class MetricsViewModel : ViewModelBase
     [ObservableProperty]
     private MetricDetail? _editingMetric;
 
+    /// <summary>
+    /// Detail tab: 0=Details, 1=History
+    /// </summary>
+    [ObservableProperty]
+    private int _detailTab = 0;
+
+    [RelayCommand]
+    private void SetDetailTab(string tabIndex)
+    {
+        if (int.TryParse(tabIndex, out var index))
+        {
+            DetailTab = index;
+        }
+    }
+
+    public string SelectedMetricTrendDescription => SelectedMetric?.Trend.GetDescription() ?? "No trend data available";
+    public string SelectedMetricSourceDisplay => SelectedMetric?.SourceEnum.ToDisplayName() ?? "Unknown";
+    public string SelectedMetricScopeDisplay => SelectedMetric?.ScopeEnum.ToDisplayName() ?? "Unknown";
+    public string SelectedMetricLifecycleDisplay => SelectedMetric?.LifecycleEnum.ToDisplayName() ?? "Unknown";
+    public bool IsSelectedMetricManual => SelectedMetric?.SourceEnum == MetricSource.Manual;
+
+    #endregion
+
+    #region Value Update Dialog
+
+    [ObservableProperty]
+    private bool _isValueUpdateDialogOpen;
+
+    [ObservableProperty]
+    private string _newValueText = string.Empty;
+
+    [ObservableProperty]
+    private string _whatChangedNote = string.Empty;
+
+    #endregion
+
+    #region Lifecycle Dialog
+
+    [ObservableProperty]
+    private bool _isLifecycleDialogOpen;
+
+    [ObservableProperty]
+    private MetricLifecycle _newLifecycle;
+
+    /// <summary>
+    /// Lifecycle options for the picker.
+    /// </summary>
+    public static IReadOnlyList<MetricLifecycle> LifecycleOptions { get; } = new[]
+    {
+        MetricLifecycle.Active,
+        MetricLifecycle.Dormant,
+        MetricLifecycle.Retired
+    };
+
+    /// <summary>
+    /// Reflection prompt for current lifecycle selection.
+    /// </summary>
+    public string LifecycleReflectionPrompt => NewLifecycle.GetReflectionPrompt();
+
+    partial void OnNewLifecycleChanged(MetricLifecycle value)
+    {
+        OnPropertyChanged(nameof(LifecycleReflectionPrompt));
+    }
+
     #endregion
 
     #region Stats
+
+    [ObservableProperty]
+    private int _totalMetricsCount;
 
     [ObservableProperty]
     private int _activeMetricsCount;
@@ -97,7 +258,7 @@ public partial class MetricsViewModel : ViewModelBase
         _ = LoadMetricsAsync();
     }
 
-    #region Commands
+    #region Load Commands
 
     [RelayCommand]
     private async Task LoadMetricsAsync()
@@ -107,14 +268,58 @@ public partial class MetricsViewModel : ViewModelBase
             IsLoading = true;
             ErrorMessage = null;
 
-            // TODO: Implement actual Supabase query via MetricsService
-            // For now, clear and show empty state
+            List<MetricDetail> metrics;
+
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                // Search takes precedence
+                metrics = await MetricsService.Instance.SearchMetricsAsync(SearchQuery);
+            }
+            else if (LifecycleFilter.HasValue)
+            {
+                metrics = await MetricsService.Instance.GetMetricsByLifecycleAsync(LifecycleFilter.Value);
+            }
+            else
+            {
+                metrics = await MetricsService.Instance.GetAllMetricsAsync();
+            }
+
+            // Apply scope filter client-side (if not "All")
+            if (SelectedScope != 3) // Not "All"
+            {
+                var scopeFilter = SelectedScope switch
+                {
+                    0 => MetricScope.Individual,
+                    1 => MetricScope.Team,
+                    2 => MetricScope.Organization,
+                    _ => (MetricScope?)null
+                };
+
+                if (scopeFilter.HasValue)
+                {
+                    metrics = metrics.Where(m => m.ScopeEnum == scopeFilter.Value).ToList();
+                }
+            }
+
+            // Apply source filter client-side
+            if (SourceFilter.HasValue)
+            {
+                metrics = metrics.Where(m => m.SourceEnum == SourceFilter.Value).ToList();
+            }
+
+            // Update collection
             Metrics.Clear();
-            
-            // Placeholder stats
-            ActiveMetricsCount = 0;
-            TrendingUpCount = 0;
-            TrendingDownCount = 0;
+            foreach (var metric in metrics)
+            {
+                Metrics.Add(metric);
+            }
+
+            // Update stats
+            TotalMetricsCount = metrics.Count;
+            ActiveMetricsCount = metrics.Count(m => m.LifecycleEnum == MetricLifecycle.Active);
+            TrendingUpCount = metrics.Count(m => m.Trend == MetricTrend.TrendingUp);
+            TrendingDownCount = metrics.Count(m => m.Trend == MetricTrend.TrendingDown);
         }
         catch (Exception ex)
         {
@@ -127,11 +332,40 @@ public partial class MetricsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SelectMetric(MetricDetail metric)
+    private async Task LoadMetricHistoryAsync()
+    {
+        if (SelectedMetric == null) return;
+
+        try
+        {
+            var history = await MetricsService.Instance.GetHistoryAsync(SelectedMetric.Id);
+            
+            MetricHistory.Clear();
+            foreach (var entry in history)
+            {
+                MetricHistory.Add(entry);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load history: {ex.Message}";
+        }
+    }
+
+    #endregion
+
+    #region Selection Commands
+
+    [RelayCommand]
+    private async Task SelectMetric(MetricDetail metric)
     {
         SelectedMetric = metric;
+        DetailTab = 0;
         IsDetailFlyoutOpen = true;
         IsEditorFlyoutOpen = false;
+
+        // Load history in background
+        await LoadMetricHistoryAsync();
     }
 
     [RelayCommand]
@@ -139,7 +373,12 @@ public partial class MetricsViewModel : ViewModelBase
     {
         IsDetailFlyoutOpen = false;
         SelectedMetric = null;
+        MetricHistory.Clear();
     }
+
+    #endregion
+
+    #region CRUD Commands
 
     [RelayCommand]
     private void CreateNewMetric()
@@ -149,15 +388,19 @@ public partial class MetricsViewModel : ViewModelBase
             Id = Guid.Empty,
             Name = string.Empty,
             Description = string.Empty,
-            Lifecycle = "active"
+            Lifecycle = "active",
+            Source = "manual",
+            Scope = "individual"
         };
         IsEditorFlyoutOpen = true;
         IsDetailFlyoutOpen = false;
     }
 
     [RelayCommand]
-    private void EditMetric(MetricDetail metric)
+    private void EditMetric(MetricDetail? metric)
     {
+        if (metric == null) return;
+        
         EditingMetric = metric;
         IsEditorFlyoutOpen = true;
         IsDetailFlyoutOpen = false;
@@ -178,12 +421,16 @@ public partial class MetricsViewModel : ViewModelBase
         try
         {
             IsLoading = true;
+            ErrorMessage = null;
 
-            // TODO: Implement actual save via MetricsService
-            // if (EditingMetric.Id == Guid.Empty)
-            //     await MetricsService.CreateMetricAsync(EditingMetric);
-            // else
-            //     await MetricsService.UpdateMetricAsync(EditingMetric);
+            if (EditingMetric.Id == Guid.Empty)
+            {
+                await MetricsService.Instance.CreateMetricAsync(EditingMetric);
+            }
+            else
+            {
+                await MetricsService.Instance.UpdateMetricAsync(EditingMetric);
+            }
 
             CloseEditorFlyout();
             await LoadMetricsAsync();
@@ -199,12 +446,16 @@ public partial class MetricsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task DeleteMetricAsync(MetricDetail metric)
+    private async Task DeleteMetricAsync(MetricDetail? metric)
     {
+        if (metric == null) return;
+
         try
         {
-            // TODO: Implement actual delete via MetricsService
-            // await MetricsService.DeleteMetricAsync(metric.Id);
+            IsLoading = true;
+            ErrorMessage = null;
+
+            await MetricsService.Instance.DeleteMetricAsync(metric.Id);
 
             Metrics.Remove(metric);
             if (SelectedMetric?.Id == metric.Id)
@@ -215,6 +466,214 @@ public partial class MetricsViewModel : ViewModelBase
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to delete metric: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    #endregion
+
+    #region Value Update Commands
+
+    [RelayCommand]
+    private void OpenValueUpdateDialog()
+    {
+        if (SelectedMetric == null) return;
+
+        NewValueText = SelectedMetric.CurrentValue.ToString();
+        WhatChangedNote = string.Empty;
+        IsValueUpdateDialogOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelValueUpdate()
+    {
+        IsValueUpdateDialogOpen = false;
+        NewValueText = string.Empty;
+        WhatChangedNote = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmValueUpdateAsync()
+    {
+        if (SelectedMetric == null) return;
+
+        if (!decimal.TryParse(NewValueText, out var newValue))
+        {
+            ErrorMessage = "Please enter a valid number";
+            return;
+        }
+
+        // Manual metrics require a "what changed" note
+        if (SelectedMetric.SourceEnum == MetricSource.Manual && string.IsNullOrWhiteSpace(WhatChangedNote))
+        {
+            ErrorMessage = "Please describe what changed (required for manual metrics)";
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            var updated = await MetricsService.Instance.UpdateValueAsync(
+                SelectedMetric.Id, 
+                newValue, 
+                WhatChangedNote);
+
+            if (updated != null)
+            {
+                // Update selected metric with new data
+                SelectedMetric = updated;
+                
+                // Refresh the list
+                await LoadMetricsAsync();
+                
+                // Reload history
+                await LoadMetricHistoryAsync();
+            }
+
+            IsValueUpdateDialogOpen = false;
+            NewValueText = string.Empty;
+            WhatChangedNote = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to update value: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    #endregion
+
+    #region Lifecycle Commands
+
+    [RelayCommand]
+    private void OpenLifecycleDialog()
+    {
+        if (SelectedMetric == null) return;
+
+        NewLifecycle = SelectedMetric.LifecycleEnum;
+        IsLifecycleDialogOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelLifecycleChange()
+    {
+        IsLifecycleDialogOpen = false;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmLifecycleChangeAsync()
+    {
+        if (SelectedMetric == null) return;
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            var updated = await MetricsService.Instance.UpdateLifecycleAsync(
+                SelectedMetric.Id, 
+                NewLifecycle);
+
+            if (updated != null)
+            {
+                SelectedMetric = updated;
+                await LoadMetricsAsync();
+            }
+
+            IsLifecycleDialogOpen = false;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to update lifecycle: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Quick lifecycle change from button (no dialog).
+    /// </summary>
+    [RelayCommand]
+    private async Task SetLifecycle(string lifecycle)
+    {
+        if (SelectedMetric == null) return;
+
+        var newLifecycle = MetricLifecycleExtensions.ParseMetricLifecycle(lifecycle);
+        
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            var updated = await MetricsService.Instance.UpdateLifecycleAsync(
+                SelectedMetric.Id, 
+                newLifecycle);
+
+            if (updated != null)
+            {
+                SelectedMetric = updated;
+                await LoadMetricsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to update lifecycle: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    #endregion
+
+    #region Public Methods for Dialog Pattern
+
+    /// <summary>
+    /// Updates a metric value from dialog result.
+    /// Called by the View when the UpdateMetricValueDialog returns.
+    /// </summary>
+    public async Task UpdateMetricValueAsync(Guid metricId, decimal newValue, string? whatChanged)
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            var updated = await MetricsService.Instance.UpdateValueAsync(
+                metricId, 
+                newValue, 
+                whatChanged);
+
+            if (updated != null)
+            {
+                // Update selected metric with new data
+                SelectedMetric = updated;
+                
+                // Refresh the list
+                await LoadMetricsAsync();
+                
+                // Reload history
+                await LoadMetricHistoryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to update value: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
