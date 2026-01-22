@@ -6,9 +6,13 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
 
 namespace ProCohere.Avalonia.Views;
 
@@ -29,6 +33,10 @@ public partial class MeView : UserControl
         // Subscribe to property changes to refresh views
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         
+        // Subscribe to dialog events
+        _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+        _viewModel.EditMeetingDialogRequested += OnEditMeetingDialogRequested;
+        
         // Initial population after control is loaded
         Loaded += MeView_Loaded;
     }
@@ -39,23 +47,107 @@ public partial class MeView : UserControl
         BuildWeekView();
     }
 
+    #region Dialog Handlers
+
+    /// <summary>
+    /// Show the create meeting dialog.
+    /// </summary>
+    private async void OnCreateMeetingDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        try
+        {
+            var dialog = new EditMeetingDialog();
+            
+            // Load team members for attendee selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers.Where(t => t.Relation != "self")); // Don't show self as attendee
+
+            await dialog.ShowDialog(window);
+
+            if (dialog.Result != null)
+            {
+                if (dialog.Result.SavedMeeting != null)
+                {
+                    // Meeting was created - notify ViewModel to open flyout
+                    _viewModel.OnMeetingSaved(dialog.Result.SavedMeeting);
+                }
+                else if (dialog.Result.Error != null)
+                {
+                    Debug.WriteLine($"[MeView] Create meeting error: {dialog.Result.Error}");
+                    // TODO: Show error notification
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MeView] Error showing create meeting dialog: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Show the edit meeting dialog for an existing meeting.
+    /// </summary>
+    private async void OnEditMeetingDialogRequested(object? sender, MeetingDetail meeting)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        try
+        {
+            var dialog = new EditMeetingDialog();
+            
+            // Load team members for attendee selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers.Where(t => t.Relation != "self"));
+            
+            // Load the meeting into the dialog
+            dialog.LoadMeeting(meeting);
+
+            await dialog.ShowDialog(window);
+
+            if (dialog.Result != null)
+            {
+                if (dialog.Result.IsDeleted && dialog.Result.DeletedMeetingId.HasValue)
+                {
+                    // Meeting was deleted
+                    _viewModel.OnMeetingDeleted(dialog.Result.DeletedMeetingId.Value);
+                }
+                else if (dialog.Result.SavedMeeting != null)
+                {
+                    // Meeting was updated
+                    _viewModel.OnMeetingSaved(dialog.Result.SavedMeeting);
+                }
+                else if (dialog.Result.Error != null)
+                {
+                    Debug.WriteLine($"[MeView] Edit meeting error: {dialog.Result.Error}");
+                    // TODO: Show error notification
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MeView] Error showing edit meeting dialog: {ex.Message}");
+        }
+    }
+
+    #endregion
+
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // Dispatch to UI thread since PropertyChanged may come from background thread
         Dispatcher.UIThread.Post(() =>
         {
-            // Listen for HasNoDayMeetings which is raised after DayMeetings is populated
-            if (e.PropertyName == nameof(MeViewModel.HasNoDayMeetings) || 
-                e.PropertyName == nameof(MeViewModel.CurrentCalendarDate) ||
-                e.PropertyName == nameof(MeViewModel.MeetingsViewMode))
+            if (e.PropertyName == nameof(MeViewModel.DayMeetings) || 
+                e.PropertyName == nameof(MeViewModel.CurrentCalendarDate))
             {
                 BuildDayView();
             }
             
-            // Listen for HasNoGroupedMeetings which is raised after WeekDays is populated  
-            if (e.PropertyName == nameof(MeViewModel.HasNoGroupedMeetings) ||
-                e.PropertyName == nameof(MeViewModel.CurrentCalendarDate) ||
-                e.PropertyName == nameof(MeViewModel.MeetingsViewMode))
+            if (e.PropertyName == nameof(MeViewModel.WeekDays) ||
+                e.PropertyName == nameof(MeViewModel.CurrentCalendarDate))
             {
                 BuildWeekView();
             }
@@ -300,7 +392,10 @@ public partial class MeView : UserControl
 
         border.Tapped += MeetingCard_Tapped;
 
-        var stack = new StackPanel { Margin = new Thickness(4, 2, 4, 2) };
+        // Use a Grid to overlay the prep indicator
+        var contentGrid = new Grid { Margin = new Thickness(4, 2, 4, 2) };
+        
+        var stack = new StackPanel();
         
         stack.Children.Add(new TextBlock
         {
@@ -308,7 +403,8 @@ public partial class MeView : UserControl
             FontSize = showTime ? 12 : 10,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brushes.White,
-            TextTrimming = TextTrimming.CharacterEllipsis
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 0, 14, 0) // Leave room for prep indicator
         });
         
         if (showTime)
@@ -322,8 +418,67 @@ public partial class MeView : UserControl
             });
         }
         
-        border.Child = stack;
+        // Phase 2: Add personal prep chips (only if there's space and items exist)
+        if (showTime && (meeting.MyAgendaCount > 0 || meeting.MyFollowUpsOpenCount > 0))
+        {
+            var chipsPanel = new StackPanel 
+            { 
+                Orientation = global::Avalonia.Layout.Orientation.Horizontal, 
+                Spacing = 4,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+            
+            if (meeting.MyAgendaCount > 0)
+            {
+                chipsPanel.Children.Add(CreatePrepChip($"Prep: {meeting.MyAgendaCount}"));
+            }
+            
+            if (meeting.MyFollowUpsOpenCount > 0)
+            {
+                chipsPanel.Children.Add(CreatePrepChip($"Tasks: {meeting.MyFollowUpsOpenCount}"));
+            }
+            
+            stack.Children.Add(chipsPanel);
+        }
+        
+        contentGrid.Children.Add(stack);
+        
+        // Phase 3: Add prep state indicator (small dot in top-right)
+        var prepIndicator = new Border
+        {
+            Width = 8,
+            Height = 8,
+            CornerRadius = new CornerRadius(4),
+            Background = Brush.Parse(meeting.PrepStateColor),
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Right,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+            Margin = new Thickness(0, 2, 2, 0),
+            // Add a white border for visibility
+            BorderBrush = Brushes.White,
+            BorderThickness = new Thickness(1)
+        };
+        ToolTip.SetTip(prepIndicator, meeting.PrepStateDisplay);
+        contentGrid.Children.Add(prepIndicator);
+        
+        border.Child = contentGrid;
         return border;
+    }
+    
+    private Border CreatePrepChip(string text)
+    {
+        return new Border
+        {
+            Background = Brush.Parse("#40FFFFFF"), // Semi-transparent white
+            CornerRadius = new CornerRadius(3),
+            Padding = new Thickness(4, 1, 4, 1),
+            Child = new TextBlock
+            {
+                Text = text,
+                FontSize = 9,
+                Foreground = Brushes.White,
+                FontWeight = FontWeight.Medium
+            }
+        };
     }
 
     private void MeetingCard_Tapped(object? sender, TappedEventArgs e)

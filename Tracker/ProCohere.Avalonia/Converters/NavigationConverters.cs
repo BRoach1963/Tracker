@@ -613,3 +613,34 @@ public class GoalHealthToPromptConverter : IValueConverter
         throw new NotSupportedException();
     }
 }
+
+/// <summary>
+/// Generic boolean to object converter with configurable true/false values.
+/// Used for conditional styling (backgrounds, fonts, etc.) based on boolean state.
+/// </summary>
+public class BoolToObjectConverter : IValueConverter
+{
+    /// <summary>
+    /// Value returned when input is true.
+    /// </summary>
+    public object? TrueValue { get; set; }
+
+    /// <summary>
+    /// Value returned when input is false.
+    /// </summary>
+    public object? FalseValue { get; set; }
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue)
+        {
+            return boolValue ? TrueValue : FalseValue;
+        }
+        return FalseValue;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}

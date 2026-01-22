@@ -7,8 +7,7 @@ using Supabase.Postgrest.Models;
 namespace ProCohere.Avalonia.Models;
 
 /// <summary>
-/// Meeting model - maps to the meetings table in Supabase.
-/// Used for dashboard upcoming meetings.
+/// Meeting model - maps to procohere.meetings table in Supabase.
 /// </summary>
 [Table("meetings")]
 public class MeetingDetail : BaseModel
@@ -16,14 +15,29 @@ public class MeetingDetail : BaseModel
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
     [Column("title")]
     public string Title { get; set; } = string.Empty;
+
+    [Column("description")]
+    public string? Description { get; set; }
 
     [Column("meeting_type")]
     public string MeetingType { get; set; } = "one_on_one";
 
+    [Column("status")]
+    public string Status { get; set; } = "scheduled";
+
     [Column("scheduled_at")]
     public DateTime? ScheduledAt { get; set; }
+
+    [Column("started_at")]
+    public DateTime? StartedAt { get; set; }
+
+    [Column("ended_at")]
+    public DateTime? EndedAt { get; set; }
 
     [Column("duration_minutes")]
     public int? DurationMinutes { get; set; } = 30;
@@ -34,20 +48,53 @@ public class MeetingDetail : BaseModel
     [Column("video_link")]
     public string? VideoLink { get; set; }
 
-    [Column("notes")]
-    public string? Notes { get; set; }
+    [Column("recurrence_rule")]
+    public string? RecurrenceRule { get; set; }
 
-    [Column("team_member_id")]
-    public Guid? TeamMemberId { get; set; }
+    [Column("parent_meeting_id")]
+    public Guid? ParentMeetingId { get; set; }
+
+    [Column("meeting_series_id")]
+    public Guid? MeetingSeriesId { get; set; }
 
     [Column("created_by")]
-    public Guid? CreatedByTeamMemberId { get; set; }
+    public Guid CreatedByTeamMemberId { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
+
+    #region Legacy/Compatibility Properties
+
+    /// <summary>
+    /// LEGACY: For backward compatibility with old 1:1 meeting UI code.
+    /// Use Attendees collection instead for multi-attendee support.
+    /// Returns the first non-organizer attendee's TeamMemberId, or null.
+    /// </summary>
+    public Guid? TeamMemberId => 
+        Attendees.FirstOrDefault(a => a.Role != "organizer")?.TeamMemberId;
+
+    /// <summary>
+    /// LEGACY: Alias for Description - old code used Notes.
+    /// </summary>
+    public string? Notes
+    {
+        get => Description;
+        set => Description = value;
+    }
+
+    #endregion
 
     #region Non-DB Properties (set by service)
 
@@ -67,6 +114,11 @@ public class MeetingDetail : BaseModel
     public List<MeetingAgendaItem> AgendaItems { get; set; } = new();
 
     /// <summary>
+    /// All prep items for this meeting (populated by service, then filtered into groups).
+    /// </summary>
+    public List<MeetingPrepItem> PrepItems { get; set; } = new();
+
+    /// <summary>
     /// The current user's team member ID (set by ViewModel for ownership checks).
     /// </summary>
     public Guid? CurrentUserTeamMemberId { get; set; }
@@ -76,13 +128,221 @@ public class MeetingDetail : BaseModel
     /// </summary>
     public bool IsOwnedByCurrentUser => 
         CurrentUserTeamMemberId.HasValue && 
-        CreatedByTeamMemberId.HasValue && 
-        CurrentUserTeamMemberId.Value == CreatedByTeamMemberId.Value;
+        CurrentUserTeamMemberId.Value == CreatedByTeamMemberId;
 
     /// <summary>
     /// Whether the meeting has agenda items.
     /// </summary>
     public bool HasAgendaItems => AgendaItems.Count > 0;
+
+    #region Personal Prep Properties (for Me view)
+
+    /// <summary>
+    /// My agenda items - items I added (AddedBy == me).
+    /// </summary>
+    public List<MeetingAgendaItem> MyAgendaItems =>
+        CurrentUserTeamMemberId.HasValue
+            ? AgendaItems.Where(a => a.AddedBy == CurrentUserTeamMemberId.Value).ToList()
+            : new List<MeetingAgendaItem>();
+
+    /// <summary>
+    /// Team agenda items - items added by others.
+    /// </summary>
+    public List<MeetingAgendaItem> TeamAgendaItems =>
+        CurrentUserTeamMemberId.HasValue
+            ? AgendaItems.Where(a => a.AddedBy != CurrentUserTeamMemberId.Value).ToList()
+            : AgendaItems;
+
+    /// <summary>
+    /// Count of my agenda items.
+    /// </summary>
+    public int MyAgendaCount => MyAgendaItems.Count;
+
+    /// <summary>
+    /// Count of team agenda items.
+    /// </summary>
+    public int TeamAgendaCount => TeamAgendaItems.Count;
+
+    /// <summary>
+    /// My private notes for this meeting (filtered from MeetingNotes).
+    /// Note: This collection must be populated by the service.
+    /// </summary>
+    public List<MeetingNote> MyNotes { get; set; } = new();
+
+    /// <summary>
+    /// Count of my private notes.
+    /// </summary>
+    public int MyNotesCount => MyNotes.Count;
+
+    /// <summary>
+    /// Shared notes for this meeting (non-private notes from all attendees).
+    /// Note: This collection must be populated by the service.
+    /// </summary>
+    public List<MeetingNote> SharedNotes { get; set; } = new();
+
+    /// <summary>
+    /// Count of shared notes.
+    /// </summary>
+    public int SharedNotesCount => SharedNotes.Count;
+
+    /// <summary>
+    /// My follow-up tasks for this meeting (assigned to me, linked to this meeting).
+    /// Note: This collection must be populated by the service.
+    /// </summary>
+    public List<TaskDetail> MyFollowUps { get; set; } = new();
+
+    /// <summary>
+    /// Team follow-ups created from this meeting (assigned to others).
+    /// Note: This collection must be populated by the service.
+    /// </summary>
+    public List<TaskDetail> TeamFollowUps { get; set; } = new();
+
+    /// <summary>
+    /// Count of my open follow-up tasks.
+    /// </summary>
+    public int MyFollowUpsOpenCount => MyFollowUps.Count(t => !t.IsCompleted);
+
+    /// <summary>
+    /// Count of team follow-ups created from this meeting.
+    /// </summary>
+    public int TeamFollowUpsCount => TeamFollowUps.Count;
+
+    /// <summary>
+    /// Prep state for Me view - derived from personal items.
+    /// PrepNotStarted: No personal prep items created.
+    /// PrepInProgress: Has at least one prep item, note, or follow-up.
+    /// </summary>
+    public string PrepState =>
+        (MyAgendaCount == 0 && MyNotesCount == 0 && MyFollowUpsOpenCount == 0)
+            ? "PrepNotStarted"
+            : "PrepInProgress";
+
+    /// <summary>
+    /// Human-friendly prep state display.
+    /// </summary>
+    public string PrepStateDisplay => PrepState switch
+    {
+        "PrepNotStarted" => "No prep yet",
+        "PrepInProgress" => "Prep in progress",
+        _ => ""
+    };
+
+    /// <summary>
+    /// Icon for prep state indicator.
+    /// </summary>
+    public string PrepStateIcon => PrepState switch
+    {
+        "PrepNotStarted" => "M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z", // Empty circle
+        "PrepInProgress" => "M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M16.24,7.76L10.5,13.5L7.76,10.76L6.34,12.17L10.5,16.34L17.66,9.17L16.24,7.76Z", // Checkmark circle
+        _ => ""
+    };
+
+    /// <summary>
+    /// Color for prep state indicator.
+    /// </summary>
+    public string PrepStateColor => PrepState switch
+    {
+        "PrepNotStarted" => "#9CA3AF", // Gray - not started
+        "PrepInProgress" => "#10B981", // Green - in progress
+        _ => "#D1D5DB"
+    };
+
+    /// <summary>
+    /// Whether prep has been started (for UI visibility).
+    /// </summary>
+    public bool HasPrepStarted => PrepState == "PrepInProgress";
+
+    /// <summary>
+    /// Whether the current user is an organizer of this meeting.
+    /// </summary>
+    public bool IsCurrentUserOrganizer =>
+        CurrentUserTeamMemberId.HasValue &&
+        Attendees.Any(a => a.TeamMemberId == CurrentUserTeamMemberId.Value && a.IsOrganizer);
+
+    /// <summary>
+    /// Current user's role in this meeting.
+    /// </summary>
+    public string MyRoleDisplay =>
+        IsCurrentUserOrganizer ? "Organizer" : "Attendee";
+
+    #region Prep Item Groups (for Me view Prep tab)
+
+    /// <summary>
+    /// My Prep - personal prep items I created for myself (visibility='personal', unassigned, requested_by=me).
+    /// </summary>
+    public List<MeetingPrepItem> MyPrepItems =>
+        CurrentUserTeamMemberId.HasValue
+            ? PrepItems.Where(p => 
+                p.VisibilityScope == "personal" && 
+                !p.AssignedToTeamMemberId.HasValue && 
+                p.RequestedByTeamMemberId == CurrentUserTeamMemberId.Value).ToList()
+            : new List<MeetingPrepItem>();
+
+    /// <summary>
+    /// Prep Assigned To Me - prep items someone else assigned to me (visibility='assigned', assigned_to=me).
+    /// </summary>
+    public List<MeetingPrepItem> PrepAssignedToMe =>
+        CurrentUserTeamMemberId.HasValue
+            ? PrepItems.Where(p => 
+                p.VisibilityScope == "assigned" && 
+                p.AssignedToTeamMemberId == CurrentUserTeamMemberId.Value).ToList()
+            : new List<MeetingPrepItem>();
+
+    /// <summary>
+    /// Prep I Assigned - prep items I assigned to others (visibility='assigned', requested_by=me, assigned_to is not null).
+    /// </summary>
+    public List<MeetingPrepItem> PrepIAssigned =>
+        CurrentUserTeamMemberId.HasValue
+            ? PrepItems.Where(p => 
+                p.VisibilityScope == "assigned" && 
+                p.RequestedByTeamMemberId == CurrentUserTeamMemberId.Value &&
+                p.AssignedToTeamMemberId.HasValue &&
+                p.AssignedToTeamMemberId != CurrentUserTeamMemberId).ToList()
+            : new List<MeetingPrepItem>();
+
+    /// <summary>
+    /// Team Prep (Everyone) - shared prep for all attendees (visibility='meeting', unassigned).
+    /// </summary>
+    public List<MeetingPrepItem> TeamPrepItems =>
+        PrepItems.Where(p => 
+            p.VisibilityScope == "meeting" && 
+            !p.AssignedToTeamMemberId.HasValue).ToList();
+
+    /// <summary>
+    /// Count of my personal prep items.
+    /// </summary>
+    public int MyPrepCount => MyPrepItems.Count;
+
+    /// <summary>
+    /// Count of prep items assigned to me.
+    /// </summary>
+    public int PrepAssignedToMeCount => PrepAssignedToMe.Count;
+
+    /// <summary>
+    /// Count of prep items I assigned to others.
+    /// </summary>
+    public int PrepIAssignedCount => PrepIAssigned.Count;
+
+    /// <summary>
+    /// Count of team prep items.
+    /// </summary>
+    public int TeamPrepCount => TeamPrepItems.Count;
+
+    /// <summary>
+    /// Total open prep items for current user (personal + assigned to me).
+    /// </summary>
+    public int TotalOpenPrepCount => 
+        MyPrepItems.Count(p => p.Status != "done") + 
+        PrepAssignedToMe.Count(p => p.Status != "done");
+
+    /// <summary>
+    /// Whether user has any prep items (for empty state).
+    /// </summary>
+    public bool HasAnyPrepItems => PrepItems.Count > 0;
+
+    #endregion
+
+    #endregion
 
     #endregion
 
@@ -271,6 +531,37 @@ public class MeetingDetail : BaseModel
     public bool HasLocation => !string.IsNullOrWhiteSpace(Location);
 
     /// <summary>
+    /// Whether this meeting is in the past (end time has passed).
+    /// </summary>
+    public bool IsPast
+    {
+        get
+        {
+            if (!ScheduledAtLocal.HasValue) return false;
+            var endTime = ScheduledAtLocal.Value.AddMinutes(DurationMinutes ?? 30);
+            return DateTime.Now > endTime;
+        }
+    }
+
+    /// <summary>
+    /// Whether this meeting is in the future.
+    /// </summary>
+    public bool IsFuture => !IsPast;
+
+    /// <summary>
+    /// Whether this meeting starts within the next 2 hours.
+    /// </summary>
+    public bool IsSoon
+    {
+        get
+        {
+            if (!ScheduledAtLocal.HasValue || IsPast) return false;
+            var hoursUntilStart = (ScheduledAtLocal.Value - DateTime.Now).TotalHours;
+            return hoursUntilStart <= 2 && hoursUntilStart > 0;
+        }
+    }
+
+    /// <summary>
     /// Attendee count display.
     /// </summary>
     public string AttendeeCountDisplay => Attendees.Count switch
@@ -294,7 +585,10 @@ public class MeetingDetail : BaseModel
 }
 
 /// <summary>
-/// Meeting attendee - maps to the meeting_attendees table in Supabase.
+/// Meeting attendee - maps to procohere.meeting_attendees table in Supabase.
+/// CRITICAL: When creating a meeting, the creator MUST be inserted as an attendee
+/// with role='organizer' immediately after, or RLS will prevent them from seeing it.
+/// Treat (meeting_id, team_member_id) as unique - upsert accordingly.
 /// </summary>
 [Table("meeting_attendees")]
 public class MeetingAttendee : BaseModel
@@ -326,6 +620,15 @@ public class MeetingAttendee : BaseModel
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
+
     #region Non-DB Properties (set by service)
 
     /// <summary>
@@ -352,6 +655,22 @@ public class MeetingAttendee : BaseModel
     /// Whether this attendee is the organizer.
     /// </summary>
     public bool IsOrganizer => Role?.ToLower() == "organizer";
+
+    /// <summary>
+    /// Display text for role badge. Returns empty for regular attendees.
+    /// Shows: Organizer, Optional (nothing for regular attendee).
+    /// </summary>
+    public string RoleDisplay => Role?.ToLower() switch
+    {
+        "organizer" => "Organizer",
+        "optional" => "Optional",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the role badge (only for non-standard attendees).
+    /// </summary>
+    public bool ShowRoleBadge => !string.IsNullOrEmpty(RoleDisplay);
 
     #endregion
 }
@@ -491,6 +810,33 @@ public class MeetingAgendaItem : BaseModel
         "project" => "Project",
         _ => ""
     };
+
+    /// <summary>
+    /// Title of the linked entity (populated from join or lookup).
+    /// Not persisted - computed at runtime.
+    /// </summary>
+    public string? LinkedEntityTitle { get; set; }
+
+    /// <summary>
+    /// Icon for the linked entity type (SVG path data).
+    /// </summary>
+    public string LinkedEntityIcon => LinkedEntityType?.ToLower() switch
+    {
+        "task" => "M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z", // Checkbox
+        "goal" => "M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M12,20C7.58,20 4,16.42 4,12C4,7.58 7.58,4 12,4C16.42,4 20,7.58 20,12C20,16.42 16.42,20 12,20M15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9A3,3 0 0,1 15,12Z", // Target
+        "metric" => "M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z", // Chart
+        "project" => "M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z", // Folder
+        _ => ""
+    };
+
+    /// <summary>
+    /// Full linkage display text (e.g., "→ Task: Fix auth bug").
+    /// </summary>
+    public string LinkedEntityDisplay => HasLinkedEntity && !string.IsNullOrEmpty(LinkedEntityTitle)
+        ? $"→ {LinkedEntityTypeDisplay}: \"{LinkedEntityTitle}\""
+        : HasLinkedEntity
+        ? $"→ Linked {LinkedEntityTypeDisplay}"
+        : string.Empty;
 
     /// <summary>
     /// Whether this is a deferred/carry-forward item.

@@ -201,6 +201,29 @@
             <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
         </Style>
 
+        <!-- Segmented Button Style (for tab-like selection) -->
+        <Style Selector="Button.segmented-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="Button.segmented-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Button.segmented-button.selected">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.segmented-button.selected:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
         <!-- User Avatar Button Style -->
         <Style Selector="Button.user-avatar-button">
             <Setter Property="Background" Value="Transparent"/>

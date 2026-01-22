@@ -200,6 +200,107 @@ public class TaskService
     }
 
     /// <summary>
+    /// Gets follow-up tasks for a meeting: tasks sourced from the meeting itself 
+    /// or from any of its agenda items.
+    /// </summary>
+    /// <param name="meetingId">The meeting ID.</param>
+    /// <param name="agendaItemIds">IDs of agenda items belonging to this meeting.</param>
+    /// <param name="includeCompleted">Whether to include completed tasks.</param>
+    /// <returns>List of follow-up tasks for the meeting.</returns>
+    public async Task<List<TaskDetail>> GetMeetingFollowUpsAsync(
+        Guid meetingId, 
+        IEnumerable<Guid> agendaItemIds,
+        bool includeCompleted = true)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<TaskDetail>();
+        }
+
+        try
+        {
+            Log($"Loading follow-ups for meeting: {meetingId}");
+            
+            var allTasks = new List<TaskDetail>();
+
+            // 1. Get tasks sourced directly from the meeting
+            var meetingTasks = await client.From<TaskDetail>()
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Filter("source_type", Operator.Equals, "meeting")
+                .Filter("source_id", Operator.Equals, meetingId.ToString())
+                .Get();
+
+            if (meetingTasks.Models != null)
+            {
+                allTasks.AddRange(meetingTasks.Models);
+            }
+
+            // 2. Get tasks sourced from each agenda item
+            foreach (var agendaItemId in agendaItemIds)
+            {
+                var agendaTasks = await client.From<TaskDetail>()
+                    .Filter("is_deleted", Operator.Equals, "false")
+                    .Filter("source_type", Operator.Equals, "agenda_item")
+                    .Filter("source_id", Operator.Equals, agendaItemId.ToString())
+                    .Get();
+
+                if (agendaTasks.Models != null)
+                {
+                    allTasks.AddRange(agendaTasks.Models);
+                }
+            }
+
+            // Filter completed if needed
+            if (!includeCompleted)
+            {
+                allTasks = allTasks.Where(t => t.Status != "completed").ToList();
+            }
+
+            // Order by created_at descending, then by due_date
+            allTasks = allTasks
+                .OrderByDescending(t => t.CreatedAt)
+                .ThenBy(t => t.DueDate)
+                .ToList();
+
+            Log($"Meeting follow-ups returned: {allTasks.Count}");
+            return allTasks;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetMeetingFollowUps ERROR: {ex.Message}");
+            return new List<TaskDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Creates a follow-up task from a meeting.
+    /// </summary>
+    public async Task<TaskDetail?> CreateMeetingFollowUpAsync(
+        Guid meetingId,
+        string title,
+        string? description = null,
+        string? priority = "medium",
+        DateTime? dueDate = null,
+        Guid? assignedTo = null)
+    {
+        Log($"Creating follow-up task from meeting: {meetingId} - {title}");
+
+        return await CreateTaskAsync(
+            title: title,
+            description: description,
+            priority: priority,
+            dueDate: dueDate,
+            assignedTo: assignedTo,
+            sourceType: "meeting",
+            sourceId: meetingId
+        );
+    }
+
+    /// <summary>
     /// Creates a new task.
     /// </summary>
     public async Task<TaskDetail?> CreateTaskAsync(

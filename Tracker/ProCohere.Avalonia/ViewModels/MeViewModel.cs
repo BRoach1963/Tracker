@@ -35,6 +35,23 @@ public enum MeFlyoutType
 }
 
 /// <summary>
+/// Tabs for the meeting flyout in Me view.
+/// Different from CircleView's MeetingDetailTab - personal prep focus.
+/// Working the meeting: Prep → Follow-ups → People → Notes
+/// </summary>
+public enum MeMeetingTab
+{
+    /// <summary>My prep items for this meeting - personal readiness.</summary>
+    Prep,
+    /// <summary>Meeting-scoped follow-up tasks (source_type=meeting or agenda_item for this meeting).</summary>
+    FollowUps,
+    /// <summary>Meeting attendees with roles.</summary>
+    People,
+    /// <summary>My notes - private by default, with shared notes toggle.</summary>
+    MyNotes
+}
+
+/// <summary>
 /// ViewModel for the ME screen - the personal operating hub.
 /// Shows only the current user's tasks, goals, meetings, and feedback.
 /// Design principle: Personal-first, actionable, no comparison.
@@ -243,19 +260,179 @@ public partial class MeViewModel : ViewModelBase
     public bool HasNoGroupedMeetings => GroupedMeetings.Count == 0;
 
     /// <summary>
-    /// Current tab in the meeting detail flyout.
+    /// Current tab in the meeting detail flyout for Me view.
+    /// Defaults to Prep (personal prep focus, not meeting admin).
     /// </summary>
     [ObservableProperty]
-    private MeetingDetailTab _meetingDetailTab = MeetingDetailTab.Overview;
+    private MeMeetingTab _meMeetingTab = MeMeetingTab.Prep;
 
     /// <summary>
-    /// Reset meeting detail tab to Overview when opening a meeting.
+    /// Whether we're showing shared notes (true) or my notes (false) in the Notes tab.
+    /// Defaults to my notes (false).
+    /// </summary>
+    [ObservableProperty]
+    private bool _isShowingSharedNotes = false;
+
+    /// <summary>
+    /// Display text for the notes privacy indicator.
+    /// </summary>
+    public string NotesPrivacyText => IsShowingSharedNotes 
+        ? "Visible to all attendees" 
+        : "Private - only visible to you";
+
+    /// <summary>
+    /// Current notes to display based on toggle state.
+    /// </summary>
+    public List<MeetingNote> CurrentNotes => IsShowingSharedNotes 
+        ? SelectedMeeting?.SharedNotes ?? new() 
+        : SelectedMeeting?.MyNotes ?? new();
+
+    /// <summary>
+    /// Count of current notes.
+    /// </summary>
+    public int CurrentNotesCount => CurrentNotes.Count;
+
+    /// <summary>
+    /// Whether we have notes to display.
+    /// </summary>
+    public bool HasCurrentNotes => CurrentNotesCount > 0;
+
+    partial void OnIsShowingSharedNotesChanged(bool value)
+    {
+        // Notify that computed properties have changed
+        OnPropertyChanged(nameof(NotesPrivacyText));
+        OnPropertyChanged(nameof(CurrentNotes));
+        OnPropertyChanged(nameof(CurrentNotesCount));
+        OnPropertyChanged(nameof(HasCurrentNotes));
+    }
+
+    /// <summary>
+    /// Reset meeting tab when meeting changes.
+    /// Always defaults to Prep - the flyout is for "working the meeting".
     /// </summary>
     partial void OnSelectedMeetingChanged(MeetingDetail? value)
     {
         if (value != null)
         {
-            MeetingDetailTab = MeetingDetailTab.Overview;
+            // Always start with Prep - working the meeting starts with preparation
+            MeMeetingTab = MeMeetingTab.Prep;
+            
+            // Load prep items asynchronously
+            _ = LoadPrepItemsForMeetingAsync(value);
+            
+            // Load follow-ups asynchronously
+            _ = LoadFollowUpsForMeetingAsync(value);
+            
+            // Load notes asynchronously
+            _ = LoadNotesForMeetingAsync(value);
+        }
+    }
+
+    /// <summary>
+    /// Loads prep items for the selected meeting.
+    /// </summary>
+    private async Task LoadPrepItemsForMeetingAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            Log($"[MeViewModel] Loading prep items for meeting: {meeting.Id}");
+            
+            var prepItems = await MeetingPrepItemService.Instance.GetPrepItemsForMeetingAsync(meeting.Id);
+            
+            // Update the meeting's prep items
+            meeting.PrepItems = prepItems;
+            
+            Log($"[MeViewModel] Loaded {prepItems.Count} prep items");
+            
+            // Notify UI that prep item collections changed
+            OnPropertyChanged(nameof(SelectedMeeting));
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Error loading prep items: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads follow-up tasks for the selected meeting.
+    /// Follow-ups are tasks sourced from the meeting or its agenda items.
+    /// Separates into MyFollowUps (assigned to me) and TeamFollowUps (assigned to others).
+    /// </summary>
+    private async Task LoadFollowUpsForMeetingAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            Log($"[MeViewModel] Loading follow-ups for meeting: {meeting.Id}");
+            
+            var currentUserId = AuthService.Instance.CurrentProfile?.Id;
+            
+            // Get agenda item IDs for this meeting
+            var agendaItemIds = meeting.AgendaItems.Select(a => a.Id).ToList();
+            
+            // Load all follow-ups
+            var allFollowUps = await TaskService.Instance.GetMeetingFollowUpsAsync(
+                meeting.Id, 
+                agendaItemIds,
+                includeCompleted: true);
+
+            // Separate into my tasks and team tasks
+            if (currentUserId.HasValue)
+            {
+                meeting.MyFollowUps = allFollowUps
+                    .Where(t => t.OwnerTeamMemberId == currentUserId.Value)
+                    .ToList();
+                
+                meeting.TeamFollowUps = allFollowUps
+                    .Where(t => t.OwnerTeamMemberId != currentUserId.Value)
+                    .ToList();
+            }
+            else
+            {
+                // No current user - all tasks go to team
+                meeting.MyFollowUps = new List<TaskDetail>();
+                meeting.TeamFollowUps = allFollowUps;
+            }
+            
+            Log($"[MeViewModel] Loaded {meeting.MyFollowUps.Count} my follow-ups, {meeting.TeamFollowUps.Count} team follow-ups");
+            
+            // Notify UI that follow-up collections changed
+            OnPropertyChanged(nameof(SelectedMeeting));
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Error loading follow-ups: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads notes for the selected meeting.
+    /// Separates into MyNotes (private) and SharedNotes (visible to all).
+    /// </summary>
+    private async Task LoadNotesForMeetingAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            Log($"[MeViewModel] Loading notes for meeting: {meeting.Id}");
+            
+            var (myNotes, sharedNotes) = await MeetingNoteService.Instance.GetNotesForMeetingAsync(meeting.Id);
+
+            meeting.MyNotes = myNotes;
+            meeting.SharedNotes = sharedNotes;
+            
+            Log($"[MeViewModel] Loaded {myNotes.Count} personal notes, {sharedNotes.Count} shared notes");
+            
+            // Reset to "My Notes" view when changing meetings
+            IsShowingSharedNotes = false;
+            
+            // Notify UI that notes collections changed
+            OnPropertyChanged(nameof(SelectedMeeting));
+            OnPropertyChanged(nameof(CurrentNotes));
+            OnPropertyChanged(nameof(CurrentNotesCount));
+            OnPropertyChanged(nameof(HasCurrentNotes));
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Error loading notes: {ex.Message}");
         }
     }
 
@@ -485,6 +662,292 @@ public partial class MeViewModel : ViewModelBase
         // TODO: Open note creation dialog
     }
 
+    /// <summary>
+    /// Create a new meeting - opens the edit meeting dialog.
+    /// </summary>
+    [RelayCommand]
+    private void CreateMeeting()
+    {
+        Log("[MeViewModel] CreateMeeting command - opening dialog");
+        CreateMeetingDialogRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Edit an existing meeting - opens the edit meeting dialog with the meeting loaded.
+    /// </summary>
+    [RelayCommand]
+    private void EditMeeting(MeetingDetail? meeting)
+    {
+        if (meeting == null) return;
+        Log($"[MeViewModel] EditMeeting command - opening dialog for {meeting.Title}");
+        EditMeetingDialogRequested?.Invoke(this, meeting);
+    }
+
+    /// <summary>
+    /// Add a new personal prep item to a meeting.
+    /// </summary>
+    [RelayCommand]
+    private async Task AddPrepItem(MeetingDetail? meeting)
+    {
+        if (meeting == null) return;
+        Log($"[MeViewModel] AddPrepItem command for meeting: {meeting.Title}");
+        
+        // For now, create a quick placeholder - could show a dialog in the future
+        var prepItem = await MeetingPrepItemService.Instance.CreateQuickPrepAsync(
+            meeting.Id, 
+            "New prep item");
+        
+        if (prepItem != null)
+        {
+            meeting.PrepItems.Add(prepItem);
+            OnPropertyChanged(nameof(SelectedMeeting));
+            Log($"[MeViewModel] Added prep item: {prepItem.Id}");
+        }
+        else
+        {
+            Log($"[MeViewModel] Failed to add prep item: {MeetingPrepItemService.Instance.LastError}");
+        }
+    }
+
+    /// <summary>
+    /// Update the status of a prep item (toggle done/open).
+    /// </summary>
+    [RelayCommand]
+    private async Task TogglePrepItemStatus(MeetingPrepItem? item)
+    {
+        if (item == null) return;
+        
+        var newStatus = item.Status == "done" ? "open" : "done";
+        Log($"[MeViewModel] TogglePrepItemStatus: {item.Id} -> {newStatus}");
+        
+        var success = await MeetingPrepItemService.Instance.UpdateStatusAsync(item.Id, newStatus);
+        
+        if (success)
+        {
+            item.Status = newStatus;
+            OnPropertyChanged(nameof(SelectedMeeting));
+        }
+        else
+        {
+            Log($"[MeViewModel] Failed to update prep item status: {MeetingPrepItemService.Instance.LastError}");
+        }
+    }
+
+    /// <summary>
+    /// Add a new follow-up task to a meeting.
+    /// Creates a quick task with default values that can be edited later.
+    /// </summary>
+    [RelayCommand]
+    private async Task AddFollowUp(MeetingDetail? meeting)
+    {
+        if (meeting == null) return;
+        Log($"[MeViewModel] AddFollowUp command for meeting: {meeting.Title}");
+        
+        var currentUserId = AuthService.Instance.CurrentProfile?.Id;
+        
+        // Create a quick follow-up task assigned to current user
+        var task = await TaskService.Instance.CreateMeetingFollowUpAsync(
+            meetingId: meeting.Id,
+            title: "New follow-up",
+            description: $"Follow-up from meeting: {meeting.Title}",
+            priority: "medium",
+            assignedTo: currentUserId);
+        
+        if (task != null)
+        {
+            meeting.MyFollowUps.Add(task);
+            OnPropertyChanged(nameof(SelectedMeeting));
+            Log($"[MeViewModel] Added follow-up: {task.Id}");
+        }
+        else
+        {
+            Log($"[MeViewModel] Failed to add follow-up: {TaskService.Instance.LastError}");
+        }
+    }
+
+    /// <summary>
+    /// Toggle the completion status of a follow-up task.
+    /// </summary>
+    [RelayCommand]
+    private async Task ToggleFollowUpStatus(TaskDetail? task)
+    {
+        if (task == null) return;
+        
+        var wasCompleted = task.IsCompleted;
+        Log($"[MeViewModel] ToggleFollowUpStatus: {task.Id} -> {(wasCompleted ? "uncompleting" : "completing")}");
+        
+        bool success;
+        if (wasCompleted)
+        {
+            success = await TaskService.Instance.UncompleteTaskAsync(task.Id);
+            if (success)
+            {
+                task.Status = "not_started";
+                task.CompletedAt = null;
+            }
+        }
+        else
+        {
+            success = await TaskService.Instance.CompleteTaskAsync(task.Id);
+            if (success)
+            {
+                task.Status = "completed";
+                task.CompletedAt = DateTime.UtcNow;
+            }
+        }
+        
+        if (success)
+        {
+            OnPropertyChanged(nameof(SelectedMeeting));
+        }
+        else
+        {
+            Log($"[MeViewModel] Failed to update task status: {TaskService.Instance.LastError}");
+        }
+    }
+
+    /// <summary>
+    /// Toggle between My Notes and Shared Notes views.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleNotesView()
+    {
+        IsShowingSharedNotes = !IsShowingSharedNotes;
+        Log($"[MeViewModel] ToggleNotesView: showing {(IsShowingSharedNotes ? "shared" : "personal")} notes");
+    }
+
+    /// <summary>
+    /// Set notes view to My Notes (private).
+    /// </summary>
+    [RelayCommand]
+    private void ShowMyNotes()
+    {
+        IsShowingSharedNotes = false;
+    }
+
+    /// <summary>
+    /// Set notes view to Shared Notes.
+    /// </summary>
+    [RelayCommand]
+    private void ShowSharedNotes()
+    {
+        IsShowingSharedNotes = true;
+    }
+
+    /// <summary>
+    /// Add a new note to the meeting.
+    /// Creates a personal (private) or shared note based on current toggle state.
+    /// </summary>
+    [RelayCommand]
+    private async Task AddNote(MeetingDetail? meeting)
+    {
+        if (meeting == null) return;
+        Log($"[MeViewModel] AddNote command for meeting: {meeting.Title} (shared: {IsShowingSharedNotes})");
+        
+        MeetingNote? note;
+        if (IsShowingSharedNotes)
+        {
+            note = await MeetingNoteService.Instance.CreateSharedNoteAsync(meeting.Id, "New shared note");
+            if (note != null)
+            {
+                meeting.SharedNotes.Insert(0, note);
+            }
+        }
+        else
+        {
+            note = await MeetingNoteService.Instance.CreateQuickNoteAsync(meeting.Id, "New note");
+            if (note != null)
+            {
+                meeting.MyNotes.Insert(0, note);
+            }
+        }
+        
+        if (note != null)
+        {
+            OnPropertyChanged(nameof(SelectedMeeting));
+            OnPropertyChanged(nameof(CurrentNotes));
+            OnPropertyChanged(nameof(CurrentNotesCount));
+            OnPropertyChanged(nameof(HasCurrentNotes));
+            Log($"[MeViewModel] Added note: {note.Id}");
+        }
+        else
+        {
+            Log($"[MeViewModel] Failed to add note: {MeetingNoteService.Instance.LastError}");
+        }
+    }
+
+    #region Dialog Events
+
+    /// <summary>
+    /// Event to request showing the Create Meeting dialog.
+    /// </summary>
+    public event EventHandler? CreateMeetingDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Edit Meeting dialog with an existing meeting.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? EditMeetingDialogRequested;
+
+    #endregion
+
+    /// <summary>
+    /// Called when a meeting is saved (created or updated) from the dialog.
+    /// The dialog is now the complete workspace, so we just add/update in the list.
+    /// User can click the meeting later to open the flyout if they want.
+    /// </summary>
+    public void OnMeetingSaved(MeetingDetail meeting)
+    {
+        Log($"[MeViewModel] Meeting saved: {meeting.Title}");
+        
+        // Add to collection if new
+        var existing = MyMeetings.FirstOrDefault(m => m.Id == meeting.Id);
+        if (existing == null)
+        {
+            MyMeetings.Add(meeting);
+            Log("[MeViewModel] Added new meeting to collection");
+        }
+        else
+        {
+            // Update existing (replace in collection)
+            var index = MyMeetings.IndexOf(existing);
+            MyMeetings[index] = meeting;
+            Log("[MeViewModel] Updated existing meeting in collection");
+        }
+
+        // Refresh views
+        RefreshMeetingsView();
+        OnPropertyChanged(nameof(UpcomingMeetings));
+        OnPropertyChanged(nameof(UpcomingMeetingCount));
+        
+        // Don't auto-open flyout - the dialog is the workspace now.
+        // User can click the meeting to open flyout if they want to continue working.
+    }
+
+    /// <summary>
+    /// Called when a meeting is deleted from the dialog.
+    /// </summary>
+    public void OnMeetingDeleted(Guid meetingId)
+    {
+        Log($"[MeViewModel] Meeting deleted: {meetingId}");
+        
+        var existing = MyMeetings.FirstOrDefault(m => m.Id == meetingId);
+        if (existing != null)
+        {
+            MyMeetings.Remove(existing);
+        }
+
+        // Close flyout if this meeting was selected
+        if (SelectedMeeting?.Id == meetingId)
+        {
+            CloseFlyout();
+        }
+
+        // Refresh views
+        RefreshMeetingsView();
+        OnPropertyChanged(nameof(UpcomingMeetings));
+        OnPropertyChanged(nameof(UpcomingMeetingCount));
+    }
+
     // ==================== Calendar Commands ====================
 
     [RelayCommand]
@@ -497,9 +960,9 @@ public partial class MeViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SetMeetingDetailTab(MeetingDetailTab tab)
+    private void SetMeMeetingTab(MeMeetingTab tab)
     {
-        MeetingDetailTab = tab;
+        MeMeetingTab = tab;
     }
 
     [RelayCommand]
@@ -573,6 +1036,7 @@ public partial class MeViewModel : ViewModelBase
         {
             DayMeetings.Add(m);
         }
+        OnPropertyChanged(nameof(DayMeetings));
         OnPropertyChanged(nameof(HasNoDayMeetings));
 
         // Update grouped meetings for list view

@@ -245,5 +245,21 @@ public class TaskDetail : BaseModel
         _ => new SolidColorBrush(Color.Parse("#D1D5DB")) // Very light
     };
 
+    /// <summary>
+    /// String color for priority badge (for XAML binding without converter).
+    /// </summary>
+    public string PriorityColor => Priority?.ToLower() switch
+    {
+        "high" => "#4B5563", // Dark neutral
+        "medium" => "#6B7280", // Medium neutral
+        "low" => "#9CA3AF", // Light neutral
+        _ => "#D1D5DB" // Very light
+    };
+
+    /// <summary>
+    /// Alias for OwnerName for consistent naming in UI.
+    /// </summary>
+    public string? AssignedToName => OwnerName;
+
     #endregion
 }

@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="40"
+             x:Class="ProCohere.Avalonia.Views.Controls.DateTimeSelector">
+    
+    <Grid ColumnDefinitions="*,8,Auto">
+        <!-- Date picker (calendar style) -->
+        <CalendarDatePicker x:Name="DatePicker"
+                            Grid.Column="0"
+                            HorizontalAlignment="Stretch"
+                            Watermark="Select date"
+                            IsTodayHighlighted="True" />
+        
+        <!-- Time selector (dropdown with common times) -->
+        <ComboBox x:Name="TimeComboBox"
+                  Grid.Column="2"
+                  MinWidth="110"
+                  PlaceholderText="Time">
+            <!-- Populated in code-behind with 15-min increments -->
+        </ComboBox>
+    </Grid>
+</UserControl>
