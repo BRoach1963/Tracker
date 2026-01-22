@@ -18,7 +18,7 @@ Comprehensive technical documentation for the ProCohere database, including:
 
 📁 **Location:** [`Wiki/Database/`](Wiki/Database/)
 
-➡️ **Start here:** [`Wiki/Database/README.md`](Wiki/Database/README.md)
+➡️ **Start here:** [Wiki / Database README](Wiki/Database/README.md)
 
 ---
 
