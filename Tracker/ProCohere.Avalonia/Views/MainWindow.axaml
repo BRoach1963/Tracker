@@ -481,9 +481,9 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- SETTINGS -->
+                <!-- SETTINGS - DataContext set in code-behind -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}">
-                    <views:SettingsView x:Name="SettingsView" />
+                    <views:SettingsView x:Name="SettingsView" DataContext="{x:Null}" />
                 </Grid>
             </Grid>
         </Grid>

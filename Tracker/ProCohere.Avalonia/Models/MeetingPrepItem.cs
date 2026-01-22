@@ -131,6 +131,50 @@ public class MeetingPrepItem : BaseModel
     [Column("source_snapshot")]
     public string? SourceSnapshot { get; set; }
 
+    #region Enhanced Prep Fields (prompt + captured thinking)
+
+    /// <summary>
+    /// Type of linked entity: 'task', 'goal', 'metric', 'project'.
+    /// Allows prep items to reference specific work items.
+    /// </summary>
+    [Column("linked_entity_type")]
+    public string? LinkedEntityType { get; set; }
+
+    /// <summary>
+    /// ID of the linked entity.
+    /// </summary>
+    [Column("linked_entity_id")]
+    public Guid? LinkedEntityId { get; set; }
+
+    /// <summary>
+    /// Cached title of linked entity at link time.
+    /// Prevents historical drift when entity titles change.
+    /// </summary>
+    [Column("linked_entity_title_snapshot")]
+    public string? LinkedEntityTitleSnapshot { get; set; }
+
+    /// <summary>
+    /// Explicit framing of what to think about / prepare.
+    /// "What blockers exist?" / "Review timeline assumptions"
+    /// </summary>
+    [Column("prep_prompt")]
+    public string? PrepPrompt { get; set; }
+
+    /// <summary>
+    /// The actual preparation / thinking captured.
+    /// This is the cognitive output - what the person prepared.
+    /// </summary>
+    [Column("prep_response")]
+    public string? PrepResponse { get; set; }
+
+    /// <summary>
+    /// When the prep was completed (response captured).
+    /// </summary>
+    [Column("prepared_at")]
+    public DateTime? PreparedAt { get; set; }
+
+    #endregion
+
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
 
@@ -174,15 +218,62 @@ public class MeetingPrepItem : BaseModel
     public string? Description => Body;
 
     /// <summary>
-    /// Whether this prep item has a linked entity (future feature - currently always false).
-    /// Prep items don't support entity linking yet; use this stub for XAML binding.
+    /// Whether this prep item has a linked entity.
     /// </summary>
-    public bool HasLinkedEntity => false;
+    public bool HasLinkedEntity => !string.IsNullOrEmpty(LinkedEntityType) && LinkedEntityId.HasValue;
 
     /// <summary>
-    /// Display text for linked entity type (future feature - currently empty).
+    /// Display text for linked entity type.
     /// </summary>
-    public string LinkedEntityTypeDisplay => string.Empty;
+    public string LinkedEntityTypeDisplay => LinkedEntityType?.ToLower() switch
+    {
+        "task" => "Task",
+        "goal" => "Goal",
+        "metric" => "Metric",
+        "project" => "Project",
+        _ => ""
+    };
+
+    /// <summary>
+    /// Icon for the linked entity type (SVG path data).
+    /// </summary>
+    public string LinkedEntityIcon => LinkedEntityType?.ToLower() switch
+    {
+        "task" => "M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z",
+        "goal" => "M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M12,20C7.58,20 4,16.42 4,12C4,7.58 7.58,4 12,4C16.42,4 20,7.58 20,12C20,16.42 16.42,20 12,20M15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9A3,3 0 0,1 15,12Z",
+        "metric" => "M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z",
+        "project" => "M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z",
+        _ => ""
+    };
+
+    /// <summary>
+    /// Title of the linked entity (uses snapshot or set by service).
+    /// </summary>
+    public string? LinkedEntityTitle => LinkedEntityTitleSnapshot;
+
+    /// <summary>
+    /// Effective title for display - the linked entity snapshot title or the prep item title.
+    /// </summary>
+    public string EffectiveTitle => !string.IsNullOrWhiteSpace(LinkedEntityTitleSnapshot)
+        ? LinkedEntityTitleSnapshot
+        : Title;
+
+    /// <summary>
+    /// Whether this prep item has a prompt defined.
+    /// </summary>
+    public bool HasPrepPrompt => !string.IsNullOrWhiteSpace(PrepPrompt);
+
+    /// <summary>
+    /// Whether this prep item has been prepared (response captured).
+    /// </summary>
+    public bool IsPrepared => !string.IsNullOrWhiteSpace(PrepResponse) || PreparedAt.HasValue;
+
+    /// <summary>
+    /// Display text showing preparation status.
+    /// </summary>
+    public string PreparedStatusDisplay => IsPrepared
+        ? PreparedAt.HasValue ? $"Prepared {PreparedAt.Value.ToLocalTime():MMM d}" : "Prepared"
+        : "Not prepared";
 
     #endregion
 

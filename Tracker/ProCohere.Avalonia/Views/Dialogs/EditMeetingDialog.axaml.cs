@@ -33,18 +33,125 @@ public class EditMeetingResult
 
 /// <summary>
 /// Agenda item model for the dialog that supports optional linking to entities.
+/// Enhanced to be a "conversation container" with context, talking points, and outcomes.
 /// </summary>
-public class DialogAgendaItem
+public class DialogAgendaItem : System.ComponentModel.INotifyPropertyChanged
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    
     public Guid Id { get; set; } = Guid.NewGuid();
-    public string Title { get; set; } = string.Empty;
+    
+    private string _title = string.Empty;
+    public string Title 
+    { 
+        get => _title;
+        set { _title = value; OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(EffectiveTitle)); }
+    }
+    
+    private string? _displayTitle;
+    /// <summary>
+    /// Optional styled/formatted title independent of linked entity.
+    /// </summary>
+    public string? DisplayTitle 
+    { 
+        get => _displayTitle;
+        set { _displayTitle = value; OnPropertyChanged(nameof(DisplayTitle)); OnPropertyChanged(nameof(EffectiveTitle)); }
+    }
+    
+    private string? _sharedContext;
+    /// <summary>
+    /// Context visible to all meeting attendees.
+    /// "Why are we talking about this?" / "What's changed?"
+    /// </summary>
+    public string? SharedContext 
+    { 
+        get => _sharedContext;
+        set { _sharedContext = value; OnPropertyChanged(nameof(SharedContext)); OnPropertyChanged(nameof(HasContext)); }
+    }
+    
+    private string? _privateContext;
+    /// <summary>
+    /// Creator-only notes not visible to other attendees.
+    /// </summary>
+    public string? PrivateContext 
+    { 
+        get => _privateContext;
+        set { _privateContext = value; OnPropertyChanged(nameof(PrivateContext)); OnPropertyChanged(nameof(HasContext)); }
+    }
+    
+    private string _visibilityScope = "meeting";
+    /// <summary>
+    /// Visibility: 'meeting' (shared with attendees) or 'personal' (private reminder).
+    /// </summary>
+    public string VisibilityScope 
+    { 
+        get => _visibilityScope;
+        set { _visibilityScope = value; OnPropertyChanged(nameof(VisibilityScope)); OnPropertyChanged(nameof(IsPersonalAgenda)); OnPropertyChanged(nameof(VisibilityIcon)); }
+    }
     
     // Linked entity (optional - for discussing existing tasks/goals/metrics)
     public Guid? LinkedEntityId { get; set; }
     public string? LinkedEntityType { get; set; } // "task", "goal", "metric", "project"
     public string? LinkedEntityTitle { get; set; }
+    public string? LinkedEntityTitleSnapshot { get; set; }
     
+    // Outcome tracking (captured during/after meeting)
+    private string? _outcomeType;
+    public string? OutcomeType 
+    { 
+        get => _outcomeType;
+        set { _outcomeType = value; OnPropertyChanged(nameof(OutcomeType)); OnPropertyChanged(nameof(HasOutcome)); OnPropertyChanged(nameof(OutcomeTypeDisplay)); }
+    }
+    
+    private string? _outcomeSummary;
+    public string? OutcomeSummary 
+    { 
+        get => _outcomeSummary;
+        set { _outcomeSummary = value; OnPropertyChanged(nameof(OutcomeSummary)); OnPropertyChanged(nameof(HasOutcome)); }
+    }
+    
+    // Talking points (JSON stored but edited as list)
+    private List<TalkingPoint> _talkingPoints = new();
+    public List<TalkingPoint> TalkingPoints 
+    { 
+        get => _talkingPoints;
+        set { _talkingPoints = value ?? new(); OnPropertyChanged(nameof(TalkingPoints)); OnPropertyChanged(nameof(HasTalkingPoints)); OnPropertyChanged(nameof(TalkingPointsCount)); }
+    }
+    
+    // Computed properties
     public bool HasLinkedEntity => LinkedEntityId.HasValue && !string.IsNullOrEmpty(LinkedEntityType);
+    public bool IsPersonalAgenda => VisibilityScope == "personal";
+    public bool HasContext => !string.IsNullOrWhiteSpace(SharedContext) || !string.IsNullOrWhiteSpace(PrivateContext);
+    public bool HasTalkingPoints => TalkingPoints.Count > 0;
+    public int TalkingPointsCount => TalkingPoints.Count;
+    public bool HasOutcome => !string.IsNullOrWhiteSpace(OutcomeType);
+    
+    /// <summary>
+    /// Effective title for display - prefers DisplayTitle, falls back to LinkedEntityTitleSnapshot or Title.
+    /// </summary>
+    public string EffectiveTitle => !string.IsNullOrWhiteSpace(DisplayTitle)
+        ? DisplayTitle
+        : !string.IsNullOrWhiteSpace(LinkedEntityTitleSnapshot)
+            ? LinkedEntityTitleSnapshot
+            : Title;
+    
+    public string VisibilityIcon => IsPersonalAgenda
+        ? "M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"  // Lock
+        : "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"; // People
+    
+    public string VisibilityTooltip => IsPersonalAgenda
+        ? "Personal reminder - only you can see this"
+        : "Shared with meeting attendees";
+    
+    public string OutcomeTypeDisplay => OutcomeType?.ToLower() switch
+    {
+        "decision" => "Decision Made",
+        "action_item" => "Action Item Created",
+        "deferred" => "Deferred",
+        "information_shared" => "Info Shared",
+        "no_action_needed" => "No Action Needed",
+        _ => ""
+    };
     
     public string LinkedEntityTypeDisplay => LinkedEntityType?.ToLower() switch
     {
@@ -72,6 +179,9 @@ public class DialogAgendaItem
         "project" => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#E67E22")),
         _ => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#7F8C8D"))
     };
+    
+    protected void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
 }
 
 /// <summary>
@@ -220,9 +330,17 @@ public partial class EditMeetingDialog : Window
                 {
                     Id = item.Id,
                     Title = item.Title,
+                    DisplayTitle = item.DisplayTitle,
+                    SharedContext = item.SharedContext,
+                    PrivateContext = item.PrivateContext,
+                    VisibilityScope = item.VisibilityScope ?? "meeting",
                     LinkedEntityId = item.LinkedEntityId,
                     LinkedEntityType = item.LinkedEntityType,
-                    LinkedEntityTitle = item.LinkedEntityTitle
+                    LinkedEntityTitle = item.LinkedEntityTitle,
+                    LinkedEntityTitleSnapshot = item.LinkedEntityTitleSnapshot,
+                    OutcomeType = item.OutcomeType,
+                    OutcomeSummary = item.OutcomeSummary,
+                    TalkingPoints = item.TalkingPoints
                 });
             }
             UpdateAgendaEmptyState();
@@ -241,6 +359,22 @@ public partial class EditMeetingDialog : Window
         _teamMembers = teamMembers.ToList();
         AttendeeComboBox.ItemsSource = _teamMembers;
         PrepAssigneeComboBox.ItemsSource = _teamMembers;
+        
+        // Populate team attendees list (excluding self)
+        var teamAttendeesListBox = this.FindControl<ItemsControl>("TeamAttendeesListBox");
+        if (teamAttendeesListBox != null)
+        {
+            // Filter to only non-self members (direct reports and others)
+            var selectableMembers = _teamMembers.Where(m => m.Relation != "self").ToList();
+            
+            // Reset selection state
+            foreach (var member in selectableMembers)
+            {
+                member.IsSelected = false;
+            }
+            
+            teamAttendeesListBox.ItemsSource = selectableMembers;
+        }
         
         // If editing and we have a team member id, select it
         if (_existingMeeting?.TeamMemberId.HasValue == true)
@@ -538,6 +672,42 @@ public partial class EditMeetingDialog : Window
         }
     }
     
+    /// <summary>
+    /// Opens the edit agenda item dialog to modify context, talking points, etc.
+    /// </summary>
+    private async void EditAgendaItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is DialogAgendaItem item)
+        {
+            var dialog = new EditAgendaItemDialog(item);
+            await dialog.ShowDialog(this);
+            
+            if (dialog.Result != null && dialog.Result.WasSaved)
+            {
+                // Update local item with dialog changes
+                item.Title = dialog.Result.Title;
+                item.DisplayTitle = dialog.Result.DisplayTitle;
+                item.SharedContext = dialog.Result.SharedContext;
+                item.PrivateContext = dialog.Result.PrivateContext;
+                item.VisibilityScope = dialog.Result.VisibilityScope;
+                item.TalkingPoints = dialog.Result.TalkingPoints;
+                
+                // Persist to database if meeting exists
+                if (_existingMeeting != null && item.Id != Guid.Empty)
+                {
+                    await MeetingAgendaItemService.Instance.UpdateAgendaItemAsync(
+                        item.Id,
+                        title: item.Title,
+                        displayTitle: item.DisplayTitle,
+                        sharedContext: item.SharedContext,
+                        privateContext: item.PrivateContext,
+                        visibilityScope: item.VisibilityScope,
+                        talkingPoints: item.TalkingPoints);
+                }
+            }
+        }
+    }
+    
     private void UpdateAgendaEmptyState()
     {
         AgendaEmptyState.IsVisible = _agendaItems.Count == 0;
@@ -548,6 +718,7 @@ public partial class EditMeetingDialog : Window
     private void MeetingTypeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         UpdateAttendeeVisibility();
+        UpdateMeetingTypeDescription();
     }
     
     private void UpdateAttendeeVisibility()
@@ -555,14 +726,54 @@ public partial class EditMeetingDialog : Window
         var selectedItem = MeetingTypeComboBox.SelectedItem as ComboBoxItem;
         var meetingType = selectedItem?.Tag?.ToString() ?? "one_on_one";
         
-        // Show attendee selector for 1:1 and performance meetings
+        // Show single attendee selector for 1:1 and performance meetings
         AttendeeSection.IsVisible = meetingType == "one_on_one" || meetingType == "performance";
+        
+        // Show team attendees selector for team meetings
+        var teamAttendeesSection = this.FindControl<StackPanel>("TeamAttendeesSection");
+        if (teamAttendeesSection != null)
+        {
+            teamAttendeesSection.IsVisible = meetingType == "team" || meetingType == "project";
+        }
+    }
+    
+    private void UpdateMeetingTypeDescription()
+    {
+        var selectedItem = MeetingTypeComboBox.SelectedItem as ComboBoxItem;
+        var meetingType = selectedItem?.Tag?.ToString() ?? "one_on_one";
+        
+        var description = meetingType switch
+        {
+            "one_on_one" => "Private conversation between you and one person",
+            "team" => "Meeting with your team—add attendees from your direct reports",
+            "project" => "Review progress and discuss blockers with project stakeholders",
+            "performance" => "Confidential discussion about performance and growth",
+            "other" => "General meeting—customize attendees as needed",
+            _ => ""
+        };
+        
+        if (this.FindControl<TextBlock>("MeetingTypeDescription") is TextBlock descBlock)
+        {
+            descBlock.Text = description;
+        }
     }
     
     private void CancelButton_Click(object? sender, RoutedEventArgs e)
     {
         Result = null;
         Close();
+    }
+    
+    private void CancelBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Result = null;
+        Close();
+    }
+    
+    private void SaveBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        // Delegate to the existing save logic
+        SaveButton_Click(sender, new RoutedEventArgs());
     }
     
     private async void SaveButton_Click(object? sender, RoutedEventArgs e)
@@ -584,7 +795,8 @@ public partial class EditMeetingDialog : Window
         }
         
         _isSaving = true;
-        SaveButton.IsEnabled = false;
+        SaveBorder.IsHitTestVisible = false;
+        SaveBorder.Opacity = 0.5;
         
         try
         {
@@ -604,6 +816,22 @@ public partial class EditMeetingDialog : Window
             if (AttendeeSection.IsVisible && AttendeeComboBox.SelectedItem is TeamMemberDetail member)
             {
                 teamMemberId = member.Id;
+            }
+            
+            // Get attendees for team meetings
+            List<Guid>? teamAttendeeIds = null;
+            var teamAttendeesSection = this.FindControl<StackPanel>("TeamAttendeesSection");
+            if (teamAttendeesSection?.IsVisible == true)
+            {
+                var teamAttendeesListBox = this.FindControl<ItemsControl>("TeamAttendeesListBox");
+                if (teamAttendeesListBox?.ItemsSource is IEnumerable<TeamMemberDetail> teamMembers)
+                {
+                    teamAttendeeIds = teamMembers.Where(m => m.IsSelected).Select(m => m.Id).ToList();
+                    if (teamAttendeeIds.Count == 0)
+                    {
+                        teamAttendeeIds = null;
+                    }
+                }
             }
             
             MeetingDetail? savedMeeting;
@@ -657,7 +885,9 @@ public partial class EditMeetingDialog : Window
                     Notes = string.IsNullOrWhiteSpace(MeetingNotesTextBox.Text) ? null : MeetingNotesTextBox.Text.Trim()
                 };
                 
-                var attendeeIds = teamMemberId.HasValue ? new List<Guid> { teamMemberId.Value } : null;
+                var attendeeIds = teamMemberId.HasValue 
+                    ? new List<Guid> { teamMemberId.Value } 
+                    : teamAttendeeIds;
                 
                 Debug.WriteLine($"[EditMeetingDialog] Creating meeting: {title}");
                 savedMeeting = await MeetingService.Instance.CreateMeetingAsync(newMeeting, attendeeIds);
@@ -717,7 +947,8 @@ public partial class EditMeetingDialog : Window
         finally
         {
             _isSaving = false;
-            SaveButton.IsEnabled = true;
+            SaveBorder.IsHitTestVisible = true;
+            SaveBorder.Opacity = 1.0;
         }
     }
     

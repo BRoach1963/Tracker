@@ -139,7 +139,13 @@ public class MeetingAgendaItemService
         int sortOrder = 0,
         bool isPrivate = false,
         string? linkedEntityType = null,
-        Guid? linkedEntityId = null)
+        Guid? linkedEntityId = null,
+        string? displayTitle = null,
+        string? sharedContext = null,
+        string? privateContext = null,
+        string visibilityScope = "meeting",
+        string? linkedEntityTitleSnapshot = null,
+        List<TalkingPoint>? talkingPoints = null)
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
@@ -162,17 +168,28 @@ public class MeetingAgendaItemService
                 MeetingId = meetingId,
                 AddedBy = profile.Id,
                 Title = title,
+                DisplayTitle = displayTitle,
                 Description = description,
+                SharedContext = sharedContext,
+                PrivateContext = privateContext,
+                VisibilityScope = visibilityScope,
                 Status = "open",
                 SortOrder = sortOrder,
                 IsPrivate = isPrivate,
                 IsCompleted = false,
                 LinkedEntityType = linkedEntityType,
                 LinkedEntityId = linkedEntityId,
+                LinkedEntityTitleSnapshot = linkedEntityTitleSnapshot,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
+            
+            // Set talking points if provided
+            if (talkingPoints != null && talkingPoints.Count > 0)
+            {
+                item.TalkingPoints = talkingPoints;
+            }
 
             var result = await client.From<MeetingAgendaItem>()
                 .Insert(item);
@@ -291,6 +308,67 @@ public class MeetingAgendaItemService
         {
             LastError = ex.Message;
             Log($"MarkCompleted ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Updates an agenda item with all fields including enhanced context, talking points, and outcomes.
+    /// </summary>
+    public async Task<bool> UpdateAgendaItemAsync(
+        Guid itemId,
+        string? title = null,
+        string? displayTitle = null,
+        string? sharedContext = null,
+        string? privateContext = null,
+        string? visibilityScope = null,
+        List<TalkingPoint>? talkingPoints = null,
+        string? outcomeType = null,
+        string? outcomeSummary = null)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Updating agenda item: {itemId}");
+
+            var item = await GetAgendaItemAsync(itemId);
+            if (item == null)
+            {
+                LastError = "Agenda item not found";
+                return false;
+            }
+
+            // Update fields if provided
+            if (title != null) item.Title = title;
+            if (displayTitle != null) item.DisplayTitle = displayTitle;
+            if (sharedContext != null) item.SharedContext = sharedContext;
+            if (privateContext != null) item.PrivateContext = privateContext;
+            if (visibilityScope != null) item.VisibilityScope = visibilityScope;
+            if (talkingPoints != null) item.TalkingPoints = talkingPoints;
+            if (outcomeType != null) item.OutcomeType = outcomeType;
+            if (outcomeSummary != null) item.OutcomeSummary = outcomeSummary;
+            
+            item.UpdatedAt = DateTime.UtcNow;
+
+            var result = await client.From<MeetingAgendaItem>()
+                .Filter("id", Operator.Equals, itemId.ToString())
+                .Update(item);
+
+            var success = result.Models?.Count > 0;
+            Log($"Agenda item updated: {success}");
+            return success;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"UpdateAgendaItem ERROR: {ex.Message}");
             return false;
         }
     }

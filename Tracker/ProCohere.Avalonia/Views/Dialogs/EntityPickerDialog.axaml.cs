@@ -76,15 +76,14 @@ public partial class EntityPickerDialog : Window
     {
         InitializeComponent();
         
-        ResultsListBox.ItemsSource = _filteredItems;
+        // Defer control access until after XAML is loaded
+        Loaded += (s, e) =>
+        {
+            ResultsListBox.ItemsSource = _filteredItems;
+        };
         
         // Load data when window opens
         Opened += async (s, e) => await LoadItemsAsync();
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     /// <summary>
@@ -219,20 +218,21 @@ public partial class EntityPickerDialog : Window
         _searchDebounceTimer.Start();
     }
 
-    private void FilterButton_Click(object? sender, RoutedEventArgs e)
+    private void FilterBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string filter)
+        if (sender is Border border && border.Tag is string filter)
         {
             _currentFilter = filter;
             
-            // Update button styles
-            AllFilterButton.Classes.Remove("selected");
-            TaskFilterButton.Classes.Remove("selected");
-            GoalFilterButton.Classes.Remove("selected");
-            MetricFilterButton.Classes.Remove("selected");
-            ProjectFilterButton.Classes.Remove("selected");
+            // Update border styles - remove selected from all
+            AllFilterBorder.Classes.Remove("selected");
+            TaskFilterBorder.Classes.Remove("selected");
+            GoalFilterBorder.Classes.Remove("selected");
+            MetricFilterBorder.Classes.Remove("selected");
+            ProjectFilterBorder.Classes.Remove("selected");
             
-            btn.Classes.Add("selected");
+            // Add selected to clicked border
+            border.Classes.Add("selected");
             
             ApplyFilters();
         }
@@ -241,7 +241,9 @@ public partial class EntityPickerDialog : Window
     private void ResultsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         var hasSelection = ResultsListBox.SelectedItem != null;
-        SelectButton.IsEnabled = hasSelection;
+        
+        // Update Link button opacity based on selection
+        LinkBorder.Opacity = hasSelection ? 1.0 : 0.5;
         
         if (ResultsListBox.SelectedItem is EntityPickerItem item)
         {
@@ -261,9 +263,12 @@ public partial class EntityPickerDialog : Window
         }
     }
 
-    private void SelectButton_Click(object? sender, RoutedEventArgs e)
+    private void LinkBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        SelectAndClose();
+        if (ResultsListBox.SelectedItem != null)
+        {
+            SelectAndClose();
+        }
     }
 
     private void SelectAndClose()
@@ -280,7 +285,7 @@ public partial class EntityPickerDialog : Window
         }
     }
 
-    private void CancelButton_Click(object? sender, RoutedEventArgs e)
+    private void CancelBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         Result = null;
         Close();

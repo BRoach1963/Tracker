@@ -1,0 +1,185 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dialogs="clr-namespace:ProCohere.Avalonia.Views.Dialogs"
+        xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="600"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditAgendaItemDialog"
+        x:DataType="dialogs:EditAgendaItemDialog"
+        Title="Edit Agenda Item"
+        Width="500" Height="600"
+        MinWidth="400" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Background="{DynamicResource BrushBackground}">
+    
+    <Grid RowDefinitions="Auto,*,Auto">
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" Padding="20,16">
+            <StackPanel>
+                <TextBlock Text="Edit Agenda Item" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                <TextBlock Text="Add context, talking points, and configure visibility" FontSize="12" Foreground="#FFFFFFAA"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+            <StackPanel Spacing="16">
+                
+                <!-- Title -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="TITLE" FontSize="11" FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="TitleTextBox" Watermark="Agenda item title"/>
+                </StackPanel>
+                
+                <!-- Display Title (optional) -->
+                <StackPanel Spacing="4">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="DISPLAY TITLE" FontSize="11" FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Grid.Column="1" Text="Optional" FontSize="10" 
+                                   Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
+                    </Grid>
+                    <TextBox x:Name="DisplayTitleTextBox" 
+                             Watermark="Optional styled title for display"/>
+                    <TextBlock Text="Override how this item appears in the agenda without changing the underlying link" 
+                               FontSize="11" Foreground="{DynamicResource BrushTextTertiary}" TextWrapping="Wrap"/>
+                </StackPanel>
+                
+                <!-- Visibility -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="VISIBILITY" FontSize="11" FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox x:Name="VisibilityComboBox" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Tag="meeting" IsSelected="True">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
+                                          Width="14" Height="14"/>
+                                <TextBlock Text="Shared with attendees"/>
+                            </StackPanel>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="personal">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
+                                          Width="14" Height="14"/>
+                                <TextBlock Text="Personal reminder (only you)"/>
+                            </StackPanel>
+                        </ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Shared Context -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="SHARED CONTEXT" FontSize="11" FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="SharedContextTextBox" 
+                             Watermark="Why are we discussing this? What's changed?"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="60" MaxHeight="120"/>
+                    <TextBlock Text="Visible to all meeting attendees" FontSize="11" 
+                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                </StackPanel>
+                
+                <!-- Private Context -->
+                <StackPanel Spacing="4">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
+                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,6,0"/>
+                        <TextBlock Grid.Column="1" Text="PRIVATE NOTES" FontSize="11" FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </Grid>
+                    <TextBox x:Name="PrivateContextTextBox" 
+                             Watermark="Your private framing or notes (not visible to others)"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="60" MaxHeight="120"/>
+                    <TextBlock Text="Only you can see these notes" FontSize="11" 
+                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                </StackPanel>
+                
+                <!-- Talking Points -->
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="TALKING POINTS" FontSize="11" FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <Button x:Name="AddTalkingPointButton" Grid.Column="1" 
+                                Classes="icon-button" Padding="4"
+                                ToolTip.Tip="Add talking point"
+                                Click="AddTalkingPoint_Click">
+                            <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="12" Height="12"/>
+                        </Button>
+                    </Grid>
+                    
+                    <!-- Add talking point inline -->
+                    <Border x:Name="AddTalkingPointPanel" IsVisible="False"
+                            Background="{DynamicResource BrushSurfaceAlt}"
+                            CornerRadius="4" Padding="8">
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                            <TextBox x:Name="NewTalkingPointTextBox" Grid.Column="0"
+                                     Watermark="Enter a talking point..."
+                                     KeyDown="NewTalkingPointTextBox_KeyDown"/>
+                            <Button Grid.Column="1" Content="Add" Classes="accent" Margin="8,0,0,0"
+                                    Click="ConfirmAddTalkingPoint_Click"/>
+                            <Button Grid.Column="2" Content="Cancel" Margin="4,0,0,0"
+                                    Click="CancelAddTalkingPoint_Click"/>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Talking points list -->
+                    <ItemsControl x:Name="TalkingPointsControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TalkingPoint">
+                                <Border Background="{DynamicResource BrushSurface}"
+                                        BorderBrush="{DynamicResource BrushBorder}"
+                                        BorderThickness="1" CornerRadius="4" 
+                                        Padding="8" Margin="0,0,0,4">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <PathIcon Grid.Column="0" 
+                                                  Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
+                                                  Width="12" Height="12" 
+                                                  Foreground="{DynamicResource BrushTextTertiary}"
+                                                  Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Text}" 
+                                                   FontSize="12" VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"/>
+                                        <Button Grid.Column="2" Classes="icon-button" Padding="4"
+                                                ToolTip.Tip="Remove"
+                                                Click="RemoveTalkingPoint_Click"
+                                                Tag="{Binding}">
+                                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                      Width="10" Height="10" 
+                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Empty state for talking points -->
+                    <Border x:Name="TalkingPointsEmptyState"
+                            Background="{DynamicResource BrushSurfaceAlt}"
+                            CornerRadius="4" Padding="16" IsVisible="True">
+                        <TextBlock Text="No talking points yet. Add specific points to discuss during the meeting."
+                                   FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"
+                                   TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="{DynamicResource BrushSurface}" 
+                BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,1,0,0"
+                Padding="20,12">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <Button Content="Cancel" Click="Cancel_Click"/>
+                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Click="Save_Click"/>
+            </Grid>
+        </Border>
+        
+    </Grid>
+</Window>

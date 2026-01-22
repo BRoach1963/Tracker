@@ -163,6 +163,18 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     /// </summary>
     public bool IsDescendant => Relation == "descendant";
 
+    /// <summary>
+    /// Human-friendly display of the relationship for UI.
+    /// </summary>
+    public string RelationDisplay => Relation?.ToLower() switch
+    {
+        "direct" => "Direct report",
+        "descendant" => "Skip-level",
+        "peer" => "Peer",
+        "manager" => "Your manager",
+        _ => ""
+    };
+
     #endregion
 
     #region Computed Properties (for dashboard)

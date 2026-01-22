@@ -101,14 +101,14 @@
         
         <!-- Row 2: Content Area - Visibility controlled from code-behind -->
         <Grid Grid.Row="2" x:Name="TabContentArea">
-            <!-- Goals Tab Content -->
-            <pulse:GoalsTabView x:Name="GoalsTab"/>
+            <!-- Goals Tab Content - DataContext set in code-behind to prevent inheritance errors -->
+            <pulse:GoalsTabView x:Name="GoalsTab" DataContext="{x:Null}"/>
             
             <!-- Metrics Tab Content -->
-            <pulse:MetricsTabView x:Name="MetricsTab"/>
+            <pulse:MetricsTabView x:Name="MetricsTab" DataContext="{x:Null}"/>
             
             <!-- Tasks Tab Content -->
-            <pulse:TasksTabView x:Name="TasksTab"/>
+            <pulse:TasksTabView x:Name="TasksTab" DataContext="{x:Null}"/>
         </Grid>
         
     </Grid>

@@ -20,14 +20,9 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
-        // Wire up SettingsView logout event
-        if (SettingsView?.DataContext is SettingsViewModel settingsVm)
+        // Create and assign SettingsViewModel (DataContext=null in XAML to prevent inheritance errors)
+        if (SettingsView != null)
         {
-            settingsVm.LogoutRequested += OnLogoutRequested;
-        }
-        else if (SettingsView != null)
-        {
-            // If DataContext isn't set yet, create and assign the ViewModel
             var settingsViewModel = new SettingsViewModel();
             settingsViewModel.LogoutRequested += OnLogoutRequested;
             SettingsView.DataContext = settingsViewModel;

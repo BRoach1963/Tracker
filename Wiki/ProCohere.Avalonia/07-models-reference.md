@@ -35,8 +35,9 @@ All models inherit from `Supabase.Postgrest.Models.BaseModel`.
 | Model | File | Table | Description |
 |-------|------|-------|-------------|
 | `MeetingAttendee` | (in MeetingDetail.cs) | `meeting_attendees` | Meeting participant |
-| `MeetingAgendaItem` | (in MeetingDetail.cs) | `meeting_agenda_items` | Agenda item |
-| `MeetingPrepItem` | MeetingPrepItem.cs | `meeting_prep_items` | Prep checklist item |
+| `MeetingAgendaItem` | (in MeetingDetail.cs) | `meeting_agenda_items` | Conversation container with context, talking points, outcomes |
+| `TalkingPoint` | (in MeetingDetail.cs) | JSONB in agenda items | Structured discussion point |
+| `MeetingPrepItem` | MeetingPrepItem.cs | `meeting_prep_items` | AI-assisted prep with linked entities |
 | `MeetingNote` | MeetingNote.cs | `meeting_notes` | Note attached to meeting |
 | `MeetingTemplateDetail` | MeetingTemplateDetail.cs | `meeting_templates` | Reusable template |
 | `TargetDetail` | TargetDetail.cs | `targets` | Goal target |
@@ -267,6 +268,244 @@ public class MeetingDetail : BaseModel
     // Computed
     public bool IsOwnedByCurrentUser => CurrentUserTeamMemberId == CreatedByTeamMemberId;
     public bool HasAgendaItems => AgendaItems.Count > 0;
+}
+```
+
+---
+
+## MeetingAgendaItem
+
+**Table**: `meeting_agenda_items`  
+**File**: `MeetingDetail.cs` (nested class)
+
+Agenda items are **conversation containers** – not simple checklist items. Each can include shared/private context, structured talking points, and tracked outcomes.
+
+```csharp
+[Table("meeting_agenda_items")]
+public class MeetingAgendaItem : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("meeting_id")]
+    public Guid MeetingId { get; set; }
+
+    [Column("added_by")]
+    public Guid? AddedBy { get; set; }
+
+    // Title System
+    [Column("title")]
+    public string Title { get; set; }  // Original raw title
+
+    [Column("display_title")]
+    public string? DisplayTitle { get; set; }  // Optional styled title
+
+    [Column("description")]
+    public string? Description { get; set; }  // Legacy notes
+
+    // Context Fields
+    [Column("shared_context")]
+    public string? SharedContext { get; set; }  // Visible to all attendees
+
+    [Column("private_context")]
+    public string? PrivateContext { get; set; }  // Visible only to creator
+
+    // Talking Points (JSONB)
+    [Column("talking_points")]
+    public string? TalkingPointsJson { get; set; }  // Array of TalkingPoint
+
+    // Outcomes
+    [Column("outcome_type")]
+    public string? OutcomeType { get; set; }  // decision, action_item, deferred, etc.
+
+    [Column("outcome_summary")]
+    public string? OutcomeSummary { get; set; }
+
+    // Visibility
+    [Column("visibility_scope")]
+    public string VisibilityScope { get; set; } = "meeting";  // meeting, personal, assigned
+
+    // Linked Entity
+    [Column("linked_entity_type")]
+    public string? LinkedEntityType { get; set; }
+
+    [Column("linked_entity_id")]
+    public Guid? LinkedEntityId { get; set; }
+
+    [Column("linked_entity_title_snapshot")]
+    public string? LinkedEntityTitleSnapshot { get; set; }
+
+    // Status & Sort
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
+
+    [Column("status")]
+    public string Status { get; set; } = "pending";
+
+    [Column("is_completed")]
+    public bool IsCompleted { get; set; }
+
+    [Column("completed_at")]
+    public DateTime? CompletedAt { get; set; }
+
+    [Column("discussed_at")]
+    public DateTime? DiscussedAt { get; set; }
+
+    [Column("is_private")]
+    public bool IsPrivate { get; set; }  // Legacy; prefer visibility_scope
+
+    // Computed Properties
+    public string EffectiveTitle => !string.IsNullOrWhiteSpace(DisplayTitle) ? DisplayTitle : Title;
+    public List<TalkingPoint> TalkingPoints { get; }  // Parsed from JSON
+    public bool HasTalkingPoints => TalkingPoints?.Any() == true;
+    public bool IsPersonalAgenda => VisibilityScope == "personal";
+    public string OutcomeTypeDisplay { get; }  // Human-readable outcome
+}
+```
+
+### Outcome Types
+| Value | Display | Meaning |
+|-------|---------|---------|
+| `decision` | Decision | A decision was made |
+| `action_item` | Action Item | Follow-up task created |
+| `deferred` | Deferred | Moved to future meeting |
+| `information_shared` | Info Shared | FYI, no action needed |
+| `no_action_needed` | No Action | Discussed, concluded |
+
+---
+
+## TalkingPoint
+
+**Storage**: JSONB array in `meeting_agenda_items.talking_points`  
+**File**: `MeetingDetail.cs`
+
+```csharp
+public class TalkingPoint
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; }  // UUID string
+
+    [JsonPropertyName("text")]
+    public string Text { get; set; }
+
+    [JsonPropertyName("discussed")]
+    public bool Discussed { get; set; }
+
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
+}
+```
+
+### JSON Example
+```json
+[
+  {"id": "550e8400-...", "text": "Review Q1 goals", "discussed": true, "order": 0},
+  {"id": "6ba7b810-...", "text": "Discuss blockers", "discussed": false, "order": 1}
+]
+```
+
+---
+
+## MeetingPrepItem
+
+**Table**: `meeting_prep_items`  
+**File**: `MeetingPrepItem.cs`
+
+Prep items support AI-assisted preparation with linked entity context and carry-forward between meetings.
+
+```csharp
+[Table("meeting_prep_items")]
+public class MeetingPrepItem : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("meeting_id")]
+    public Guid MeetingId { get; set; }
+
+    [Column("requested_by_team_member_id")]
+    public Guid RequestedByTeamMemberId { get; set; }
+
+    [Column("assigned_to_team_member_id")]
+    public Guid? AssignedToTeamMemberId { get; set; }
+
+    [Column("title")]
+    public string Title { get; set; }
+
+    [Column("body")]
+    public string? Body { get; set; }
+
+    // Source Tracking
+    [Column("source_type")]
+    public string? SourceType { get; set; }  // manual, ai_suggested, carried_forward
+
+    [Column("source_snapshot")]
+    public string? SourceSnapshot { get; set; }
+
+    // Linked Entity
+    [Column("linked_entity_type")]
+    public string? LinkedEntityType { get; set; }  // goal, metric, task, contact
+
+    [Column("linked_entity_id")]
+    public Guid? LinkedEntityId { get; set; }
+
+    [Column("linked_entity_title_snapshot")]
+    public string? LinkedEntityTitleSnapshot { get; set; }
+
+    // AI Preparation
+    [Column("prep_prompt")]
+    public string? PrepPrompt { get; set; }
+
+    [Column("prep_response")]
+    public string? PrepResponse { get; set; }
+
+    [Column("prepared_at")]
+    public DateTime? PreparedAt { get; set; }
+
+    // Visibility & Status
+    [Column("visibility_scope")]
+    public string VisibilityScope { get; set; } = "meeting";
+
+    [Column("status")]
+    public string Status { get; set; } = "pending";
+
+    [Column("overridden_status")]
+    public string? OverriddenStatus { get; set; }
+
+    [Column("due_at")]
+    public DateTime? DueAt { get; set; }
+
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
+
+    [Column("assignee_notes")]
+    public string? AssigneeNotes { get; set; }
+
+    // Carry Forward
+    [Column("carry_forward")]
+    public bool CarryForward { get; set; }
+
+    [Column("carried_from_prep_item_id")]
+    public Guid? CarriedFromPrepItemId { get; set; }
+
+    [Column("completed_at")]
+    public DateTime? CompletedAt { get; set; }
+
+    [Column("completed_by_team_member_id")]
+    public Guid? CompletedByTeamMemberId { get; set; }
+
+    // Computed Properties
+    public bool HasLinkedEntity => !string.IsNullOrEmpty(LinkedEntityType) && LinkedEntityId.HasValue;
+    public bool IsPrepared => !string.IsNullOrEmpty(PrepResponse);
+    public string LinkedEntityTypeDisplay { get; }  // Human-readable type
+    public string LinkedEntityIcon { get; }  // Icon character
+    public string PreparedStatusDisplay { get; }  // Prepared/Not Prepared
 }
 ```
 

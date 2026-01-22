@@ -181,15 +181,76 @@ All entities inherit these fields:
 ### MeetingAgendaItem
 **Table:** `meeting_agenda_items`
 
+Agenda items are **conversation containers** – not simple checklist items. Each can include shared/private context, structured talking points, and tracked outcomes.
+
 | Property | Column | Type | Notes |
 |----------|--------|------|-------|
 | Id | id | Guid | PK |
+| OrganizationId | organization_id | Guid | FK |
 | MeetingId | meeting_id | Guid | FK |
-| Title | title | string | |
-| Duration | duration_minutes | int? | |
-| SortOrder | sort_order | int | |
+| AddedBy | added_by | Guid? | FK to team_members |
+| Title | title | string | Original raw title |
+| DisplayTitle | display_title | string? | Optional styled title for UI |
+| Description | description | string? | Legacy notes field |
+| SharedContext | shared_context | string? | Context visible to all attendees |
+| PrivateContext | private_context | string? | Context visible only to creator |
+| TalkingPointsJson | talking_points | string? | JSONB array of talking points |
+| OutcomeType | outcome_type | string? | decision, action_item, deferred, etc. |
+| OutcomeSummary | outcome_summary | string? | Freeform outcome text |
+| VisibilityScope | visibility_scope | string | meeting, personal, assigned |
 | LinkedEntityType | linked_entity_type | string? | task, goal, metric |
-| LinkedEntityId | linked_entity_id | Guid? | |
+| LinkedEntityId | linked_entity_id | Guid? | FK to linked entity |
+| LinkedEntityTitleSnapshot | linked_entity_title_snapshot | string? | Denormalized title |
+| SortOrder | sort_order | int | |
+| Status | status | string | pending, in_progress, completed, deferred |
+| IsCompleted | is_completed | bool | |
+| CompletedAt | completed_at | DateTime? | |
+| DiscussedAt | discussed_at | DateTime? | When item was actually discussed |
+| IsPrivate | is_private | bool | Legacy; prefer visibility_scope |
+
+**Computed Properties:**
+- `EffectiveTitle` – Returns display_title if set, otherwise title
+- `TalkingPoints` – Parsed List<TalkingPoint> from JSON
+- `HasTalkingPoints` – True if any talking points exist
+- `IsPersonalAgenda` – True if visibility_scope = 'personal'
+
+### MeetingPrepItem
+**Table:** `meeting_prep_items`
+
+Prep items support AI-assisted preparation with linked entity context and carry-forward between meetings.
+
+| Property | Column | Type | Notes |
+|----------|--------|------|-------|
+| Id | id | Guid | PK |
+| OrganizationId | organization_id | Guid | FK |
+| MeetingId | meeting_id | Guid | FK |
+| RequestedByTeamMemberId | requested_by_team_member_id | Guid | FK |
+| AssignedToTeamMemberId | assigned_to_team_member_id | Guid? | FK |
+| Title | title | string | |
+| Body | body | string? | Detailed description |
+| SourceType | source_type | string? | manual, ai_suggested, carried_forward |
+| SourceSnapshot | source_snapshot | string? | Context at creation |
+| LinkedEntityType | linked_entity_type | string? | goal, metric, task, contact |
+| LinkedEntityId | linked_entity_id | Guid? | FK to linked entity |
+| LinkedEntityTitleSnapshot | linked_entity_title_snapshot | string? | Denormalized title |
+| PrepPrompt | prep_prompt | string? | AI prompt for preparation |
+| PrepResponse | prep_response | string? | AI-generated prep content |
+| PreparedAt | prepared_at | DateTime? | When AI prep was generated |
+| VisibilityScope | visibility_scope | string | meeting, personal, assigned |
+| Status | status | string | pending, in_progress, completed |
+| OverriddenStatus | overridden_status | string? | Manual override |
+| DueAt | due_at | DateTime? | When prep should be ready |
+| SortOrder | sort_order | int | |
+| AssigneeNotes | assignee_notes | string? | Notes from assigned person |
+| CarryForward | carry_forward | bool | Carry to next meeting |
+| CarriedFromPrepItemId | carried_from_prep_item_id | Guid? | Lineage tracking |
+| CompletedAt | completed_at | DateTime? | |
+| CompletedByTeamMemberId | completed_by_team_member_id | Guid? | |
+
+**Computed Properties:**
+- `HasLinkedEntity` – True if linked_entity_type and linked_entity_id are set
+- `IsPrepared` – True if prep_response exists
+- `LinkedEntityTypeDisplay` – Human-readable entity type
 
 ### MeetingNote
 **Table:** `meeting_notes`
