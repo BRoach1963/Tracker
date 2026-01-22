@@ -2,9 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels"
         xmlns:views="using:ProCohere.Avalonia.Views"
+        xmlns:briefing="using:ProCohere.Avalonia.Views.Briefing"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
+        xmlns:asyncImageLoader="using:AsyncImageLoader"
         mc:Ignorable="d" 
         d:DesignWidth="1200" 
         d:DesignHeight="800"
@@ -101,13 +103,36 @@
                         </Grid>
                     </Button>
 
-                    <!-- Circle -->
+                    <!-- Me (Personal Hub) - Visible to ALL users -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Me}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Me}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Me (Ctrl+2)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Me}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Person icon -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,5.5A2.5,2.5 0 0,0 9.5,8A2.5,2.5 0 0,0 12,10.5A2.5,2.5 0 0,0 14.5,8A2.5,2.5 0 0,0 12,5.5M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14M12,15.5C8.04,15.5 5.5,17.08 5.5,18V18.5H18.5V18C18.5,17.08 15.96,15.5 12,15.5Z"/>
+                                <TextBlock Text="Me" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <!-- Circle (Team View) - Visible to MANAGERS ONLY -->
                     <Button Classes="nav-item-dark"
                             Command="{Binding NavigateToCommand}"
                             CommandParameter="{x:Static vm:NavigationItem.Circle}"
+                            IsVisible="{Binding HasDirectReports}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Circle}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Circle (Ctrl+2)" Foreground="#1F2937"/>
+                            <TextBlock Text="Circle (Ctrl+3)" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
@@ -129,7 +154,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Pulse}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Pulse (Ctrl+3)" Foreground="#1F2937"/>
+                            <TextBlock Text="Pulse (Ctrl+4)" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
@@ -151,7 +176,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Chronicle}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Chronicle}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Chronicle (Ctrl+4)" Foreground="#1F2937"/>
+                            <TextBlock Text="Chronicle (Ctrl+5)" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
@@ -176,7 +201,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Settings}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Settings (Ctrl+5)" Foreground="#1F2937"/>
+                            <TextBlock Text="Settings (Ctrl+6)" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-8,2"
@@ -281,6 +306,136 @@
                             <PathIcon Data="M15.07,11.25L14.17,12.17C13.45,12.89 13,13.5 13,15H11V14.5C11,13.39 11.45,12.39 12.17,11.67L13.41,10.41C13.78,10.05 14,9.55 14,9C14,7.89 13.1,7 12,7A2,2 0 0,0 10,9H8A4,4 0 0,1 12,5A4,4 0 0,1 16,9C16,9.88 15.64,10.67 15.07,11.25M13,19H11V17H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z"
                                       Width="24" Height="24"/>
                         </Button>
+
+                        <!-- User Avatar / Account Menu -->
+                        <Button Classes="user-avatar-button"
+                                ToolTip.Tip="Account"
+                                AutomationProperties.Name="Account menu">
+                            <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedRight">
+                                    <Border Background="{DynamicResource BrushSurface}"
+                                            CornerRadius="12"
+                                            Padding="8"
+                                            MinWidth="200">
+                                        <StackPanel Spacing="4">
+                                            <!-- User Info Header -->
+                                            <Border Background="{DynamicResource BrushBackground}"
+                                                    CornerRadius="8"
+                                                    Padding="12"
+                                                    Margin="0,0,0,4">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <!-- Avatar -->
+                                                    <Border Grid.Column="0"
+                                                            Width="40" Height="40"
+                                                            CornerRadius="20"
+                                                            ClipToBounds="True"
+                                                            Margin="0,0,12,0">
+                                                        <Panel>
+                                                            <!-- Initials background (shown when no avatar) -->
+                                                            <Border Background="{DynamicResource BrushHighlight}"
+                                                                    CornerRadius="20"
+                                                                    IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                <TextBlock Text="{Binding UserInitials}"
+                                                                           FontSize="14"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="White"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <!-- Avatar image (shown when avatar URL exists) -->
+                                                            <Image asyncImageLoader:ImageLoader.Source="{Binding UserAvatarUrl}"
+                                                                   Stretch="UniformToFill"
+                                                                   Width="40" Height="40"
+                                                                   IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                        </Panel>
+                                                    </Border>
+                                                    <!-- Name and Email -->
+                                                    <StackPanel Grid.Column="1" 
+                                                                VerticalAlignment="Center"
+                                                                Spacing="2">
+                                                        <TextBlock Text="{Binding UserDisplayName}"
+                                                                   FontWeight="SemiBold"
+                                                                   FontSize="14"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                        <TextBlock Text="{Binding UserEmail}"
+                                                                   FontSize="12"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                            
+                                            <!-- Menu Items -->
+                                            <Button Classes="menu-item"
+                                                    Command="{Binding EditProfileCommand}">
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <PathIcon Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushTextSecondary}"
+                                                              Data="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 7.5c4.418 0 8 1.79 8 4v1.5a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5V17c0-2.21 3.582-4 8-4Zm0 1.5c-3.59 0-6.5 1.343-6.5 2.5v.5h13v-.5c0-1.157-2.91-2.5-6.5-2.5Z"/>
+                                                    <TextBlock Text="Edit Profile"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                </StackPanel>
+                                            </Button>
+                                            
+                                            <Button Classes="menu-item"
+                                                    Command="{Binding NavigateToCommand}"
+                                                    CommandParameter="{x:Static vm:NavigationItem.Settings}">
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <PathIcon Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushTextSecondary}"
+                                                              Data="M12.012 2.25c.734.008 1.465.093 2.182.253a.75.75 0 0 1 .582.649l.17 1.527a1.384 1.384 0 0 0 1.927 1.116l1.4-.615a.75.75 0 0 1 .85.174 9.793 9.793 0 0 1 2.204 3.792.75.75 0 0 1-.271.825l-1.242.916a1.38 1.38 0 0 0 0 2.226l1.243.916a.75.75 0 0 1 .271.826 9.798 9.798 0 0 1-2.204 3.79.75.75 0 0 1-.848.175l-1.407-.617a1.38 1.38 0 0 0-1.926 1.114l-.169 1.526a.75.75 0 0 1-.572.647 9.518 9.518 0 0 1-4.406 0 .75.75 0 0 1-.572-.647l-.168-1.524a1.382 1.382 0 0 0-1.926-1.11l-1.406.616a.75.75 0 0 1-.849-.175 9.798 9.798 0 0 1-2.204-3.796.75.75 0 0 1 .272-.826l1.243-.916a1.38 1.38 0 0 0 0-2.226l-1.243-.914a.75.75 0 0 1-.271-.826 9.793 9.793 0 0 1 2.204-3.792.75.75 0 0 1 .85-.174l1.4.615a1.387 1.387 0 0 0 1.93-1.118l.17-1.526a.75.75 0 0 1 .583-.65c.718-.159 1.45-.243 2.201-.252ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1.5 3a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"/>
+                                                    <TextBlock Text="Settings"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                </StackPanel>
+                                            </Button>
+                                            
+                                            <!-- Divider -->
+                                            <Border Height="1" 
+                                                    Background="{DynamicResource BrushBorder}"
+                                                    Margin="4,4"/>
+                                            
+                                            <!-- Sign Out -->
+                                            <Button Classes="menu-item danger"
+                                                    Command="{Binding SignOutCommand}">
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <PathIcon Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushError}"
+                                                              Data="M12 4.354v6.651l7.442-.001L17.72 9.28a.75.75 0 0 1-.073-.976l.073-.084a.75.75 0 0 1 .976-.073l.084.073 2.997 2.997a.75.75 0 0 1 .073.976l-.073.084-2.996 3.004a.75.75 0 0 1-1.134-.975l.072-.085 1.713-1.717-7.431.001L12 19.25a.75.75 0 0 1-.88.739l-8.5-1.502A.75.75 0 0 1 2 17.75V5.104a.75.75 0 0 1 .615-.738l8.5-1.396a.75.75 0 0 1 .885.738v.646ZM3.5 5.846v11.267l7-.001V4.604l-7 1.152v.09Z"/>
+                                                    <TextBlock Text="Sign out"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushError}"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                </Flyout>
+                            </Button.Flyout>
+                            <!-- Avatar Circle -->
+                            <Border Width="36" Height="36"
+                                    CornerRadius="18"
+                                    ClipToBounds="True">
+                                <Panel>
+                                    <!-- Initials background (shown when no avatar) -->
+                                    <Border Background="{DynamicResource BrushHighlight}"
+                                            CornerRadius="18"
+                                            IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                        <TextBlock Text="{Binding UserInitials}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
+                                    <!-- Avatar image (shown when avatar URL exists) -->
+                                    <Image asyncImageLoader:ImageLoader.Source="{Binding UserAvatarUrl}"
+                                           Stretch="UniformToFill"
+                                           Width="36" Height="36"
+                                           IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                </Panel>
+                            </Border>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -290,7 +445,12 @@
                 
                 <!-- BRIEFING / Dashboard -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}">
-                    <views:TodayView />
+                    <briefing:BriefingView />
+                </Grid>
+
+                <!-- ME (Personal Hub) -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Me}}">
+                    <views:MeView />
                 </Grid>
 
                 <!-- CIRCLE -->

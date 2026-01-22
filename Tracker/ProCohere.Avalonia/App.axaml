@@ -200,5 +200,34 @@
             <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
             <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
         </Style>
+
+        <!-- User Avatar Button Style -->
+        <Style Selector="Button.user-avatar-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.user-avatar-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+
+        <!-- Menu Item Button Style (for dropdowns) -->
+        <Style Selector="Button.menu-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.menu-item:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Button.menu-item.danger:pointerover">
+            <Setter Property="Background" Value="#FEE2E2"/>
+        </Style>
     </Application.Styles>
 </Application>

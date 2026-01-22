@@ -5,9 +5,10 @@
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:local="using:ProCohere.Avalonia.Converters"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
              mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.Controls.GoalDetailFlyout"
-             x:DataType="vm:GoalsViewModel">
+             x:DataType="vm:CircleViewModel">
     
     <UserControl.Styles>
         <!-- Detail Section Header -->
@@ -36,12 +37,12 @@
             
             <!-- Header -->
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Background="{DynamicResource BrushSecondary}">
-                <TextBlock Text="Goal Details" FontSize="14" FontWeight="SemiBold"
+                <TextBlock Text="Goal" FontSize="14" FontWeight="SemiBold"
                            Foreground="White" VerticalAlignment="Center" Margin="16,12"/>
                 <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Close"
-                        Command="{Binding CloseDetailFlyoutCommand}" Margin="0,0,8,0">
+                        Command="{Binding CloseGoalDetailCommand}" Margin="0,0,8,0">
                     <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                              Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                              Width="14" Height="14" Foreground="White"/>
                 </Button>
             </Grid>
             
@@ -53,22 +54,15 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
                         <!-- Goal Type Badge -->
                         <Border CornerRadius="4" Padding="8,4" Background="{DynamicResource BrushPrimarySoft}">
-                            <TextBlock Text="{Binding GoalType}" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding GoalTypeDisplay}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushPrimary}"/>
                         </Border>
                         
-                        <!-- Lifecycle Badge (clickable) -->
-                        <Button Classes="badge-button" ToolTip.Tip="Click to change lifecycle"
-                                Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).OpenLifecycleDialogCommand}">
-                            <Border CornerRadius="4" Padding="8,4" Background="#334155">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="{Binding Lifecycle}" FontSize="11" FontWeight="Medium"
-                                               Foreground="#94A3B8"/>
-                                    <PathIcon Data="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"
-                                              Width="10" Height="10" Foreground="#94A3B8"/>
-                                </StackPanel>
-                            </Border>
-                        </Button>
+                        <!-- Lifecycle Badge -->
+                        <Border CornerRadius="4" Padding="8,4" Background="#334155">
+                            <TextBlock Text="{Binding LifecycleDisplay}" FontSize="11" FontWeight="Medium"
+                                       Foreground="#94A3B8"/>
+                        </Border>
                     </StackPanel>
                     
                     <!-- Title -->
@@ -77,17 +71,11 @@
                     
                     <!-- Health Section - Narrative approach, NO progress bars -->
                     <TextBlock Text="HEALTH" Classes="detail-section-header"/>
-                    <Button Classes="badge-button" HorizontalAlignment="Left" ToolTip.Tip="Click to update health"
-                            Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).OpenHealthDialogCommand}">
-                        <Border CornerRadius="6" Padding="12,8" Background="{Binding Health, Converter={StaticResource GoalHealthToBackgroundConverter}}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToDisplayConverter}}" 
-                                           FontSize="13" FontWeight="SemiBold" Foreground="White"/>
-                                <PathIcon Data="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"
-                                          Width="12" Height="12" Foreground="White" Opacity="0.7"/>
-                            </StackPanel>
-                        </Border>
-                    </Button>
+                    <Border CornerRadius="6" Padding="12,8" HorizontalAlignment="Left"
+                            Background="{Binding Health, Converter={StaticResource GoalHealthToBackgroundConverter}}">
+                        <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToDisplayConverter}}" 
+                                   FontSize="13" FontWeight="SemiBold" Foreground="White"/>
+                    </Border>
                     
                     <!-- Health Context (if available) -->
                     <TextBlock Text="{Binding HealthReason}" FontSize="12" FontStyle="Italic"
@@ -98,8 +86,10 @@
                     <!-- Philosophy reminder - subtle guidance -->
                     <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="4" Padding="10,8" Margin="0,12,0,0">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="💡 Reflection Prompt" FontSize="10" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <PathIcon Data="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="Reflection Prompt" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                            </StackPanel>
                             <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToPromptConverter}}" 
                                        FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
@@ -108,9 +98,17 @@
                     <!-- Owner Section -->
                     <TextBlock Text="OWNER" Classes="detail-section-header"/>
                     <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
-                        <Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource BrushPrimary}">
-                            <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
-                                      Width="16" Height="16" Foreground="White"/>
+                        <Border Width="32" Height="32" CornerRadius="16" ClipToBounds="True">
+                            <Panel>
+                                <Border Background="{DynamicResource BrushPrimary}" CornerRadius="16"
+                                        IsVisible="{Binding OwnerAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                    <TextBlock Text="{Binding OwnerInitials}" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <Image asyncImageLoader:ImageLoader.Source="{Binding OwnerAvatarUrl}"
+                                       Stretch="UniformToFill" Width="32" Height="32"
+                                       IsVisible="{Binding OwnerAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            </Panel>
                         </Border>
                         <TextBlock Grid.Column="1" Text="{Binding OwnerName}" FontSize="13" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="10,0,0,0"/>
@@ -142,7 +140,7 @@
                     <!-- Quick Actions -->
                     <StackPanel Margin="0,24,0,0" Spacing="8">
                         <Button Classes="action-button" HorizontalAlignment="Stretch"
-                                Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).EditGoalCommand}"
+                                Command="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext).EditGoalCommand}"
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" Width="12" Height="12"/>
@@ -150,7 +148,7 @@
                             </StackPanel>
                         </Button>
                         <Button Classes="secondary-button" HorizontalAlignment="Stretch"
-                                Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).DeleteGoalCommand}"
+                                Command="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext).DeleteGoalCommand}"
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" Width="12" Height="12" Foreground="#DC2626"/>

@@ -5,6 +5,7 @@
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:local="using:ProCohere.Avalonia.Converters"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
              mc:Ignorable="d" d:DesignWidth="280" d:DesignHeight="400"
              x:Class="ProCohere.Avalonia.Views.Controls.TeamMemberDetailFlyout"
              x:DataType="vm:CircleViewModel">
@@ -149,7 +150,7 @@
                                                Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <!-- Avatar image -->
-                                <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="64" Height="64"
+                                <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="64" Height="64"
                                        IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                             </Panel>
                         </Border>
@@ -437,7 +438,7 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <!-- Avatar image -->
-                                                <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
+                                                <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
                                                        IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                             </Panel>
                                         </Border>

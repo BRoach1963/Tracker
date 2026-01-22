@@ -218,6 +218,16 @@ public class GoalDetail : BaseModel
     public string? OwnerName { get; set; }
 
     /// <summary>
+    /// Avatar URL of the owner (set by service join).
+    /// </summary>
+    public string? OwnerAvatarUrl { get; set; }
+
+    /// <summary>
+    /// Initials of the owner (set by service join).
+    /// </summary>
+    public string? OwnerInitials { get; set; }
+
+    /// <summary>
     /// Name of the meeting where last discussed (set by service join).
     /// </summary>
     public string? LastDiscussedMeetingName { get; set; }
@@ -275,6 +285,31 @@ public class GoalDetail : BaseModel
     /// Number of linked tasks.
     /// </summary>
     public int LinkedTasksCount => LinkedTasks?.Count ?? 0;
+
+    /// <summary>
+    /// Display text for the goal's end date.
+    /// </summary>
+    public string DueDateDisplay
+    {
+        get
+        {
+            if (!EndDate.HasValue)
+                return "No deadline";
+
+            var today = DateTime.UtcNow.Date;
+            var endDate = EndDate.Value.Date;
+
+            if (endDate == today)
+                return "Due today";
+            if (endDate == today.AddDays(1))
+                return "Due tomorrow";
+            if (endDate < today)
+                return "Past deadline";
+            if ((endDate - today).Days <= 7)
+                return $"Due in {(endDate - today).Days}d";
+            return endDate.ToString("MMM d");
+        }
+    }
 
     #endregion
 

@@ -77,11 +77,31 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BirthdayDisplay))]
+    [NotifyPropertyChangedFor(nameof(BirthdayOffset))]
     private DateTime? _birthday;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HireDateDisplay))]
+    [NotifyPropertyChangedFor(nameof(HireDateOffset))]
     private DateTime? _hireDate;
+
+    /// <summary>
+    /// Birthday as DateTimeOffset for DatePicker binding.
+    /// </summary>
+    public DateTimeOffset? BirthdayOffset
+    {
+        get => Birthday.HasValue ? new DateTimeOffset(Birthday.Value) : null;
+        set => Birthday = value?.DateTime;
+    }
+
+    /// <summary>
+    /// HireDate as DateTimeOffset for DatePicker binding.
+    /// </summary>
+    public DateTimeOffset? HireDateOffset
+    {
+        get => HireDate.HasValue ? new DateTimeOffset(HireDate.Value) : null;
+        set => HireDate = value?.DateTime;
+    }
 
     /// <summary>
     /// Display text for birthday (e.g., "Jan 15").
@@ -178,6 +198,12 @@ public partial class SettingsViewModel : ViewModelBase
     /// Raised when profile is updated.
     /// </summary>
     public event Action? ProfileUpdated;
+
+    /// <summary>
+    /// Raised when the user wants to open the full profile editor dialog.
+    /// The view should show the EditAccountDialog.
+    /// </summary>
+    public event Action? OpenFullProfileEditorRequested;
 
     #endregion
 
@@ -331,6 +357,13 @@ public partial class SettingsViewModel : ViewModelBase
         _backupHireDate = HireDate;
         
         IsEditingProfile = true;
+    }
+
+    [RelayCommand]
+    private void OpenFullProfileEditor()
+    {
+        // Request the view to show the EditAccountDialog for full editing (includes timezone, etc.)
+        OpenFullProfileEditorRequested?.Invoke();
     }
 
     [RelayCommand]

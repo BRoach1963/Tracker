@@ -66,6 +66,24 @@ public class MeetingDetail : BaseModel
     /// </summary>
     public List<MeetingAgendaItem> AgendaItems { get; set; } = new();
 
+    /// <summary>
+    /// The current user's team member ID (set by ViewModel for ownership checks).
+    /// </summary>
+    public Guid? CurrentUserTeamMemberId { get; set; }
+
+    /// <summary>
+    /// Whether the current user is the creator/owner of this meeting.
+    /// </summary>
+    public bool IsOwnedByCurrentUser => 
+        CurrentUserTeamMemberId.HasValue && 
+        CreatedByTeamMemberId.HasValue && 
+        CurrentUserTeamMemberId.Value == CreatedByTeamMemberId.Value;
+
+    /// <summary>
+    /// Whether the meeting has agenda items.
+    /// </summary>
+    public bool HasAgendaItems => AgendaItems.Count > 0;
+
     #endregion
 
     #region Computed Properties
@@ -262,6 +280,16 @@ public class MeetingDetail : BaseModel
         _ => $"{Attendees.Count} attendees"
     };
 
+    /// <summary>
+    /// Alias for TypeDisplay for XAML binding compatibility.
+    /// </summary>
+    public string MeetingTypeName => TypeDisplay;
+
+    /// <summary>
+    /// Cadence/frequency display (stub - will be enhanced when cadence is tracked).
+    /// </summary>
+    public string? CadenceDisplay => null; // Currently meetings don't track cadence
+
     #endregion
 }
 
@@ -309,6 +337,11 @@ public class MeetingAttendee : BaseModel
     /// Team member email (set by service).
     /// </summary>
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Avatar URL for the attendee (set by service from team member).
+    /// </summary>
+    public string? AvatarUrl { get; set; }
 
     /// <summary>
     /// Initials for avatar display.
@@ -371,6 +404,40 @@ public class MeetingAgendaItem : BaseModel
     [Column("linked_entity_id")]
     public Guid? LinkedEntityId { get; set; }
 
+    #region Carry-Forward Properties
+
+    /// <summary>
+    /// Person this carry-forward is anchored to. Required when status=deferred.
+    /// </summary>
+    [Column("anchor_team_member_id")]
+    public Guid? AnchorTeamMemberId { get; set; }
+
+    /// <summary>
+    /// Lifecycle state for carried-forward items: pending, surfaced, resolved, converted, expired.
+    /// </summary>
+    [Column("carry_forward_state")]
+    public string? CarryForwardState { get; set; }
+
+    /// <summary>
+    /// When this carry-forward expires (30 days from deferral or after 2 meetings).
+    /// </summary>
+    [Column("carry_forward_expires_at")]
+    public DateTime? CarryForwardExpiresAt { get; set; }
+
+    /// <summary>
+    /// Number of meeting opportunities since deferral. Expires at 2.
+    /// </summary>
+    [Column("carry_forward_meeting_count")]
+    public int CarryForwardMeetingCount { get; set; }
+
+    /// <summary>
+    /// If this item was carried forward, points to the original agenda item.
+    /// </summary>
+    [Column("source_agenda_item_id")]
+    public Guid? SourceAgendaItemId { get; set; }
+
+    #endregion
+
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
 
@@ -424,6 +491,70 @@ public class MeetingAgendaItem : BaseModel
         "project" => "Project",
         _ => ""
     };
+
+    /// <summary>
+    /// Whether this is a deferred/carry-forward item.
+    /// </summary>
+    public bool IsCarryForward => Status?.ToLower() == "deferred" || !string.IsNullOrEmpty(CarryForwardState);
+
+    /// <summary>
+    /// Whether this item was carried forward from another meeting.
+    /// </summary>
+    public bool IsCarriedForward => SourceAgendaItemId.HasValue;
+
+    /// <summary>
+    /// Display text for the carry-forward state.
+    /// </summary>
+    public string CarryForwardStateDisplay => Models.CarryForwardState.GetDisplayName(CarryForwardState);
+
+    /// <summary>
+    /// Color for the carry-forward state badge.
+    /// </summary>
+    public string CarryForwardStateColor => Models.CarryForwardState.GetColor(CarryForwardState);
+
+    /// <summary>
+    /// Whether this carry-forward item is expired (past expiration date or 2+ meetings).
+    /// </summary>
+    public bool IsExpired => CarryForwardState == Models.CarryForwardState.Expired ||
+                             (CarryForwardExpiresAt.HasValue && DateTime.UtcNow > CarryForwardExpiresAt.Value) ||
+                             CarryForwardMeetingCount >= 2;
+
+    /// <summary>
+    /// Days remaining until expiration, or null if not applicable.
+    /// </summary>
+    public int? DaysUntilExpiration => CarryForwardExpiresAt.HasValue
+        ? Math.Max(0, (int)(CarryForwardExpiresAt.Value - DateTime.UtcNow).TotalDays)
+        : null;
+
+    /// <summary>
+    /// Expiration display text (e.g., "Expires in 5 days" or "2 meetings").
+    /// </summary>
+    public string ExpirationDisplay
+    {
+        get
+        {
+            if (CarryForwardMeetingCount >= 2)
+                return "Meeting limit reached";
+            if (CarryForwardExpiresAt.HasValue)
+            {
+                var days = DaysUntilExpiration ?? 0;
+                if (days <= 0) return "Expired";
+                if (days == 1) return "Expires tomorrow";
+                return $"Expires in {days} days";
+            }
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Formatted creation date for display.
+    /// </summary>
+    public string CreatedAtDisplay => CreatedAt.ToLocalTime().ToString("MMM d, yyyy");
+
+    /// <summary>
+    /// Short time since creation.
+    /// </summary>
+    public string CreatedAtShort => CreatedAt.ToLocalTime().ToString("MMM d");
 
     #endregion
 }

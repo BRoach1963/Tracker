@@ -1,0 +1,132 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:asyncImageLoader="using:AsyncImageLoader"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="380"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.DeferAgendaItemDialog"
+        Title="Defer Agenda Item"
+        Width="450"
+        Height="380"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="False">
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+        
+        <!-- Header with agenda item context -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+            <TextBlock Text="Deferring:" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+            <TextBlock x:Name="AgendaItemTitleText" 
+                       Text="Agenda Item Title" 
+                       FontSize="14" 
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"/>
+        </StackPanel>
+        
+        <!-- Form Content -->
+        <StackPanel Grid.Row="1" Spacing="16">
+            
+            <!-- Explanation -->
+            <Border Background="{DynamicResource BrushSurfaceAlt}" 
+                    CornerRadius="6" 
+                    Padding="12">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z" 
+                                  Width="14" Height="14" Foreground="{DynamicResource BrushPrimary}"/>
+                        <TextBlock Text="Carry Forward" FontSize="12" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <TextBlock Text="This item will be suggested in the next meeting with the selected person. It will expire after 30 days or 2 meeting opportunities."
+                               FontSize="11" 
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Anchor Person Selection -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="Anchor to Person" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <TextBlock Text="This item will appear when you have meetings with this person."
+                           FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                <ComboBox x:Name="AnchorPersonComboBox" 
+                          HorizontalAlignment="Stretch"
+                          PlaceholderText="Select team member...">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:TeamMemberDetail">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="24" Height="24" CornerRadius="12" ClipToBounds="True">
+                                    <Panel>
+                                        <Border Background="{DynamicResource BrushPrimaryLight}"
+                                                CornerRadius="12"
+                                                IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                            <TextBlock Text="{Binding Initials}" 
+                                                       FontSize="10" 
+                                                       HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource BrushPrimary}"/>
+                                        </Border>
+                                        <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                               Stretch="UniformToFill" Width="24" Height="24"
+                                               IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    </Panel>
+                                </Border>
+                                <TextBlock Text="{Binding FullName}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+            
+            <!-- Custom Expiration (optional) -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="Expiration (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <ComboBox x:Name="ExpirationComboBox" 
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="1">
+                        <ComboBoxItem Content="1 week" Tag="7"/>
+                        <ComboBoxItem Content="30 days (default)" Tag="30"/>
+                        <ComboBoxItem Content="60 days" Tag="60"/>
+                        <ComboBoxItem Content="90 days" Tag="90"/>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+            
+            <!-- Optional note -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="Note (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <TextBox x:Name="NoteTextBox"
+                         Watermark="Add context for when this resurfaces..."
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="60"
+                         MaxHeight="80"/>
+            </StackPanel>
+            
+        </StackPanel>
+        
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+            <Button x:Name="CancelButton" 
+                    Content="Cancel" 
+                    Classes="secondary-button"
+                    Padding="16,8"
+                    Click="CancelButton_Click"/>
+            <Button x:Name="DeferButton" 
+                    Content="Defer Item" 
+                    Classes="primary-button"
+                    Padding="16,8"
+                    Click="DeferButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

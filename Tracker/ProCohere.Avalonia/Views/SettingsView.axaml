@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:conv="using:ProCohere.Avalonia.Converters"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
              x:Class="ProCohere.Avalonia.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
@@ -119,7 +120,7 @@
                                                    VerticalAlignment="Center" />
                                     </Border>
                                     <!-- Avatar image when available -->
-                                    <Image Source="{Binding AvatarUrl}"
+                                    <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
                                            Stretch="UniformToFill"
                                            Width="80" Height="80"
                                            IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -295,7 +296,7 @@
                                         <TextBlock Text="Birthday" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
-                                        <DatePicker SelectedDate="{Binding Birthday, Mode=TwoWay}"
+                                        <DatePicker SelectedDate="{Binding BirthdayOffset, Mode=TwoWay}"
                                                     HorizontalAlignment="Stretch"
                                                     FontSize="14" />
                                     </StackPanel>
@@ -303,7 +304,7 @@
                                         <TextBlock Text="Hire Date" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
-                                        <DatePicker SelectedDate="{Binding HireDate, Mode=TwoWay}"
+                                        <DatePicker SelectedDate="{Binding HireDateOffset, Mode=TwoWay}"
                                                     HorizontalAlignment="Stretch"
                                                     FontSize="14" />
                                     </StackPanel>
@@ -325,6 +326,38 @@
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="#2E3A5A" />
+                    
+                    <!-- Edit Full Profile (opens dialog with timezone, etc.) -->
+                    <Button Command="{Binding OpenFullProfileEditorCommand}"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            Padding="16,12"
+                            CornerRadius="8"
+                            HorizontalContentAlignment="Stretch"
+                            Cursor="Hand">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <PathIcon Grid.Column="0"
+                                      Data="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 7.5c4.418 0 8 1.79 8 4v1.5a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5V17c0-2.21 3.582-4 8-4Zm0 1.5c-3.59 0-6.5 1.343-6.5 2.5v.5h13v-.5c0-1.157-2.91-2.5-6.5-2.5Z"
+                                      Width="20" Height="20"
+                                      Foreground="#64748B"
+                                      Margin="0,0,12,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Edit Full Profile"
+                                           FontSize="14"
+                                           Foreground="#2E3A5A" />
+                                <TextBlock Text="Includes timezone and more options"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                            </StackPanel>
+                            <PathIcon Grid.Column="2"
+                                      Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                      Width="16" Height="16"
+                                      Foreground="#94A3B8"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
                     
                     <!-- Change Password -->
                     <Button Command="{Binding ChangePasswordCommand}"

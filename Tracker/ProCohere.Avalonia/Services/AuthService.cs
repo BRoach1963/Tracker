@@ -81,6 +81,17 @@ public class AuthService
     /// </summary>
     public Supabase.Client? GetProCohereClient() => _procohereClient;
 
+    /// <summary>
+    /// Gets the stored user identity (email and user ID) for the remembered session.
+    /// Returns the identity even if not currently logged in (for showing "Continue as X" on login).
+    /// </summary>
+    public (string? Email, string? UserId) GetStoredUserIdentity() => _credentialService.GetStoredUserIdentity();
+
+    /// <summary>
+    /// Checks if there's a stored session available for auto-login.
+    /// </summary>
+    public bool HasStoredSession => _credentialService.HasStoredSession();
+
     #endregion
 
     #region Events
@@ -180,10 +191,14 @@ public class AuthService
 
             if (session?.User != null)
             {
-                // Update stored tokens with new ones from refresh
+                // Update stored tokens with new ones from refresh, including user identity
                 if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
                 {
-                    _credentialService.StoreSession(session.AccessToken, session.RefreshToken);
+                    _credentialService.StoreSession(
+                        session.AccessToken, 
+                        session.RefreshToken, 
+                        session.User.Email, 
+                        session.User.Id);
                 }
 
                 // Sync auth to procohere client so it can make authenticated requests
@@ -241,8 +256,12 @@ public class AuthService
 
                 if (persistSession && !string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
                 {
-                    // Store in Windows Credential Manager for auto-login
-                    _credentialService.StoreSession(session.AccessToken, session.RefreshToken);
+                    // Store in Windows Credential Manager for auto-login, including user identity
+                    _credentialService.StoreSession(
+                        session.AccessToken, 
+                        session.RefreshToken, 
+                        session.User.Email, 
+                        session.User.Id);
                 }
                 else
                 {
@@ -291,7 +310,11 @@ public class AuthService
                 // Always persist session for new sign-ups (they can disable later in settings)
                 if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
                 {
-                    _credentialService.StoreSession(session.AccessToken, session.RefreshToken);
+                    _credentialService.StoreSession(
+                        session.AccessToken, 
+                        session.RefreshToken, 
+                        session.User.Email, 
+                        session.User.Id);
                 }
                 AuthStateChanged?.Invoke(this, session.User);
                 return (true, null);
@@ -417,6 +440,7 @@ public class AuthService
     /// <param name="phone">Phone number</param>
     /// <param name="birthday">Birthday (optional)</param>
     /// <param name="hireDate">Hire date (optional)</param>
+    /// <param name="timezone">Timezone ID (optional)</param>
     /// <returns>True if update succeeded.</returns>
     public async Task<(bool Success, string? Error)> UpdateUserProfileAsync(
         string? firstName,
@@ -425,7 +449,8 @@ public class AuthService
         string? company,
         string? phone,
         DateTime? birthday = null,
-        DateTime? hireDate = null)
+        DateTime? hireDate = null,
+        string? timezone = null)
     {
         if (_publicClient?.Auth?.CurrentUser == null)
         {
@@ -449,6 +474,8 @@ public class AuthService
             }
 
             // Update the profile in the users table (id = auth.uid in new schema)
+            // Note: birthday, hire_date, and updated_at require running FIX_users_update_grant.sql
+            // For now, we only update the columns that are in the GRANT list
             var updateQuery = _publicClient.From<UserProfile>()
                 .Where(p => p.Id == userId)
                 .Set(p => p.FirstName!, firstName ?? string.Empty)
@@ -456,10 +483,13 @@ public class AuthService
                 .Set(p => p.DisplayName!, displayName)
                 .Set(p => p.JobTitle!, jobTitle ?? string.Empty)
                 .Set(p => p.Company!, company ?? string.Empty)
-                .Set(p => p.Phone!, phone ?? string.Empty)
-                .Set(p => p.Birthday!, birthday)
-                .Set(p => p.HireDate!, hireDate)
-                .Set(p => p.UpdatedAt, DateTime.UtcNow);
+                .Set(p => p.Phone!, phone ?? string.Empty);
+            
+            // Add timezone if provided
+            if (!string.IsNullOrEmpty(timezone))
+            {
+                updateQuery = updateQuery.Set(p => p.Timezone!, timezone);
+            }
             
             await updateQuery.Update();
 
@@ -483,14 +513,58 @@ public class AuthService
     /// <returns>Tuple with success flag, new avatar URL (if successful), and error message (if failed).</returns>
     public async Task<(bool Success, string? AvatarUrl, string? Error)> UploadAvatarAsync(string filePath)
     {
-        if (_publicClient?.Auth?.CurrentUser == null)
+        // DIAGNOSTIC: Log auth state at upload time
+        var session = _publicClient?.Auth?.CurrentSession;
+        var user = _publicClient?.Auth?.CurrentUser;
+        
+        System.Diagnostics.Debug.WriteLine("=== AVATAR UPLOAD AUTH DIAGNOSTIC ===");
+        System.Diagnostics.Debug.WriteLine($"User ID: {user?.Id ?? "NULL"}");
+        System.Diagnostics.Debug.WriteLine($"User Email: {user?.Email ?? "NULL"}");
+        System.Diagnostics.Debug.WriteLine($"Session exists: {session != null}");
+        System.Diagnostics.Debug.WriteLine($"Access Token exists: {!string.IsNullOrEmpty(session?.AccessToken)}");
+        System.Diagnostics.Debug.WriteLine($"Access Token (first 20 chars): {session?.AccessToken?.Substring(0, Math.Min(20, session?.AccessToken?.Length ?? 0)) ?? "NULL"}...");
+        System.Diagnostics.Debug.WriteLine($"Token Expiry: {session?.ExpiresAt()}");
+        System.Diagnostics.Debug.WriteLine("=====================================");
+
+        if (user == null)
         {
-            return (false, null, "Not signed in.");
+            return (false, null, "Not signed in - CurrentUser is null.");
+        }
+
+        if (session == null)
+        {
+            return (false, null, "Not signed in - CurrentSession is null.");
+        }
+
+        if (string.IsNullOrEmpty(session.AccessToken))
+        {
+            return (false, null, "Not signed in - AccessToken is missing.");
+        }
+
+        // Check if token is expired
+        var expiresAt = session.ExpiresAt();
+        if (expiresAt < DateTime.UtcNow)
+        {
+            System.Diagnostics.Debug.WriteLine("Token expired, attempting refresh...");
+            try
+            {
+                var refreshedSession = await _publicClient!.Auth.RefreshSession();
+                if (refreshedSession == null || string.IsNullOrEmpty(refreshedSession.AccessToken))
+                {
+                    return (false, null, "Session expired and refresh failed.");
+                }
+                session = refreshedSession;
+                System.Diagnostics.Debug.WriteLine("Token refreshed successfully.");
+            }
+            catch (Exception refreshEx)
+            {
+                return (false, null, $"Session expired and refresh failed: {refreshEx.Message}");
+            }
         }
 
         try
         {
-            var userId = _publicClient.Auth.CurrentUser.Id;
+            var userId = user.Id;
             
             // Read the file
             if (!File.Exists(filePath))
@@ -517,9 +591,12 @@ public class AuthService
                 return (false, null, "Invalid file type. Allowed: JPG, PNG, GIF, WebP.");
             }
 
-            // Generate a unique filename
+            // File path must be: <user_id>/filename to match RLS policy
+            // The RLS policy checks: (storage.foldername(name))[1] = auth.uid()
             var fileName = $"{userId}/avatar{extension}";
             
+            System.Diagnostics.Debug.WriteLine($"Uploading to path: {fileName}");
+
             // Determine content type
             var contentType = extension switch
             {
@@ -530,9 +607,13 @@ public class AuthService
                 _ => "application/octet-stream"
             };
 
-            // Upload to Supabase Storage
-            var storage = _publicClient.Storage;
+            // Upload to Supabase Storage using the authenticated client
+            // The Supabase .NET client SHOULD automatically include the Authorization header
+            // if there's an active session, but we verify above
+            var storage = _publicClient!.Storage;
             var bucket = storage.From("avatars");
+            
+            System.Diagnostics.Debug.WriteLine("Starting upload...");
             
             // Upload (upsert to replace existing)
             await bucket.Upload(fileBytes, fileName, new Supabase.Storage.FileOptions
@@ -541,6 +622,8 @@ public class AuthService
                 Upsert = true
             });
 
+            System.Diagnostics.Debug.WriteLine("Upload completed successfully.");
+
             // Get public URL
             var publicUrl = bucket.GetPublicUrl(fileName);
             
@@ -548,11 +631,11 @@ public class AuthService
             var avatarUrl = $"{publicUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
             // Update user profile with new avatar URL
+            // Note: Don't set updated_at explicitly - it has a database trigger and isn't in the column GRANT
             var userGuid = Guid.Parse(userId!);
             await _publicClient.From<UserProfile>()
                 .Where(p => p.Id == userGuid)
                 .Set(p => p.AvatarUrl!, avatarUrl)
-                .Set(p => p.UpdatedAt, DateTime.UtcNow)
                 .Update();
 
             // Reload profile
@@ -564,6 +647,8 @@ public class AuthService
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to upload avatar: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Exception type: {ex.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             return (false, null, $"Failed to upload avatar: {ex.Message}");
         }
     }

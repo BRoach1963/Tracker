@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Views.Dialogs;
 
 namespace ProCohere.Avalonia.Views;
 
@@ -23,6 +25,37 @@ public partial class SettingsView : UserControl
         if (DataContext is SettingsViewModel vm)
         {
             vm.OpenFilePickerFunc = OpenAvatarFilePickerAsync;
+            vm.OpenFullProfileEditorRequested += OnOpenFullProfileEditorRequested;
+        }
+    }
+
+    private async void OnOpenFullProfileEditorRequested()
+    {
+        try
+        {
+            // Load current user profile
+            var profile = await AuthService.Instance.LoadUserProfileAsync();
+            if (profile == null) return;
+
+            // Create the dialog (non-modal, draggable window)
+            var dialog = new EditAccountDialog();
+            dialog.LoadProfile(profile);
+            
+            // Subscribe to save event to refresh UI
+            dialog.ProfileSaved += async () =>
+            {
+                if (DataContext is SettingsViewModel vm)
+                {
+                    await vm.LoadUserProfileAsync();
+                }
+            };
+            
+            // Show as non-modal window (can be dragged, doesn't block)
+            dialog.Show();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error showing edit profile dialog: {ex.Message}");
         }
     }
 

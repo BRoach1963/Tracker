@@ -1,0 +1,227 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
+        mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="500"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.ApplyTemplateDialog"
+        Title="Apply Meeting Template"
+        Width="550" Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="{DynamicResource SystemChromeMediumLowColor}">
+
+    <Window.Styles>
+        <Style Selector="Border.template-card">
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        
+        <Style Selector="Border.template-card:pointerover">
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        </Style>
+        
+        <Style Selector="Border.template-card.selected">
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        
+        <Style Selector="TextBlock.template-name">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+        
+        <Style Selector="TextBlock.template-description">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        
+        <Style Selector="TextBlock.template-meta">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Style>
+        
+        <Style Selector="Border.category-badge">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,16">
+            <StackPanel Spacing="4">
+                <TextBlock Text="Apply Meeting Template"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                <TextBlock x:Name="MeetingTitleText"
+                           Text="Select a template to add agenda items"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Border>
+        
+        <!-- Content -->
+        <Grid Grid.Row="1" Margin="20,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <!-- Category Filter -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                <TextBlock Text="Filter:"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <ComboBox x:Name="CategoryFilterComboBox"
+                          Width="150"
+                          SelectedIndex="0"
+                          SelectionChanged="CategoryFilterComboBox_SelectionChanged">
+                    <ComboBoxItem Content="All Templates" Tag="" />
+                    <ComboBoxItem Content="1:1 Meeting" Tag="one_on_one" />
+                    <ComboBoxItem Content="Team Meeting" Tag="team" />
+                    <ComboBoxItem Content="Project Review" Tag="project" />
+                    <ComboBoxItem Content="Custom" Tag="custom" />
+                </ComboBox>
+            </StackPanel>
+            
+            <!-- Templates List -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="TemplatesItemsControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:MeetingTemplateDetail">
+                            <Border Classes="template-card"
+                                    Tag="{Binding}"
+                                    PointerPressed="TemplateCard_PointerPressed">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
+                                    <!-- Header Row -->
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+                                        <PathIcon Grid.Column="0"
+                                                  Height="20" Width="20"
+                                                  Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                                  Data="{Binding CategoryIcon}"
+                                                  Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Name}"
+                                                   Classes="template-name"
+                                                   VerticalAlignment="Center" />
+                                        <Border Grid.Column="2"
+                                                Classes="category-badge"
+                                                Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                            <TextBlock Text="{Binding CategoryDisplay}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </Border>
+                                    </Grid>
+                                    
+                                    <!-- Description Row -->
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Description}"
+                                               Classes="template-description"
+                                               Margin="30,4,0,0"
+                                               MaxLines="2"
+                                               TextTrimming="CharacterEllipsis" />
+                                    
+                                    <!-- Meta Row -->
+                                    <StackPanel Grid.Row="2" 
+                                                Orientation="Horizontal"
+                                                Spacing="12"
+                                                Margin="30,8,0,0">
+                                        <TextBlock Classes="template-meta">
+                                            <Run Text="{Binding ItemCountDisplay}" />
+                                        </TextBlock>
+                                        <TextBlock Classes="template-meta"
+                                                   IsVisible="{Binding IsSystem}">
+                                            <Run Text="• System template" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+            
+            <!-- Empty State -->
+            <StackPanel x:Name="EmptyStatePanel"
+                        IsVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8">
+                <PathIcon Height="40" Width="40"
+                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                          Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+                          HorizontalAlignment="Center" />
+                <TextBlock Text="No templates found"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Try a different filter or create a custom template."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+            
+            <!-- Loading State -->
+            <StackPanel x:Name="LoadingPanel"
+                        IsVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12">
+                <ProgressBar IsIndeterminate="True"
+                             Width="100"
+                             Height="4" />
+                <TextBlock Text="Loading templates..."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,12">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <StackPanel Grid.Column="0" 
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+                    <TextBlock x:Name="SelectedTemplateText"
+                               Text="No template selected"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        MinWidth="80"
+                        Margin="0,0,8,0"
+                        Click="CancelButton_Click" />
+                <Button Grid.Column="2"
+                        x:Name="ApplyButton"
+                        Content="Apply Template"
+                        Classes="accent"
+                        MinWidth="120"
+                        IsEnabled="False"
+                        Click="ApplyButton_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

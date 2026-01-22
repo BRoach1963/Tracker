@@ -24,6 +24,14 @@ public class WindowsCredentialService : ICredentialService
     /// </summary>
     public bool StoreSession(string accessToken, string refreshToken)
     {
+        return StoreSession(accessToken, refreshToken, null, null);
+    }
+
+    /// <summary>
+    /// Stores the Supabase session tokens along with user identity using DPAPI encryption.
+    /// </summary>
+    public bool StoreSession(string accessToken, string refreshToken, string? userEmail, string? userId)
+    {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return false;
@@ -35,6 +43,8 @@ public class WindowsCredentialService : ICredentialService
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
+                UserEmail = userEmail,
+                UserId = userId,
                 StoredAt = DateTime.UtcNow
             };
 
@@ -69,16 +79,38 @@ public class WindowsCredentialService : ICredentialService
     /// </summary>
     public (string? AccessToken, string? RefreshToken) GetStoredSession()
     {
+        var sessionData = GetStoredSessionData();
+        return sessionData != null 
+            ? (sessionData.AccessToken, sessionData.RefreshToken) 
+            : (null, null);
+    }
+
+    /// <summary>
+    /// Gets the stored user identity (email and user ID) if available.
+    /// </summary>
+    public (string? Email, string? UserId) GetStoredUserIdentity()
+    {
+        var sessionData = GetStoredSessionData();
+        return sessionData != null 
+            ? (sessionData.UserEmail, sessionData.UserId) 
+            : (null, null);
+    }
+
+    /// <summary>
+    /// Internal method to retrieve and decrypt the full session data.
+    /// </summary>
+    private SessionData? GetStoredSessionData()
+    {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return (null, null);
+            return null;
         }
 
         try
         {
             if (!File.Exists(SessionFilePath))
             {
-                return (null, null);
+                return null;
             }
 
             var encryptedBytes = File.ReadAllBytes(SessionFilePath);
@@ -90,19 +122,12 @@ public class WindowsCredentialService : ICredentialService
                 DataProtectionScope.CurrentUser);
 
             var json = Encoding.UTF8.GetString(plainBytes);
-            var sessionData = JsonSerializer.Deserialize<SessionData>(json);
-
-            if (sessionData != null)
-            {
-                return (sessionData.AccessToken, sessionData.RefreshToken);
-            }
-
-            return (null, null);
+            return JsonSerializer.Deserialize<SessionData>(json);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to retrieve session: {ex.Message}");
-            return (null, null);
+            return null;
         }
     }
 
@@ -147,6 +172,8 @@ public class WindowsCredentialService : ICredentialService
     {
         public string? AccessToken { get; set; }
         public string? RefreshToken { get; set; }
+        public string? UserEmail { get; set; }
+        public string? UserId { get; set; }
         public DateTime StoredAt { get; set; }
     }
 }

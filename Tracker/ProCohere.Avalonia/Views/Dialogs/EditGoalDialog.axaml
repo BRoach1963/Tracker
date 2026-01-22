@@ -1,0 +1,206 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:asyncImageLoader="using:AsyncImageLoader"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="650"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditGoalDialog"
+        Title="Goal"
+        Width="520" Height="650"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="{DynamicResource SystemChromeMediumLowColor}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,16">
+            <TextBlock x:Name="DialogTitle"
+                       Text="New Goal"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="20,16">
+            <StackPanel Spacing="16">
+                
+                <!-- Title -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Title *" FontSize="12" />
+                    <TextBox x:Name="TitleTextBox"
+                             Watermark="What do you want to achieve?" />
+                </StackPanel>
+                
+                <!-- Description -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description" FontSize="12" />
+                    <TextBox x:Name="DescriptionTextBox"
+                             Watermark="Why is this goal important? What does success look like?"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80" />
+                </StackPanel>
+                
+                <!-- Goal Type -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Goal Type" FontSize="12" />
+                    <ComboBox x:Name="GoalTypeComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="Growth" Tag="growth" />
+                        <ComboBoxItem Content="Execution" Tag="execution" />
+                        <ComboBoxItem Content="Operational" Tag="operational" />
+                        <ComboBoxItem Content="Directional" Tag="directional" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Time Period Row -->
+                <Grid ColumnDefinitions="*,12,Auto">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Time Period" FontSize="12" />
+                        <ComboBox x:Name="TimePeriodComboBox"
+                                  HorizontalAlignment="Stretch"
+                                  SelectedIndex="0">
+                            <ComboBoxItem Content="Q1" Tag="Q1" />
+                            <ComboBoxItem Content="Q2" Tag="Q2" />
+                            <ComboBoxItem Content="Q3" Tag="Q3" />
+                            <ComboBoxItem Content="Q4" Tag="Q4" />
+                            <ComboBoxItem Content="H1" Tag="H1" />
+                            <ComboBoxItem Content="H2" Tag="H2" />
+                            <ComboBoxItem Content="Annual" Tag="Annual" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Year" FontSize="12" />
+                        <ComboBox x:Name="YearComboBox"
+                                  MinWidth="100" />
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Date Range -->
+                <Grid ColumnDefinitions="*,12,*">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Start Date" FontSize="12" />
+                        <DatePicker x:Name="StartDatePicker" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="End Date" FontSize="12" />
+                        <DatePicker x:Name="EndDatePicker" />
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Owner -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Owner" FontSize="12" />
+                    <ComboBox x:Name="OwnerComboBox"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="Select owner">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="24" Height="24"
+                                            CornerRadius="12"
+                                            ClipToBounds="True">
+                                        <Panel>
+                                            <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                    CornerRadius="12"
+                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                <TextBlock Text="{Binding Initials}"
+                                                           FontSize="10"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                                   Stretch="UniformToFill" Width="24" Height="24"
+                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock Text="{Binding FullName}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Health (only in edit mode) -->
+                <StackPanel x:Name="HealthSection" Spacing="4" IsVisible="False">
+                    <TextBlock Text="Health Status" FontSize="12" />
+                    <ComboBox x:Name="HealthComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="On Track" Tag="on_track" />
+                        <ComboBoxItem Content="Needs Attention" Tag="needs_attention" />
+                        <ComboBoxItem Content="At Risk" Tag="at_risk" />
+                        <ComboBoxItem Content="Reframing Needed" Tag="reframing_needed" />
+                    </ComboBox>
+                    <TextBox x:Name="HealthReasonTextBox"
+                             Watermark="What has changed?"
+                             Margin="0,4,0,0" />
+                </StackPanel>
+                
+                <!-- Lifecycle (only in edit mode) -->
+                <StackPanel x:Name="LifecycleSection" Spacing="4" IsVisible="False">
+                    <TextBlock Text="Lifecycle" FontSize="12" />
+                    <ComboBox x:Name="LifecycleComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="Active" Tag="active" />
+                        <ComboBoxItem Content="Evolving" Tag="evolving" />
+                        <ComboBoxItem Content="Paused" Tag="paused" />
+                        <ComboBoxItem Content="Superseded" Tag="superseded" />
+                        <ComboBoxItem Content="Retired" Tag="retired" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Visibility -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Visibility" FontSize="12" />
+                    <ComboBox x:Name="VisibilityComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="1">
+                        <ComboBoxItem Content="Private (only me)" Tag="private" />
+                        <ComboBoxItem Content="Team" Tag="team" />
+                        <ComboBoxItem Content="Organization" Tag="organization" />
+                    </ComboBox>
+                </StackPanel>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,12">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button x:Name="DeleteButton"
+                        Grid.Column="0"
+                        Content="Delete"
+                        Foreground="#E74C3C"
+                        IsVisible="False"
+                        Click="DeleteButton_Click" />
+                <Button Grid.Column="2"
+                        Content="Cancel"
+                        MinWidth="80"
+                        Margin="0,0,8,0"
+                        Click="CancelButton_Click" />
+                <Button Grid.Column="3"
+                        x:Name="SaveButton"
+                        Content="Create Goal"
+                        Classes="accent"
+                        MinWidth="100"
+                        Click="SaveButton_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

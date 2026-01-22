@@ -1,4 +1,5 @@
 using System;
+using Avalonia.Media;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -67,6 +68,11 @@ public class TaskDetail : BaseModel
     /// Name of the owner (set by DashboardService join).
     /// </summary>
     public string? OwnerName { get; set; }
+
+    /// <summary>
+    /// Name of who created/assigned the task (set by service join).
+    /// </summary>
+    public string? AssignedByName { get; set; }
 
     /// <summary>
     /// Whether the task is overdue.
@@ -183,14 +189,60 @@ public class TaskDetail : BaseModel
     }
 
     /// <summary>
-    /// Priority display text with emoji.
+    /// Color for due date indicator: muted warning for overdue, neutral for everything else.
+    /// Design: Urgency communicated through language, not bright colors.
+    /// </summary>
+    public IBrush DueDateBrush
+    {
+        get
+        {
+            if (!DueDate.HasValue)
+                return new SolidColorBrush(Color.Parse("#9CA3AF")); // Neutral gray
+
+            var today = DateTime.UtcNow.Date;
+            var dueDate = DueDate.Value.Date;
+
+            if (dueDate < today)
+                return new SolidColorBrush(Color.Parse("#B45309")); // Muted amber - overdue (only warning)
+            return new SolidColorBrush(Color.Parse("#6B7280")); // Neutral gray for all else
+        }
+    }
+
+    /// <summary>
+    /// Whether this task was assigned by someone else (not self-assigned).
+    /// Returns true if CreatedByTeamMemberId differs from OwnerTeamMemberId.
+    /// </summary>
+    public bool IsAssignedByOther => 
+        CreatedByTeamMemberId.HasValue && 
+        OwnerTeamMemberId.HasValue && 
+        CreatedByTeamMemberId.Value != OwnerTeamMemberId.Value;
+
+    /// <summary>
+    /// Priority display text - no emoji colors, just clear text.
     /// </summary>
     public string PriorityDisplay => Priority?.ToLower() switch
     {
-        "high" => "🔴 High",
-        "medium" => "🟡 Medium",
-        "low" => "🟢 Low",
-        _ => "⚪ None"
+        "high" => "High",
+        "medium" => "Medium",
+        "low" => "Low",
+        _ => ""
+    };
+
+    /// <summary>
+    /// Alias for DueDateText for XAML binding.
+    /// </summary>
+    public string DueDateDisplay => DueDateText;
+
+    /// <summary>
+    /// Brush for priority badge background - using neutral tones, not traffic-light colors.
+    /// Priority is communicated through ordering and language, not judgmental colors.
+    /// </summary>
+    public IBrush PriorityBrush => Priority?.ToLower() switch
+    {
+        "high" => new SolidColorBrush(Color.Parse("#4B5563")), // Dark neutral
+        "medium" => new SolidColorBrush(Color.Parse("#6B7280")), // Medium neutral
+        "low" => new SolidColorBrush(Color.Parse("#9CA3AF")), // Light neutral
+        _ => new SolidColorBrush(Color.Parse("#D1D5DB")) // Very light
     };
 
     #endregion

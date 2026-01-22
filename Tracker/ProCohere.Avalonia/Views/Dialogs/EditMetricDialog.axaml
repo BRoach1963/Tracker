@@ -1,0 +1,226 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:asyncImageLoader="using:AsyncImageLoader"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="700"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditMetricDialog"
+        Title="Metric"
+        Width="520" Height="700"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="{DynamicResource SystemChromeMediumLowColor}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,16">
+            <TextBlock x:Name="DialogTitle"
+                       Text="New Metric"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="20,16">
+            <StackPanel Spacing="16">
+                
+                <!-- Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Name *" FontSize="12" />
+                    <TextBox x:Name="NameTextBox"
+                             Watermark="What are you measuring?" />
+                </StackPanel>
+                
+                <!-- Description -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description" FontSize="12" />
+                    <TextBox x:Name="DescriptionTextBox"
+                             Watermark="What does this metric tell us? Why does it matter?"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="60" />
+                </StackPanel>
+                
+                <!-- Category -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Category" FontSize="12" />
+                    <TextBox x:Name="CategoryTextBox"
+                             Watermark="e.g., Performance, Engagement, Revenue" />
+                </StackPanel>
+                
+                <!-- Values Row -->
+                <Grid ColumnDefinitions="*,12,*,12,*">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Current Value" FontSize="12" />
+                        <TextBox x:Name="CurrentValueTextBox"
+                                 Watermark="0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Target Value" FontSize="12" />
+                        <TextBox x:Name="TargetValueTextBox"
+                                 Watermark="Optional" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" Spacing="4">
+                        <TextBlock Text="Baseline" FontSize="12" />
+                        <TextBox x:Name="BaselineValueTextBox"
+                                 Watermark="Optional" />
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Unit and Direction -->
+                <Grid ColumnDefinitions="*,12,*">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Unit" FontSize="12" />
+                        <TextBox x:Name="UnitTextBox"
+                                 Watermark="%, count, $, etc." />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Direction" FontSize="12" />
+                        <ComboBox x:Name="DirectionComboBox"
+                                  HorizontalAlignment="Stretch"
+                                  SelectedIndex="0">
+                            <ComboBoxItem Content="Higher is better" Tag="higher_is_better" />
+                            <ComboBoxItem Content="Lower is better" Tag="lower_is_better" />
+                            <ComboBoxItem Content="Neutral" Tag="neutral" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Source and Scope -->
+                <Grid ColumnDefinitions="*,12,*">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Data Source" FontSize="12" />
+                        <ComboBox x:Name="SourceComboBox"
+                                  HorizontalAlignment="Stretch"
+                                  SelectedIndex="2">
+                            <ComboBoxItem Content="System" Tag="system" />
+                            <ComboBoxItem Content="Survey" Tag="survey" />
+                            <ComboBoxItem Content="Manual" Tag="manual" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Scope" FontSize="12" />
+                        <ComboBox x:Name="ScopeComboBox"
+                                  HorizontalAlignment="Stretch"
+                                  SelectedIndex="0">
+                            <ComboBoxItem Content="Individual" Tag="individual" />
+                            <ComboBoxItem Content="Team" Tag="team" />
+                            <ComboBoxItem Content="Organization" Tag="organization" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Frequency -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Update Frequency" FontSize="12" />
+                    <ComboBox x:Name="FrequencyComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="2">
+                        <ComboBoxItem Content="Daily" Tag="daily" />
+                        <ComboBoxItem Content="Weekly" Tag="weekly" />
+                        <ComboBoxItem Content="Monthly" Tag="monthly" />
+                        <ComboBoxItem Content="Quarterly" Tag="quarterly" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Owner/Steward -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Steward" FontSize="12" />
+                    <ComboBox x:Name="OwnerComboBox"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="Select steward">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="24" Height="24" CornerRadius="12" ClipToBounds="True">
+                                        <Panel>
+                                            <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                    CornerRadius="12"
+                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                <TextBlock Text="{Binding Initials}"
+                                                           FontSize="10"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                                   Stretch="UniformToFill" Width="24" Height="24"
+                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock Text="{Binding FullName}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Lifecycle (only in edit mode) -->
+                <StackPanel x:Name="LifecycleSection" Spacing="4" IsVisible="False">
+                    <TextBlock Text="Lifecycle" FontSize="12" />
+                    <ComboBox x:Name="LifecycleComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="Active" Tag="active" />
+                        <ComboBoxItem Content="Dormant" Tag="dormant" />
+                        <ComboBoxItem Content="Retired" Tag="retired" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Visibility and Sensitivity -->
+                <Grid ColumnDefinitions="*,12,Auto">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Visibility" FontSize="12" />
+                        <ComboBox x:Name="VisibilityComboBox"
+                                  HorizontalAlignment="Stretch"
+                                  SelectedIndex="1">
+                            <ComboBoxItem Content="Private (only me)" Tag="private" />
+                            <ComboBoxItem Content="Team" Tag="team" />
+                            <ComboBoxItem Content="Organization" Tag="organization" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Bottom">
+                        <CheckBox x:Name="IsSensitiveCheckBox"
+                                  Content="Sensitive data" />
+                    </StackPanel>
+                </Grid>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,12">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button x:Name="DeleteButton"
+                        Grid.Column="0"
+                        Content="Delete"
+                        Foreground="#E74C3C"
+                        IsVisible="False"
+                        Click="DeleteButton_Click" />
+                <Button Grid.Column="2"
+                        Content="Cancel"
+                        MinWidth="80"
+                        Margin="0,0,8,0"
+                        Click="CancelButton_Click" />
+                <Button Grid.Column="3"
+                        x:Name="SaveButton"
+                        Content="Create Metric"
+                        Classes="accent"
+                        MinWidth="100"
+                        Click="SaveButton_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

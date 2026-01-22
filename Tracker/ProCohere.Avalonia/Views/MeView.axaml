@@ -1,0 +1,1475 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+             x:Class="ProCohere.Avalonia.Views.MeView"
+             x:DataType="vm:MeViewModel">
+    
+    <!-- 
+    ============================================================================
+    ME VIEW - "Circle for one person"
+    ============================================================================
+    
+    Structure mirrors Circle/Pulse: Tabs + List + Flyout
+    ┌──────────────────────────────────────────────────────┬─────────────┐
+    │  Me · Alex Chen                                      │             │
+    │  Here's all your stuff in one place                  │             │
+    ├──────────────────────────────────────────────────────┤             │
+    │  Tasks | Goals | Feedback | Meetings                 │   FLYOUT    │
+    ├──────────────────────────────────────────────────────┤   PANEL     │
+    │                                                      │             │
+    │  ☐ Review Q4 report                     Tomorrow     │             │
+    │  ☐ Submit expense report                  Today      │             │
+    │  ☐ Complete training module              Friday      │             │
+    │  ...                                                 │             │
+    └──────────────────────────────────────────────────────┴─────────────┘
+    
+    Key principles:
+    - Same pattern as Circle: Tabs organize content by type
+    - Flyouts for detail views (same as Circle/Pulse)
+    - Tasks first (primary work queue)
+    - Everything the user owns or is assigned in one place
+    ============================================================================
+    -->
+
+    <UserControl.Styles>
+        <!-- Tab Button Style (matches Circle) -->
+        <Style Selector="Button.tab-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style Selector="Button.tab-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+        <Style Selector="Button.tab-button.selected">
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        
+        <!-- Task Row -->
+        <Style Selector="Border.task-row">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.task-row:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        
+        <!-- Goal Card Style -->
+        <Style Selector="Border.goal-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.goal-card:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        
+        <!-- Feedback Card Style -->
+        <Style Selector="Border.feedback-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.feedback-card:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        
+        <!-- Meeting Card Style -->
+        <Style Selector="Border.meeting-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.meeting-card:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        
+        <!-- View Mode Button Style (Day/Week/Month/List toggle) -->
+        <Style Selector="Button.view-mode-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.view-mode-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+        <Style Selector="Button.view-mode-button.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <!-- Calendar Day Style (Month View) -->
+        <Style Selector="Border.calendar-day">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="MinHeight" Value="80"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+        <Style Selector="Border.calendar-day.today">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}"/>
+        </Style>
+        <Style Selector="Border.calendar-day.other-month">
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+        
+        <!-- Weekday Indicator (Week View Headers) -->
+        <Style Selector="Border.weekday-indicator">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.weekday-indicator.today">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="TextBlock.weekday-number">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+        <Style Selector="TextBlock.weekday-number.today">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <!-- Feedback Sub-Tab Button -->
+        <Style Selector="Button.feedback-subtab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style Selector="Button.feedback-subtab:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Button.feedback-subtab.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+        </Style>
+        
+        <!-- Detail Panel Style - with slide animation -->
+        <Style Selector="Border.detail-panel">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RenderTransform" Value="translate(340px, 0)"/>
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.detail-panel.open">
+            <Setter Property="RenderTransform" Value="translate(0, 0)"/>
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        
+        <!-- Flyout Tab Button - Matches navigation rail style -->
+        <Style Selector="Button.flyout-tab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Padding" Value="8,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="52"/>
+        </Style>
+        <!-- Unselected state -->
+        <Style Selector="Button.flyout-tab PathIcon">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <Style Selector="Button.flyout-tab TextBlock">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <!-- Hover state -->
+        <Style Selector="Button.flyout-tab:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover PathIcon">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <!-- Selected state - gold icon, white text -->
+        <Style Selector="Button.flyout-tab.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Root: Main Content + Flyout side-by-side -->
+    <Grid ColumnDefinitions="*,Auto" ClipToBounds="True">
+        
+        <!-- Main Content: Tabs + Content (no header - nav already shows location) -->
+        <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,16,0">
+            
+            <!-- ================================================================== -->
+            <!-- Row 0: TAB BAR -->
+            <!-- ================================================================== -->
+            <Border Grid.Row="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1" Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <!-- Tasks Tab -->
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Tasks}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:MeTab.Tasks}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="Tasks"/>
+                            <Border Background="{DynamicResource BrushPrimarySubtle}" CornerRadius="10" Padding="6,2"
+                                    IsVisible="{Binding OpenTaskCount}">
+                                <TextBlock Text="{Binding OpenTaskCount}" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushPrimary}"/>
+                            </Border>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Goals Tab -->
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Goals}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:MeTab.Goals}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="Goals"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Feedback Tab -->
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Feedback}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:MeTab.Feedback}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="Feedback"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Meetings Tab -->
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Meetings}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:MeTab.Meetings}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="Meetings"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================== -->
+            <!-- Row 1: TAB CONTENT -->
+            <!-- ================================================================== -->
+            <Grid Grid.Row="1">
+                
+                <!-- ===== TASKS TAB ===== -->
+                <ScrollViewer IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Tasks}}"
+                              HorizontalScrollBarVisibility="Disabled" 
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="0">
+                        
+                        <!-- Task List Header -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                                <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextSecondary}">
+                                    <Run Text="{Binding OpenTaskCount}"/><Run Text=" open tasks"/>
+                                </TextBlock>
+                                <TextBlock FontSize="13" 
+                                           Foreground="#B45309"
+                                           FontWeight="Medium"
+                                           IsVisible="{Binding OverdueTaskCount}">
+                                    <Run Text="{Binding OverdueTaskCount}"/><Run Text=" overdue"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <Button Grid.Column="1" 
+                                    Classes="icon-button"
+                                    Command="{Binding CreateTaskCommand}"
+                                    ToolTip.Tip="New Task">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                              Width="12" Height="12"/>
+                                    <TextBlock Text="New Task" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        
+                        <!-- Task List -->
+                        <Border Background="{DynamicResource BrushSurface}" 
+                                CornerRadius="8" 
+                                BorderBrush="{DynamicResource BrushBorder}" 
+                                BorderThickness="1"
+                                IsVisible="{Binding OpenTaskCount}">
+                            <ItemsControl ItemsSource="{Binding SortedTasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="task-row" 
+                                                Tapped="Task_Tapped"
+                                                Tag="{Binding}">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <CheckBox Grid.Column="0" 
+                                                          IsChecked="{Binding IsCompleted}"
+                                                          Margin="0,0,14,0"
+                                                          VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock Text="{Binding Title}" 
+                                                               FontSize="14"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock FontSize="12" 
+                                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                                               IsVisible="{Binding AssignedByName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                        <Run Text="From "/><Run Text="{Binding AssignedByName}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" 
+                                                           Text="{Binding DueDateDisplay}"
+                                                           FontSize="13"
+                                                           Foreground="{Binding DueDateBrush}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="16,0,0,0"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        
+                        <!-- Empty State -->
+                        <Border Background="{DynamicResource BrushSurface}" 
+                                CornerRadius="8" 
+                                BorderBrush="{DynamicResource BrushBorder}" 
+                                BorderThickness="1"
+                                Padding="32"
+                                IsVisible="{Binding !OpenTaskCount}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" 
+                                          Width="48" Height="48"
+                                          Foreground="{DynamicResource BrushPrimary}"
+                                          Opacity="0.5"
+                                          HorizontalAlignment="Center"/>
+                                <TextBlock Text="All caught up!" 
+                                           FontSize="16" 
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,16,0,4"/>
+                                <TextBlock Text="No open tasks right now" 
+                                           FontSize="13" 
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- ===== GOALS TAB ===== -->
+                <ScrollViewer IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Goals}}"
+                              HorizontalScrollBarVisibility="Disabled" 
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="12">
+                        
+                        <!-- Goals Header -->
+                        <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,4">
+                            <Run Text="{Binding MyGoals.Count, FallbackValue=0}"/><Run Text=" goals"/>
+                        </TextBlock>
+                        
+                        <!-- Goals List -->
+                        <ItemsControl ItemsSource="{Binding MyGoals}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="goal-card" Margin="0,0,0,12"
+                                            Tapped="Goal_Tapped" Tag="{Binding}">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                            <!-- Header: Type Badge + Health Badge -->
+                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,0,0,8">
+                                                <Border CornerRadius="6" Padding="8,4" Background="{DynamicResource BrushPrimary}">
+                                                    <TextBlock Text="{Binding GoalTypeDisplay}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                                                </Border>
+                                                <Border Grid.Column="1" CornerRadius="6" Padding="8,4" Margin="6,0,0,0"
+                                                        Background="{Binding Health, Converter={StaticResource GoalHealthToBackgroundConverter}}">
+                                                    <TextBlock Text="{Binding HealthDisplay}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="3" Text="{Binding LifecycleDisplay}" FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            
+                                            <!-- Title -->
+                                            <TextBlock Grid.Row="1" Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap"
+                                                       TextTrimming="CharacterEllipsis" MaxLines="2" Margin="0,0,0,6"/>
+                                            
+                                            <!-- Description -->
+                                            <TextBlock Grid.Row="2" Text="{Binding Description}" FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
+                                                       MaxLines="2" TextTrimming="CharacterEllipsis" Margin="0,0,0,8"
+                                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            
+                                            <!-- Time Period -->
+                                            <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"
+                                                          Width="14" Height="14" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                <TextBlock FontSize="12" Foreground="{DynamicResource BrushTextTertiary}">
+                                                    <Run Text="{Binding TimePeriod, TargetNullValue='No deadline'}"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Empty State -->
+                        <Border Background="{DynamicResource BrushSurface}" 
+                                CornerRadius="8" 
+                                BorderBrush="{DynamicResource BrushBorder}" 
+                                BorderThickness="1"
+                                Padding="32"
+                                IsVisible="{Binding !MyGoals.Count}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
+                                          Width="48" Height="48"
+                                          Foreground="{DynamicResource BrushPrimary}"
+                                          Opacity="0.5"
+                                          HorizontalAlignment="Center"/>
+                                <TextBlock Text="No goals yet" 
+                                           FontSize="16" 
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,16,0,4"/>
+                                <TextBlock Text="Goals you own will appear here" 
+                                           FontSize="13" 
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- ===== FEEDBACK TAB ===== -->
+                <Grid IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Feedback}}"
+                      RowDefinitions="Auto,*">
+                    
+                    <!-- Feedback Sub-tabs (Received / Given) -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+                        <Button Classes="feedback-subtab"
+                                Classes.selected="{Binding IsShowingReceivedFeedback}"
+                                Command="{Binding ShowReceivedFeedbackCommand}">
+                            <TextBlock Text="Received"/>
+                        </Button>
+                        <Button Classes="feedback-subtab"
+                                Classes.selected="{Binding !IsShowingReceivedFeedback}"
+                                Command="{Binding ShowGivenFeedbackCommand}">
+                            <TextBlock Text="Given"/>
+                        </Button>
+                    </StackPanel>
+                    
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled" 
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="12">
+                            
+                            <!-- Received Feedback (shows FROM/sender) -->
+                            <ItemsControl ItemsSource="{Binding ReceivedFeedback}"
+                                          IsVisible="{Binding IsShowingReceivedFeedback}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="feedback-card" Margin="0,0,0,12"
+                                                Tapped="Feedback_Tapped" Tag="{Binding}">
+                                            <Grid RowDefinitions="Auto,Auto,Auto">
+                                                <!-- Header: Type + Date -->
+                                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding TypeDisplay}" FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding DateDisplay}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                </Grid>
+                                                
+                                                <!-- From (sender) -->
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+                                                    <Border Width="28" Height="28" CornerRadius="14" ClipToBounds="True">
+                                                        <Panel>
+                                                            <Border Background="{DynamicResource BrushPrimary}" CornerRadius="14"
+                                                                    IsVisible="{Binding SenderAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                <TextBlock Text="{Binding AuthorInitials}" FontSize="10" FontWeight="SemiBold"
+                                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <Image asyncImageLoader:ImageLoader.Source="{Binding SenderAvatarUrl}"
+                                                                   Stretch="UniformToFill" Width="28" Height="28"
+                                                                   IsVisible="{Binding SenderAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                        </Panel>
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding AuthorName}" FontSize="14" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                
+                                                <!-- Content Preview -->
+                                                <TextBlock Grid.Row="2" Text="{Binding Content}" FontSize="13"
+                                                           Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
+                                                           MaxLines="3" TextTrimming="CharacterEllipsis"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            
+                            <!-- Given Feedback (shows TO/recipient) -->
+                            <ItemsControl ItemsSource="{Binding GivenFeedback}"
+                                          IsVisible="{Binding !IsShowingReceivedFeedback}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="feedback-card" Margin="0,0,0,12"
+                                                Tapped="Feedback_Tapped" Tag="{Binding}">
+                                            <Grid RowDefinitions="Auto,Auto,Auto">
+                                                <!-- Header: Type + Date -->
+                                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding TypeDisplay}" FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding DateDisplay}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                </Grid>
+                                                
+                                                <!-- To (recipient) -->
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+                                                    <Border Width="28" Height="28" CornerRadius="14" ClipToBounds="True">
+                                                        <Panel>
+                                                            <Border Background="{DynamicResource BrushPrimary}" CornerRadius="14"
+                                                                    IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                <TextBlock Text="{Binding RecipientInitials}" FontSize="10" FontWeight="SemiBold"
+                                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <Image asyncImageLoader:ImageLoader.Source="{Binding RecipientAvatarUrl}"
+                                                                   Stretch="UniformToFill" Width="28" Height="28"
+                                                                   IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                        </Panel>
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding RecipientName}" FontSize="14" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                
+                                                <!-- Content Preview -->
+                                                <TextBlock Grid.Row="2" Text="{Binding Content}" FontSize="13"
+                                                           Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
+                                                           MaxLines="3" TextTrimming="CharacterEllipsis"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            
+                            <!-- Empty State - Received -->
+                            <Border Background="{DynamicResource BrushSurface}" 
+                                    CornerRadius="8" 
+                                    BorderBrush="{DynamicResource BrushBorder}" 
+                                    BorderThickness="1"
+                                    Padding="32"
+                                    IsVisible="{Binding !ReceivedFeedback.Count}">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            IsVisible="{Binding IsShowingReceivedFeedback}">
+                                    <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
+                                              Width="48" Height="48"
+                                              Foreground="{DynamicResource BrushPrimary}"
+                                              Opacity="0.5"
+                                              HorizontalAlignment="Center"/>
+                                    <TextBlock Text="No feedback received" 
+                                               FontSize="16" 
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,16,0,4"/>
+                                    <TextBlock Text="Feedback from others will appear here" 
+                                               FontSize="13" 
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+                
+                <!-- ===== MEETINGS TAB ===== -->
+                <Grid IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Meetings}}"
+                      RowDefinitions="Auto,*">
+                    
+                    <!-- Header Row: View Modes + Navigation -->
+                    <Grid Grid.Row="0" Margin="0,0,0,16" ColumnDefinitions="Auto,*,Auto">
+                        
+                        <!-- View Mode Toggle -->
+                        <Border Grid.Column="0" Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="4">
+                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                <Button Classes="view-mode-button"
+                                        Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Day}}"
+                                        Command="{Binding SetMeetingsViewModeCommand}"
+                                        CommandParameter="{x:Static vm:MeetingsViewMode.Day}">
+                                    <TextBlock Text="Day"/>
+                                </Button>
+                                <Button Classes="view-mode-button"
+                                        Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Week}}"
+                                        Command="{Binding SetMeetingsViewModeCommand}"
+                                        CommandParameter="{x:Static vm:MeetingsViewMode.Week}">
+                                    <TextBlock Text="Week"/>
+                                </Button>
+                                <Button Classes="view-mode-button"
+                                        Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Month}}"
+                                        Command="{Binding SetMeetingsViewModeCommand}"
+                                        CommandParameter="{x:Static vm:MeetingsViewMode.Month}">
+                                    <TextBlock Text="Month"/>
+                                </Button>
+                                <Button Classes="view-mode-button"
+                                        Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.List}}"
+                                        Command="{Binding SetMeetingsViewModeCommand}"
+                                        CommandParameter="{x:Static vm:MeetingsViewMode.List}">
+                                    <TextBlock Text="List"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Date Navigation -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                            <Button Classes="icon-button" Command="{Binding NavigatePreviousCommand}" ToolTip.Tip="Previous">
+                                <PathIcon Data="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" Width="16" Height="16"/>
+                            </Button>
+                            <Button Classes="secondary-button" Command="{Binding NavigateTodayCommand}" Padding="12,6">
+                                <TextBlock Text="Today" FontSize="12"/>
+                            </Button>
+                            <Button Classes="icon-button" Command="{Binding NavigateNextCommand}" ToolTip.Tip="Next">
+                                <PathIcon Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" Width="16" Height="16"/>
+                            </Button>
+                            <TextBlock Text="{Binding CalendarDateHeader}" FontSize="16" FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- Calendar Views -->
+                    <Grid Grid.Row="1">
+                        
+                        <!-- ===== LIST VIEW ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.List}}">
+                            <StackPanel Spacing="16">
+                                <ItemsControl ItemsSource="{Binding GroupedMeetings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Spacing="8">
+                                                <!-- Date Header -->
+                                                <TextBlock Text="{Binding Date}" FontSize="14" FontWeight="SemiBold" 
+                                                           Foreground="{DynamicResource BrushTextSecondary}" Margin="0,8,0,4"/>
+                                                
+                                                <!-- Meetings for this date -->
+                                                <ItemsControl ItemsSource="{Binding Meetings}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Classes="meeting-card" Margin="0,0,0,8"
+                                                                    Tapped="Meeting_Tapped" Tag="{Binding}">
+                                                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                                                    <!-- Time -->
+                                                                    <StackPanel Grid.Column="0" Width="80" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding StartTimeDisplay}" FontSize="14" FontWeight="SemiBold"
+                                                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                                        <TextBlock Text="{Binding DurationText}" FontSize="11"
+                                                                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                                    </StackPanel>
+                                                                    
+                                                                    <!-- Meeting Info -->
+                                                                    <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+                                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Medium"
+                                                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                                            <Border CornerRadius="4" Padding="6,2" Background="{Binding TypeColor}">
+                                                                                <TextBlock Text="{Binding TypeDisplay}" FontSize="10" Foreground="White"/>
+                                                                            </Border>
+                                                                        </StackPanel>
+                                                                        <TextBlock Text="{Binding AttendeeCountDisplay}" FontSize="12"
+                                                                                   Foreground="{DynamicResource BrushTextSecondary}" Margin="0,2,0,0"/>
+                                                                    </StackPanel>
+                                                                    
+                                                                    <!-- Attendee Avatars -->
+                                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                        <ItemsControl ItemsSource="{Binding Attendees}" Margin="0,0,8,0">
+                                                                            <ItemsControl.ItemsPanel>
+                                                                                <ItemsPanelTemplate>
+                                                                                    <StackPanel Orientation="Horizontal" Spacing="-8"/>
+                                                                                </ItemsPanelTemplate>
+                                                                            </ItemsControl.ItemsPanel>
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Border Width="28" Height="28" CornerRadius="14" 
+                                                                                            BorderBrush="{DynamicResource BrushSurface}" BorderThickness="2"
+                                                                                            ClipToBounds="True">
+                                                                                        <Panel>
+                                                                                            <Border Background="{DynamicResource BrushPrimary}" CornerRadius="14"
+                                                                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                                                <TextBlock Text="{Binding Initials}" FontSize="10" FontWeight="SemiBold"
+                                                                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                                            </Border>
+                                                                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                                                                                   Stretch="UniformToFill" Width="28" Height="28"
+                                                                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                                                        </Panel>
+                                                                                    </Border>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                        
+                                                                        <!-- Video link indicator -->
+                                                                        <PathIcon IsVisible="{Binding HasVideoLink}"
+                                                                                  Data="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"
+                                                                                  Width="16" Height="16" Foreground="{DynamicResource BrushPrimary}"/>
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                
+                                <!-- Empty State for List -->
+                                <Border Background="{DynamicResource BrushSurface}" 
+                                        CornerRadius="8" 
+                                        BorderBrush="{DynamicResource BrushBorder}" 
+                                        BorderThickness="1"
+                                        Padding="32"
+                                        IsVisible="{Binding HasNoGroupedMeetings}">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" 
+                                                  Width="48" Height="48"
+                                                  Foreground="{DynamicResource BrushPrimary}"
+                                                  Opacity="0.5"
+                                                  HorizontalAlignment="Center"/>
+                                        <TextBlock Text="No upcoming meetings" 
+                                                   FontSize="16" 
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,16,0,4"/>
+                                        <TextBlock Text="Your meetings will appear here" 
+                                                   FontSize="13" 
+                                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- ===== DAY VIEW ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Day}}">
+                            <!-- Day view calendar grid built in code-behind -->
+                            <Grid x:Name="DayViewGrid" Margin="0,0,12,0"/>
+                        </ScrollViewer>
+                        
+                        <!-- ===== WEEK VIEW ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Week}}">
+                            <!-- Week view calendar grid built in code-behind -->
+                            <Grid x:Name="WeekViewGrid" Margin="0,0,12,0"/>
+                        </ScrollViewer>
+                        
+                        <!-- ===== MONTH VIEW ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Month}}">
+                            <Grid RowDefinitions="Auto,*">
+                                <!-- Day of Week Headers -->
+                                <UniformGrid Grid.Row="0" Columns="7" Margin="0,0,0,8">
+                                    <TextBlock Text="Sun" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Mon" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Tue" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Wed" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Thu" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Fri" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Sat" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                </UniformGrid>
+                                
+                                <!-- Calendar Grid -->
+                                <ItemsControl Grid.Row="1" ItemsSource="{Binding CalendarDays}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="7" Rows="6"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="calendar-day" 
+                                                    Classes.today="{Binding IsToday}"
+                                                    Classes.other-month="{Binding !IsCurrentMonth}">
+                                                <StackPanel>
+                                                    <!-- Day Number -->
+                                                    <TextBlock Text="{Binding DayNumber}" FontSize="12" FontWeight="Medium"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               HorizontalAlignment="Right" Margin="0,0,4,4"/>
+                                                    
+                                                    <!-- Meetings (max 3) -->
+                                                    <ItemsControl ItemsSource="{Binding Meetings}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="{Binding TypeColor}" CornerRadius="2"
+                                                                        Margin="2,0,2,2"
+                                                                        Tapped="Meeting_Tapped" Tag="{Binding}">
+                                                                    <TextBlock FontSize="9" Foreground="White" TextTrimming="CharacterEllipsis" Margin="2,0">
+                                                                        <Run Text="{Binding ShortTimeDisplay}"/>
+                                                                        <Run Text="{Binding Title}"/>
+                                                                    </TextBlock>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    
+                                                    <!-- More indicator -->
+                                                    <TextBlock IsVisible="{Binding HasMoreMeetings}" Text="+ more" FontSize="9"
+                                                               Foreground="{DynamicResource BrushTextTertiary}" Margin="2,2,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </ScrollViewer>
+                        
+                    </Grid>
+                </Grid>
+                
+            </Grid>
+        </Grid>
+        
+        <!-- ================================================================== -->
+        <!-- FLYOUT PANEL - Grid Column 1, compresses main content when open -->
+        <!-- Matches CircleView flyout panel pattern exactly -->
+        <!-- ================================================================== -->
+        <Border Grid.Column="1" Classes="detail-panel" 
+                Classes.open="{Binding IsFlyoutOpen}"
+                Width="320"
+                Margin="12,0,0,0"
+                IsVisible="{Binding IsFlyoutOpen}">
+            <Panel>
+                
+                <!-- ============================================================ -->
+                <!-- NON-MEETING FLYOUTS (Task, Goal, Feedback) - Simple layout -->
+                <!-- ============================================================ -->
+                <Grid RowDefinitions="Auto,*" IsVisible="{Binding !IsMeetingFlyoutOpen}">
+                
+                    <!-- Flyout Header - Navy bar with title and close button -->
+                    <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="8,8,0,0" Padding="16,12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <!-- Dynamic header based on flyout type -->
+                            <TextBlock Grid.Column="0" FontSize="14" FontWeight="SemiBold" Foreground="White"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{Binding IsTaskFlyoutOpen}"
+                                       Text="Task"/>
+                            <TextBlock Grid.Column="0" FontSize="14" FontWeight="SemiBold" Foreground="White"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{Binding IsGoalFlyoutOpen}"
+                                       Text="Goal"/>
+                            <TextBlock Grid.Column="0" FontSize="14" FontWeight="SemiBold" Foreground="White"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{Binding IsFeedbackFlyoutOpen}"
+                                       Text="Feedback"/>
+                            <Button Grid.Column="1" Classes="icon-button" 
+                                    Command="{Binding CloseFlyoutCommand}"
+                                    ToolTip.Tip="Close">
+                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                          Width="14" Height="14" Foreground="White"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Flyout Content -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="16">
+                            
+                            <!-- ===== TASK DETAIL ===== -->
+                            <StackPanel IsVisible="{Binding IsTaskFlyoutOpen}">
+                                <StackPanel DataContext="{Binding SelectedTask}">
+                                    
+                                    <!-- Title + Status Badge -->
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+                                        <TextBlock Grid.Column="0" Text="{Binding Title}" 
+                                                   FontSize="18" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                   TextWrapping="Wrap"/>
+                                        <!-- Status Badge - Complete (green) -->
+                                        <Border Grid.Column="1" Background="#10B981"
+                                                CornerRadius="12" Padding="10,4" VerticalAlignment="Top"
+                                                IsVisible="{Binding IsCompleted}">
+                                            <TextBlock Text="Complete" FontSize="11" FontWeight="Medium" Foreground="White"/>
+                                        </Border>
+                                        <!-- Status Badge - In Progress (amber) -->
+                                        <Border Grid.Column="1" Background="#F59E0B"
+                                                CornerRadius="12" Padding="10,4" VerticalAlignment="Top"
+                                                IsVisible="{Binding !IsCompleted}">
+                                            <TextBlock Text="In Progress" FontSize="11" FontWeight="Medium" Foreground="White"/>
+                                        </Border>
+                                    </Grid>
+                                    
+                                    <!-- Due Date with icon -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12"
+                                                IsVisible="{Binding DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1"
+                                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Due: " Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+                                        <TextBlock Text="{Binding DueDateDisplay}" FontSize="13" FontWeight="Medium"
+                                                   Foreground="{Binding DueDateBrush}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Priority with icon -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12"
+                                                IsVisible="{Binding Priority, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <PathIcon Data="M14.4,6L14,4H5V21H7V14H12.6L13,16H20V6H14.4Z"
+                                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Priority: " Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+                                        <TextBlock Text="{Binding PriorityDisplay}" FontSize="13" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- DESCRIPTION Section -->
+                                    <TextBlock Text="DESCRIPTION" FontSize="10" FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource BrushTextTertiary}" Margin="0,16,0,8"/>
+                                    <TextBlock Text="{Binding Description}" FontSize="12" 
+                                               Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
+                                               IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    <TextBlock Text="No description provided." FontSize="12" FontStyle="Italic"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                    
+                                    <!-- Actions - consistent with other flyouts -->
+                                    <StackPanel Margin="0,24,0,0" Spacing="8">
+                                        <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                          Width="14" Height="14"/>
+                                                <TextBlock Text="Edit Task"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                                          Width="14" Height="14" Foreground="#DC2626"/>
+                                                <TextBlock Text="Delete Task" Foreground="#DC2626"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        
+                            <!-- ===== GOAL DETAIL - Matches GoalDetailFlyout.axaml exactly ===== -->
+                            <StackPanel IsVisible="{Binding IsGoalFlyoutOpen}">
+                                <StackPanel DataContext="{Binding SelectedGoal}">
+                                    
+                                    <!-- Goal Type & Lifecycle Badges -->
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                                        <Border CornerRadius="4" Padding="8,4" Background="{DynamicResource BrushPrimarySoft}">
+                                            <TextBlock Text="{Binding GoalTypeDisplay}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushPrimary}"/>
+                                    </Border>
+                                    <Border CornerRadius="4" Padding="8,4" Background="#334155">
+                                        <TextBlock Text="{Binding LifecycleDisplay}" FontSize="11" FontWeight="Medium"
+                                                   Foreground="#94A3B8"/>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Title -->
+                                <TextBlock Text="{Binding Title}" 
+                                           FontSize="18" FontWeight="Bold"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"/>
+                                
+                                <!-- HEALTH Section -->
+                                <TextBlock Text="HEALTH" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,16,0,8"/>
+                                <Border CornerRadius="6" Padding="12,8" HorizontalAlignment="Left"
+                                        Background="{Binding Health, Converter={StaticResource GoalHealthToBackgroundConverter}}">
+                                    <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToDisplayConverter}}" 
+                                               FontSize="13" FontWeight="SemiBold" Foreground="White"/>
+                                </Border>
+                                
+                                <!-- Reflection Prompt - matches GoalDetailFlyout philosophy reminder -->
+                                <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="4" Padding="10,8" Margin="0,12,0,0">
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <PathIcon Data="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                            <TextBlock Text="Reflection Prompt" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToPromptConverter}}" 
+                                                   FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- OWNER Section -->
+                                <TextBlock Text="OWNER" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,16,0,8"/>
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
+                                    <Border Width="32" Height="32" CornerRadius="16" ClipToBounds="True">
+                                        <Panel>
+                                            <Border Background="{DynamicResource BrushPrimary}" CornerRadius="16"
+                                                    IsVisible="{Binding OwnerAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                <TextBlock Text="{Binding OwnerInitials}" FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding OwnerAvatarUrl}"
+                                                   Stretch="UniformToFill" Width="32" Height="32"
+                                                   IsVisible="{Binding OwnerAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{Binding OwnerName}" FontSize="13" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </Grid>
+                                
+                                <!-- TIME PERIOD Section -->
+                                <TextBlock Text="TIME PERIOD" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,16,0,8"/>
+                                <Grid RowDefinitions="Auto,Auto" Margin="0,0,0,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="70,*">
+                                        <TextBlock Text="From" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding StartDate, StringFormat='{}{0:MMM d, yyyy}'}" 
+                                                   FontSize="11" FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="1" ColumnDefinitions="70,*" Margin="0,4,0,0">
+                                        <TextBlock Text="To" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding EndDate, StringFormat='{}{0:MMM d, yyyy}'}" 
+                                                   FontSize="11" FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </Grid>
+                                </Grid>
+                                
+                                <!-- DESCRIPTION Section -->
+                                <TextBlock Text="DESCRIPTION" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,16,0,8"/>
+                                <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,8"
+                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                <TextBlock Text="No description provided." FontSize="12" FontStyle="Italic"
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                
+                                <!-- Quick Actions - matches GoalDetailFlyout -->
+                                <StackPanel Margin="0,24,0,0" Spacing="8">
+                                    <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                      Width="14" Height="14"/>
+                                            <TextBlock Text="Edit Goal"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                                      Width="14" Height="14" Foreground="#DC2626"/>
+                                            <TextBlock Text="Delete Goal" Foreground="#DC2626"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- ===== FEEDBACK DETAIL ===== -->
+                        <StackPanel IsVisible="{Binding IsFeedbackFlyoutOpen}">
+                            <StackPanel DataContext="{Binding SelectedFeedback}">
+                                
+                                <!-- Type Badge Header -->
+                                <TextBlock Text="{Binding TypeDisplay}" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,16"/>
+                                
+                                <!-- FROM (shown when viewing received feedback) -->
+                                <StackPanel IsVisible="{Binding $parent[UserControl].((vm:MeViewModel)DataContext).IsSelectedFeedbackReceived}">
+                                    <TextBlock Text="FROM" FontSize="10" FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"/>
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,16">
+                                        <Border Width="36" Height="36" CornerRadius="18" ClipToBounds="True">
+                                            <Panel>
+                                                <Border Background="{DynamicResource BrushPrimary}" CornerRadius="18"
+                                                        IsVisible="{Binding SenderAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                    <TextBlock Text="{Binding AuthorInitials}" FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <Image asyncImageLoader:ImageLoader.Source="{Binding SenderAvatarUrl}"
+                                                       Stretch="UniformToFill" Width="36" Height="36"
+                                                       IsVisible="{Binding SenderAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </Panel>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding AuthorName}" FontSize="14" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    </Grid>
+                                </StackPanel>
+                                
+                                <!-- TO (shown when viewing given feedback) -->
+                                <StackPanel IsVisible="{Binding $parent[UserControl].((vm:MeViewModel)DataContext).IsSelectedFeedbackGiven}">
+                                    <TextBlock Text="TO" FontSize="10" FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"/>
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,16">
+                                        <Border Width="36" Height="36" CornerRadius="18" ClipToBounds="True">
+                                            <Panel>
+                                                <Border Background="{DynamicResource BrushPrimary}" CornerRadius="18"
+                                                        IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                    <TextBlock Text="{Binding RecipientInitials}" FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <Image asyncImageLoader:ImageLoader.Source="{Binding RecipientAvatarUrl}"
+                                                       Stretch="UniformToFill" Width="36" Height="36"
+                                                       IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </Panel>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding RecipientName}" FontSize="14" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    </Grid>
+                                </StackPanel>
+                                
+                                <!-- DATE -->
+                                <TextBlock Text="DATE" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"/>
+                                <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,16">
+                                    <Run Text="{Binding CreatedAt, StringFormat='{}{0:MMMM d, yyyy}'}" FontWeight="Medium"/>
+                                </TextBlock>
+                                
+                                <!-- TYPE Badge -->
+                                <TextBlock Text="TYPE" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"
+                                           IsVisible="{Binding FeedbackType, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="4" Padding="8,4" 
+                                        HorizontalAlignment="Left" Margin="0,0,0,16"
+                                        IsVisible="{Binding FeedbackType, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="{Binding FeedbackType}" FontSize="12" 
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </Border>
+                                
+                                <!-- FEEDBACK Content -->
+                                <TextBlock Text="FEEDBACK" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                    <TextBlock Text="{Binding Content}" FontSize="14" 
+                                               Foreground="{DynamicResource BrushTextPrimary}" 
+                                               TextWrapping="Wrap" LineHeight="22"/>
+                                </Border>
+                                
+                                <!-- Actions - matches CircleView feedback panel -->
+                                <StackPanel Margin="0,8,0,0" Spacing="8">
+                                    <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                      Width="14" Height="14"/>
+                                            <TextBlock Text="Edit Feedback"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                                      Width="14" Height="14" Foreground="#DC2626"/>
+                                            <TextBlock Text="Delete Feedback" Foreground="#DC2626"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+                
+                <!-- ============================================================ -->
+                <!-- MEETING FLYOUT - Tabbed layout matching MeetingDetailFlyout -->
+                <!-- ============================================================ -->
+                <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding IsMeetingFlyoutOpen}">
+                    
+                    <!-- Vertical Tab Bar - Navy blue like navigation -->
+                    <Border Grid.Column="0" Background="{DynamicResource BrushSecondary}" CornerRadius="8,0,0,8">
+                        <StackPanel Spacing="2" Margin="0,8">
+                            <Button Classes="flyout-tab" ToolTip.Tip="Overview"
+                                    Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Overview}}"
+                                    Command="{Binding SetMeetingDetailTabCommand}" CommandParameter="{x:Static vm:MeetingDetailTab.Overview}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Info" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="flyout-tab" ToolTip.Tip="Agenda"
+                                    Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Agenda}}"
+                                    Command="{Binding SetMeetingDetailTabCommand}" CommandParameter="{x:Static vm:MeetingDetailTab.Agenda}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Agenda" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="flyout-tab" ToolTip.Tip="Attendees"
+                                    Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Attendees}}"
+                                    Command="{Binding SetMeetingDetailTabCommand}" CommandParameter="{x:Static vm:MeetingDetailTab.Attendees}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="People" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="flyout-tab" ToolTip.Tip="Notes"
+                                    Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Notes}}"
+                                    Command="{Binding SetMeetingDetailTabCommand}" CommandParameter="{x:Static vm:MeetingDetailTab.Notes}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,13V18H10V13H13Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Notes" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Content Area -->
+                    <Grid Grid.Column="1">
+                        <!-- Close Button -->
+                        <Button Classes="icon-button" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Margin="0,8,8,0" ZIndex="10" ToolTip.Tip="Close"
+                                Command="{Binding CloseFlyoutCommand}">
+                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                      Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </Button>
+                        
+                        <!-- ===== OVERVIEW TAB ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Overview}}">
+                            <StackPanel DataContext="{Binding SelectedMeeting}" Margin="12,8,12,12">
+                                
+                                <!-- Meeting Header -->
+                                <StackPanel Margin="0,24,0,16">
+                                    <Border CornerRadius="6" Padding="8,4" Background="{Binding TypeColor}" 
+                                            HorizontalAlignment="Left" Margin="0,0,0,10">
+                                        <TextBlock Text="{Binding TypeDisplay}" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold"
+                                               Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                
+                                <!-- Time -->
+                                <TextBlock Text="TIME" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,8"/>
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
+                                    <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"
+                                              Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="{Binding ScheduledText}" FontSize="12" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock FontSize="11" Foreground="{DynamicResource BrushTextSecondary}">
+                                            <Run Text="{Binding TimeRangeDisplay}"/><Run Text=" · "/><Run Text="{Binding DurationText}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- Location -->
+                                <StackPanel IsVisible="{Binding HasLocation}">
+                                    <TextBlock Text="LOCATION" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}" Margin="0,16,0,8"/>
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
+                                        <PathIcon Data="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"
+                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Location}" FontSize="12"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" Margin="8,0,0,0"/>
+                                    </Grid>
+                                </StackPanel>
+                                
+                                <!-- Quick Stats -->
+                                <Grid ColumnDefinitions="*,*" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5" 
+                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{Binding AttendeeCountDisplay}" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                        <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15" 
+                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock FontSize="11" Foreground="{DynamicResource BrushTextSecondary}">
+                                            <Run Text="{Binding AgendaItems.Count}"/><Run Text=" items"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- Actions -->
+                                <StackPanel Margin="0,16,0,0" Spacing="6">
+                                    <Button Classes="secondary-button" HorizontalAlignment="Stretch">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" Width="12" Height="12"/>
+                                            <TextBlock Text="Edit Meeting" FontSize="12"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- ===== AGENDA TAB ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Agenda}}">
+                            <StackPanel DataContext="{Binding SelectedMeeting}" Margin="12,8,12,12">
+                                <TextBlock Text="AGENDA ITEMS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}" Margin="0,24,0,8"/>
+                                
+                                <!-- Empty state -->
+                                <TextBlock Text="No agenda items" FontSize="12" Opacity="0.5" Margin="0,8,0,0"
+                                           IsVisible="{Binding !AgendaItems.Count}"/>
+                                
+                                <!-- Agenda items -->
+                                <ItemsControl ItemsSource="{Binding AgendaItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:MeetingAgendaItem">
+                                            <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" 
+                                                    Padding="10" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="Medium"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                    <TextBlock Text="{Binding Description}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}" 
+                                                               TextWrapping="Wrap" MaxLines="2" Margin="0,2,0,0"
+                                                               IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                
+                                <!-- Add Item Button -->
+                                <Button Classes="secondary-button" HorizontalAlignment="Stretch" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="12" Height="12"/>
+                                        <TextBlock Text="Add Agenda Item" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- ===== ATTENDEES TAB ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Attendees}}">
+                            <StackPanel DataContext="{Binding SelectedMeeting}" Margin="12,8,12,12">
+                                <TextBlock Text="ATTENDEES" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}" Margin="0,24,0,8"/>
+                                <TextBlock Text="{Binding AttendeeCountDisplay}" FontSize="11" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,12"/>
+                                
+                                <!-- Attendee list -->
+                                <ItemsControl ItemsSource="{Binding Attendees}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:MeetingAttendee">
+                                            <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" 
+                                                    Padding="10" Margin="0,0,0,6">
+                                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                                    <Border Width="32" Height="32" CornerRadius="16" ClipToBounds="True">
+                                                        <Panel>
+                                                            <!-- Initials fallback -->
+                                                            <Border Background="{DynamicResource BrushPrimary}" CornerRadius="16"
+                                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                <TextBlock Text="{Binding Initials}" FontSize="10" FontWeight="SemiBold"
+                                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <!-- Avatar image -->
+                                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" 
+                                                                   Stretch="UniformToFill" Width="32" Height="32"
+                                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                        </Panel>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                        <TextBlock Text="{Binding Email}" FontSize="10"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" Text="Organizer" FontSize="9" 
+                                                               Foreground="{DynamicResource BrushPrimary}" VerticalAlignment="Center"
+                                                               IsVisible="{Binding IsOrganizer}"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                
+                                <!-- Add Attendee Button -->
+                                <Button Classes="secondary-button" HorizontalAlignment="Stretch" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="12" Height="12"/>
+                                        <TextBlock Text="Add Attendee" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- ===== NOTES TAB ===== -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingDetailTab.Notes}}">
+                            <StackPanel DataContext="{Binding SelectedMeeting}" Margin="12,8,12,12">
+                                <TextBlock Text="MEETING NOTES" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}" Margin="0,24,0,8"/>
+                                
+                                <!-- Notes content -->
+                                <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12" MinHeight="200">
+                                    <Panel>
+                                        <TextBlock Text="{Binding Notes}" FontSize="12" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" LineHeight="20"
+                                                   IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        <TextBlock Text="No notes yet. Click to add notes..." FontSize="12" Opacity="0.5"
+                                                   IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                    </Panel>
+                                </Border>
+                                
+                                <!-- Edit Notes Button -->
+                                <Button Classes="secondary-button" HorizontalAlignment="Stretch" Margin="0,12,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" Width="12" Height="12"/>
+                                        <TextBlock Text="Edit Notes" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+                
+            </Panel>
+        </Border>
+        
+    </Grid>
+</UserControl>

@@ -1,0 +1,226 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="ProCohere.Avalonia.Views.Briefing.ManagerBriefingContent"
+             x:DataType="vm:BriefingViewModel">
+
+    <!-- Manager Briefing Content
+         
+         Design Philosophy:
+         - Day = execute (no charts, calm, actionable)
+         - Week = plan (quiet sparkline, bars speak for themselves)
+         
+         VIEW-SPECIFIC RULES:
+         - WEEK VIEW: Shows "Upcoming load" sparkline (next 7 days) - ONLY place chart is allowed
+         - DAY VIEW: NO sparkline, NO charts - focuses on execution, not planning
+         
+         WHAT WE DON'T DO (by design):
+         - No "Light week" / "Heavy day" labels (judgment)
+         - No warm colors (orange/red imply urgency)
+         - No percentages, rankings, or performance scoring
+         - No motivational copy
+         
+         Structure:
+         - Sparkline (Week View only) - desaturated, cool colors
+         - Quick Actions (always available but not screaming)
+         - My Tasks (THE VISUAL ANCHOR - dominates)
+         - My Meetings (secondary)
+    -->
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Row 0: This Week at a Glance - Sparkline (ONLY visible in Week View per spec) -->
+        <Border Grid.Row="0" Background="{DynamicResource BrushSurface}" CornerRadius="10" Padding="16,14"
+                Margin="0,0,0,12" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                IsVisible="{Binding IsWeekScope}">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+                <!-- Header - Simple, no judgment -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                    <TextBlock Text="Upcoming load" FontSize="13" FontWeight="Medium" 
+                               Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
+                    <!-- Right side: just the date range, no light/heavy labels -->
+                    <TextBlock Grid.Column="1" Text="next 7 days" FontSize="11" 
+                               Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Sparkline Bars -->
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding WeeklyLoad}" Margin="0,0,0,4">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" Columns="7"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:DailyLoad">
+                            <Grid RowDefinitions="*,Auto" Margin="4,0" Height="80">
+                                <!-- Bar container -->
+                                <Border Grid.Row="0" VerticalAlignment="Bottom">
+                                    <Border CornerRadius="4,4,0,0" MinHeight="4" 
+                                            Height="{Binding BarHeight}"
+                                            Background="{Binding BarColor}"
+                                            ToolTip.Tip="{Binding Tooltip}"/>
+                                </Border>
+                                <!-- Day label -->
+                                <TextBlock Grid.Row="1" Text="{Binding DayLabel}" FontSize="11" 
+                                           HorizontalAlignment="Center" Margin="0,6,0,0"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           FontWeight="{Binding DayLabelWeight}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Max count indicator (optional) -->
+                <TextBlock Grid.Row="2" Text="{Binding MaxLoadText, StringFormat='max {0}'}" 
+                           FontSize="10" Foreground="{DynamicResource BrushTextTertiary}"
+                           HorizontalAlignment="Right" Margin="0,4,0,0"
+                           IsVisible="{Binding MaxWeeklyLoad}"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 1: Quick Actions - primary, chart is secondary -->
+        <Border Grid.Row="1" Background="{DynamicResource BrushSurface}" CornerRadius="8" Padding="12,10"
+                Margin="0,4,0,12" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+            <Grid ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Column="0" Text="Quick Actions" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"
+                           Margin="0,0,16,0"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding AddTaskCommand}" Classes="action-button" ToolTip.Tip="Create a new task">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="12" Height="12"/>
+                            <TextBlock Text="Task" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding AddGoalCommand}" Classes="action-button" ToolTip.Tip="Create a new goal">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" Width="12" Height="12"/>
+                            <TextBlock Text="Goal" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding AddMeetingCommand}" Classes="action-button" ToolTip.Tip="Schedule a meeting">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1" Width="12" Height="12"/>
+                            <TextBlock Text="Meeting" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding AddNoteCommand}" Classes="action-button" ToolTip.Tip="Write a note">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M14,10H19.5L14,4.5V10M5,3H15L21,9V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M5,5V19H19V12H12V5H5Z" Width="12" Height="12"/>
+                            <TextBlock Text="Note" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Main Content - Tasks as anchor, Meetings secondary -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*">
+
+            <!-- Left: My Tasks (THE VISUAL ANCHOR) -->
+            <Border Grid.Column="0" 
+                    Background="{DynamicResource BrushSurface}" CornerRadius="10" Padding="14"
+                    Margin="0,0,8,0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="My Tasks" FontSize="14" FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,10"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding UpcomingTasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="10,8" Margin="0,0,0,6" Background="{DynamicResource BrushBackground}" 
+                                                CornerRadius="6" Cursor="Hand">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <!-- Checkbox placeholder -->
+                                                <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" 
+                                                        BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1.5" 
+                                                        Margin="0,2,10,0" VerticalAlignment="Top"/>
+                                                <StackPanel Grid.Column="1" Spacing="3">
+                                                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Medium"
+                                                               Foreground="{DynamicResource BrushTextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{Binding DueDateText}" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                        <TextBlock Text="•" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"
+                                                                   IsVisible="{Binding OwnerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                        <TextBlock Text="{Binding OwnerName}" FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                                                   IsVisible="{Binding OwnerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Empty state -->
+                            <Border IsVisible="{Binding !UpcomingTasks.Count}" Padding="20" Background="{DynamicResource BrushBackground}" CornerRadius="6">
+                                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                    <TextBlock Text="All caught up!" FontSize="13" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="No tasks due" FontSize="11" 
+                                               Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Right: My Meetings (can be empty, that's honest) -->
+            <Border Grid.Column="1" 
+                    Background="{DynamicResource BrushSurface}" CornerRadius="10" Padding="14"
+                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="My Meetings" FontSize="14" FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,10"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding UpcomingMeetings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="10,8" Margin="0,0,0,6" Background="{DynamicResource BrushBackground}" 
+                                                CornerRadius="6" Cursor="Hand">
+                                            <StackPanel Spacing="3">
+                                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Medium"
+                                                           Foreground="{DynamicResource BrushTextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding ScheduledText}" FontSize="11" 
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Text="•" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"
+                                                               IsVisible="{Binding TeamMemberName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    <TextBlock Text="{Binding TeamMemberName}" FontSize="11" 
+                                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                                               IsVisible="{Binding TeamMemberName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Empty state (honest and actionable) -->
+                            <Border IsVisible="{Binding !UpcomingMeetings.Count}" Padding="20" Background="{DynamicResource BrushBackground}" CornerRadius="6">
+                                <StackPanel Spacing="10" HorizontalAlignment="Center">
+                                    <TextBlock Text="No meetings scheduled" FontSize="13" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <Button Command="{Binding AddMeetingCommand}" Classes="text" Padding="8,4" HorizontalAlignment="Center">
+                                        <TextBlock Text="Schedule one" FontSize="12" Foreground="{DynamicResource BrushPrimary}"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

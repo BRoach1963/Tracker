@@ -3,11 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="using:ProCohere.Avalonia.Models"
-        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="400"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="520"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AddTaskDialog"
-        Title="New Task"
+        Title="Task"
         Width="450"
-        Height="420"
+        Height="520"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
@@ -20,75 +20,113 @@
         </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="*,Auto" Margin="24">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="0">
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="24,16">
+            <TextBlock x:Name="DialogTitle"
+                       Text="New Task"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Border>
+        
         <!-- Form Content -->
-        <StackPanel Grid.Row="0" Spacing="16">
-            <!-- Task Title -->
-            <StackPanel Spacing="6">
-                <TextBlock Text="Title" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <TextBox x:Name="TitleTextBox"
-                         Watermark="What needs to be done?"
-                         FontSize="14"/>
-            </StackPanel>
-            
-            <!-- Description -->
-            <StackPanel Spacing="6">
-                <TextBlock Text="Description" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <TextBox x:Name="DescriptionTextBox"
-                         Watermark="Add more details (optional)"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="80"
-                         MaxHeight="120"/>
-            </StackPanel>
-            
-            <!-- Priority and Due Date Row -->
-            <Grid ColumnDefinitions="*,*">
-                <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
-                    <TextBlock Text="Priority" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="PriorityComboBox" 
-                              HorizontalAlignment="Stretch"
-                              PlaceholderText="Select priority">
-                        <ComboBoxItem Content="High"/>
-                        <ComboBoxItem Content="Medium"/>
-                        <ComboBoxItem Content="Low"/>
+        <ScrollViewer Grid.Row="1" Padding="24,16">
+            <StackPanel Spacing="16">
+                <!-- Task Title -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Title *" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="TitleTextBox"
+                             Watermark="What needs to be done?"
+                             FontSize="14"/>
+                </StackPanel>
+                
+                <!-- Description -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Description" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="DescriptionTextBox"
+                             Watermark="Add more details (optional)"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             MinHeight="80"
+                             MaxHeight="120"/>
+                </StackPanel>
+                
+                <!-- Priority and Due Date Row -->
+                <Grid ColumnDefinitions="*,*">
+                    <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
+                        <TextBlock Text="Priority" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox x:Name="PriorityComboBox" 
+                                  HorizontalAlignment="Stretch"
+                                  PlaceholderText="Select priority">
+                            <ComboBoxItem Content="High" Tag="high"/>
+                            <ComboBoxItem Content="Medium" Tag="medium"/>
+                            <ComboBoxItem Content="Low" Tag="low"/>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
+                        <TextBlock Text="Due Date" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <DatePicker x:Name="DueDatePicker" 
+                                    HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Status (only in edit mode) -->
+                <StackPanel x:Name="StatusSection" Spacing="6" IsVisible="False">
+                    <TextBlock Text="Status" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox x:Name="StatusComboBox" 
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Not Started" Tag="not_started"/>
+                        <ComboBoxItem Content="In Progress" Tag="in_progress"/>
+                        <ComboBoxItem Content="Completed" Tag="completed"/>
+                        <ComboBoxItem Content="Blocked" Tag="blocked"/>
                     </ComboBox>
                 </StackPanel>
                 
-                <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
-                    <TextBlock Text="Due Date" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <DatePicker x:Name="DueDatePicker" 
-                                HorizontalAlignment="Stretch"/>
+                <!-- Assignee -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Assignee" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox x:Name="AssigneeComboBox" 
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="Assign to someone">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <TextBlock Text="{Binding FullName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
-            </Grid>
-            
-            <!-- Assignee -->
-            <StackPanel Spacing="6">
-                <TextBlock Text="Assignee" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <ComboBox x:Name="AssigneeComboBox" 
-                          HorizontalAlignment="Stretch"
-                          PlaceholderText="Assign to someone">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:TeamMemberDetail">
-                            <TextBlock Text="{Binding FullName}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
             </StackPanel>
-        </StackPanel>
+        </ScrollViewer>
         
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
-            <Button x:Name="CancelButton" 
-                    Content="Cancel" 
-                    Classes="secondary-button"
-                    Padding="16,8"
-                    Click="CancelButton_Click"/>
-            <Button x:Name="CreateButton" 
-                    Content="Create Task" 
-                    Classes="primary-button"
-                    Padding="16,8"
-                    Click="CreateButton_Click"/>
-        </StackPanel>
+        <!-- Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="24,12">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button x:Name="DeleteButton"
+                        Grid.Column="0"
+                        Content="Delete"
+                        Foreground="#E74C3C"
+                        IsVisible="False"
+                        Click="DeleteButton_Click" />
+                <Button Grid.Column="2"
+                        x:Name="CancelButton" 
+                        Content="Cancel" 
+                        Classes="secondary-button"
+                        Padding="16,8"
+                        Margin="0,0,8,0"
+                        Click="CancelButton_Click"/>
+                <Button Grid.Column="3"
+                        x:Name="CreateButton" 
+                        Content="Create Task" 
+                        Classes="primary-button"
+                        Padding="16,8"
+                        Click="CreateButton_Click"/>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

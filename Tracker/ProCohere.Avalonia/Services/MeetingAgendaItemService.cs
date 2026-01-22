@@ -488,4 +488,85 @@ public class MeetingAgendaItemService
             return false;
         }
     }
+
+    /// <summary>
+    /// Links an agenda item to an entity (task, goal, metric, etc.).
+    /// </summary>
+    public async Task<bool> LinkToEntityAsync(Guid agendaItemId, string entityType, Guid entityId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Linking agenda item {agendaItemId} to {entityType}:{entityId}");
+
+            await client.From<MeetingAgendaItem>()
+                .Filter("id", Operator.Equals, agendaItemId.ToString())
+                .Set(x => x.LinkedEntityType!, entityType)
+                .Set(x => x.LinkedEntityId!, entityId)
+                .Set(x => x.UpdatedAt, DateTime.UtcNow)
+                .Update();
+
+            Log($"Agenda item linked to {entityType} successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"LinkToEntity ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Removes the linked entity from an agenda item.
+    /// </summary>
+    public async Task<bool> UnlinkEntityAsync(Guid agendaItemId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Unlinking entity from agenda item: {agendaItemId}");
+
+            // Get the item first
+            var item = await GetAgendaItemAsync(agendaItemId);
+            if (item == null)
+            {
+                LastError = "Agenda item not found";
+                return false;
+            }
+
+            item.LinkedEntityType = null;
+            item.LinkedEntityId = null;
+            item.UpdatedAt = DateTime.UtcNow;
+
+            await client.From<MeetingAgendaItem>()
+                .Filter("id", Operator.Equals, agendaItemId.ToString())
+                .Update(item);
+
+            Log("Entity unlinked from agenda item successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"UnlinkEntity ERROR: {ex.Message}");
+            return false;
+        }
+    }
 }

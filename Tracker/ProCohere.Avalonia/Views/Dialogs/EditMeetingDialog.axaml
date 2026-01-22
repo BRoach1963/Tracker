@@ -1,0 +1,175 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:asyncImageLoader="using:AsyncImageLoader"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="580"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditMeetingDialog"
+        Title="Meeting"
+        Width="500" Height="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="{DynamicResource SystemChromeMediumLowColor}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,16">
+            <TextBlock x:Name="DialogTitle"
+                       Text="New Meeting"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="20,16">
+            <StackPanel Spacing="16">
+                
+                <!-- Title -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Title *" FontSize="12" />
+                    <TextBox x:Name="TitleTextBox"
+                             Watermark="Meeting title" />
+                </StackPanel>
+                
+                <!-- Meeting Type -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Meeting Type" FontSize="12" />
+                    <ComboBox x:Name="MeetingTypeComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="1:1 Meeting" Tag="one_on_one" />
+                        <ComboBoxItem Content="Team Meeting" Tag="team" />
+                        <ComboBoxItem Content="Project Review" Tag="project" />
+                        <ComboBoxItem Content="Performance Review" Tag="performance" />
+                        <ComboBoxItem Content="Other" Tag="other" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Attendee (for 1:1) -->
+                <StackPanel x:Name="AttendeeSection" Spacing="4">
+                    <TextBlock Text="With" FontSize="12" />
+                    <ComboBox x:Name="AttendeeComboBox"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="Select team member">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="24" Height="24"
+                                            CornerRadius="12"
+                                            ClipToBounds="True">
+                                        <Panel>
+                                            <!-- Initials fallback -->
+                                            <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                    CornerRadius="12"
+                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                <TextBlock Text="{Binding Initials}"
+                                                           FontSize="10"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                            <!-- Avatar image -->
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                                   Stretch="UniformToFill" Width="24" Height="24"
+                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock Text="{Binding FullName}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Date and Time -->
+                <Grid ColumnDefinitions="*,12,Auto">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Date *" FontSize="12" />
+                        <DatePicker x:Name="DatePicker" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Time *" FontSize="12" />
+                        <TimePicker x:Name="TimePicker" 
+                                    ClockIdentifier="12HourClock"
+                                    MinuteIncrement="15" />
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Duration -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Duration" FontSize="12" />
+                    <ComboBox x:Name="DurationComboBox"
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="1">
+                        <ComboBoxItem Content="15 minutes" Tag="15" />
+                        <ComboBoxItem Content="30 minutes" Tag="30" />
+                        <ComboBoxItem Content="45 minutes" Tag="45" />
+                        <ComboBoxItem Content="1 hour" Tag="60" />
+                        <ComboBoxItem Content="1.5 hours" Tag="90" />
+                        <ComboBoxItem Content="2 hours" Tag="120" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Location -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Location" FontSize="12" />
+                    <TextBox x:Name="LocationTextBox"
+                             Watermark="Room, office, or address" />
+                </StackPanel>
+                
+                <!-- Video Link -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Video Link" FontSize="12" />
+                    <TextBox x:Name="VideoLinkTextBox"
+                             Watermark="Zoom, Teams, or Google Meet URL" />
+                </StackPanel>
+                
+                <!-- Notes -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Notes" FontSize="12" />
+                    <TextBox x:Name="NotesTextBox"
+                             Watermark="Meeting description or agenda"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80" />
+                </StackPanel>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Padding="20,12">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button x:Name="DeleteButton"
+                        Grid.Column="0"
+                        Content="Delete"
+                        Foreground="#E74C3C"
+                        IsVisible="False"
+                        Click="DeleteButton_Click" />
+                <Button Grid.Column="2"
+                        Content="Cancel"
+                        MinWidth="80"
+                        Margin="0,0,8,0"
+                        Click="CancelButton_Click" />
+                <Button Grid.Column="3"
+                        x:Name="SaveButton"
+                        Content="Save"
+                        Classes="accent"
+                        MinWidth="100"
+                        Click="SaveButton_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,338 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
+             x:Class="ProCohere.Avalonia.Views.Controls.AgendaItemCard"
+             x:DataType="models:MeetingAgendaItem">
+    
+    <!-- 
+    AgendaItemCard - Progressive disclosure card for agenda items.
+    
+    Features:
+    - Collapsed view: Title, status, linked entity indicator
+    - Expanded view: Description, notes tab, outcomes tab
+    - Status change buttons
+    - Action buttons (Create Task, Record Decision, etc.)
+    -->
+    
+    <UserControl.Styles>
+        <!-- Status chip buttons -->
+        <Style Selector="Button.status-chip">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.status-chip:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        
+        <!-- Tab button styles -->
+        <Style Selector="Button.tab-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.tab-button.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.tab-button.selected TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        
+        <!-- Expand button -->
+        <Style Selector="Button.expand-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <!-- Outcome item style -->
+        <Style Selector="Border.outcome-item">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <Border Background="{DynamicResource BrushSurfaceAlt}" 
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8" 
+            Padding="12" 
+            Margin="0,0,0,8"
+            x:Name="CardBorder">
+        
+        <Border.Styles>
+            <Style Selector="Border#CardBorder:pointerover">
+                <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            </Style>
+        </Border.Styles>
+        
+        <StackPanel Spacing="0">
+            
+            <!-- ===== HEADER ROW (Always visible) ===== -->
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                
+                <!-- Checkbox -->
+                <CheckBox Grid.Column="0" 
+                          IsChecked="{Binding IsCompleted}" 
+                          VerticalAlignment="Center" 
+                          Margin="0,0,8,0"/>
+                
+                <!-- Title (clickable to expand) -->
+                <Button Grid.Column="1" 
+                        Classes="expand-button" 
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Click="OnExpandClick">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Title}" 
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextPrimary}" 
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextDecorations="{Binding IsCompleted, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                        
+                        <!-- Carry-forward indicator -->
+                        <Border CornerRadius="4" Padding="4,2" 
+                                Background="#FEF3C7"
+                                IsVisible="{Binding IsCarryForward}"
+                                ToolTip.Tip="{Binding ExpirationDisplay}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <PathIcon Data="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z" 
+                                          Width="10" Height="10" Foreground="#92400E"/>
+                                <TextBlock Text="Carried Forward" FontSize="9" Foreground="#92400E"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Button>
+                
+                <!-- Status Badge -->
+                <Border Grid.Column="2" 
+                        CornerRadius="4" 
+                        Padding="8,3" 
+                        VerticalAlignment="Center"
+                        Margin="8,0"
+                        IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <Border.Background>
+                        <SolidColorBrush Color="{Binding StatusColor}"/>
+                    </Border.Background>
+                    <TextBlock Text="{Binding StatusDisplay}" 
+                               FontSize="10" 
+                               Foreground="White" 
+                               FontWeight="SemiBold"/>
+                </Border>
+                
+                <!-- Expand/Collapse Arrow -->
+                <Button Grid.Column="3" 
+                        Classes="expand-button" 
+                        Click="OnExpandClick"
+                        x:Name="ExpandButton">
+                    <PathIcon x:Name="ExpandIcon"
+                              Data="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" 
+                              Width="16" Height="16" 
+                              Foreground="{DynamicResource BrushTextSecondary}"/>
+                </Button>
+            </Grid>
+            
+            <!-- ===== LINKED ENTITY INDICATOR (Always visible if present) ===== -->
+            <StackPanel Orientation="Horizontal" 
+                        Spacing="4" 
+                        Margin="28,4,0,0"
+                        IsVisible="{Binding HasLinkedEntity}">
+                <PathIcon Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" 
+                          Width="10" Height="10" Foreground="{DynamicResource BrushSuccess}"/>
+                <TextBlock Text="Linked to " FontSize="10" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <TextBlock Text="{Binding LinkedEntityTypeDisplay}" FontSize="10" Foreground="{DynamicResource BrushSuccess}" FontWeight="SemiBold"/>
+            </StackPanel>
+            
+            <!-- ===== EXPANDED SECTION ===== -->
+            <StackPanel x:Name="ExpandedSection" IsVisible="False" Margin="0,12,0,0">
+                
+                <!-- Description -->
+                <TextBlock Text="{Binding Description}" 
+                           FontSize="12"
+                           Foreground="{DynamicResource BrushTextSecondary}" 
+                           TextWrapping="Wrap" 
+                           Margin="0,0,0,12"
+                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                
+                <!-- Status change buttons -->
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,12">
+                    <TextBlock Text="Status:" FontSize="10" Foreground="{DynamicResource BrushTextTertiary}" 
+                               VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Button Classes="status-chip" ToolTip.Tip="Mark as Open" Click="OnSetOpen">
+                        <TextBlock Text="Open" FontSize="10"/>
+                    </Button>
+                    <Button Classes="status-chip" ToolTip.Tip="Mark as Discussed" Click="OnSetDiscussed">
+                        <TextBlock Text="Discussed" FontSize="10"/>
+                    </Button>
+                    <Button Classes="status-chip" ToolTip.Tip="Defer to future meeting" Click="OnSetDeferred">
+                        <TextBlock Text="Defer" FontSize="10"/>
+                    </Button>
+                    <Button Classes="status-chip" ToolTip.Tip="Drop this item" Click="OnSetDropped">
+                        <TextBlock Text="Drop" FontSize="10"/>
+                    </Button>
+                </StackPanel>
+                
+                <!-- Tab Bar -->
+                <Border BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1" Margin="0,0,0,8">
+                    <StackPanel Orientation="Horizontal" Spacing="0">
+                        <Button Classes="tab-button" x:Name="OutcomesTabButton" Click="OnOutcomesTabClick">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Outcomes" FontSize="11"/>
+                                <Border CornerRadius="8" Background="{DynamicResource BrushPrimary}" Padding="6,1"
+                                        x:Name="OutcomesCountBadge" IsVisible="False">
+                                    <TextBlock x:Name="OutcomesCountText" Text="0" FontSize="9" Foreground="White"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="tab-button" x:Name="NotesTabButton" Click="OnNotesTabClick">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Notes" FontSize="11"/>
+                                <Border CornerRadius="8" Background="{DynamicResource BrushPrimary}" Padding="6,1"
+                                        x:Name="NotesCountBadge" IsVisible="False">
+                                    <TextBlock x:Name="NotesCountText" Text="0" FontSize="9" Foreground="White"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Tab Content: Outcomes -->
+                <StackPanel x:Name="OutcomesTabContent" Spacing="8">
+                    
+                    <!-- Action buttons for recording outcomes -->
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Classes="status-chip" Margin="0,0,6,4" Click="OnCreateTask"
+                                IsVisible="{Binding !HasLinkedEntity}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <PathIcon Data="M9,5H7A2,2 0 0,0 5,7V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V7A2,2 0 0,0 17,5H15V7H17V19H7V7H9V5M12,2A2,2 0 0,1 14,4V6H10V4A2,2 0 0,1 12,2M11,11H13V14H16V16H13V19H11V16H8V14H11V11Z" 
+                                          Width="11" Height="11" Foreground="{DynamicResource BrushPrimary}"/>
+                                <TextBlock Text="Create Task" FontSize="10" Foreground="{DynamicResource BrushPrimary}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="status-chip" Margin="0,0,6,4" Click="OnRecordDecision">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10Z" 
+                                          Width="11" Height="11" Foreground="#F59E0B"/>
+                                <TextBlock Text="Record Decision" FontSize="10" Foreground="#F59E0B"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="status-chip" Margin="0,0,6,4" Click="OnCaptureFeedback">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
+                                          Width="11" Height="11" Foreground="#E91E63"/>
+                                <TextBlock Text="Capture Feedback" FontSize="10" Foreground="#E91E63"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                    
+                    <!-- Outcomes list placeholder -->
+                    <ItemsControl x:Name="OutcomesList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:AgendaItemOutcomeDetail">
+                                <Border Classes="outcome-item">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <PathIcon Grid.Column="0"
+                                                  Data="{Binding OutcomeTypeIcon}"
+                                                  Width="14" Height="14"
+                                                  Margin="0,0,8,0">
+                                            <PathIcon.Foreground>
+                                                <SolidColorBrush Color="{Binding OutcomeTypeColor}"/>
+                                            </PathIcon.Foreground>
+                                        </PathIcon>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding OutcomeTypeDisplay}" 
+                                                       FontSize="11" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding ContentPreview}" 
+                                                       FontSize="10" 
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       TextWrapping="Wrap"
+                                                       IsVisible="{Binding HasContent}"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" 
+                                                   Text="{Binding CreatedAtShort}" 
+                                                   FontSize="9" 
+                                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                                   VerticalAlignment="Top"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Empty state -->
+                    <TextBlock x:Name="NoOutcomesText"
+                               Text="No outcomes recorded yet" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource BrushTextTertiary}"
+                               HorizontalAlignment="Center"
+                               Margin="0,8"/>
+                </StackPanel>
+                
+                <!-- Tab Content: Notes -->
+                <StackPanel x:Name="NotesTabContent" IsVisible="False" Spacing="8">
+                    
+                    <!-- Add note button -->
+                    <Button Classes="status-chip" Click="OnAddNote">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                      Width="11" Height="11" Foreground="{DynamicResource BrushPrimary}"/>
+                            <TextBlock Text="Add Note" FontSize="10" Foreground="{DynamicResource BrushPrimary}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Notes list placeholder -->
+                    <ItemsControl x:Name="NotesList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:AgendaItemOutcomeDetail">
+                                <Border Classes="outcome-item">
+                                    <StackPanel>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="{Binding VisibilityDisplay}" 
+                                                       FontSize="9" 
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding CreatedAtShort}" 
+                                                       FontSize="9" 
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Content}" 
+                                                   FontSize="11" 
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Empty state -->
+                    <TextBlock x:Name="NoNotesText"
+                               Text="No notes added yet" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource BrushTextTertiary}"
+                               HorizontalAlignment="Center"
+                               Margin="0,8"/>
+                </StackPanel>
+                
+            </StackPanel>
+            
+        </StackPanel>
+    </Border>
+</UserControl>

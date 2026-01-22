@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="ProCohere.Avalonia.Views.CircleView"
              x:DataType="vm:CircleViewModel">
@@ -588,7 +589,7 @@
                                                                        Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <!-- Avatar image -->
-                                                        <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="48" Height="48"
+                                                        <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="48" Height="48"
                                                                IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                     </Panel>
                                                 </Border>
@@ -754,7 +755,7 @@
                                                                    Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                     <!-- Avatar image -->
-                                                    <Image Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
+                                                    <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
                                                            IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                 </Panel>
                                             </Border>
@@ -954,7 +955,10 @@
                                 Classes.selected="{Binding FeedbackFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:FeedbackFilter.Praise}}"
                                 Tapped="FeedbackFilter_Praise_Tapped">
                             <StackPanel>
-                                <TextBlock Text="🌟 PRAISE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <PathIcon Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <TextBlock Text="PRAISE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                </StackPanel>
                                 <TextBlock Text="{Binding PraiseFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="#10B981"/>
                             </StackPanel>
                         </Border>
@@ -964,7 +968,10 @@
                                 Classes.selected="{Binding FeedbackFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:FeedbackFilter.Constructive}}"
                                 Tapped="FeedbackFilter_Constructive_Tapped">
                             <StackPanel>
-                                <TextBlock Text="💡 CONSTRUCTIVE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <PathIcon Data="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <TextBlock Text="CONSTRUCTIVE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                </StackPanel>
                                 <TextBlock Text="{Binding ConstructiveFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="#F59E0B"/>
                             </StackPanel>
                         </Border>
@@ -974,7 +981,10 @@
                                 Classes.selected="{Binding FeedbackFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:FeedbackFilter.Coaching}}"
                                 Tapped="FeedbackFilter_Coaching_Tapped">
                             <StackPanel>
-                                <TextBlock Text="📚 COACHING" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <PathIcon Data="M19,2L14,6.5V17.5L19,13V2M6.5,5C4.55,5 2.45,5.4 1,6.5V21.16C1,21.41 1.25,21.66 1.5,21.66C1.6,21.66 1.65,21.59 1.75,21.59C3.1,20.94 5.05,20.5 6.5,20.5C8.45,20.5 10.55,20.9 12,22C13.35,21.15 15.8,20.5 17.5,20.5C19.15,20.5 20.85,20.81 22.25,21.56C22.35,21.61 22.4,21.59 22.5,21.59C22.75,21.59 23,21.34 23,21.09V6.5C22.4,6.05 21.75,5.75 21,5.5V19C19.9,18.65 18.7,18.5 17.5,18.5C15.8,18.5 13.35,19.15 12,20V6.5C10.55,5.4 8.45,5 6.5,5Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <TextBlock Text="COACHING" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                </StackPanel>
                                 <TextBlock Text="{Binding CoachingFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="#6366F1"/>
                             </StackPanel>
                         </Border>
@@ -1012,8 +1022,17 @@
                                             
                                             <!-- Recipient -->
                                             <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
-                                                <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource BrushPrimary}">
-                                                    <TextBlock Text="👤" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="28" Height="28" CornerRadius="14" ClipToBounds="True">
+                                                    <Panel>
+                                                        <Border Background="{DynamicResource BrushPrimary}" CornerRadius="14"
+                                                                IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                            <TextBlock Text="{Binding RecipientInitials}" FontSize="10" FontWeight="SemiBold"
+                                                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <Image asyncImageLoader:ImageLoader.Source="{Binding RecipientAvatarUrl}"
+                                                               Stretch="UniformToFill" Width="28" Height="28"
+                                                               IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    </Panel>
                                                 </Border>
                                                 <TextBlock Text="{Binding RecipientName}" FontSize="14" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
@@ -1035,27 +1054,46 @@
                             ClipToBounds="True">
                         <Border Classes="detail-panel" Classes.open="{Binding IsFeedbackDetailOpen}" 
                                 Width="320" Margin="8,0,0,0">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel DataContext="{Binding SelectedFeedback}" Margin="0,0,18,0">
+                            <Grid RowDefinitions="Auto,*">
                                 
-                                <!-- Close Button -->
-                                <Button Classes="icon-button" HorizontalAlignment="Right" 
-                                        Command="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext).CloseFeedbackDetailCommand}">
-                                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                              Width="16" Height="16" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                </Button>
+                                <!-- Header - Navy bar matching other flyouts -->
+                                <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="8,8,0,0" Padding="16,12">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Text="Feedback" FontSize="14" FontWeight="SemiBold" 
+                                                   Foreground="White" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Close"
+                                                Command="{Binding CloseFeedbackDetailCommand}">
+                                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                      Width="14" Height="14" Foreground="White"/>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Content -->
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel DataContext="{Binding SelectedFeedback}" Margin="16,12,16,16">
                                 
                                 <!-- Type Badge -->
                                 <TextBlock Text="{Binding TypeDisplay}" FontSize="16" FontWeight="SemiBold"
                                            Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,16"/>
                                 
-                                <!-- Recipient Section -->
-                                <TextBlock Text="RECIPIENT" Classes="detail-section-header"/>
+                                <!-- TO Section - showing recipient -->
+                                <TextBlock Text="TO" FontSize="10" FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"/>
                                 <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,12">
-                                    <Border Width="40" Height="40" CornerRadius="20" Background="{DynamicResource BrushPrimary}">
-                                        <TextBlock Text="👤" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border Width="40" Height="40" CornerRadius="20" ClipToBounds="True">
+                                        <Panel>
+                                            <Border Background="{DynamicResource BrushPrimary}" CornerRadius="20"
+                                                    IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                <TextBlock Text="{Binding RecipientInitials}" FontSize="14" FontWeight="SemiBold"
+                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding RecipientAvatarUrl}"
+                                                   Stretch="UniformToFill" Width="40" Height="40"
+                                                   IsVisible="{Binding RecipientAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </Panel>
                                     </Border>
-                                    <TextBlock Grid.Column="1" Text="{Binding RecipientName}" FontSize="15" FontWeight="SemiBold"
+                                    <TextBlock Grid.Column="1" Text="{Binding RecipientName}" FontSize="14" FontWeight="Medium"
                                                Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                                 </Grid>
                                 
@@ -1103,6 +1141,7 @@
                                 
                             </StackPanel>
                             </ScrollViewer>
+                            </Grid>
                         </Border>
                     </Border>
                 </Grid>
@@ -1223,10 +1262,18 @@
                                                                         <ItemsControl.ItemTemplate>
                                                                             <DataTemplate>
                                                                                 <Border Width="28" Height="28" CornerRadius="14" 
-                                                                                        Background="{DynamicResource BrushPrimary}"
-                                                                                        BorderBrush="{DynamicResource BrushSurface}" BorderThickness="2">
-                                                                                    <TextBlock Text="{Binding Initials}" FontSize="10" FontWeight="SemiBold"
-                                                                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                                        BorderBrush="{DynamicResource BrushSurface}" BorderThickness="2"
+                                                                                        ClipToBounds="True">
+                                                                                    <Panel>
+                                                                                        <Border Background="{DynamicResource BrushPrimary}" CornerRadius="14"
+                                                                                                IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                                            <TextBlock Text="{Binding Initials}" FontSize="10" FontWeight="SemiBold"
+                                                                                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                                        </Border>
+                                                                                        <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                                                                               Stretch="UniformToFill" Width="28" Height="28"
+                                                                                               IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                                                    </Panel>
                                                                                 </Border>
                                                                             </DataTemplate>
                                                                         </ItemsControl.ItemTemplate>

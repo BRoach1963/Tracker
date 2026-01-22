@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.ComponentModel;
 using System.Linq;
@@ -30,6 +31,10 @@ public partial class CircleView : UserControl
         // Subscribe to property changes to refresh views
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         
+        // Subscribe to dialog events
+        _viewModel.EditTeamMemberDialogRequested += OnEditTeamMemberDialogRequested;
+        _viewModel.AddTeamMemberDialogRequested += OnAddTeamMemberDialogRequested;
+        
         // Initial population after control is loaded
         Loaded += CircleView_Loaded;
     }
@@ -39,6 +44,44 @@ public partial class CircleView : UserControl
         BuildDayView();
         BuildWeekView();
     }
+
+    #region Dialog Handlers
+
+    private async void OnEditTeamMemberDialogRequested(object? sender, TeamMemberDetail member)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var dialog = new EditTeamMemberDialog();
+        dialog.LoadTeamMember(member);
+
+        await dialog.ShowDialog(window);
+
+        if (dialog.Result != null)
+        {
+            // Refresh the team list after edit
+            _viewModel.RefreshCommand.Execute(null);
+        }
+    }
+
+    private async void OnAddTeamMemberDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var dialog = new EditTeamMemberDialog();
+        // Don't call LoadTeamMember - this is a new member
+
+        await dialog.ShowDialog(window);
+
+        if (dialog.Result != null)
+        {
+            // Refresh the team list after add
+            _viewModel.RefreshCommand.Execute(null);
+        }
+    }
+
+    #endregion
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

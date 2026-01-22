@@ -305,7 +305,7 @@
                         <CheckBox Classes="modern"
                                   Content="Keep me signed in"
                                   IsChecked="{Binding KeepMeSignedIn}"
-                                  ToolTip.Tip="Skip the login screen next time"
+                                  ToolTip.Tip="Stay signed in on this Windows account. Only use on your personal machine."
                                   HorizontalAlignment="Left"/>
                         <Button Classes="link"
                                 Content="Forgot password?"

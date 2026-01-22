@@ -983,21 +983,35 @@ public partial class CircleViewModel : ViewModelBase
 
     #endregion
 
+    #region Dialog Events
+
+    /// <summary>
+    /// Event to request showing the Edit Team Member dialog.
+    /// </summary>
+    public event EventHandler<TeamMemberDetail>? EditTeamMemberDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Add Team Member dialog.
+    /// </summary>
+    public event EventHandler? AddTeamMemberDialogRequested;
+
+    #endregion
+
     #region Commands
 
     [RelayCommand]
     private void AddTeamMember()
     {
-        Debug.WriteLine("Add Team Member clicked");
-        // TODO: Open add team member dialog
+        Log("AddTeamMember command - requesting dialog");
+        AddTeamMemberDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
     private void EditTeamMember(TeamMemberDetail? member)
     {
         if (member == null) return;
-        Debug.WriteLine($"Edit Team Member: {member.FullName}");
-        // TODO: Open edit team member dialog
+        Log($"EditTeamMember command - requesting dialog for {member.FullName}");
+        EditTeamMemberDialogRequested?.Invoke(this, member);
     }
 
     [RelayCommand]
@@ -1636,10 +1650,12 @@ public partial class CircleViewModel : ViewModelBase
             var memberDict = _allTeamMembers.ToDictionary(m => m.Id);
             foreach (var goal in dashboardData.Goals)
             {
-                // Enrich with owner name
+                // Enrich with owner name, avatar, initials
                 if (goal.OwnerTeamMemberId.HasValue && memberDict.TryGetValue(goal.OwnerTeamMemberId.Value, out var owner))
                 {
                     goal.OwnerName = owner.FullName;
+                    goal.OwnerAvatarUrl = owner.AvatarUrl;
+                    goal.OwnerInitials = owner.Initials;
                 }
                 _allGoals.Add(goal);
             }
@@ -1650,10 +1666,12 @@ public partial class CircleViewModel : ViewModelBase
             _allFeedback.Clear();
             foreach (var feedback in dashboardData.Feedback)
             {
-                // Enrich with recipient name
+                // Enrich with recipient name and avatar
                 if (feedback.TeamMemberId.HasValue && memberDict.TryGetValue(feedback.TeamMemberId.Value, out var recipient))
                 {
                     feedback.RecipientName = recipient.FullName;
+                    feedback.RecipientAvatarUrl = recipient.AvatarUrl;
+                    // RecipientInitials is computed from RecipientName
                 }
                 _allFeedback.Add(feedback);
             }

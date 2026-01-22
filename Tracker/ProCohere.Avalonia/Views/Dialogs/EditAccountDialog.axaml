@@ -1,0 +1,315 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="640"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditAccountDialog"
+        Title="Edit Profile"
+        Width="480" 
+        MinWidth="400"
+        MinHeight="500"
+        SizeToContent="Height"
+        MaxHeight="750"
+        WindowStartupLocation="CenterScreen"
+        CanResize="True"
+        ShowInTaskbar="True"
+        Background="#F8FAFC">
+
+    <Window.Styles>
+        <!-- Section Header Style -->
+        <Style Selector="TextBlock.section-header">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Margin" Value="0,16,0,8"/>
+        </Style>
+        
+        <!-- Field Label Style -->
+        <Style Selector="TextBlock.field-label">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        
+        <!-- TextBox Style -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#3C6248"/>
+        </Style>
+        <Style Selector="TextBox:disabled">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        
+        <!-- Primary Button -->
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#3C6248"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2D4A36"/>
+        </Style>
+        <Style Selector="Button.primary:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#94A3B8"/>
+        </Style>
+        
+        <!-- Secondary Button -->
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F8FAFC"/>
+        </Style>
+        
+        <!-- Small Button -->
+        <Style Selector="Button.small">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.small:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F1F5F9"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        
+        <!-- Header (Draggable) -->
+        <Border Grid.Row="0" 
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,0,0,1"
+                Padding="20,16"
+                PointerPressed="Header_PointerPressed">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="Edit Profile"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#1E293B" />
+                    <TextBlock Text="Update your personal information"
+                               FontSize="12"
+                               Foreground="#94A3B8" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="✕"
+                        Classes="secondary"
+                        Padding="8,4"
+                        FontSize="16"
+                        Click="CancelButton_Click"
+                        ToolTip.Tip="Close" />
+            </Grid>
+        </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="20,8,20,20" Spacing="4">
+                
+                <!-- Avatar Section -->
+                <Border Background="White"
+                        CornerRadius="8"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        Padding="16"
+                        Margin="0,8,0,0">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <!-- Avatar Display -->
+                        <Border Grid.Column="0"
+                                Width="72" Height="72"
+                                CornerRadius="36"
+                                ClipToBounds="True"
+                                Background="#3C6248">
+                            <Panel>
+                                <Image x:Name="AvatarImage"
+                                       Width="72" Height="72"
+                                       Stretch="UniformToFill" />
+                                <TextBlock x:Name="AvatarInitials"
+                                           Text="?"
+                                           FontSize="24"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Panel>
+                        </Border>
+                        
+                        <!-- Avatar Actions -->
+                        <StackPanel Grid.Column="1" 
+                                    VerticalAlignment="Center"
+                                    Margin="16,0,0,0"
+                                    Spacing="6">
+                            <TextBlock Text="Profile Photo"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Foreground="#1E293B" />
+                            <TextBlock Text="JPG, PNG, GIF or WebP. Max 5MB."
+                                       FontSize="11"
+                                       Foreground="#94A3B8" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                                <Button x:Name="UploadAvatarButton"
+                                        Content="Upload"
+                                        Classes="small"
+                                        Click="UploadAvatarButton_Click" />
+                                <Button x:Name="RemoveAvatarButton"
+                                        Content="Remove"
+                                        Classes="small"
+                                        Click="RemoveAvatarButton_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- Personal Information -->
+                <TextBlock Text="PERSONAL INFORMATION" Classes="section-header" />
+                
+                <Border Background="White"
+                        CornerRadius="8"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <!-- Name Row -->
+                        <Grid ColumnDefinitions="*,12,*">
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="First Name" Classes="field-label" />
+                                <TextBox x:Name="FirstNameTextBox" Watermark="First name" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Last Name" Classes="field-label" />
+                                <TextBox x:Name="LastNameTextBox" Watermark="Last name" />
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Display Name -->
+                        <StackPanel>
+                            <TextBlock Text="Display Name" Classes="field-label" />
+                            <TextBox x:Name="DisplayNameTextBox" Watermark="How you want to appear" />
+                        </StackPanel>
+                        
+                        <!-- Email (Read-only) -->
+                        <StackPanel>
+                            <TextBlock Text="Email" Classes="field-label" />
+                            <TextBox x:Name="EmailTextBox" IsReadOnly="True" IsEnabled="False" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Work Information -->
+                <TextBlock Text="WORK INFORMATION" Classes="section-header" />
+                
+                <Border Background="White"
+                        CornerRadius="8"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <StackPanel>
+                            <TextBlock Text="Job Title" Classes="field-label" />
+                            <TextBox x:Name="JobTitleTextBox" Watermark="e.g., Engineering Manager" />
+                        </StackPanel>
+                        
+                        <StackPanel>
+                            <TextBlock Text="Company" Classes="field-label" />
+                            <TextBox x:Name="CompanyTextBox" Watermark="Your company name" />
+                        </StackPanel>
+                        
+                        <StackPanel>
+                            <TextBlock Text="Phone" Classes="field-label" />
+                            <TextBox x:Name="PhoneTextBox" Watermark="+1 (555) 123-4567" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Dates & Location -->
+                <TextBlock Text="DATES &amp; LOCATION" Classes="section-header" />
+                
+                <Border Background="White"
+                        CornerRadius="8"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,12,*">
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Birthday" Classes="field-label" />
+                                <CalendarDatePicker x:Name="BirthdayPicker" 
+                                                    HorizontalAlignment="Stretch"
+                                                    Watermark="Select date"
+                                                    IsTodayHighlighted="True" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Hire Date" Classes="field-label" />
+                                <CalendarDatePicker x:Name="HireDatePicker" 
+                                                    HorizontalAlignment="Stretch"
+                                                    Watermark="Select date"
+                                                    IsTodayHighlighted="True" />
+                            </StackPanel>
+                        </Grid>
+                        
+                        <StackPanel>
+                            <TextBlock Text="Timezone" Classes="field-label" />
+                            <ComboBox x:Name="TimezoneComboBox" HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,1,0,0"
+                Padding="20,12">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <!-- Status message -->
+                <TextBlock x:Name="StatusText"
+                           Grid.Column="0"
+                           FontSize="12"
+                           Foreground="#DC2626"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="220" />
+                
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Classes="secondary"
+                        MinWidth="80"
+                        Margin="0,0,8,0"
+                        Click="CancelButton_Click" />
+                <Button Grid.Column="2"
+                        x:Name="SaveButton"
+                        Content="Save Changes"
+                        Classes="primary"
+                        MinWidth="120"
+                        Click="SaveButton_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

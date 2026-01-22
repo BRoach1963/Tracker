@@ -87,9 +87,19 @@ public class FeedbackDetail : BaseModel
     public string RecipientName { get; set; } = string.Empty;
     
     /// <summary>
+    /// Avatar URL of the recipient (set by service join).
+    /// </summary>
+    public string? RecipientAvatarUrl { get; set; }
+    
+    /// <summary>
     /// Name of the sender (set by service join).
     /// </summary>
     public string SenderName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Avatar URL of the sender (set by service join).
+    /// </summary>
+    public string? SenderAvatarUrl { get; set; }
     
     /// <summary>
     /// Optional: context (e.g., project, meeting, etc.)
@@ -110,10 +120,10 @@ public class FeedbackDetail : BaseModel
     /// </summary>
     public string TypeDisplay => FeedbackType?.ToLower() switch
     {
-        "praise" => "🌟 Praise",
-        "constructive" => "💡 Constructive",
-        "coaching" => "📚 Coaching",
-        "recognition" => "🏆 Recognition",
+        "praise" => "Praise",
+        "constructive" => "Constructive",
+        "coaching" => "Coaching",
+        "recognition" => "Recognition",
         _ => FeedbackType ?? "Feedback"
     };
 
@@ -141,6 +151,42 @@ public class FeedbackDetail : BaseModel
     /// Truncated content for card display.
     /// </summary>
     public string ContentPreview => Content.Length > 100 ? Content[..97] + "..." : Content;
+
+    /// <summary>
+    /// Alias for ContentPreview for XAML binding compatibility.
+    /// </summary>
+    public string Preview => ContentPreview;
+
+    /// <summary>
+    /// Alias for SenderName (the person who gave the feedback).
+    /// </summary>
+    public string AuthorName => SenderName;
+
+    /// <summary>
+    /// Initials of the feedback author (sender).
+    /// </summary>
+    public string AuthorInitials => GetInitials(SenderName);
+
+    /// <summary>
+    /// Initials of the feedback recipient.
+    /// </summary>
+    public string RecipientInitials => GetInitials(RecipientName);
+
+    /// <summary>
+    /// Helper to extract initials from a name.
+    /// </summary>
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => "?",
+            1 => parts[0][..1].ToUpper(),
+            _ => $"{parts[0][..1]}{parts[^1][..1]}".ToUpper()
+        };
+    }
 
     #endregion
 }

@@ -146,6 +146,7 @@ public class DashboardService
                     {
                         att.Name = member.FullName;
                         att.Email = member.Email ?? string.Empty;
+                        att.AvatarUrl = member.AvatarUrl;
                     }
                 }
                 meeting.Attendees = meetingAttendees;
@@ -408,6 +409,172 @@ public class DashboardService
             return new List<MeetingAttendee>();
         }
     }
+
+    /// <summary>
+    /// Gets the daily load (tasks + meetings) for the next 7 days.
+    /// Used for the Briefing sparkline visualization.
+    /// This is scoped to the current user's own obligations (not team).
+    /// </summary>
+    public async Task<List<Models.DailyLoad>> GetWeeklyLoadAsync()
+    {
+        Log("GetWeeklyLoadAsync starting...");
+        var loads = new List<Models.DailyLoad>();
+        
+        var client = AuthService.Instance.GetProCohereClient();
+        var teamMember = AuthService.Instance.CurrentTeamMember;
+        
+        if (client == null || teamMember == null)
+        {
+            Log("GetWeeklyLoadAsync: No client or team member");
+            // Return empty days with zero load
+            for (int i = 0; i < 7; i++)
+            {
+                loads.Add(new Models.DailyLoad { Date = DateTime.Today.AddDays(i) });
+            }
+            return loads;
+        }
+
+        var teamMemberId = teamMember.Id;
+        var organizationId = teamMember.OrganizationId;
+        
+        Log($"GetWeeklyLoadAsync: TeamMember={teamMemberId}, Org={organizationId}");
+
+        // Initialize all 7 days with zero counts
+        var today = DateTime.Today;
+        var dayLoads = new Dictionary<DateTime, Models.DailyLoad>();
+        for (int i = 0; i < 7; i++)
+        {
+            var date = today.AddDays(i);
+            dayLoads[date] = new Models.DailyLoad { Date = date };
+        }
+
+        try
+        {
+            // Get tasks due in the next 7 days assigned to this user
+            var endDate = today.AddDays(7);
+            var tasksResult = await client.From<TaskForLoad>()
+                .Filter("organization_id", Supabase.Postgrest.Constants.Operator.Equals, organizationId.ToString())
+                .Filter("assigned_to", Supabase.Postgrest.Constants.Operator.Equals, teamMemberId.ToString())
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Filter("status", Supabase.Postgrest.Constants.Operator.NotEqual, "done")
+                .Filter("due_date", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, today.ToString("yyyy-MM-dd"))
+                .Filter("due_date", Supabase.Postgrest.Constants.Operator.LessThan, endDate.ToString("yyyy-MM-dd"))
+                .Get();
+
+            Log($"Tasks for load: {tasksResult.Models?.Count ?? 0}");
+
+            if (tasksResult.Models != null)
+            {
+                foreach (var task in tasksResult.Models)
+                {
+                    if (task.DueDate.HasValue)
+                    {
+                        var dueDay = task.DueDate.Value.Date;
+                        if (dayLoads.ContainsKey(dueDay))
+                        {
+                            dayLoads[dueDay].TasksDue++;
+                        }
+                    }
+                }
+            }
+
+            // Get meetings in the next 7 days where this user is an attendee
+            var meetingsResult = await client.From<MeetingForLoad>()
+                .Filter("organization_id", Supabase.Postgrest.Constants.Operator.Equals, organizationId.ToString())
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Filter("scheduled_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, today.ToString("yyyy-MM-dd"))
+                .Filter("scheduled_at", Supabase.Postgrest.Constants.Operator.LessThan, endDate.ToString("yyyy-MM-dd"))
+                .Get();
+
+            Log($"Meetings for load (all): {meetingsResult.Models?.Count ?? 0}");
+
+            // Now filter meetings where this user is an attendee
+            if (meetingsResult.Models != null)
+            {
+                foreach (var meeting in meetingsResult.Models)
+                {
+                    // Check if this user is an attendee
+                    var isAttendee = await CheckIfMeetingAttendeeAsync(client, meeting.Id, teamMemberId, organizationId);
+                    
+                    if (isAttendee && meeting.ScheduledAt.HasValue)
+                    {
+                        var meetingDay = meeting.ScheduledAt.Value.Date;
+                        if (dayLoads.ContainsKey(meetingDay))
+                        {
+                            dayLoads[meetingDay].Meetings++;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"GetWeeklyLoadAsync ERROR: {ex.Message}");
+        }
+
+        // Return as ordered list
+        loads = dayLoads.Values.OrderBy(d => d.Date).ToList();
+        
+        Log($"GetWeeklyLoadAsync complete: {string.Join(", ", loads.Select(l => $"{l.DayLabel}:{l.TotalLoad}"))}");
+        return loads;
+    }
+
+    private async Task<bool> CheckIfMeetingAttendeeAsync(Supabase.Client client, Guid meetingId, Guid teamMemberId, Guid organizationId)
+    {
+        try
+        {
+            var result = await client.From<MeetingAttendee>()
+                .Filter("meeting_id", Supabase.Postgrest.Constants.Operator.Equals, meetingId.ToString())
+                .Filter("team_member_id", Supabase.Postgrest.Constants.Operator.Equals, teamMemberId.ToString())
+                .Filter("organization_id", Supabase.Postgrest.Constants.Operator.Equals, organizationId.ToString())
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Get();
+            
+            return result.Models?.Count > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+
+/// <summary>
+/// Minimal task model for load counting.
+/// </summary>
+[Table("tasks")]
+internal class TaskForLoad : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
+
+    [Column("assigned_to")]
+    public Guid? AssignedTo { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("status")]
+    public string? Status { get; set; }
+}
+
+/// <summary>
+/// Minimal meeting model for load counting.
+/// </summary>
+[Table("meetings")]
+internal class MeetingForLoad : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("scheduled_at")]
+    public DateTime? ScheduledAt { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
 }
 
 /// <summary>

@@ -4,6 +4,7 @@ using ProCohere.Avalonia.Services;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace ProCohere.Avalonia.ViewModels;
 
@@ -34,6 +35,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string PageTitle => SelectedNavigation switch
     {
         NavigationItem.Briefing => "Briefing",
+        NavigationItem.Me => "Me",
         NavigationItem.Circle => "Circle",
         NavigationItem.Pulse => "Pulse",
         NavigationItem.Chronicle => "Chronicle",
@@ -65,12 +67,37 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string? _userAvatarUrl;
 
+    [ObservableProperty]
+    private bool _isUserMenuOpen;
+
+    /// <summary>
+    /// Raised when the user signs out.
+    /// </summary>
+    public event Action? SignOutRequested;
+
+    /// <summary>
+    /// Raised when the user wants to edit their profile. 
+    /// The view should show the EditAccountDialog.
+    /// </summary>
+    public event Action? EditProfileRequested;
+
     #endregion
 
     #region Theme
 
     [ObservableProperty]
     private bool _isDarkTheme = false;  // Start in light mode (Pro Cohere default)
+
+    #endregion
+
+    #region Manager Status
+
+    /// <summary>
+    /// True if current user has direct reports (is a manager).
+    /// Used to control visibility of Circle navigation.
+    /// </summary>
+    [ObservableProperty]
+    private bool _hasDirectReports = false;
 
     #endregion
 
@@ -147,6 +174,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 }
                 UserInitials = profile.Initials;
                 UserAvatarUrl = profile.AvatarUrl;
+                
+                // Determine if user is a manager (has direct reports) based on role
+                // Admin and Manager roles can see Circle, others cannot
+                var currentRole = AuthService.Instance.CurrentRole;
+                var roleName = currentRole?.Name?.ToLowerInvariant() ?? "";
+                HasDirectReports = roleName == "admin" || roleName == "manager";
                 
                 // Get data counts
                 DatabaseProof = $"✅ Profile loaded! Getting data counts...";
@@ -269,8 +302,23 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task SignOutAsync()
     {
-        await AuthService.Instance.SignOutAsync();
-        // The view will handle closing and showing login
+        try
+        {
+            // Clear stored credentials
+            var credentialService = new WindowsCredentialService();
+            credentialService.ClearSession();
+            
+            // Sign out from Supabase
+            await AuthService.Instance.SignOutAsync();
+            
+            // Notify the view to navigate to login
+            SignOutRequested?.Invoke();
+        }
+        catch (Exception)
+        {
+            // Still navigate to login even if sign out fails
+            SignOutRequested?.Invoke();
+        }
     }
 
     [RelayCommand]
@@ -287,16 +335,32 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "Help coming soon...";
     }
 
+    [RelayCommand]
+    private void EditProfile()
+    {
+        // Request the view to show the EditAccountDialog
+        EditProfileRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Refreshes user display info after profile edit.
+    /// </summary>
+    public async Task RefreshUserInfoAsync()
+    {
+        await LoadProfileFromDatabaseAsync();
+    }
+
     #endregion
 }
 
 /// <summary>
-/// Main navigation items (the 5 pillars).
+/// Main navigation items.
 /// </summary>
 public enum NavigationItem
 {
     Briefing,   // Dashboard - what's relevant now (today/week view)
-    Circle,     // Team, 1:1s, Feedback, Goals
+    Me,         // Personal hub - my tasks, goals, meetings, feedback (ALL users)
+    Circle,     // Team view (MANAGERS ONLY) - team activity, attention needed
     Pulse,      // Goals, Metrics, Projects, Tasks
     Chronicle,  // Notes, Reports
     Settings    // App settings

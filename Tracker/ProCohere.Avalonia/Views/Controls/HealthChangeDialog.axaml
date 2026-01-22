@@ -60,7 +60,7 @@
                         <!-- Philosophy Banner -->
                         <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="💡 Reflection-Based Health" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="Reflection-Based Health" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource BrushPrimary}"/>
                                 <TextBlock Text="Health describes current state, not a judgment. Choose what best reflects your situation now." 
                                            FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
