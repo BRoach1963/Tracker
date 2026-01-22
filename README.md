@@ -16,9 +16,9 @@ Comprehensive technical documentation for the ProCohere database, including:
 - GRANTS / ACL behavior
 - Developer guidance for querying and extending the database
 
-📁 **Location:** `Wiki/Database/`
+📁 **Location:** [`Wiki/Database/`](Wiki/Database/)
 
-➡️ Start here: `Wiki/Database/README.md`
+➡️ **Start here:** [`Wiki/Database/README.md`](Wiki/Database/README.md)
 
 ---
 
