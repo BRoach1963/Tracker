@@ -241,11 +241,26 @@ public class MeetingPrepItem : BaseModel
     /// <summary>
     /// Icon to display for visibility scope.
     /// </summary>
+    [Obsolete("Use VisibilityIconPath for XAML binding with PathIcon")]
     public string VisibilityIcon => VisibilityScope switch
     {
         "personal" => "🔒",
         "assigned" => "👤",
         "meeting" => "👥",
+        _ => ""
+    };
+
+    /// <summary>
+    /// PathIcon data for visibility scope - use with PathIcon in XAML.
+    /// </summary>
+    public string VisibilityIconPath => VisibilityScope switch
+    {
+        // Lock icon for personal
+        "personal" => "M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z",
+        // Person icon for assigned
+        "assigned" => "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z",
+        // People icon for meeting/team
+        "meeting" => "M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z",
         _ => ""
     };
 
