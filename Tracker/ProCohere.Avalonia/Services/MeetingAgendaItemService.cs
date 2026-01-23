@@ -161,6 +161,9 @@ public class MeetingAgendaItemService
         {
             Log($"Creating agenda item: {title} for meeting {meetingId}");
 
+            // Align is_private with visibility_scope per constraint
+            var isPrivateAligned = visibilityScope == "personal";
+
             var item = new MeetingAgendaItem
             {
                 Id = Guid.NewGuid(),
@@ -175,7 +178,7 @@ public class MeetingAgendaItemService
                 VisibilityScope = visibilityScope,
                 Status = "open",
                 SortOrder = sortOrder,
-                IsPrivate = isPrivate,
+                IsPrivate = isPrivateAligned, // Must align with visibility_scope per DB constraint
                 IsCompleted = false,
                 LinkedEntityType = linkedEntityType,
                 LinkedEntityId = linkedEntityId,
@@ -350,7 +353,12 @@ public class MeetingAgendaItemService
             if (displayTitle != null) item.DisplayTitle = displayTitle;
             if (sharedContext != null) item.SharedContext = sharedContext;
             if (privateContext != null) item.PrivateContext = privateContext;
-            if (visibilityScope != null) item.VisibilityScope = visibilityScope;
+            if (visibilityScope != null)
+            {
+                item.VisibilityScope = visibilityScope;
+                // Align is_private with visibility_scope per DB constraint
+                item.IsPrivate = visibilityScope == "personal";
+            }
             if (talkingPoints != null) item.TalkingPoints = talkingPoints;
             if (outcomeType != null) item.OutcomeType = outcomeType;
             if (outcomeSummary != null) item.OutcomeSummary = outcomeSummary;

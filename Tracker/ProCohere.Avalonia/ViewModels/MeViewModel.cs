@@ -165,11 +165,11 @@ public partial class MeViewModel : ViewModelBase
         .OrderByDescending(t => t.CompletedAt);
 
     /// <summary>
-    /// Goals sorted by end date, then by health
+    /// Goals sorted by due date, then by health
     /// </summary>
     public IEnumerable<GoalDetail> SortedGoals => MyGoals
         .Where(g => g.Lifecycle == GoalLifecycle.Active || g.Lifecycle == GoalLifecycle.Evolving)
-        .OrderBy(g => g.EndDate ?? DateTime.MaxValue);
+        .OrderBy(g => g.DueDate ?? DateTime.MaxValue);
 
     /// <summary>
     /// Upcoming meetings (next 7 days)
@@ -570,7 +570,7 @@ public partial class MeViewModel : ViewModelBase
         // Log goal details for debugging
         foreach (var g in MyGoals)
         {
-            Log($"  - Goal '{g.Title}' Lifecycle={g.Lifecycle}, LifecycleValue={g.LifecycleValue}, EndDate={g.EndDate}");
+            Log($"  - Goal '{g.Title}' Status={g.Status}, DueDate={g.DueDate?.ToShortDateString() ?? "none"}");
         }
         
         var activeGoals = MyGoals.Count(g => g.Lifecycle == GoalLifecycle.Active || g.Lifecycle == GoalLifecycle.Evolving);

@@ -255,12 +255,22 @@ public class GoalsService : IGoalsService
 
         try
         {
-            var lifecycleValue = lifecycle.ToString().ToLower();
-            Log($"Loading goals by lifecycle: {lifecycleValue}");
+            // Map lifecycle to status values
+            var statusValues = lifecycle switch
+            {
+                GoalLifecycle.Active => new[] { "active", "on_track", "in_progress", "needs_attention", "at_risk", "not_started" },
+                GoalLifecycle.Evolving => new[] { "evolving", "reframing_needed" },
+                GoalLifecycle.Paused => new[] { "paused" },
+                GoalLifecycle.Superseded => new[] { "superseded" },
+                GoalLifecycle.Retired => new[] { "retired", "completed" },
+                _ => new[] { "active" }
+            };
+
+            Log($"Loading goals by lifecycle: {lifecycle} (status in: {string.Join(", ", statusValues)})");
 
             var result = await client.From<GoalDetail>()
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("lifecycle", Operator.Equals, lifecycleValue)
+                .Filter("status", Operator.In, statusValues)
                 .Order("created_at", Ordering.Descending)
                 .Get();
 
@@ -290,7 +300,8 @@ public class GoalsService : IGoalsService
 
         try
         {
-            var healthValue = health switch
+            // Map health to status value
+            var statusValue = health switch
             {
                 GoalHealth.OnTrack => "on_track",
                 GoalHealth.NeedsAttention => "needs_attention",
@@ -298,11 +309,11 @@ public class GoalsService : IGoalsService
                 GoalHealth.ReframingNeeded => "reframing_needed",
                 _ => "on_track"
             };
-            Log($"Loading goals by health: {healthValue}");
+            Log($"Loading goals by health: {health} (status: {statusValue})");
 
             var result = await client.From<GoalDetail>()
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("health", Operator.Equals, healthValue)
+                .Filter("status", Operator.Equals, statusValue)
                 .Order("created_at", Ordering.Descending)
                 .Get();
 
@@ -343,20 +354,15 @@ public class GoalsService : IGoalsService
             // Set required fields
             goal.Id = goal.Id == Guid.Empty ? Guid.NewGuid() : goal.Id;
             goal.OrganizationId = session.TeamMember?.OrganizationId ?? Guid.Empty;
-            goal.CreatedByUserId = profile.Id;
             goal.OwnerTeamMemberId = goal.OwnerTeamMemberId ?? session.TeamMember?.Id;
             goal.CreatedAt = DateTime.UtcNow;
             goal.UpdatedAt = DateTime.UtcNow;
             goal.IsDeleted = false;
 
             // Set defaults if not specified
-            if (string.IsNullOrEmpty(goal.HealthValue))
+            if (string.IsNullOrEmpty(goal.Status))
             {
-                goal.Health = GoalHealth.OnTrack;
-            }
-            if (string.IsNullOrEmpty(goal.LifecycleValue))
-            {
-                goal.Lifecycle = GoalLifecycle.Active;
+                goal.Status = "active";
             }
             if (string.IsNullOrEmpty(goal.GoalTypeValue))
             {
@@ -485,29 +491,28 @@ public class GoalsService : IGoalsService
 
         try
         {
-            Log($"Updating goal health: {goalId} -> {health}");
-
-            // Get the goal first
-            var goal = await GetGoalByIdAsync(goalId, ct);
-            if (goal == null)
+            // Map health to status value
+            var statusValue = health switch
             {
-                LastError = "Goal not found";
-                return null;
-            }
+                GoalHealth.OnTrack => "on_track",
+                GoalHealth.NeedsAttention => "needs_attention",
+                GoalHealth.AtRisk => "at_risk",
+                GoalHealth.ReframingNeeded => "reframing_needed",
+                _ => "on_track"
+            };
 
-            // Update health with reflection
-            goal.Health = health;
-            goal.HealthReason = reason;
-            goal.UpdatedAt = DateTime.UtcNow;
+            Log($"Updating goal health: {goalId} -> {health} (status: {statusValue})");
 
             var result = await client.From<GoalDetail>()
-                .Filter("id", Operator.Equals, goalId.ToString())
-                .Update(goal);
+                .Where(g => g.Id == goalId)
+                .Set(g => g.Status, statusValue)
+                .Set(g => g.UpdatedAt, DateTime.UtcNow)
+                .Update();
 
             var updated = result.Models?.FirstOrDefault();
             if (updated != null)
             {
-                Log($"Goal health updated: {goalId} -> {health} (reason: {reason?.Length ?? 0} chars)");
+                Log($"Goal health updated: {goalId} -> {health}");
             }
             return updated;
         }
@@ -538,37 +543,29 @@ public class GoalsService : IGoalsService
 
         try
         {
-            Log($"Updating goal lifecycle: {goalId} -> {lifecycle}");
-
-            // Get the goal first
-            var goal = await GetGoalByIdAsync(goalId, ct);
-            if (goal == null)
+            // Map lifecycle to status value
+            var statusValue = lifecycle switch
             {
-                LastError = "Goal not found";
-                return null;
-            }
+                GoalLifecycle.Active => "active",
+                GoalLifecycle.Evolving => "evolving",
+                GoalLifecycle.Paused => "paused",
+                GoalLifecycle.Superseded => "superseded",
+                GoalLifecycle.Retired => "retired",
+                _ => "active"
+            };
 
-            // Validate superseded transition
-            if (lifecycle == GoalLifecycle.Superseded && supersededById == null)
-            {
-                LastError = "Superseded goals must specify the replacement goal ID";
-                return null;
-            }
-
-            // Update lifecycle with reflection
-            goal.Lifecycle = lifecycle;
-            goal.LifecycleReason = reason;
-            goal.SupersededById = supersededById;
-            goal.UpdatedAt = DateTime.UtcNow;
+            Log($"Updating goal lifecycle: {goalId} -> {lifecycle} (status: {statusValue})");
 
             var result = await client.From<GoalDetail>()
-                .Filter("id", Operator.Equals, goalId.ToString())
-                .Update(goal);
+                .Where(g => g.Id == goalId)
+                .Set(g => g.Status, statusValue)
+                .Set(g => g.UpdatedAt, DateTime.UtcNow)
+                .Update();
 
             var updated = result.Models?.FirstOrDefault();
             if (updated != null)
             {
-                Log($"Goal lifecycle updated: {goalId} -> {lifecycle} (reason: {reason?.Length ?? 0} chars)");
+                Log($"Goal lifecycle updated: {goalId} -> {lifecycle}");
             }
             return updated;
         }

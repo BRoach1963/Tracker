@@ -387,10 +387,8 @@ public partial class MetricsViewModel : ViewModelBase
         {
             Id = Guid.Empty,
             Name = string.Empty,
-            Description = string.Empty,
-            Lifecycle = "active",
-            Source = "manual",
-            Scope = "individual"
+            Description = string.Empty
+            // Note: Lifecycle, Source, Scope don't exist in DB schema
         };
         IsEditorFlyoutOpen = true;
         IsDetailFlyoutOpen = false;

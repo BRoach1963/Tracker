@@ -884,11 +884,11 @@ public class AuthService
 
         System.Diagnostics.Debug.WriteLine($"GetDataCountsAsync: User ID = {CurrentProfile.Id}");
 
-        // Get team members managed by this user
+        // Get team members visible to this user (RLS filters by organization)
         try
         {
             var teamMembersResult = await _procohereClient.From<TeamMemberSimple>()
-                .Where(t => t.ManagerUserId == CurrentProfile.Id)
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Get();
             counts.TeamMembers = teamMembersResult.Models?.Count ?? 0;
             System.Diagnostics.Debug.WriteLine($"Team members: {counts.TeamMembers}");
@@ -899,11 +899,11 @@ public class AuthService
             System.Diagnostics.Debug.WriteLine($"TeamMembers error: {ex.Message}");
         }
 
-        // Get meetings created by this user
+        // Get meetings - count all meetings visible to this user (via RLS)
         try
         {
             var meetingsResult = await _procohereClient.From<MeetingSimple>()
-                .Where(m => m.CreatedByUserId == CurrentProfile.Id)
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Get();
             counts.Meetings = meetingsResult.Models?.Count ?? 0;
             System.Diagnostics.Debug.WriteLine($"Meetings: {counts.Meetings}");
@@ -914,11 +914,11 @@ public class AuthService
             System.Diagnostics.Debug.WriteLine($"Meetings error: {ex.Message}");
         }
 
-        // Get goals created by this user
+        // Get goals - count all goals visible to this user (via RLS)
         try
         {
             var goalsResult = await _procohereClient.From<GoalSimple>()
-                .Where(g => g.CreatedByUserId == CurrentProfile.Id)
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Get();
             counts.Goals = goalsResult.Models?.Count ?? 0;
             System.Diagnostics.Debug.WriteLine($"Goals: {counts.Goals}");
@@ -929,11 +929,11 @@ public class AuthService
             System.Diagnostics.Debug.WriteLine($"Goals error: {ex.Message}");
         }
 
-        // Get tasks created by this user
+        // Get tasks - count all tasks visible to this user (via RLS)
         try
         {
             var tasksResult = await _procohereClient.From<TaskSimple>()
-                .Where(t => t.CreatedByUserId == CurrentProfile.Id)
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Get();
             counts.Tasks = tasksResult.Models?.Count ?? 0;
             System.Diagnostics.Debug.WriteLine($"Tasks: {counts.Tasks}");
@@ -944,20 +944,7 @@ public class AuthService
             System.Diagnostics.Debug.WriteLine($"Tasks error: {ex.Message}");
         }
 
-        // Get projects created by this user
-        try
-        {
-            var projectsResult = await _procohereClient.From<ProjectSimple>()
-                .Where(p => p.CreatedByUserId == CurrentProfile.Id)
-                .Get();
-            counts.Projects = projectsResult.Models?.Count ?? 0;
-            System.Diagnostics.Debug.WriteLine($"Projects: {counts.Projects}");
-        }
-        catch (Exception ex)
-        {
-            errors.Add($"Projects: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Projects error: {ex.Message}");
-        }
+        // NOTE: projects table doesn't exist in procohere schema
 
         LastDataCountError = errors.Count > 0 ? string.Join("; ", errors) : null;
         return counts;
@@ -980,7 +967,7 @@ public class DataCounts
     public int Meetings { get; set; }
     public int Goals { get; set; }
     public int Tasks { get; set; }
-    public int Projects { get; set; }
+    // NOTE: Projects table doesn't exist in procohere schema
 }
 
 /// <summary>
@@ -992,14 +979,17 @@ public class TeamMemberSimple : Supabase.Postgrest.Models.BaseModel
     [Supabase.Postgrest.Attributes.PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
-    [Supabase.Postgrest.Attributes.Column("manager_user_id")]
-    public Guid? ManagerUserId { get; set; }
+    [Supabase.Postgrest.Attributes.Column("manager_team_member_id")]
+    public Guid? ManagerTeamMemberId { get; set; }
 
     [Supabase.Postgrest.Attributes.Column("first_name")]
     public string? FirstName { get; set; }
 
     [Supabase.Postgrest.Attributes.Column("last_name")]
     public string? LastName { get; set; }
+
+    [Supabase.Postgrest.Attributes.Column("is_deleted")]
+    public bool IsDeleted { get; set; }
 }
 
 /// <summary>
@@ -1011,8 +1001,11 @@ public class MeetingSimple : Supabase.Postgrest.Models.BaseModel
     [Supabase.Postgrest.Attributes.PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
-    [Supabase.Postgrest.Attributes.Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
+    [Supabase.Postgrest.Attributes.Column("created_by")]
+    public Guid CreatedByTeamMemberId { get; set; }
+
+    [Supabase.Postgrest.Attributes.Column("is_deleted")]
+    public bool IsDeleted { get; set; }
 
     [Supabase.Postgrest.Attributes.Column("title")]
     public string? Title { get; set; }
@@ -1027,8 +1020,11 @@ public class GoalSimple : Supabase.Postgrest.Models.BaseModel
     [Supabase.Postgrest.Attributes.PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
-    [Supabase.Postgrest.Attributes.Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
+    [Supabase.Postgrest.Attributes.Column("owner_id")]
+    public Guid OwnerTeamMemberId { get; set; }
+
+    [Supabase.Postgrest.Attributes.Column("is_deleted")]
+    public bool IsDeleted { get; set; }
 
     [Supabase.Postgrest.Attributes.Column("title")]
     public string? Title { get; set; }
@@ -1043,25 +1039,14 @@ public class TaskSimple : Supabase.Postgrest.Models.BaseModel
     [Supabase.Postgrest.Attributes.PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
-    [Supabase.Postgrest.Attributes.Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
+    [Supabase.Postgrest.Attributes.Column("created_by")]
+    public Guid CreatedByTeamMemberId { get; set; }
+
+    [Supabase.Postgrest.Attributes.Column("is_deleted")]
+    public bool IsDeleted { get; set; }
 
     [Supabase.Postgrest.Attributes.Column("title")]
     public string? Title { get; set; }
 }
 
-/// <summary>
-/// Minimal model for querying projects table.
-/// </summary>
-[Supabase.Postgrest.Attributes.Table("projects")]
-public class ProjectSimple : Supabase.Postgrest.Models.BaseModel
-{
-    [Supabase.Postgrest.Attributes.PrimaryKey("id", false)]
-    public Guid Id { get; set; }
-
-    [Supabase.Postgrest.Attributes.Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
-
-    [Supabase.Postgrest.Attributes.Column("name")]
-    public string? Name { get; set; }
-}
+// NOTE: ProjectSimple removed - procohere.projects table doesn't exist

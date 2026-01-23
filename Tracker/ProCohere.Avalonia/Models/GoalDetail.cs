@@ -25,8 +25,11 @@ public class GoalDetail : BaseModel
     [Column("owner_id")]
     public Guid? OwnerTeamMemberId { get; set; }
 
-    [Column("created_by_user_id")]
-    public Guid? CreatedByUserId { get; set; }
+    [Column("parent_goal_id")]
+    public Guid? ParentGoalId { get; set; }
+
+    [Column("category_id")]
+    public Guid? CategoryId { get; set; }
 
     #endregion
 
@@ -59,37 +62,53 @@ public class GoalDetail : BaseModel
 
     #endregion
 
-    #region Time Period
-
-    [Column("time_period")]
-    public string? TimePeriod { get; set; }
-
-    [Column("year")]
-    public int? Year { get; set; }
+    #region Dates
 
     [Column("start_date")]
     public DateTime? StartDate { get; set; }
 
-    [Column("end_date")]
-    public DateTime? EndDate { get; set; }
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
+
+    [Column("completed_at")]
+    public DateTime? CompletedAt { get; set; }
 
     #endregion
 
-    #region Health System (NEW - replaces old status)
+    #region Priority
+
+    [Column("priority")]
+    public string? Priority { get; set; }
+
+    #endregion
+
+    #region Status
+
+    [Column("status")]
+    public string Status { get; set; } = "not_started";
+
+    [Column("progress_percent")]
+    public int? ProgressPercent { get; set; }
 
     /// <summary>
-    /// Health status: on_track, needs_attention, at_risk, reframing_needed
-    /// </summary>
-    [Column("health")]
-    public string? HealthValue { get; set; }
-
-    /// <summary>
-    /// Parsed health enum.
+    /// Health is a computed view of Status for UI purposes.
+    /// Maps status values to GoalHealth enum.
     /// </summary>
     public GoalHealth Health
     {
-        get => GoalHealthExtensions.ParseGoalHealth(HealthValue);
-        set => HealthValue = value switch
+        get => Status?.ToLower() switch
+        {
+            "on_track" => GoalHealth.OnTrack,
+            "needs_attention" => GoalHealth.NeedsAttention,
+            "at_risk" => GoalHealth.AtRisk,
+            "reframing_needed" => GoalHealth.ReframingNeeded,
+            // Map legacy/alternative status values
+            "in_progress" => GoalHealth.OnTrack,
+            "not_started" => GoalHealth.OnTrack,
+            "completed" => GoalHealth.OnTrack,
+            _ => GoalHealth.OnTrack
+        };
+        set => Status = value switch
         {
             GoalHealth.OnTrack => "on_track",
             GoalHealth.NeedsAttention => "needs_attention",
@@ -100,94 +119,31 @@ public class GoalDetail : BaseModel
     }
 
     /// <summary>
-    /// Reason/reflection for the current health status.
-    /// Prompts: "What has changed?"
-    /// </summary>
-    [Column("health_reason")]
-    public string? HealthReason { get; set; }
-
-    #endregion
-
-    #region Lifecycle (NEW)
-
-    /// <summary>
-    /// Lifecycle state: active, evolving, paused, superseded, retired
-    /// </summary>
-    [Column("lifecycle")]
-    public string? LifecycleValue { get; set; }
-
-    /// <summary>
-    /// Parsed lifecycle enum.
+    /// Lifecycle is a computed view of Status for UI purposes.
+    /// Maps status values to GoalLifecycle enum.
     /// </summary>
     public GoalLifecycle Lifecycle
     {
-        get => GoalLifecycleExtensions.ParseGoalLifecycle(LifecycleValue);
-        set => LifecycleValue = value.ToString().ToLower();
+        get => Status?.ToLower() switch
+        {
+            "active" or "on_track" or "in_progress" or "needs_attention" or "at_risk" => GoalLifecycle.Active,
+            "evolving" or "reframing_needed" => GoalLifecycle.Evolving,
+            "paused" => GoalLifecycle.Paused,
+            "superseded" => GoalLifecycle.Superseded,
+            "retired" or "completed" => GoalLifecycle.Retired,
+            "not_started" => GoalLifecycle.Active,
+            _ => GoalLifecycle.Active
+        };
+        set => Status = value switch
+        {
+            GoalLifecycle.Active => "active",
+            GoalLifecycle.Evolving => "evolving",
+            GoalLifecycle.Paused => "paused",
+            GoalLifecycle.Superseded => "superseded",
+            GoalLifecycle.Retired => "retired",
+            _ => "active"
+        };
     }
-
-    /// <summary>
-    /// Reason/reflection for the lifecycle change.
-    /// </summary>
-    [Column("lifecycle_reason")]
-    public string? LifecycleReason { get; set; }
-
-    /// <summary>
-    /// If superseded, links to the replacement goal.
-    /// </summary>
-    [Column("superseded_by_id")]
-    public Guid? SupersededById { get; set; }
-
-    #endregion
-
-    #region Legacy Status (kept for backward compatibility)
-
-    /// <summary>
-    /// Legacy status field - being phased out in favor of Health.
-    /// </summary>
-    [Column("status")]
-    public string Status { get; set; } = "not_started";
-
-    /// <summary>
-    /// Legacy progress percent - HIDDEN in UI by philosophy.
-    /// </summary>
-    [Column("progress_percent")]
-    public int? ProgressPercent { get; set; }
-
-    #endregion
-
-    #region Visibility
-
-    [Column("is_team_visible")]
-    public bool IsTeamVisible { get; set; } = true;
-
-    [Column("is_org_visible")]
-    public bool IsOrgVisible { get; set; }
-
-    /// <summary>
-    /// Computed visibility level.
-    /// </summary>
-    public GoalVisibility Visibility => IsOrgVisible ? GoalVisibility.Organization
-        : IsTeamVisible ? GoalVisibility.Team
-        : GoalVisibility.Private;
-
-    #endregion
-
-    #region Relationships
-
-    [Column("project_id")]
-    public Guid? ProjectId { get; set; }
-
-    /// <summary>
-    /// When this goal was last discussed in a meeting.
-    /// </summary>
-    [Column("last_discussed_at")]
-    public DateTime? LastDiscussedAt { get; set; }
-
-    /// <summary>
-    /// The meeting where this goal was last discussed.
-    /// </summary>
-    [Column("last_discussed_meeting_id")]
-    public Guid? LastDiscussedMeetingId { get; set; }
 
     #endregion
 
@@ -228,11 +184,6 @@ public class GoalDetail : BaseModel
     public string? OwnerInitials { get; set; }
 
     /// <summary>
-    /// Name of the meeting where last discussed (set by service join).
-    /// </summary>
-    public string? LastDiscussedMeetingName { get; set; }
-
-    /// <summary>
     /// Associated metrics (loaded separately).
     /// </summary>
     public List<MetricDetail> AssociatedMetrics { get; set; } = new();
@@ -247,7 +198,12 @@ public class GoalDetail : BaseModel
     #region Computed Display Properties
 
     /// <summary>
-    /// Health display text - neutral language only.
+    /// Goal type display text.
+    /// </summary>
+    public string GoalTypeDisplay => GoalType.ToDisplayName();
+
+    /// <summary>
+    /// Health display text.
     /// </summary>
     public string HealthDisplay => Health.ToDisplayName();
 
@@ -255,16 +211,6 @@ public class GoalDetail : BaseModel
     /// Lifecycle display text.
     /// </summary>
     public string LifecycleDisplay => Lifecycle.ToDisplayName();
-
-    /// <summary>
-    /// Goal type display text.
-    /// </summary>
-    public string GoalTypeDisplay => GoalType.ToDisplayName();
-
-    /// <summary>
-    /// Visibility display text.
-    /// </summary>
-    public string VisibilityDisplay => Visibility.ToDisplayName();
 
     /// <summary>
     /// Whether this goal is currently actionable.
@@ -287,63 +233,43 @@ public class GoalDetail : BaseModel
     public int LinkedTasksCount => LinkedTasks?.Count ?? 0;
 
     /// <summary>
-    /// Display text for the goal's end date.
+    /// Display text for the goal's due date.
     /// </summary>
     public string DueDateDisplay
     {
         get
         {
-            if (!EndDate.HasValue)
+            if (!DueDate.HasValue)
                 return "No deadline";
 
             var today = DateTime.UtcNow.Date;
-            var endDate = EndDate.Value.Date;
+            var dueDate = DueDate.Value.Date;
 
-            if (endDate == today)
+            if (dueDate == today)
                 return "Due today";
-            if (endDate == today.AddDays(1))
+            if (dueDate == today.AddDays(1))
                 return "Due tomorrow";
-            if (endDate < today)
+            if (dueDate < today)
                 return "Past deadline";
-            if ((endDate - today).Days <= 7)
-                return $"Due in {(endDate - today).Days}d";
-            return endDate.ToString("MMM d");
+            if ((dueDate - today).Days <= 7)
+                return $"Due in {(dueDate - today).Days}d";
+            return dueDate.ToString("MMM d");
         }
     }
 
-    #endregion
-
-    #region Backward Compatibility (To Be Removed)
-
     /// <summary>
-    /// DEPRECATED: Legacy progress property for backward compatibility.
-    /// Will be hidden in new UI per philosophy: "NO progress bars, percentages".
+    /// Status display text.
     /// </summary>
-    [Obsolete("Progress percentages are being phased out. Use Health instead.")]
-    public int Progress => ProgressPercent ?? 0;
-
-    /// <summary>
-    /// DEPRECATED: Legacy status display with emoji colors.
-    /// Will be replaced with neutral HealthDisplay.
-    /// </summary>
-    [Obsolete("Colored status indicators are being phased out. Use HealthDisplay instead.")]
     public string StatusDisplay => Status?.ToLower() switch
     {
-        "on_track" or "on-track" => "🟢 On Track",
-        "at_risk" or "at-risk" => "🟡 At Risk",
-        "off_track" or "off-track" => "🔴 Off Track",
-        "in_progress" or "in-progress" => "🔵 In Progress",
-        "completed" => "✅ Completed",
-        "not_started" or "not-started" => "⚪ Not Started",
-        _ => "⚪ " + (Status ?? "Unknown")
+        "on_track" or "on-track" => "On Track",
+        "at_risk" or "at-risk" => "At Risk",
+        "off_track" or "off-track" => "Off Track",
+        "in_progress" or "in-progress" => "In Progress",
+        "completed" => "Completed",
+        "not_started" or "not-started" => "Not Started",
+        _ => Status ?? "Unknown"
     };
-
-    /// <summary>
-    /// DEPRECATED: Whether this goal is considered "on track".
-    /// Use Health == GoalHealth.OnTrack instead.
-    /// </summary>
-    [Obsolete("Use Health == GoalHealth.OnTrack instead.")]
-    public bool IsOnTrack => Health == GoalHealth.OnTrack;
 
     #endregion
 }

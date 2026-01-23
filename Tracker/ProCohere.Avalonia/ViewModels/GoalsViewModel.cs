@@ -250,8 +250,7 @@ public partial class GoalsViewModel : ViewModelBase
             Title = string.Empty,
             Description = string.Empty,
             Health = GoalHealth.OnTrack,
-            Lifecycle = GoalLifecycle.Active,
-            IsTeamVisible = true
+            Lifecycle = GoalLifecycle.Active
         };
         IsEditorFlyoutOpen = true;
         IsDetailFlyoutOpen = false;

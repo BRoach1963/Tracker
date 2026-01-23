@@ -201,7 +201,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 proofBuilder.AppendLine($"📅 Meetings: {counts.Meetings}");
                 proofBuilder.AppendLine($"🎯 Goals: {counts.Goals}");
                 proofBuilder.AppendLine($"✅ Tasks: {counts.Tasks}");
-                proofBuilder.AppendLine($"📁 Projects: {counts.Projects}");
                 proofBuilder.AppendLine("━━━━━━━━━━━━━━━━━━");
                 
                 if (!string.IsNullOrEmpty(dataError))

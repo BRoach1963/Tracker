@@ -24,8 +24,11 @@ Anything not documented here is undefined behavior.
 12 Developer Guidance  
 
 13 Schema DDL Reference (Generated Snapshot)  
-14 Hierarchy Model  
+14 Hierarchy Model 
 
+15 AI Vector Store (pgvector)
+
+16 Onboarding Flow – Organizations & Users
 ---
 
 ## Reading Order

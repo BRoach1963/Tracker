@@ -66,11 +66,13 @@ public partial class EditMetricDialog : Window
         
         NameTextBox.Text = metric.Name;
         DescriptionTextBox.Text = metric.Description ?? "";
-        CategoryTextBox.Text = metric.Category ?? "";
+        // Note: Category doesn't exist in DB schema, leave blank
+        CategoryTextBox.Text = "";
         
         CurrentValueTextBox.Text = metric.CurrentValue.ToString(CultureInfo.InvariantCulture);
         TargetValueTextBox.Text = metric.TargetValue?.ToString(CultureInfo.InvariantCulture) ?? "";
-        BaselineValueTextBox.Text = metric.BaselineValue?.ToString(CultureInfo.InvariantCulture) ?? "";
+        // Note: BaselineValue doesn't exist in DB schema, leave blank
+        BaselineValueTextBox.Text = "";
         UnitTextBox.Text = metric.Unit ?? "";
         
         // Set direction
@@ -79,17 +81,8 @@ public partial class EditMetricDialog : Window
             SelectComboBoxByTag(DirectionComboBox, metric.TargetDirection);
         }
         
-        // Set source
-        if (!string.IsNullOrEmpty(metric.Source))
-        {
-            SelectComboBoxByTag(SourceComboBox, metric.Source);
-        }
-        
-        // Set scope
-        if (!string.IsNullOrEmpty(metric.Scope))
-        {
-            SelectComboBoxByTag(ScopeComboBox, metric.Scope);
-        }
+        // Note: Source, Scope don't exist in DB schema - use defaults
+        // SourceComboBox and ScopeComboBox will use their default selections
         
         // Set frequency
         if (!string.IsNullOrEmpty(metric.Frequency))
@@ -97,21 +90,10 @@ public partial class EditMetricDialog : Window
             SelectComboBoxByTag(FrequencyComboBox, metric.Frequency);
         }
         
-        // Set lifecycle
-        if (!string.IsNullOrEmpty(metric.Lifecycle))
-        {
-            SelectComboBoxByTag(LifecycleComboBox, metric.Lifecycle);
-        }
-        
-        // Set visibility
-        if (metric.IsOrgVisible)
-            VisibilityComboBox.SelectedIndex = 2; // Organization
-        else if (metric.IsTeamVisible)
-            VisibilityComboBox.SelectedIndex = 1; // Team
-        else
-            VisibilityComboBox.SelectedIndex = 0; // Private
-        
-        IsSensitiveCheckBox.IsChecked = metric.IsSensitive;
+        // Note: Lifecycle, IsOrgVisible, IsTeamVisible, IsSensitive don't exist in DB schema
+        // Use default values (LifecycleComboBox defaults to Active, VisibilityComboBox to Team)
+        VisibilityComboBox.SelectedIndex = 1; // Default to Team
+        IsSensitiveCheckBox.IsChecked = false;
         
         // Owner is set in SetTeamMembers if called after LoadMetric
         if (metric.OwnerTeamMemberId.HasValue && _teamMembers.Count > 0)

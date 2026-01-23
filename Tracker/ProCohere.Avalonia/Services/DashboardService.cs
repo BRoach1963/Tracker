@@ -88,7 +88,7 @@ public class DashboardService
         var teamMembersTask = LoadTeamMembersAsync(client, userId);
         var tasksTask = LoadTasksAsync(client, userId);
         var goalsTask = LoadGoalsAsync(client, userId);
-        var projectCountTask = LoadActiveProjectCountAsync(client, userId);
+        // NOTE: projects table doesn't exist in procohere schema
         var meetingsTask = LoadMeetingsAsync(client, userId);
         var feedbackTask = LoadFeedbackAsync(client, userId);
         var agendaItemsTask = LoadAgendaItemsAsync(client, userId);
@@ -97,7 +97,7 @@ public class DashboardService
         try
         {
             Log("Awaiting parallel tasks...");
-            await Task.WhenAll(teamMembersTask, tasksTask, goalsTask, projectCountTask, meetingsTask, feedbackTask, agendaItemsTask, attendeesTask);
+            await Task.WhenAll(teamMembersTask, tasksTask, goalsTask, meetingsTask, feedbackTask, agendaItemsTask, attendeesTask);
             Log("Parallel tasks complete");
         }
         catch (Exception ex)
@@ -161,7 +161,8 @@ public class DashboardService
             CompletedTasks = data.Tasks.Count(t => t.Status == "completed"),
             TotalGoals = data.Goals.Count,
             GoalsOnTrack = data.Goals.Count(g => g.Health == GoalHealth.OnTrack),
-            ActiveProjectCount = await projectCountTask
+            // NOTE: projects table doesn't exist in procohere schema
+            ActiveProjectCount = 0
         };
 
         // Enrich team members with task/goal counts and last meeting date
@@ -203,8 +204,7 @@ public class DashboardService
             LastError = string.Join("; ", errors);
         }
 
-        System.Diagnostics.Debug.WriteLine($"[DashboardService] Loaded: {data.TeamMembers.Count} members, " +
-            $"{data.Tasks.Count} tasks, {data.Goals.Count} goals, {data.Stats.ActiveProjectCount} projects");
+        System.Diagnostics.Debug.WriteLine($"[DashboardService] Loaded: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks, {data.Goals.Count} goals");
 
         return data;
     }
@@ -286,23 +286,7 @@ public class DashboardService
         }
     }
 
-    private async Task<int> LoadActiveProjectCountAsync(Supabase.Client client, Guid userId)
-    {
-        try
-        {
-            var result = await client.From<ProjectForCount>()
-                .Filter("created_by_user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                .Filter("status", Supabase.Postgrest.Constants.Operator.Equals, "in_progress")
-                .Get();
-
-            return result.Models?.Count ?? 0;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[DashboardService] Project count error: {ex.Message}");
-            return 0;
-        }
-    }
+    // NOTE: LoadActiveProjectCountAsync removed - procohere.projects table doesn't exist
 
     private async Task<List<MeetingDetail>> LoadMeetingsAsync(Supabase.Client client, Guid userId)
     {
@@ -600,18 +584,4 @@ public class DashboardData
         .ToList();
 }
 
-/// <summary>
-/// Minimal model for counting projects.
-/// </summary>
-[Table("projects")]
-internal class ProjectForCount : BaseModel
-{
-    [PrimaryKey("id", false)]
-    public Guid Id { get; set; }
-
-    [Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
-
-    [Column("status")]
-    public string? Status { get; set; }
-}
+// NOTE: ProjectForCount removed - procohere.projects table doesn't exist

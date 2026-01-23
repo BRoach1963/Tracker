@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Avalonia.Media;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using ProCohere.Avalonia.Converters;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -11,8 +15,13 @@ namespace ProCohere.Avalonia.Models;
 /// A single talking point within an agenda item.
 /// Stored as JSONB in the database.
 /// </summary>
-public class TalkingPoint
+public class TalkingPoint : System.ComponentModel.INotifyPropertyChanged
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    
+    protected void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+    
     /// <summary>
     /// Unique identifier for this talking point (UUID string).
     /// </summary>
@@ -25,17 +34,39 @@ public class TalkingPoint
     [JsonPropertyName("text")]
     public string Text { get; set; } = string.Empty;
 
+    private bool _discussed;
     /// <summary>
     /// Whether this talking point has been discussed.
     /// </summary>
     [JsonPropertyName("discussed")]
-    public bool Discussed { get; set; }
+    public bool Discussed 
+    { 
+        get => _discussed;
+        set 
+        { 
+            if (_discussed != value)
+            {
+                _discussed = value; 
+                OnPropertyChanged(nameof(Discussed)); 
+                OnPropertyChanged(nameof(TextDecoration)); 
+            }
+        }
+    }
 
     /// <summary>
     /// Sort order within the agenda item.
     /// </summary>
     [JsonPropertyName("order")]
     public int Order { get; set; }
+    
+    /// <summary>
+    /// Text decoration for display - strikethrough if discussed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnoreAttribute]
+    [Newtonsoft.Json.JsonIgnoreAttribute]
+    public TextDecorationCollection? TextDecoration => Discussed 
+        ? TextDecorations.Strikethrough 
+        : null;
 
     /// <summary>
     /// Creates a new talking point with the given text.
@@ -886,10 +917,20 @@ public class MeetingAgendaItem : BaseModel
     [Column("completed_at")]
     public DateTime? CompletedAt { get; set; }
 
-    [Column("linked_entity_type")]
+    /// <summary>
+    /// Type of linked entity (task, goal, metric, project).
+    /// NOT in DB - computed/set by service when linking entities.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string? LinkedEntityType { get; set; }
 
-    [Column("linked_entity_id")]
+    /// <summary>
+    /// ID of linked entity.
+    /// NOT in DB - computed/set by service when linking entities.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Guid? LinkedEntityId { get; set; }
 
     #region Enhanced Agenda Fields (conversation containers with outcomes)
@@ -920,6 +961,7 @@ public class MeetingAgendaItem : BaseModel
     /// Discussion scaffolding that can be checked off during the meeting.
     /// </summary>
     [Column("talking_points")]
+    [Newtonsoft.Json.JsonConverterAttribute(typeof(RawJsonConverter))]
     public string? TalkingPointsJson { get; set; }
 
     /// <summary>
@@ -957,36 +999,48 @@ public class MeetingAgendaItem : BaseModel
 
     #endregion
 
-    #region Carry-Forward Properties
+    #region Carry-Forward Properties (NOT IN DB - Future Feature)
+    // These columns are defined in design docs (06-tables.md) but not yet in the actual DB.
+    // Keep as non-DB properties for future use.
 
     /// <summary>
     /// Person this carry-forward is anchored to. Required when status=deferred.
+    /// NOT in DB yet - future feature.
     /// </summary>
-    [Column("anchor_team_member_id")]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Guid? AnchorTeamMemberId { get; set; }
 
     /// <summary>
     /// Lifecycle state for carried-forward items: pending, surfaced, resolved, converted, expired.
+    /// NOT in DB yet - future feature.
     /// </summary>
-    [Column("carry_forward_state")]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string? CarryForwardState { get; set; }
 
     /// <summary>
     /// When this carry-forward expires (30 days from deferral or after 2 meetings).
+    /// NOT in DB yet - future feature.
     /// </summary>
-    [Column("carry_forward_expires_at")]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public DateTime? CarryForwardExpiresAt { get; set; }
 
     /// <summary>
     /// Number of meeting opportunities since deferral. Expires at 2.
+    /// NOT in DB yet - future feature.
     /// </summary>
-    [Column("carry_forward_meeting_count")]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public int CarryForwardMeetingCount { get; set; }
 
     /// <summary>
     /// If this item was carried forward, points to the original agenda item.
+    /// NOT in DB yet - future feature.
     /// </summary>
-    [Column("source_agenda_item_id")]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Guid? SourceAgendaItemId { get; set; }
 
     #endregion

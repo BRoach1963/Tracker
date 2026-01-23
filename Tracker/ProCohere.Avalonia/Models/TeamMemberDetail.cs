@@ -54,13 +54,16 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     [Column("email")]
     public string Email { get; set; } = string.Empty;
 
-    [Column("avatar_url")]
+    [Column("user_avatar_url")]
     public string? AvatarUrl { get; set; }
 
-    [Column("manager_user_id")]
+    // NOTE: manager_user_id doesn't exist in DB - hierarchy uses manager_team_member_id
+    // This is a computed property set by the service layer
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Guid? ManagerUserId { get; set; }
 
-    [Column("phone")]
+    [Column("user_phone")]
     public string? Phone { get; set; }
 
     [Column("birthday")]
@@ -69,13 +72,25 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     [Column("hire_date")]
     public DateTime? HireDate { get; set; }
 
-    [Column("linkedin_url")]
+    /// <summary>
+    /// LinkedIn URL - not in v_team_members view, set by service from team_members table if needed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string? LinkedInUrl { get; set; }
 
-    [Column("x_profile_url")]
+    /// <summary>
+    /// X/Twitter profile URL - not in v_team_members view, set by service if needed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string? XProfileUrl { get; set; }
 
-    [Column("notes")]
+    /// <summary>
+    /// Notes about the team member - not in v_team_members view, set by service if needed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string? Notes { get; set; }
 
     [Column("is_active")]

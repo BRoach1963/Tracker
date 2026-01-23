@@ -19,11 +19,8 @@ public class MetricDetail : BaseModel
     [Column("organization_id")]
     public Guid OrganizationId { get; set; }
 
-    [Column("owner_team_member_id")]
+    [Column("owner_id")]
     public Guid? OwnerTeamMemberId { get; set; }
-
-    [Column("created_by_user_id")]
-    public Guid CreatedByUserId { get; set; }
 
     [Column("name")]
     public string Name { get; set; } = string.Empty;
@@ -31,8 +28,8 @@ public class MetricDetail : BaseModel
     [Column("description")]
     public string? Description { get; set; }
 
-    [Column("category")]
-    public string? Category { get; set; }
+    [Column("metric_type")]
+    public string? MetricType { get; set; }
 
     #region Values (Hidden by default in UI)
 
@@ -41,9 +38,6 @@ public class MetricDetail : BaseModel
 
     [Column("target_value")]
     public decimal? TargetValue { get; set; }
-
-    [Column("baseline_value")]
-    public decimal? BaselineValue { get; set; }
 
     [Column("unit")]
     public string? Unit { get; set; }
@@ -55,7 +49,7 @@ public class MetricDetail : BaseModel
     /// <summary>
     /// Target direction: higher_is_better, lower_is_better, neutral
     /// </summary>
-    [Column("target_direction")]
+    [Column("direction")]
     public string? TargetDirection { get; set; }
 
     /// <summary>
@@ -71,35 +65,22 @@ public class MetricDetail : BaseModel
 
     #endregion
 
-    #region Source & Scope
+    #region Computed Properties
 
     /// <summary>
-    /// Data source: system, survey, manual
+    /// Source defaults to Manual since column doesn't exist in DB.
     /// </summary>
-    [Column("source")]
-    public string? Source { get; set; }
+    public MetricSource SourceEnum => MetricSource.Manual;
 
     /// <summary>
-    /// Scope: individual, team, organization
+    /// Scope defaults to Individual since column doesn't exist in DB.
     /// </summary>
-    [Column("scope")]
-    public string? Scope { get; set; }
-
-    public MetricSource SourceEnum => MetricSourceExtensions.ParseMetricSource(Source);
-
-    public MetricScope ScopeEnum => MetricScopeExtensions.ParseMetricScope(Scope);
-
-    #endregion
-
-    #region Lifecycle
+    public MetricScope ScopeEnum => MetricScope.Individual;
 
     /// <summary>
-    /// Lifecycle state: active, dormant, retired
+    /// Lifecycle defaults to Active since column doesn't exist in DB.
     /// </summary>
-    [Column("lifecycle")]
-    public string Lifecycle { get; set; } = "active";
-
-    public MetricLifecycle LifecycleEnum => MetricLifecycleExtensions.ParseMetricLifecycle(Lifecycle);
+    public MetricLifecycle LifecycleEnum => MetricLifecycle.Active;
 
     public string LifecycleDisplay => LifecycleEnum.ToDisplayName();
 
@@ -112,22 +93,6 @@ public class MetricDetail : BaseModel
     /// </summary>
     [Column("frequency")]
     public string? Frequency { get; set; }
-
-    [Column("last_updated_at")]
-    public DateTime? LastUpdatedAt { get; set; }
-
-    #endregion
-
-    #region Sensitivity & Visibility
-
-    [Column("is_sensitive")]
-    public bool IsSensitive { get; set; }
-
-    [Column("is_team_visible")]
-    public bool IsTeamVisible { get; set; } = true;
-
-    [Column("is_org_visible")]
-    public bool IsOrgVisible { get; set; }
 
     #endregion
 

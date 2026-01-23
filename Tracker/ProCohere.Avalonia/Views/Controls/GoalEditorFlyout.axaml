@@ -112,22 +112,10 @@
                         
                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4" Margin="8,0,0,0">
                             <TextBlock Text="End" FontSize="11" Opacity="0.6"/>
-                            <CalendarDatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}"
+                            <CalendarDatePicker SelectedDate="{Binding DueDate, Mode=TwoWay}"
                                                 HorizontalAlignment="Stretch"/>
                         </StackPanel>
                     </Grid>
-                    
-                    <!-- Visibility -->
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="Visibility" FontWeight="Medium" FontSize="12" 
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <StackPanel Spacing="8">
-                            <CheckBox IsChecked="{Binding IsTeamVisible, Mode=TwoWay}"
-                                      Content="Visible to team members"/>
-                            <CheckBox IsChecked="{Binding IsOrgVisible, Mode=TwoWay}"
-                                      Content="Visible to entire organization"/>
-                        </StackPanel>
-                    </StackPanel>
                     
                     <!-- Health (only show for existing goals) -->
                     <StackPanel Spacing="6" IsVisible="{Binding Id, Converter={x:Static ObjectConverters.IsNotNull}}">

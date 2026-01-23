@@ -100,7 +100,7 @@ public class DialogAgendaItem : System.ComponentModel.INotifyPropertyChanged
     public string? OutcomeType 
     { 
         get => _outcomeType;
-        set { _outcomeType = value; OnPropertyChanged(nameof(OutcomeType)); OnPropertyChanged(nameof(HasOutcome)); OnPropertyChanged(nameof(OutcomeTypeDisplay)); }
+        set { _outcomeType = value; OnPropertyChanged(nameof(OutcomeType)); OnPropertyChanged(nameof(HasOutcome)); OnPropertyChanged(nameof(OutcomeTypeDisplay)); OnPropertyChanged(nameof(OutcomeBadgeColor)); }
     }
     
     private string? _outcomeSummary;
@@ -143,14 +143,28 @@ public class DialogAgendaItem : System.ComponentModel.INotifyPropertyChanged
         ? "Personal reminder - only you can see this"
         : "Shared with meeting attendees";
     
+    /// <summary>
+    /// Display text for outcome type - matches DB constraint values.
+    /// </summary>
     public string OutcomeTypeDisplay => OutcomeType?.ToLower() switch
     {
-        "decision" => "Decision Made",
-        "action_item" => "Action Item Created",
+        "discussed" => "Discussed",
+        "decision" => "Decision",
         "deferred" => "Deferred",
-        "information_shared" => "Info Shared",
-        "no_action_needed" => "No Action Needed",
+        "blocked" => "Blocked",
         _ => ""
+    };
+    
+    /// <summary>
+    /// Badge color based on outcome type.
+    /// </summary>
+    public global::Avalonia.Media.IBrush OutcomeBadgeColor => OutcomeType?.ToLower() switch
+    {
+        "discussed" => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#27AE60")), // Green
+        "decision" => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#3498DB")),  // Blue
+        "deferred" => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#F39C12")),  // Orange
+        "blocked" => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#E74C3C")),   // Red
+        _ => new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#7F8C8D"))
     };
     
     public string LinkedEntityTypeDisplay => LinkedEntityType?.ToLower() switch
@@ -193,6 +207,7 @@ public partial class EditMeetingDialog : Window
 {
     private MeetingDetail? _existingMeeting;
     private List<TeamMemberDetail> _teamMembers = new();
+    private List<TeamMemberDetail> _currentAttendees = new(); // Track current meeting attendees for prep assignment
     private bool _isSaving;
     
     // Workspace data (saved with meeting)
@@ -219,6 +234,9 @@ public partial class EditMeetingDialog : Window
         
         // Wire up meeting type change to show/hide attendee
         MeetingTypeComboBox.SelectionChanged += MeetingTypeComboBox_SelectionChanged;
+        
+        // Wire up attendee change to update prep assignee list
+        AttendeeComboBox.SelectionChanged += AttendeeComboBox_SelectionChanged;
         
         // Wire up prep visibility change to show/hide assignee
         PrepVisibilityComboBox.SelectionChanged += PrepVisibilityComboBox_SelectionChanged;
@@ -358,7 +376,7 @@ public partial class EditMeetingDialog : Window
     {
         _teamMembers = teamMembers.ToList();
         AttendeeComboBox.ItemsSource = _teamMembers;
-        PrepAssigneeComboBox.ItemsSource = _teamMembers;
+        // Note: PrepAssigneeComboBox is populated by UpdatePrepAssigneeList() based on current attendees
         
         // Populate team attendees list (excluding self)
         var teamAttendeesListBox = this.FindControl<ItemsControl>("TeamAttendeesListBox");
@@ -385,6 +403,100 @@ public partial class EditMeetingDialog : Window
                 AttendeeComboBox.SelectedItem = attendee;
             }
         }
+        
+        // Initialize attendees from existing meeting if editing
+        if (_existingMeeting?.Attendees != null && _existingMeeting.Attendees.Count > 0)
+        {
+            // Map meeting attendees to team member details
+            _currentAttendees = _existingMeeting.Attendees
+                .Select(a => _teamMembers.FirstOrDefault(t => t.Id == a.TeamMemberId))
+                .Where(t => t != null)
+                .Cast<TeamMemberDetail>()
+                .ToList();
+        }
+        
+        // Update prep assignee dropdown
+        UpdatePrepAssigneeList();
+    }
+    
+    /// <summary>
+    /// Updates the prep assignee dropdown to show only current meeting attendees.
+    /// </summary>
+    private void UpdatePrepAssigneeList()
+    {
+        // Build list of assignable team members based on current attendees
+        var assignableMembers = new List<TeamMemberDetail>();
+        
+        // Get meeting type
+        var meetingTypeItem = MeetingTypeComboBox.SelectedItem as ComboBoxItem;
+        var meetingType = meetingTypeItem?.Tag?.ToString() ?? "one_on_one";
+        
+        if (meetingType == "one_on_one" || meetingType == "performance")
+        {
+            // For 1:1 meetings, only the selected attendee can be assigned
+            if (AttendeeComboBox.SelectedItem is TeamMemberDetail selectedAttendee)
+            {
+                assignableMembers.Add(selectedAttendee);
+            }
+            // Also add self (current user)
+            var self = _teamMembers.FirstOrDefault(t => t.Relation == "self");
+            if (self != null && !assignableMembers.Contains(self))
+            {
+                assignableMembers.Insert(0, self);
+            }
+        }
+        else if (meetingType == "team" || meetingType == "project")
+        {
+            // For team meetings, use selected team members
+            var selectedTeamMembers = _teamMembers.Where(m => m.IsSelected && m.Relation != "self").ToList();
+            assignableMembers.AddRange(selectedTeamMembers);
+            
+            // Also add self (current user)
+            var self = _teamMembers.FirstOrDefault(t => t.Relation == "self");
+            if (self != null)
+            {
+                assignableMembers.Insert(0, self);
+            }
+        }
+        else
+        {
+            // For other meeting types, fall back to all team members
+            assignableMembers = _teamMembers.ToList();
+        }
+        
+        // If editing existing meeting, use actual attendees
+        if (_currentAttendees.Count > 0)
+        {
+            assignableMembers = _currentAttendees.ToList();
+        }
+        
+        // Update the dropdown
+        PrepAssigneeComboBox.ItemsSource = assignableMembers;
+        
+        // Update the "no attendees" warning visibility
+        UpdatePrepAssigneeWarning(assignableMembers.Count <= 1); // <= 1 because self is always included
+    }
+    
+    /// <summary>
+    /// Shows/hides the warning when there are no attendees to assign prep to.
+    /// </summary>
+    private void UpdatePrepAssigneeWarning(bool showWarning)
+    {
+        // Find or create a warning text block
+        var warningBlock = this.FindControl<TextBlock>("PrepAssigneeWarning");
+        if (warningBlock != null)
+        {
+            warningBlock.IsVisible = showWarning && PrepAssigneePanel.IsVisible;
+            warningBlock.Text = "Add attendees to assign prep items";
+        }
+    }
+    
+    /// <summary>
+    /// Handles attendee selection change (for 1:1 meetings).
+    /// </summary>
+    private void AttendeeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        UpdatePrepAssigneeList();
     }
     
     #region Tab Navigation
@@ -416,6 +528,9 @@ public partial class EditMeetingDialog : Window
     {
         AddPrepPanel.IsVisible = true;
         NewPrepTitleTextBox.Text = "";
+        NewPrepPromptTextBox.Text = "";
+        NewPrepBodyTextBox.Text = "";
+        PrepVisibilityComboBox.SelectedIndex = 0;
         NewPrepTitleTextBox.Focus();
     }
     
@@ -423,6 +538,8 @@ public partial class EditMeetingDialog : Window
     {
         AddPrepPanel.IsVisible = false;
         NewPrepTitleTextBox.Text = "";
+        NewPrepPromptTextBox.Text = "";
+        NewPrepBodyTextBox.Text = "";
     }
     
     private async void ConfirmAddPrep_Click(object? sender, RoutedEventArgs e)
@@ -430,29 +547,60 @@ public partial class EditMeetingDialog : Window
         var title = NewPrepTitleTextBox.Text?.Trim();
         if (string.IsNullOrEmpty(title)) return;
         
-        await AddPrepItemAsync(title);
+        var prepPrompt = NewPrepPromptTextBox.Text?.Trim();
+        var body = NewPrepBodyTextBox.Text?.Trim();
+        
+        await AddPrepItemAsync(title, prepPrompt, body);
         
         AddPrepPanel.IsVisible = false;
         NewPrepTitleTextBox.Text = "";
-        PrepVisibilityComboBox.SelectedIndex = 0; // Reset to "Only me"
+        NewPrepPromptTextBox.Text = "";
+        NewPrepBodyTextBox.Text = "";
+        PrepVisibilityComboBox.SelectedIndex = 0; // Reset to "Meeting" (default scope)
     }
     
     private void PrepVisibilityComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
+        // Guard against event firing before UI is fully loaded
+        if (PrepVisibilityComboBox == null || PrepAssigneePanel == null) return;
+        
         // Show assignee dropdown when "Assigned person" is selected
         var selectedItem = PrepVisibilityComboBox.SelectedItem as ComboBoxItem;
         var visibility = selectedItem?.Tag?.ToString() ?? "personal";
         PrepAssigneePanel.IsVisible = visibility == "assigned";
+        
+        // Update assignee list to ensure it's filtered to current attendees
+        if (visibility == "assigned")
+        {
+            UpdatePrepAssigneeList();
+        }
     }
     
     private async void NewPrepTitleTextBox_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter)
+        if (e.Key == Key.Enter && !string.IsNullOrEmpty(NewPrepPromptTextBox.Text?.Trim()))
+        {
+            // If there's also a prompt, Ctrl+Enter to submit
+            if (e.KeyModifiers == KeyModifiers.Control)
+            {
+                var title = NewPrepTitleTextBox.Text?.Trim();
+                if (!string.IsNullOrEmpty(title))
+                {
+                    var prepPrompt = NewPrepPromptTextBox.Text?.Trim();
+                    var body = NewPrepBodyTextBox.Text?.Trim();
+                    await AddPrepItemAsync(title, prepPrompt, body);
+                    NewPrepTitleTextBox.Text = "";
+                    NewPrepPromptTextBox.Text = "";
+                    NewPrepBodyTextBox.Text = "";
+                }
+            }
+        }
+        else if (e.Key == Key.Enter)
         {
             var title = NewPrepTitleTextBox.Text?.Trim();
             if (!string.IsNullOrEmpty(title))
             {
-                await AddPrepItemAsync(title);
+                await AddPrepItemAsync(title, null, null);
                 NewPrepTitleTextBox.Text = "";
                 // Keep panel open for rapid entry
             }
@@ -463,7 +611,7 @@ public partial class EditMeetingDialog : Window
         }
     }
     
-    private async Task AddPrepItemAsync(string title)
+    private async Task AddPrepItemAsync(string title, string? prepPrompt = null, string? body = null)
     {
         // Get visibility scope
         var visibilityItem = PrepVisibilityComboBox.SelectedItem as ComboBoxItem;
@@ -479,27 +627,21 @@ public partial class EditMeetingDialog : Window
         if (_existingMeeting != null)
         {
             // Meeting already exists - save to database
-            MeetingPrepItem? newItem = null;
+            var newItem = new MeetingPrepItem
+            {
+                MeetingId = _existingMeeting.Id,
+                Title = title,
+                PrepPrompt = prepPrompt,
+                Body = body,
+                VisibilityScope = visibility,
+                AssignedToTeamMemberId = assigneeId,
+                Status = "open"
+            };
             
-            if (visibility == "personal")
+            var created = await MeetingPrepItemService.Instance.CreatePrepItemAsync(newItem);
+            if (created != null)
             {
-                newItem = await MeetingPrepItemService.Instance.CreateQuickPrepAsync(
-                    _existingMeeting.Id, title);
-            }
-            else if (visibility == "assigned" && assigneeId.HasValue)
-            {
-                newItem = await MeetingPrepItemService.Instance.CreateAssignedPrepAsync(
-                    _existingMeeting.Id, title, assigneeId.Value);
-            }
-            else if (visibility == "meeting")
-            {
-                newItem = await MeetingPrepItemService.Instance.CreateTeamPrepAsync(
-                    _existingMeeting.Id, title);
-            }
-            
-            if (newItem != null)
-            {
-                _prepItems.Add(newItem);
+                _prepItems.Add(created);
             }
         }
         else
@@ -509,6 +651,8 @@ public partial class EditMeetingDialog : Window
             {
                 Id = Guid.NewGuid(),
                 Title = title,
+                PrepPrompt = prepPrompt,
+                Body = body,
                 VisibilityScope = visibility,
                 AssignedToTeamMemberId = assigneeId,
                 Status = "open",
@@ -516,6 +660,36 @@ public partial class EditMeetingDialog : Window
             });
         }
         UpdatePrepEmptyState();
+    }
+    
+    /// <summary>
+    /// Opens edit dialog for a prep item.
+    /// </summary>
+    private async void EditPrepItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is MeetingPrepItem item)
+        {
+            var dialog = new EditPrepItemDialog(item);
+            
+            // Pass meeting attendees and current user's team member ID to the dialog
+            if (_existingMeeting?.Attendees != null)
+            {
+                var currentTeamMemberId = AuthService.Instance.CurrentTeamMember?.Id ?? Guid.Empty;
+                dialog.SetAttendees(_existingMeeting.Attendees, currentTeamMemberId);
+            }
+            
+            var result = await dialog.ShowDialog<bool>(this);
+            
+            if (result)
+            {
+                // Refresh the item in the list
+                var index = _prepItems.IndexOf(item);
+                if (index >= 0)
+                {
+                    _prepItems[index] = dialog.UpdatedItem ?? item;
+                }
+            }
+        }
     }
     
     /// <summary>
@@ -528,13 +702,67 @@ public partial class EditMeetingDialog : Window
         
         if (picker.Result != null)
         {
-            // Create a prep item with the linked entity title
-            var title = $"Discuss: {picker.Result.EntityTitle}";
-            
-            // For now, just add as a simple prep item with the derived title
-            // In the future, we could store the linked entity reference
-            await AddPrepItemAsync(title);
+            await AddLinkedPrepItemAsync(
+                entityType: picker.Result.EntityType,
+                entityId: picker.Result.EntityId,
+                entityTitle: picker.Result.EntityTitle);
         }
+    }
+    
+    /// <summary>
+    /// Adds a prep item linked to an existing entity (task/goal/metric).
+    /// </summary>
+    private async Task AddLinkedPrepItemAsync(string entityType, Guid entityId, string entityTitle)
+    {
+        // Get visibility scope
+        var visibilityItem = PrepVisibilityComboBox.SelectedItem as ComboBoxItem;
+        var visibility = visibilityItem?.Tag?.ToString() ?? "personal";
+        
+        // Get assignee if applicable
+        Guid? assigneeId = null;
+        if (visibility == "assigned" && PrepAssigneeComboBox.SelectedItem is TeamMemberDetail assignee)
+        {
+            assigneeId = assignee.Id;
+        }
+        
+        if (_existingMeeting != null)
+        {
+            // Meeting already exists - save to database
+            var newItem = new MeetingPrepItem
+            {
+                MeetingId = _existingMeeting.Id,
+                Title = $"Discuss: {entityTitle}",
+                LinkedEntityType = entityType,
+                LinkedEntityId = entityId,
+                LinkedEntityTitleSnapshot = entityTitle,
+                VisibilityScope = visibility,
+                AssignedToTeamMemberId = assigneeId,
+                Status = "open"
+            };
+            
+            var created = await MeetingPrepItemService.Instance.CreatePrepItemAsync(newItem);
+            if (created != null)
+            {
+                _prepItems.Add(created);
+            }
+        }
+        else
+        {
+            // New meeting - keep in memory until save
+            _prepItems.Add(new MeetingPrepItem
+            {
+                Id = Guid.NewGuid(),
+                Title = $"Discuss: {entityTitle}",
+                LinkedEntityType = entityType,
+                LinkedEntityId = entityId,
+                LinkedEntityTitleSnapshot = entityTitle,
+                VisibilityScope = visibility,
+                AssignedToTeamMemberId = assigneeId,
+                Status = "open",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        UpdatePrepEmptyState();
     }
     
     private async void PrepItem_CheckedChanged(object? sender, RoutedEventArgs e)
@@ -577,6 +805,9 @@ public partial class EditMeetingDialog : Window
     {
         AddAgendaPanel.IsVisible = true;
         NewAgendaTitleTextBox.Text = "";
+        NewAgendaContextTextBox.Text = "";
+        NewAgendaTalkingPointsTextBox.Text = "";
+        AgendaVisibilityComboBox.SelectedIndex = 0; // Default to "All attendees"
         NewAgendaTitleTextBox.Focus();
     }
     
@@ -584,6 +815,8 @@ public partial class EditMeetingDialog : Window
     {
         AddAgendaPanel.IsVisible = false;
         NewAgendaTitleTextBox.Text = "";
+        NewAgendaContextTextBox.Text = "";
+        NewAgendaTalkingPointsTextBox.Text = "";
     }
     
     private void ConfirmAddAgenda_Click(object? sender, RoutedEventArgs e)
@@ -591,10 +824,47 @@ public partial class EditMeetingDialog : Window
         var title = NewAgendaTitleTextBox.Text?.Trim();
         if (string.IsNullOrEmpty(title)) return;
         
-        AddAgendaItem(title);
+        // Get visibility scope from combo
+        var visibilityItem = AgendaVisibilityComboBox.SelectedItem as ComboBoxItem;
+        var visibility = visibilityItem?.Tag?.ToString() ?? "meeting";
+        
+        // Get shared context
+        var sharedContext = NewAgendaContextTextBox.Text?.Trim();
+        
+        // Parse talking points from multi-line text
+        var talkingPointsText = NewAgendaTalkingPointsTextBox.Text?.Trim();
+        var talkingPoints = ParseTalkingPointsFromText(talkingPointsText);
+        
+        AddAgendaItem(title, visibilityScope: visibility, sharedContext: sharedContext, talkingPoints: talkingPoints);
         
         AddAgendaPanel.IsVisible = false;
         NewAgendaTitleTextBox.Text = "";
+        NewAgendaContextTextBox.Text = "";
+        NewAgendaTalkingPointsTextBox.Text = "";
+    }
+    
+    /// <summary>
+    /// Parses multi-line text into TalkingPoint objects.
+    /// Each non-empty line becomes a talking point.
+    /// </summary>
+    private static List<TalkingPoint> ParseTalkingPointsFromText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new List<TalkingPoint>();
+        
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var points = new List<TalkingPoint>();
+        
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i].Trim();
+            if (!string.IsNullOrEmpty(line))
+            {
+                points.Add(TalkingPoint.Create(line, i));
+            }
+        }
+        
+        return points;
     }
     
     private void NewAgendaTitleTextBox_KeyDown(object? sender, KeyEventArgs e)
@@ -604,8 +874,22 @@ public partial class EditMeetingDialog : Window
             var title = NewAgendaTitleTextBox.Text?.Trim();
             if (!string.IsNullOrEmpty(title))
             {
-                AddAgendaItem(title);
+                // Get visibility scope
+                var visibilityItem = AgendaVisibilityComboBox.SelectedItem as ComboBoxItem;
+                var visibility = visibilityItem?.Tag?.ToString() ?? "meeting";
+                
+                // Get shared context
+                var sharedContext = NewAgendaContextTextBox.Text?.Trim();
+                
+                // Parse talking points from multi-line text
+                var talkingPointsText = NewAgendaTalkingPointsTextBox.Text?.Trim();
+                var talkingPoints = ParseTalkingPointsFromText(talkingPointsText);
+                
+                AddAgendaItem(title, visibilityScope: visibility, sharedContext: sharedContext, talkingPoints: talkingPoints);
                 NewAgendaTitleTextBox.Text = "";
+                NewAgendaContextTextBox.Text = "";
+                NewAgendaTalkingPointsTextBox.Text = "";
+                AddAgendaPanel.IsVisible = false;
             }
         }
         else if (e.Key == Key.Escape)
@@ -614,14 +898,25 @@ public partial class EditMeetingDialog : Window
         }
     }
     
-    private async void AddAgendaItem(string title, Guid? linkedEntityId = null, string? linkedEntityType = null, string? linkedEntityTitle = null)
+    private async void AddAgendaItem(
+        string title, 
+        Guid? linkedEntityId = null, 
+        string? linkedEntityType = null, 
+        string? linkedEntityTitle = null,
+        string visibilityScope = "meeting",
+        string? sharedContext = null,
+        List<TalkingPoint>? talkingPoints = null)
     {
         var newItem = new DialogAgendaItem 
         { 
             Title = title,
             LinkedEntityId = linkedEntityId,
             LinkedEntityType = linkedEntityType,
-            LinkedEntityTitle = linkedEntityTitle
+            LinkedEntityTitle = linkedEntityTitle,
+            LinkedEntityTitleSnapshot = linkedEntityTitle, // Snapshot at link time
+            VisibilityScope = visibilityScope,
+            SharedContext = sharedContext,
+            TalkingPoints = talkingPoints ?? new List<TalkingPoint>()
         };
         
         _agendaItems.Add(newItem);
@@ -630,11 +925,21 @@ public partial class EditMeetingDialog : Window
         // If meeting already exists, save to database
         if (_existingMeeting != null)
         {
-            await MeetingAgendaItemService.Instance.CreateAgendaItemAsync(
+            var savedItem = await MeetingAgendaItemService.Instance.CreateAgendaItemAsync(
                 _existingMeeting.Id, 
                 title,
                 linkedEntityType: linkedEntityType,
-                linkedEntityId: linkedEntityId);
+                linkedEntityId: linkedEntityId,
+                linkedEntityTitleSnapshot: linkedEntityTitle,
+                visibilityScope: visibilityScope,
+                sharedContext: sharedContext,
+                talkingPoints: talkingPoints);
+            
+            // Update the local item with the saved ID
+            if (savedItem != null)
+            {
+                newItem.Id = savedItem.Id;
+            }
         }
     }
     
@@ -719,6 +1024,7 @@ public partial class EditMeetingDialog : Window
     {
         UpdateAttendeeVisibility();
         UpdateMeetingTypeDescription();
+        UpdatePrepAssigneeList(); // Refresh assignee dropdown when meeting type changes
     }
     
     private void UpdateAttendeeVisibility()

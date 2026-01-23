@@ -329,47 +329,87 @@
                                     BorderBrush="{DynamicResource BrushBorder}"
                                     BorderThickness="1"
                                     CornerRadius="6" Padding="12" IsVisible="False">
-                                <StackPanel Spacing="10">
-                                    <TextBox x:Name="NewPrepTitleTextBox" 
-                                             Watermark="What needs to be prepared?"
-                                             KeyDown="NewPrepTitleTextBox_KeyDown"/>
+                                <StackPanel Spacing="12">
+                                    <!-- Title -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Title" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBox x:Name="NewPrepTitleTextBox" 
+                                                 Watermark="What needs to be prepared?"
+                                                 KeyDown="NewPrepTitleTextBox_KeyDown"/>
+                                    </StackPanel>
                                     
-                                    <!-- Visibility scope selector -->
+                                    <!-- Prep Prompt - what to think about -->
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="Prep Prompt" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="(what to think about)" FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="NewPrepPromptTextBox" 
+                                                 Watermark="What questions should be considered? What's the focus?"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 MinHeight="50"
+                                                 MaxHeight="80"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Body/Description -->
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="Details" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="(optional)" FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="NewPrepBodyTextBox" 
+                                                 Watermark="Additional context or notes..."
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 MinHeight="40"
+                                                 MaxHeight="80"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Scope and Assignment row -->
                                     <Grid ColumnDefinitions="*,8,*">
                                         <StackPanel Grid.Column="0" Spacing="4">
-                                            <TextBlock Text="Visibility" FontSize="11" 
+                                            <TextBlock Text="Scope" FontSize="11" 
                                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                                             <TextBlock Text="Who can see this item" FontSize="10" 
                                                        Foreground="{DynamicResource BrushTextTertiary}" Margin="0,-2,0,2"/>
                                             <ComboBox x:Name="PrepVisibilityComboBox" 
                                                       HorizontalAlignment="Stretch"
-                                                      SelectedIndex="0">
-                                                <ComboBoxItem Tag="personal">
+                                                      SelectedIndex="0"
+                                                      SelectionChanged="PrepVisibilityComboBox_SelectionChanged">
+                                                <ComboBoxItem Tag="meeting">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
+                                                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
                                                                   Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                        <TextBlock Text="Only me"/>
+                                                        <TextBlock Text="Meeting – everyone"/>
                                                     </StackPanel>
                                                 </ComboBoxItem>
                                                 <ComboBoxItem Tag="assigned">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
                                                                   Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                        <TextBlock Text="Assigned attendee"/>
+                                                        <TextBlock Text="Assigned – one person"/>
                                                     </StackPanel>
                                                 </ComboBoxItem>
-                                                <ComboBoxItem Tag="meeting">
+                                                <ComboBoxItem Tag="personal">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
+                                                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
                                                                   Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                        <TextBlock Text="All attendees"/>
+                                                        <TextBlock Text="Personal – just me"/>
                                                     </StackPanel>
                                                 </ComboBoxItem>
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Spacing="4" x:Name="PrepAssigneePanel" IsVisible="False">
                                             <TextBlock Text="Assign to" FontSize="11" 
-                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="Who should prepare this" FontSize="10" 
+                                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,-2,0,2"/>
                                             <ComboBox x:Name="PrepAssigneeComboBox"
                                                       HorizontalAlignment="Stretch"
                                                       PlaceholderText="Select person">
@@ -379,6 +419,11 @@
                                                     </DataTemplate>
                                                 </ComboBox.ItemTemplate>
                                             </ComboBox>
+                                            <TextBlock x:Name="PrepAssigneeWarning" 
+                                                       Text="Add attendees to assign prep items"
+                                                       FontSize="10" FontStyle="Italic"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"
+                                                       IsVisible="False"/>
                                         </StackPanel>
                                     </Grid>
                                     
@@ -397,41 +442,151 @@
                                                 BorderBrush="{DynamicResource BrushBorder}"
                                                 BorderThickness="1"
                                                 CornerRadius="6" Padding="10" Margin="0,0,0,6">
-                                            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                                                <CheckBox Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0"
-                                                          IsChecked="{Binding IsComplete, Mode=TwoWay}"
-                                                          Checked="PrepItem_CheckedChanged"
-                                                          Unchecked="PrepItem_CheckedChanged"/>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Title}" FontSize="13"
-                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
-                                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0"
-                                                                IsVisible="{Binding HasAssigneeOrScope}">
-                                                        <PathIcon Data="{Binding VisibilityIconPath}" Width="12" Height="12"
-                                                                  Foreground="{DynamicResource BrushTextTertiary}"/>
-                                                        <TextBlock Text="{Binding AssigneeNameDisplay}" FontSize="11"
+                                            <StackPanel Spacing="6">
+                                                <!-- Main row -->
+                                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                                    <!-- Status/Type indicator -->
+                                                    <Border Grid.Column="0" 
+                                                            Width="24" Height="24"
+                                                            CornerRadius="6"
+                                                            Background="{Binding StatusColor}"
+                                                            Margin="0,0,10,0"
+                                                            VerticalAlignment="Center"
+                                                            IsVisible="{Binding HasLinkedEntity}">
+                                                        <PathIcon Data="{Binding LinkedEntityIcon}" Width="12" Height="12" Foreground="White"/>
+                                                    </Border>
+                                                    <CheckBox Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                              IsChecked="{Binding IsComplete, Mode=TwoWay}"
+                                                              Checked="PrepItem_CheckedChanged"
+                                                              Unchecked="PrepItem_CheckedChanged"
+                                                              IsVisible="{Binding !HasLinkedEntity}"/>
+                                                    
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                        <TextBlock Text="{Binding EffectiveTitle}" FontSize="13"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                                   TextDecorations="{Binding IsComplete, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                                                        <!-- Linked entity subtitle -->
+                                                        <TextBlock Text="{Binding LinkedEntityTitleSnapshot}" FontSize="11"
                                                                    Foreground="{DynamicResource BrushTextSecondary}"
-                                                                   IsVisible="{Binding HasAssignee}"/>
+                                                                   IsVisible="{Binding HasLinkedEntity}"/>
+                                                        <!-- Assignment/visibility info -->
+                                                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0"
+                                                                    IsVisible="{Binding HasAssigneeOrScope}">
+                                                            <PathIcon Data="{Binding VisibilityIconPath}" Width="12" Height="12"
+                                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                            <TextBlock Text="{Binding AssigneeNameDisplay}" FontSize="11"
+                                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                                       IsVisible="{Binding HasAssignee}"/>
+                                                        </StackPanel>
                                                     </StackPanel>
-                                                </StackPanel>
-                                                <!-- Linked item indicator -->
-                                                <Border Grid.Column="2" 
-                                                        IsVisible="{Binding HasLinkedEntity}"
-                                                        Background="{DynamicResource AccentFillColorDefaultBrush}"
-                                                        CornerRadius="3" Padding="4,2" Margin="4,0"
-                                                        VerticalAlignment="Center"
-                                                        Opacity="0.8">
-                                                    <TextBlock Text="{Binding LinkedEntityTypeDisplay}" FontSize="9" Foreground="White"/>
+                                                    
+                                                    <!-- Badges and actions -->
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                        <!-- Prepared badge -->
+                                                        <Border Background="#10B981"
+                                                                CornerRadius="4" Padding="6,2"
+                                                                IsVisible="{Binding IsPrepared}"
+                                                                ToolTip.Tip="{Binding PreparedStatusDisplay}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                                                          Width="10" Height="10" Foreground="White"/>
+                                                                <TextBlock Text="Prepared" FontSize="10" Foreground="White" FontWeight="Medium"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        
+                                                        <!-- Has prompt badge -->
+                                                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                                CornerRadius="4" Padding="6,2"
+                                                                IsVisible="{Binding HasPrepPrompt}"
+                                                                ToolTip.Tip="{Binding PrepPrompt}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <PathIcon Data="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z"
+                                                                          Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                                <TextBlock Text="Prompt" FontSize="10"
+                                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        
+                                                        <!-- Linked type badge -->
+                                                        <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                                CornerRadius="4" Padding="6,2"
+                                                                IsVisible="{Binding HasLinkedEntity}"
+                                                                Opacity="0.9">
+                                                            <TextBlock Text="{Binding LinkedEntityTypeDisplay}" FontSize="10"
+                                                                       Foreground="White" FontWeight="Medium"/>
+                                                        </Border>
+                                                        
+                                                        <!-- Edit button -->
+                                                        <Button Classes="icon-button" Padding="4"
+                                                                ToolTip.Tip="Edit prep item"
+                                                                Click="EditPrepItem_Click"
+                                                                Tag="{Binding}">
+                                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                                      Width="10" Height="10" 
+                                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        </Button>
+                                                        
+                                                        <!-- Delete button -->
+                                                        <Button Classes="icon-button" Padding="4"
+                                                                ToolTip.Tip="Delete"
+                                                                Click="DeletePrepItem_Click"
+                                                                Tag="{Binding}">
+                                                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                                      Width="10" Height="10" 
+                                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
+                                                
+                                                <!-- Prep prompt preview (if has prompt) -->
+                                                <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                        CornerRadius="4" Padding="8,6"
+                                                        Margin="32,0,0,0"
+                                                        IsVisible="{Binding HasPrepPrompt}">
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock Text="Think about:" FontSize="10" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        <TextBlock Text="{Binding PrepPrompt}" FontSize="11"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                                                   TextWrapping="Wrap" MaxLines="3"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
                                                 </Border>
-                                                <Button Grid.Column="3" Classes="icon-button" Padding="4"
-                                                        ToolTip.Tip="Delete"
-                                                        Click="DeletePrepItem_Click"
-                                                        Tag="{Binding}">
-                                                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                                              Width="10" Height="10" 
-                                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                </Button>
-                                            </Grid>
+                                                
+                                                <!-- Prep response preview (if prepared) -->
+                                                <Border Background="#10B98110"
+                                                        BorderBrush="#10B981" BorderThickness="1"
+                                                        CornerRadius="4" Padding="8,6"
+                                                        Margin="32,0,0,0"
+                                                        IsVisible="{Binding IsPrepared}">
+                                                    <StackPanel Spacing="4">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                                                      Width="10" Height="10" Foreground="#10B981"/>
+                                                            <TextBlock Text="My preparation:" FontSize="10" FontWeight="SemiBold"
+                                                                       Foreground="#10B981"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding PrepResponse}" FontSize="11"
+                                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                                   TextWrapping="Wrap" MaxLines="3"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                
+                                                <!-- Body preview (if has body but not prepared) -->
+                                                <TextBlock Text="{Binding Body}" FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           TextTrimming="CharacterEllipsis" MaxLines="2"
+                                                           TextWrapping="Wrap"
+                                                           Margin="32,0,0,0">
+                                                    <TextBlock.IsVisible>
+                                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                            <Binding Path="Body" Converter="{x:Static StringConverters.IsNotNullOrEmpty}"/>
+                                                            <Binding Path="!IsPrepared"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.IsVisible>
+                                                </TextBlock>
+                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -489,20 +644,90 @@
                                 </Button>
                             </Grid>
                             
-                            <!-- Add agenda inline -->
+                            <!-- Add agenda inline - EXPANDED to support context and talking points -->
                             <Border x:Name="AddAgendaPanel"
                                     Background="{DynamicResource BrushBackground}"
                                     BorderBrush="{DynamicResource BrushBorder}"
                                     BorderThickness="1"
                                     CornerRadius="6" Padding="12" IsVisible="False">
-                                <StackPanel Spacing="8">
-                                    <TextBox x:Name="NewAgendaTitleTextBox" 
-                                             Watermark="Agenda item title"
-                                             KeyDown="NewAgendaTitleTextBox_KeyDown"/>
-                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                                        <Button Content="Cancel" Click="CancelAddAgenda_Click" />
-                                        <Button Content="Add" Classes="accent" Click="ConfirmAddAgenda_Click" />
+                                <StackPanel Spacing="12">
+                                    <!-- Title -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Topic" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBox x:Name="NewAgendaTitleTextBox" 
+                                                 Watermark="What do you want to discuss?"
+                                                 KeyDown="NewAgendaTitleTextBox_KeyDown"/>
                                     </StackPanel>
+                                    
+                                    <!-- Shared Context - visible to all attendees -->
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="Context" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="(visible to attendees)" FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="NewAgendaContextTextBox" 
+                                                 Watermark="Why are we discussing this? What's changed?"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 MinHeight="50"
+                                                 MaxHeight="80"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Talking Points - quick add -->
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="Talking Points" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="(optional)" FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="NewAgendaTalkingPointsTextBox" 
+                                                 Watermark="Enter points separated by new lines..."
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 MinHeight="50"
+                                                 MaxHeight="100"/>
+                                        <TextBlock Text="Each line becomes a talking point you can check off during the meeting"
+                                                   FontSize="10" FontStyle="Italic"
+                                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Bottom row: Visibility + Buttons -->
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <!-- Visibility selector -->
+                                        <StackPanel Grid.Column="0" Spacing="2">
+                                            <TextBlock Text="Visibility" FontSize="10" 
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                            <ComboBox x:Name="AgendaVisibilityComboBox" 
+                                                      SelectedIndex="0"
+                                                      MinWidth="160">
+                                                <ComboBoxItem Tag="meeting">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
+                                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                        <TextBlock Text="All attendees" FontSize="12"/>
+                                                    </StackPanel>
+                                                </ComboBoxItem>
+                                                <ComboBoxItem Tag="personal">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
+                                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                        <TextBlock Text="Only me" FontSize="12"/>
+                                                    </StackPanel>
+                                                </ComboBoxItem>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        
+                                        <!-- Action buttons -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" 
+                                                    VerticalAlignment="Bottom">
+                                            <Button Content="Cancel" Click="CancelAddAgenda_Click" />
+                                            <Button Content="Add" Classes="accent" Click="ConfirmAddAgenda_Click" />
+                                        </StackPanel>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
                             
@@ -516,7 +741,7 @@
                                                 CornerRadius="6" Padding="10" Margin="0,0,0,6">
                                             <StackPanel Spacing="6">
                                                 <!-- Main row -->
-                                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+                                                <Grid ColumnDefinitions="Auto,*,Auto">
                                                     <!-- Type indicator (icon or bullet) -->
                                                     <Border Grid.Column="0" 
                                                             Width="24" Height="24"
@@ -538,49 +763,56 @@
                                                                   Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}"/>
                                                     </Border>
                                                                
-                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                                         <TextBlock Text="{Binding EffectiveTitle}" FontSize="13"
                                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                        <!-- Linked entity subtitle -->
                                                         <TextBlock Text="{Binding LinkedEntityTitle}" FontSize="11"
                                                                    Foreground="{DynamicResource BrushTextSecondary}"
                                                                    IsVisible="{Binding HasLinkedEntity}"/>
                                                     </StackPanel>
                                                     
-                                                    <!-- Visibility indicator -->
-                                                    <Border Grid.Column="2"
-                                                            VerticalAlignment="Center" Margin="4,0"
-                                                            ToolTip.Tip="{Binding VisibilityTooltip}"
-                                                            IsVisible="{Binding IsPersonalAgenda}">
-                                                        <PathIcon Data="{Binding VisibilityIcon}" Width="12" Height="12" 
-                                                                  Foreground="{DynamicResource BrushTextTertiary}"/>
-                                                    </Border>
-                                                    
-                                                    <!-- Talking points badge -->
-                                                    <Border Grid.Column="3"
-                                                            Background="{DynamicResource BrushSurfaceAlt}"
-                                                            CornerRadius="4" Padding="6,2" Margin="4,0"
-                                                            VerticalAlignment="Center"
-                                                            IsVisible="{Binding HasTalkingPoints}"
-                                                            ToolTip.Tip="Talking points">
-                                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                                            <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
-                                                                      Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                                            <TextBlock Text="{Binding TalkingPointsCount}" FontSize="10"
+                                                    <!-- Badges and actions -->
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                        <!-- Outcome badge -->
+                                                        <Border Background="{Binding OutcomeBadgeColor}"
+                                                                CornerRadius="4" Padding="6,2"
+                                                                IsVisible="{Binding HasOutcome}"
+                                                                ToolTip.Tip="{Binding OutcomeSummary}">
+                                                            <TextBlock Text="{Binding OutcomeTypeDisplay}" FontSize="10"
+                                                                       Foreground="White" FontWeight="Medium"/>
+                                                        </Border>
+                                                        
+                                                        <!-- Visibility indicator (only for personal) -->
+                                                        <Border VerticalAlignment="Center"
+                                                                ToolTip.Tip="{Binding VisibilityTooltip}"
+                                                                IsVisible="{Binding IsPersonalAgenda}">
+                                                            <PathIcon Data="{Binding VisibilityIcon}" Width="12" Height="12" 
+                                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        </Border>
+                                                        
+                                                        <!-- Talking points badge -->
+                                                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                                CornerRadius="4" Padding="6,2"
+                                                                IsVisible="{Binding HasTalkingPoints}"
+                                                                ToolTip.Tip="Talking points to cover">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
+                                                                          Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                                <TextBlock Text="{Binding TalkingPointsCount}" FontSize="10"
+                                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        
+                                                        <!-- Linked type badge -->
+                                                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                                CornerRadius="4" Padding="6,2"
+                                                                IsVisible="{Binding HasLinkedEntity}">
+                                                            <TextBlock Text="{Binding LinkedEntityTypeDisplay}" FontSize="10"
                                                                        Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                        </StackPanel>
-                                                    </Border>
-                                                    
-                                                    <!-- Linked type badge -->
-                                                    <Border Grid.Column="4"
-                                                            Background="{DynamicResource BrushSurfaceAlt}"
-                                                            CornerRadius="4" Padding="8,4" Margin="4,0"
-                                                            VerticalAlignment="Center"
-                                                            IsVisible="{Binding HasLinkedEntity}">
-                                                        <TextBlock Text="{Binding LinkedEntityTypeDisplay}" FontSize="10"
-                                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                                                    </Border>
-                                                    
-                                                    <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="2">
+                                                        </Border>
+                                                        
+                                                        <!-- Edit button -->
                                                         <Button Classes="icon-button" Padding="4"
                                                                 ToolTip.Tip="Edit details"
                                                                 Click="EditAgendaItem_Click"
@@ -589,6 +821,8 @@
                                                                       Width="10" Height="10" 
                                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
                                                         </Button>
+                                                        
+                                                        <!-- Delete button -->
                                                         <Button Classes="icon-button" Padding="4"
                                                                 ToolTip.Tip="Delete"
                                                                 Click="DeleteAgendaItem_Click"
@@ -603,9 +837,32 @@
                                                 <!-- Context preview (if has context) -->
                                                 <TextBlock Text="{Binding SharedContext}" FontSize="11"
                                                            Foreground="{DynamicResource BrushTextSecondary}"
-                                                           TextTrimming="CharacterEllipsis" MaxLines="1"
+                                                           TextTrimming="CharacterEllipsis" MaxLines="2"
+                                                           TextWrapping="Wrap"
                                                            IsVisible="{Binding HasContext}"
                                                            Margin="34,0,0,0"/>
+                                                
+                                                <!-- Talking points preview (if has talking points) -->
+                                                <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                        CornerRadius="4" Padding="8,6"
+                                                        Margin="34,0,0,0"
+                                                        IsVisible="{Binding HasTalkingPoints}">
+                                                    <ItemsControl ItemsSource="{Binding TalkingPoints}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="models:TalkingPoint">
+                                                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,1">
+                                                                    <CheckBox IsChecked="{Binding Discussed}" 
+                                                                              Padding="0" MinWidth="0"
+                                                                              VerticalAlignment="Center"/>
+                                                                    <TextBlock Text="{Binding Text}" FontSize="11"
+                                                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                                                               TextDecorations="{Binding TextDecoration}"
+                                                                               VerticalAlignment="Center"/>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Border>
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>

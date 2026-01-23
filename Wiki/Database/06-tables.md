@@ -88,6 +88,47 @@ AI-generated insights produced for or about a team member.
 
 **RLS**  
 Visible to generated_for and their management chain.
+---
+
+### procohere.vector_embeddings
+
+**Purpose**  
+Postgres + pgvector-backed vector store for semantic search (RAG). Stores chunked text and embeddings for both help docs and user data.
+
+**Columns**
+- id (uuid, PK, default gen_random_uuid())
+- organization_id (uuid, FK → public.organizations.id)
+- entity_type (varchar(64), not null) – canonical type (e.g., help_doc, meeting, task, goal)
+- entity_id (uuid, not null) – referenced entity id
+- chunk_index (integer, not null, default 0) – 0-based chunk ordinal
+- content_hash (varchar(64), not null) – stable hash of normalized chunk content
+- content_preview (varchar(500), nullable)
+- content (text, nullable)
+- embedding (vector(768), nullable)
+- embedding_dimensions (integer, not null, default 768)
+- model_name (varchar(100), not null, default 'text-embedding-004')
+- model_version (varchar(50), nullable)
+- metadata (jsonb, nullable)
+- is_deleted (boolean, default false)
+- created_at (timestamptz, default now())
+- updated_at (timestamptz, default now())
+- deleted_at (timestamptz, nullable)
+- deleted_by (uuid, FK → public.users.id, nullable)
+
+**Keys and constraints**
+- UNIQUE(organization_id, entity_type, entity_id, chunk_index)
+- CHECK(embedding_dimensions = 768)
+
+**Indexes**
+- (organization_id, entity_type, entity_id) WHERE is_deleted = false
+- HNSW index on embedding (vector_cosine_ops) WHERE is_deleted = false
+
+**Triggers**
+- set_updated_at() on UPDATE
+
+**RLS**  
+Forced RLS; org-scoped; visibility-preserving. Vector rows are readable only if the user can see the referenced entity (never widens access).
+
 
 ---
 
@@ -138,215 +179,55 @@ Owner (created_by), attendees, and management chain.
 ### procohere.meeting_agenda_items
 
 **Purpose**  
-Agenda entries scoped to a meeting. These are **conversation containers** – not simple checklist items. Each agenda item can include shared/private context, structured talking points, and tracked outcomes.
+Agenda entries scoped to a meeting.
 
-**Columns**
-- id (uuid, PK, default gen_random_uuid())
-- organization_id (uuid, FK → public.organizations.id)
-- meeting_id (uuid, FK → procohere.meetings.id)
-- added_by (uuid, FK → procohere.team_members.id) – who added this agenda item
-- title (text, not null) – original raw title as entered
-- display_title (text, nullable) – optional styled/formatted title for UI
-- description (text, nullable) – legacy notes field
-- shared_context (text, nullable) – context visible to all meeting participants
-- private_context (text, nullable) – context visible only to item creator
-- talking_points (jsonb, nullable) – structured array of `{id, text, discussed, order}`
-- outcome_type (text, nullable) – constrained to: 'discussed', 'decision', 'deferred', 'blocked'
-- outcome_summary (text, nullable) – freeform summary of discussion outcome
-- visibility_scope (text, default 'meeting') – constrained to: 'meeting', 'personal'
-- linked_entity_type (text, nullable) – e.g. 'goal', 'metric', 'task' (from legacy)
-- linked_entity_id (uuid, nullable) – reference to linked entity
-- linked_entity_title_snapshot (text, nullable) – denormalized title at time of linking (populated by app on link)
-- sort_order (integer)
-- status (text, default 'pending') – 'pending', 'in_progress', 'completed', 'deferred'
-- is_completed (boolean, default false)
-- completed_at (timestamptz, nullable)
-- discussed_at (timestamptz, nullable) – auto-set by trigger when outcome_type becomes non-null
-- is_private (boolean, default false) – legacy; prefer visibility_scope
-- is_deleted (boolean, default false)
-- created_at (timestamptz, default now())
-- updated_at (timestamptz, default now())
-- deleted_at (timestamptz, nullable)
-- deleted_by (uuid, FK → public.users.id)
-
-**Constraints**
-```sql
--- Outcome type must be a controlled value
-ALTER TABLE procohere.meeting_agenda_items
-  ADD CONSTRAINT meeting_agenda_items_outcome_type_chk
-  CHECK (outcome_type IS NULL OR outcome_type IN ('discussed','decision','deferred','blocked'));
-
--- Visibility scope must be controlled
-ALTER TABLE procohere.meeting_agenda_items
-  ADD CONSTRAINT meeting_agenda_items_visibility_scope_chk
-  CHECK (visibility_scope IN ('meeting','personal'));
-
--- Enforce alignment between visibility_scope and legacy is_private flag
-ALTER TABLE procohere.meeting_agenda_items
-  ADD CONSTRAINT meeting_agenda_items_visibility_alignment_chk
-  CHECK (
-    (visibility_scope = 'meeting' AND is_private = false)
-    OR
-    (visibility_scope = 'personal' AND is_private = true)
-  );
-```
-
-**Triggers**
-```sql
--- Auto-set discussed_at when outcome_type becomes non-null
-CREATE OR REPLACE FUNCTION procohere.set_discussed_at()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.outcome_type IS NOT NULL AND OLD.outcome_type IS NULL AND NEW.discussed_at IS NULL THEN
-    NEW.discussed_at := now();
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER tr_meeting_agenda_items_set_discussed_at
-BEFORE UPDATE ON procohere.meeting_agenda_items
-FOR EACH ROW EXECUTE FUNCTION procohere.set_discussed_at();
-```
-
-**Indexes**
-```sql
--- Filter by outcome presence
-CREATE INDEX IF NOT EXISTS idx_meeting_agenda_items_meeting_outcome
-ON procohere.meeting_agenda_items (meeting_id, outcome_type)
-WHERE is_deleted = false;
-
--- Filter by visibility scope
-CREATE INDEX IF NOT EXISTS idx_meeting_agenda_items_visibility
-ON procohere.meeting_agenda_items (meeting_id, visibility_scope)
-WHERE is_deleted = false;
-```
-
-**Talking Points JSONB Schema**
-Each talking point must have a stable UUID for check-off, reordering, and editing:
-```json
-[
-  {"id": "550e8400-e29b-41d4-a716-446655440000", "text": "Point to discuss", "discussed": false, "order": 0},
-  {"id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", "text": "Another point", "discussed": true, "order": 1}
-]
-```
-
-**Outcome Types**
-| Value | Meaning |
-|-------|---------|
-| discussed | Topic was discussed, no specific outcome |
-| decision | A decision was made |
-| deferred | Moved to future meeting |
-| blocked | Cannot proceed, waiting on something |
-
-**Snapshot Population**  
-The `linked_entity_title_snapshot` field must be populated by app code when linking. This prevents historical drift when entity titles change. The DB does not auto-populate this.
-
-**RLS**  
-Visibility determined by visibility_scope:
-- `meeting`: visible to all meeting attendees
-- `personal`: visible only to added_by
+**Visibility**  
+Meeting visibility OR creator visibility.
 
 ---
 
 ### procohere.meeting_prep_items
 
 **Purpose**  
-Pre-meeting preparation items with optional AI-assisted prep prompts and linked context. Supports carrying forward incomplete items between meetings.
+Pre-meeting preparation items supporting personal, assigned, and team-wide visibility with linked entities and captured prep responses.
 
 **Columns**
 - id (uuid, PK, default gen_random_uuid())
 - organization_id (uuid, FK → public.organizations.id)
-- meeting_id (uuid, FK → procohere.meetings.id)
-- requested_by_team_member_id (uuid, FK → procohere.team_members.id) – who requested this prep
-- assigned_to_team_member_id (uuid, FK → procohere.team_members.id, nullable)
+- meeting_id (uuid, FK → procohere.meetings.id, CASCADE delete)
+- requested_by_team_member_id (uuid, FK → procohere.team_members.id) – Creator
+- assigned_to_team_member_id (uuid, FK → procohere.team_members.id, nullable) – Assignee
 - title (text, not null)
-- body (text, nullable) – detailed description
-- source_type (text, nullable) – where this came from: 'manual', 'ai_suggested', 'carried_forward'
-- source_snapshot (text, nullable) – context snapshot at creation time
-- linked_entity_type (text, nullable) – e.g. 'goal', 'metric', 'task', 'contact'
-- linked_entity_id (uuid, nullable) – reference to linked entity
-- linked_entity_title_snapshot (text, nullable) – denormalized title at time of linking (populated by app on link)
-- prep_prompt (text, nullable) – AI prompt to help prepare this item
-- prep_response (text, nullable) – stored AI-generated prep content
-- prepared_at (timestamptz, nullable) – auto-set by trigger when prep_response is filled
-- visibility_scope (text, default 'meeting') – constrained to: 'meeting', 'personal', 'assigned'
-- status (text, default 'pending') – 'pending', 'in_progress', 'completed'
-- overridden_status (text, nullable) – manual override of status
-- due_at (timestamptz, nullable) – when prep should be ready
-- sort_order (integer)
-- assignee_notes (text, nullable) – notes from assigned person
-- carry_forward (boolean, default false) – should this carry to next meeting if incomplete
-- carried_from_prep_item_id (uuid, FK → meeting_prep_items.id, nullable) – lineage tracking
-- completed_at (timestamptz, nullable)
-- completed_by_team_member_id (uuid, FK → procohere.team_members.id, nullable)
+- body (text, nullable)
+- assignee_notes (text, nullable) – Only assignee can edit
+- visibility_scope (text, default 'personal') – 'personal', 'assigned', 'meeting'
+- status (text, default 'open') – 'open', 'in_progress', 'done', 'dismissed'
 - status_updated_at (timestamptz, nullable)
-- status_updated_by_team_member_id (uuid, FK → procohere.team_members.id, nullable)
-- is_deleted (boolean, default false)
-- created_at (timestamptz, default now())
-- updated_at (timestamptz, default now())
-- deleted_at (timestamptz, nullable)
-- deleted_by (uuid, FK → public.users.id)
-
-**Constraints**
-```sql
--- Visibility scope must be controlled
-ALTER TABLE procohere.meeting_prep_items
-  ADD CONSTRAINT meeting_prep_items_visibility_scope_chk
-  CHECK (visibility_scope IN ('meeting','personal','assigned'));
-```
-
-**Triggers**
-```sql
--- Auto-set prepared_at when prep_response gets filled
-CREATE OR REPLACE FUNCTION procohere.set_prepared_at()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.prep_response IS NOT NULL AND COALESCE(NEW.prep_response,'') <> '' AND NEW.prepared_at IS NULL THEN
-    NEW.prepared_at := now();
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER tr_meeting_prep_items_set_prepared_at
-BEFORE UPDATE ON procohere.meeting_prep_items
-FOR EACH ROW EXECUTE FUNCTION procohere.set_prepared_at();
-```
-
-**Indexes**
-```sql
--- Filter by preparation status
-CREATE INDEX IF NOT EXISTS idx_meeting_prep_items_prepared
-ON procohere.meeting_prep_items (meeting_id, prepared_at)
-WHERE is_deleted = false;
-```
-
-**Linked Entity Support**
-Prep items can link to:
-- Goals (procohere.goals)
-- Metrics (procohere.metrics)
-- Tasks (procohere.tasks)
-- Contacts (procohere.contacts)
-
-**Snapshot Population**  
-The `linked_entity_title_snapshot` field must be populated by app code when linking. This prevents historical drift when entity titles change. The DB does not auto-populate this.
-
-**AI Prep Flow**
-1. User or AI suggests prep_prompt
-2. AI generates prep_response
-3. `prepared_at` timestamp auto-set by trigger
-4. Response displayed in prep UI
+- status_updated_by_team_member_id (uuid, FK, nullable)
+- overridden_status (boolean, default false)
+- due_at (timestamptz, nullable)
+- completed_at (timestamptz, nullable)
+- completed_by_team_member_id (uuid, FK, nullable)
+- sort_order (int, default 0)
+- carry_forward (boolean, default false)
+- carried_from_prep_item_id (uuid, FK → self, nullable) – Lineage tracking
+- source_type (text, nullable) – 'manual', 'scaffold', 'ai', 'carry_forward'
+- source_snapshot (text, nullable) – JSON provenance data
+- linked_entity_type (text, nullable) – 'task', 'goal', 'metric', 'project'
+- linked_entity_id (uuid, nullable)
+- linked_entity_title_snapshot (text, nullable) – Cached title at link time
+- prep_prompt (text, nullable) – What to think about / prepare
+- prep_response (text, nullable) – Captured preparation thinking
+- prepared_at (timestamptz, nullable) – When prep was completed
+- is_deleted, created_at, updated_at, deleted_at, deleted_by
 
 **Visibility Modes**
-| Scope | Meaning |
-|-------|---------|
-| meeting | All meeting attendees |
-| personal | Only requested_by_team_member_id |
-| assigned | assigned_to + requested_by |
+- personal: Only visible to the requester
+- assigned: Visible to requester AND assignee (requires assigned_to_team_member_id)
+- meeting: Visible to all meeting attendees (team prep)
 
 **RLS**  
-Enforces ownership/assignment based on visibility_scope; UI may further filter.
+Organization isolation enforced. App layer handles visibility_scope logic.
 
 ---
 

@@ -377,11 +377,23 @@ private class LocalSettings
 - `DeleteAgendaItemAsync(itemId)` - Soft delete
 
 ### MeetingPrepItemService
-- `GetPrepItemsAsync(meetingId, userId)` - Get prep items
-- `CreatePrepItemAsync(item)` - Create new item
-- `UpdatePrepItemAsync(item)` - Update item
-- `ToggleCompletedAsync(itemId)` - Toggle completion
-- `DeletePrepItemAsync(itemId)` - Soft delete
+- `GetPrepItemsForMeetingAsync(meetingId)` - Get prep items visible to user
+- `CreatePrepItemAsync(item)` - Create new prep item
+- `UpdatePrepItemAsync(item)` - Update prep item (includes enhanced fields)
+- `UpdateStatusAsync(prepItemId, status)` - Update status with tracking
+- `DeletePrepItemAsync(prepItemId)` - Soft delete
+- **Helper Methods:**
+  - `CreateQuickPrepAsync(meetingId, title)` - Personal prep item
+  - `CreateAssignedPrepAsync(meetingId, title, assigneeId, body?, dueAt?)` - Assigned prep
+  - `CreateTeamPrepAsync(meetingId, title, body?)` - Team/meeting-scoped prep
+- **Enhanced Prep Methods:**
+  - `CreateLinkedPrepAsync(meetingId, entityType, entityId, entityTitle, prompt?, visibility?)` - Linked entity prep
+  - `CapturePrepResponseAsync(prepItemId, response)` - Capture preparation thinking
+  - `UpdatePrepPromptAsync(prepItemId, prompt)` - Update prep prompt
+  - `LinkEntityAsync(prepItemId, entityType, entityId, entityTitle)` - Link entity
+  - `UnlinkEntityAsync(prepItemId)` - Remove linked entity
+  - `GetPrepItemsForEntityAsync(entityType, entityId)` - Get prep items for entity
+  - `CarryForwardPrepItemsAsync(fromMeetingId, toMeetingId)` - Carry forward incomplete items
 
 ### MeetingNoteService
 - `GetMeetingNotesAsync(meetingId)` - Get notes for meeting

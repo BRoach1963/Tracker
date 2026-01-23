@@ -139,126 +139,42 @@ public class MetricsService : IMetricsService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Note: The 'lifecycle' column does not exist in the procohere.metrics schema.
+    /// This method returns all metrics. Use client-side filtering if needed.
+    /// </remarks>
     public async Task<List<MetricDetail>> GetMetricsByLifecycleAsync(MetricLifecycle lifecycle, CancellationToken ct = default)
     {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-
-        if (client == null)
-        {
-            LastError = "Not authenticated";
-            return new List<MetricDetail>();
-        }
-
-        try
-        {
-            var lifecycleStr = lifecycle.ToString().ToLower();
-            Log($"Loading metrics by lifecycle: {lifecycleStr}");
-
-            var result = await client.From<MetricDetail>()
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("lifecycle", Operator.Equals, lifecycleStr)
-                .Order("name", Ordering.Ascending)
-                .Get();
-
-            var metrics = result.Models ?? new List<MetricDetail>();
-            
-            foreach (var metric in metrics)
-            {
-                metric.Trend = await CalculateTrendAsync(metric.Id, ct);
-            }
-
-            Log($"Metrics by lifecycle '{lifecycleStr}': {metrics.Count}");
-            return metrics;
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"GetMetricsByLifecycle ERROR: {ex.Message}");
-            return new List<MetricDetail>();
-        }
+        // lifecycle column doesn't exist in procohere.metrics schema
+        // Return all metrics - client-side filtering can be applied by caller
+        Log($"GetMetricsByLifecycleAsync called with {lifecycle} - returning all metrics (lifecycle column not in DB)");
+        return await GetAllMetricsAsync(ct);
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Note: The 'scope' column does not exist in the procohere.metrics schema.
+    /// This method returns all metrics. Use client-side filtering if needed.
+    /// </remarks>
     public async Task<List<MetricDetail>> GetMetricsByScopeAsync(MetricScope scope, CancellationToken ct = default)
     {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-
-        if (client == null)
-        {
-            LastError = "Not authenticated";
-            return new List<MetricDetail>();
-        }
-
-        try
-        {
-            var scopeStr = scope.ToString().ToLower();
-            Log($"Loading metrics by scope: {scopeStr}");
-
-            var result = await client.From<MetricDetail>()
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("scope", Operator.Equals, scopeStr)
-                .Order("name", Ordering.Ascending)
-                .Get();
-
-            var metrics = result.Models ?? new List<MetricDetail>();
-            
-            foreach (var metric in metrics)
-            {
-                metric.Trend = await CalculateTrendAsync(metric.Id, ct);
-            }
-
-            Log($"Metrics by scope '{scopeStr}': {metrics.Count}");
-            return metrics;
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"GetMetricsByScope ERROR: {ex.Message}");
-            return new List<MetricDetail>();
-        }
+        // scope column doesn't exist in procohere.metrics schema
+        // Return all metrics - client-side filtering can be applied by caller
+        Log($"GetMetricsByScopeAsync called with {scope} - returning all metrics (scope column not in DB)");
+        return await GetAllMetricsAsync(ct);
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Note: The 'source' column does not exist in the procohere.metrics schema.
+    /// This method returns all metrics. Use client-side filtering if needed.
+    /// </remarks>
     public async Task<List<MetricDetail>> GetMetricsBySourceAsync(MetricSource source, CancellationToken ct = default)
     {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-
-        if (client == null)
-        {
-            LastError = "Not authenticated";
-            return new List<MetricDetail>();
-        }
-
-        try
-        {
-            var sourceStr = source.ToString().ToLower();
-            Log($"Loading metrics by source: {sourceStr}");
-
-            var result = await client.From<MetricDetail>()
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("source", Operator.Equals, sourceStr)
-                .Order("name", Ordering.Ascending)
-                .Get();
-
-            var metrics = result.Models ?? new List<MetricDetail>();
-            
-            foreach (var metric in metrics)
-            {
-                metric.Trend = await CalculateTrendAsync(metric.Id, ct);
-            }
-
-            Log($"Metrics by source '{sourceStr}': {metrics.Count}");
-            return metrics;
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"GetMetricsBySource ERROR: {ex.Message}");
-            return new List<MetricDetail>();
-        }
+        // source column doesn't exist in procohere.metrics schema
+        // Return all metrics - client-side filtering can be applied by caller
+        Log($"GetMetricsBySourceAsync called with {source} - returning all metrics (source column not in DB)");
+        return await GetAllMetricsAsync(ct);
     }
 
     /// <inheritdoc />
@@ -429,16 +345,11 @@ public class MetricsService : IMetricsService
             // Set required fields
             metric.Id = Guid.NewGuid();
             metric.OrganizationId = session.TeamMember.OrganizationId;
-            metric.CreatedByUserId = profile.Id;
             metric.CreatedAt = DateTime.UtcNow;
             metric.UpdatedAt = DateTime.UtcNow;
             metric.IsDeleted = false;
 
-            // Default lifecycle to Active
-            if (string.IsNullOrEmpty(metric.Lifecycle))
-            {
-                metric.Lifecycle = "active";
-            }
+            // Note: CreatedByUserId and Lifecycle don't exist in DB schema
 
             var result = await client.From<MetricDetail>()
                 .Insert(metric);
@@ -456,6 +367,10 @@ public class MetricsService : IMetricsService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Only updates columns that exist in procohere.metrics schema:
+    /// name, description, metric_type, unit, target_value, current_value, direction, frequency
+    /// </remarks>
     public async Task<MetricDetail?> UpdateMetricAsync(MetricDetail metric, CancellationToken ct = default)
     {
         LastError = null;
@@ -473,18 +388,17 @@ public class MetricsService : IMetricsService
 
             metric.UpdatedAt = DateTime.UtcNow;
 
+            // Only update columns that exist in procohere.metrics schema
             var result = await client.From<MetricDetail>()
                 .Where(m => m.Id == metric.Id)
                 .Set(m => m.Name!, metric.Name)
                 .Set(m => m.Description!, metric.Description)
-                .Set(m => m.Category!, metric.Category)
+                .Set(m => m.MetricType!, metric.MetricType)
+                .Set(m => m.Unit!, metric.Unit)
+                .Set(m => m.TargetValue, metric.TargetValue)
+                .Set(m => m.CurrentValue, metric.CurrentValue)
                 .Set(m => m.TargetDirection!, metric.TargetDirection)
-                .Set(m => m.Source!, metric.Source)
-                .Set(m => m.Scope!, metric.Scope)
                 .Set(m => m.Frequency!, metric.Frequency)
-                .Set(m => m.IsSensitive, metric.IsSensitive)
-                .Set(m => m.IsTeamVisible, metric.IsTeamVisible)
-                .Set(m => m.IsOrgVisible, metric.IsOrgVisible)
                 .Set(m => m.UpdatedAt, metric.UpdatedAt)
                 .Update();
 
@@ -582,7 +496,7 @@ public class MetricsService : IMetricsService
                 Value = newValue,
                 PreviousValue = previousValue,
                 WhatChanged = whatChanged,
-                Source = current.Source,
+                Source = "manual", // Default since Source doesn't exist in MetricDetail
                 RecordedByUserId = profile.Id,
                 RecordedAt = now,
                 CreatedAt = now
@@ -595,7 +509,6 @@ public class MetricsService : IMetricsService
             var result = await client.From<MetricDetail>()
                 .Where(m => m.Id == metricId)
                 .Set(m => m.CurrentValue, newValue)
-                .Set(m => m.LastUpdatedAt!, now)
                 .Set(m => m.UpdatedAt, now)
                 .Update();
 
@@ -621,6 +534,11 @@ public class MetricsService : IMetricsService
     #region Lifecycle
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Note: The 'lifecycle' column does not exist in procohere.metrics schema.
+    /// This method returns the metric without persisting lifecycle changes.
+    /// Lifecycle is a UI-only concept for metrics until schema is updated.
+    /// </remarks>
     public async Task<MetricDetail?> UpdateLifecycleAsync(
         Guid metricId, 
         MetricLifecycle lifecycle, 
@@ -637,23 +555,20 @@ public class MetricsService : IMetricsService
 
         try
         {
-            var lifecycleStr = lifecycle.ToString().ToLower();
-            Log($"Updating metric lifecycle: {metricId} → {lifecycleStr}");
+            Log($"UpdateLifecycleAsync: lifecycle column doesn't exist in metrics table - returning current metric");
 
+            // Just fetch the current metric since we can't persist lifecycle
             var result = await client.From<MetricDetail>()
-                .Where(m => m.Id == metricId)
-                .Set(m => m.Lifecycle!, lifecycleStr)
-                .Set(m => m.UpdatedAt, DateTime.UtcNow)
-                .Update();
+                .Filter("id", Operator.Equals, metricId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Single();
 
-            var updated = result.Models?.FirstOrDefault();
-            if (updated != null)
+            if (result != null)
             {
-                updated.Trend = await CalculateTrendAsync(metricId, ct);
+                result.Trend = await CalculateTrendAsync(metricId, ct);
             }
 
-            Log($"Metric lifecycle updated: {metricId}");
-            return updated;
+            return result;
         }
         catch (Exception ex)
         {

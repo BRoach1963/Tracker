@@ -252,10 +252,10 @@
                                             </Border>
                                         </Grid>
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <ProgressBar Classes="goal-progress" Value="{Binding Progress}" Minimum="0" Maximum="100"/>
+                                            <ProgressBar Classes="goal-progress" Value="{Binding ProgressPercent}" Minimum="0" Maximum="100"/>
                                             <TextBlock Grid.Column="1" FontSize="10" Margin="8,0,0,0"
                                                        Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center">
-                                                <Run Text="{Binding Progress}"/><Run Text="%"/>
+                                                <Run Text="{Binding ProgressPercent}"/><Run Text="%"/>
                                             </TextBlock>
                                         </Grid>
                                     </StackPanel>

@@ -77,12 +77,6 @@
                                    FontSize="13" FontWeight="SemiBold" Foreground="White"/>
                     </Border>
                     
-                    <!-- Health Context (if available) -->
-                    <TextBlock Text="{Binding HealthReason}" FontSize="12" FontStyle="Italic"
-                               Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
-                               Margin="0,8,0,0"
-                               IsVisible="{Binding HealthReason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                    
                     <!-- Philosophy reminder - subtle guidance -->
                     <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="4" Padding="10,8" Margin="0,12,0,0">
                         <StackPanel Spacing="4">
@@ -124,7 +118,7 @@
                         </Grid>
                         <Grid Grid.Row="1" ColumnDefinitions="70,*" Margin="0,4,0,0">
                             <TextBlock Text="To" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
-                            <TextBlock Grid.Column="1" Text="{Binding EndDate, StringFormat='{}{0:MMM d, yyyy}'}" 
+                            <TextBlock Grid.Column="1" Text="{Binding DueDate, StringFormat='{}{0:MMM d, yyyy}'}" 
                                        FontSize="11" FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"/>
                         </Grid>
                     </Grid>

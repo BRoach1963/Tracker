@@ -1273,7 +1273,7 @@ public partial class CircleViewModel : ViewModelBase
             Status = "on_track",
             ProgressPercent = 75,
             StartDate = DateTime.Today.AddMonths(-2),
-            EndDate = DateTime.Today.AddMonths(1),
+            DueDate = DateTime.Today.AddMonths(1),
             OwnerName = members.FirstOrDefault()?.FullName ?? "Team"
         });
         
@@ -1285,7 +1285,7 @@ public partial class CircleViewModel : ViewModelBase
             Status = "at_risk",
             ProgressPercent = 45,
             StartDate = DateTime.Today.AddMonths(-3),
-            EndDate = DateTime.Today.AddDays(21),
+            DueDate = DateTime.Today.AddDays(21),
             OwnerName = members.Skip(1).FirstOrDefault()?.FullName ?? "Engineering"
         });
         
@@ -1297,7 +1297,7 @@ public partial class CircleViewModel : ViewModelBase
             Status = "on_track",
             ProgressPercent = 88,
             StartDate = DateTime.Today.AddMonths(-4),
-            EndDate = DateTime.Today.AddDays(14),
+            DueDate = DateTime.Today.AddDays(14),
             OwnerName = members.Skip(2).FirstOrDefault()?.FullName ?? "Support"
         });
         
@@ -1309,7 +1309,7 @@ public partial class CircleViewModel : ViewModelBase
             Status = "off_track",
             ProgressPercent = 25,
             StartDate = DateTime.Today.AddMonths(-2),
-            EndDate = DateTime.Today.AddDays(-7), // Overdue
+            DueDate = DateTime.Today.AddDays(-7), // Overdue
             OwnerName = members.Skip(3).FirstOrDefault()?.FullName ?? "DevOps"
         });
         
@@ -1321,7 +1321,7 @@ public partial class CircleViewModel : ViewModelBase
             Status = "on_track",
             ProgressPercent = 60,
             StartDate = DateTime.Today.AddMonths(-1),
-            EndDate = DateTime.Today.AddMonths(3),
+            DueDate = DateTime.Today.AddMonths(3),
             OwnerName = members.Skip(4).FirstOrDefault()?.FullName ?? "Marketing"
         });
         
@@ -1333,7 +1333,7 @@ public partial class CircleViewModel : ViewModelBase
             Status = "at_risk",
             ProgressPercent = 35,
             StartDate = DateTime.Today.AddMonths(-2),
-            EndDate = DateTime.Today.AddMonths(1),
+            DueDate = DateTime.Today.AddMonths(1),
             OwnerName = "HR"
         });
 

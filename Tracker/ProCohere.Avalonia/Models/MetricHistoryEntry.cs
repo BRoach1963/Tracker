@@ -6,49 +6,82 @@ namespace ProCohere.Avalonia.Models;
 
 /// <summary>
 /// A single history entry for a metric value change.
-/// Maps to the metric_history table in Supabase.
+/// Maps to the metric_values table in Supabase (NOT metric_history which doesn't exist).
 /// 
 /// Philosophy: History shows the DIRECTION of change over time.
 /// UI displays trend arrows (↗ → ↘), not specific numbers by default.
 /// </summary>
-[Table("metric_history")]
+[Table("metric_values")]
 public class MetricHistoryEntry : BaseModel
 {
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
     [Column("metric_id")]
     public Guid MetricId { get; set; }
 
-    [Column("organization_id")]
-    public Guid OrganizationId { get; set; }
+    [Column("recorded_by")]
+    public Guid? RecordedByUserId { get; set; }
 
     [Column("value")]
     public decimal Value { get; set; }
 
-    [Column("previous_value")]
-    public decimal? PreviousValue { get; set; }
-
-    /// <summary>
-    /// Note about what caused this change (especially for manual metrics).
-    /// </summary>
-    [Column("what_changed")]
-    public string? WhatChanged { get; set; }
-
-    /// <summary>
-    /// Source of this value update: system, survey, manual
-    /// </summary>
-    [Column("source")]
-    public string? Source { get; set; }
-
-    [Column("recorded_by_user_id")]
-    public Guid? RecordedByUserId { get; set; }
-
     [Column("recorded_at")]
     public DateTime RecordedAt { get; set; }
 
+    /// <summary>
+    /// Notes about this value entry.
+    /// </summary>
+    [Column("notes")]
+    public string? Notes { get; set; }
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
+
+    #region Non-DB Properties (computed or set by service)
+
+    /// <summary>
+    /// Previous value - computed from previous entry in service.
+    /// NOT stored in DB.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public decimal? PreviousValue { get; set; }
+
+    /// <summary>
+    /// Note about what caused this change (alias for Notes, for backward compatibility).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public string? WhatChanged
+    {
+        get => Notes;
+        set => Notes = value;
+    }
+
+    /// <summary>
+    /// Source of this value update - NOT in DB, computed/default.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public string? Source { get; set; }
+
+    #endregion
 
     #region Computed Properties (Not in DB)
 

@@ -77,6 +77,28 @@ public class MeetingPrepItemService
         "meeting"
     };
 
+    /// <summary>
+    /// Valid linked entity types.
+    /// </summary>
+    public static readonly string[] ValidLinkedEntityTypes =
+    {
+        "task",
+        "goal",
+        "metric",
+        "project"
+    };
+
+    /// <summary>
+    /// Valid source types for provenance tracking.
+    /// </summary>
+    public static readonly string[] ValidSourceTypes =
+    {
+        "manual",
+        "scaffold",
+        "ai",
+        "carry_forward"
+    };
+
     private MeetingPrepItemService() { }
 
     #region Prep Item Loading
@@ -269,6 +291,13 @@ public class MeetingPrepItemService
                 .Set(p => p.DueAt!, item.DueAt)
                 .Set(p => p.SortOrder!, item.SortOrder)
                 .Set(p => p.CarryForward, item.CarryForward)
+                // Enhanced prep fields
+                .Set(p => p.LinkedEntityType!, item.LinkedEntityType)
+                .Set(p => p.LinkedEntityId!, item.LinkedEntityId)
+                .Set(p => p.LinkedEntityTitleSnapshot!, item.LinkedEntityTitleSnapshot)
+                .Set(p => p.PrepPrompt!, item.PrepPrompt)
+                .Set(p => p.PrepResponse!, item.PrepResponse)
+                .Set(p => p.PreparedAt!, item.PreparedAt)
                 .Set(p => p.UpdatedAt!, item.UpdatedAt)
                 .Update();
 
@@ -434,6 +463,325 @@ public class MeetingPrepItemService
         };
 
         return await CreatePrepItemAsync(item);
+    }
+
+    /// <summary>
+    /// Creates a prep item linked to an entity (task, goal, metric, project).
+    /// </summary>
+    public async Task<MeetingPrepItem?> CreateLinkedPrepAsync(
+        Guid meetingId,
+        string linkedEntityType,
+        Guid linkedEntityId,
+        string linkedEntityTitle,
+        string? prepPrompt = null,
+        string visibilityScope = "personal")
+    {
+        var item = new MeetingPrepItem
+        {
+            MeetingId = meetingId,
+            Title = linkedEntityTitle,
+            LinkedEntityType = linkedEntityType,
+            LinkedEntityId = linkedEntityId,
+            LinkedEntityTitleSnapshot = linkedEntityTitle,
+            PrepPrompt = prepPrompt,
+            VisibilityScope = visibilityScope,
+            Status = "open",
+            SourceType = "manual"
+        };
+
+        return await CreatePrepItemAsync(item);
+    }
+
+    /// <summary>
+    /// Captures the preparation response for a prep item.
+    /// </summary>
+    public async Task<bool> CapturePrepResponseAsync(Guid prepItemId, string response)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Capturing prep response for: {prepItemId}");
+
+            var now = DateTime.UtcNow;
+            await client.From<MeetingPrepItem>()
+                .Filter("id", Operator.Equals, prepItemId.ToString())
+                .Set(p => p.PrepResponse!, response)
+                .Set(p => p.PreparedAt!, now)
+                .Set(p => p.UpdatedAt!, now)
+                .Update();
+
+            Log($"Prep response captured: {prepItemId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"CapturePrepResponse ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Updates the prep prompt for a prep item.
+    /// </summary>
+    public async Task<bool> UpdatePrepPromptAsync(Guid prepItemId, string prompt)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Updating prep prompt for: {prepItemId}");
+
+            await client.From<MeetingPrepItem>()
+                .Filter("id", Operator.Equals, prepItemId.ToString())
+                .Set(p => p.PrepPrompt!, prompt)
+                .Set(p => p.UpdatedAt!, DateTime.UtcNow)
+                .Update();
+
+            Log($"Prep prompt updated: {prepItemId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"UpdatePrepPrompt ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Links an existing entity to a prep item.
+    /// </summary>
+    public async Task<bool> LinkEntityAsync(
+        Guid prepItemId,
+        string entityType,
+        Guid entityId,
+        string entityTitle)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        if (!ValidLinkedEntityTypes.Contains(entityType))
+        {
+            LastError = $"Invalid entity type: {entityType}";
+            return false;
+        }
+
+        try
+        {
+            Log($"Linking entity {entityType}:{entityId} to prep item: {prepItemId}");
+
+            await client.From<MeetingPrepItem>()
+                .Filter("id", Operator.Equals, prepItemId.ToString())
+                .Set(p => p.LinkedEntityType!, entityType)
+                .Set(p => p.LinkedEntityId!, entityId)
+                .Set(p => p.LinkedEntityTitleSnapshot!, entityTitle)
+                .Set(p => p.UpdatedAt!, DateTime.UtcNow)
+                .Update();
+
+            Log($"Entity linked to prep item: {prepItemId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"LinkEntity ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Removes the linked entity from a prep item.
+    /// </summary>
+    public async Task<bool> UnlinkEntityAsync(Guid prepItemId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Unlinking entity from prep item: {prepItemId}");
+
+            await client.From<MeetingPrepItem>()
+                .Filter("id", Operator.Equals, prepItemId.ToString())
+                .Set(p => p.LinkedEntityType!, (string?)null)
+                .Set(p => p.LinkedEntityId!, (Guid?)null)
+                .Set(p => p.LinkedEntityTitleSnapshot!, (string?)null)
+                .Set(p => p.UpdatedAt!, DateTime.UtcNow)
+                .Update();
+
+            Log($"Entity unlinked from prep item: {prepItemId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"UnlinkEntity ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets prep items for a specific linked entity (e.g., all prep items linked to a task).
+    /// </summary>
+    public async Task<List<MeetingPrepItem>> GetPrepItemsForEntityAsync(
+        string entityType,
+        Guid entityId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            return new List<MeetingPrepItem>();
+        }
+
+        try
+        {
+            Log($"Loading prep items for entity: {entityType}:{entityId}");
+
+            var result = await client.From<MeetingPrepItem>()
+                .Filter("linked_entity_type", Operator.Equals, entityType)
+                .Filter("linked_entity_id", Operator.Equals, entityId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            var items = result.Models ?? new List<MeetingPrepItem>();
+            Log($"Found {items.Count} prep items for entity");
+
+            // Set current user ID for permission checks
+            var currentUserId = session.TeamMember.Id;
+            foreach (var item in items)
+            {
+                item.CurrentUserTeamMemberId = currentUserId;
+            }
+
+            await PopulateNamesAsync(items);
+            return items;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetPrepItemsForEntity ERROR: {ex.Message}");
+            return new List<MeetingPrepItem>();
+        }
+    }
+
+    /// <summary>
+    /// Carries forward incomplete prep items to a new meeting.
+    /// </summary>
+    public async Task<List<MeetingPrepItem>> CarryForwardPrepItemsAsync(
+        Guid fromMeetingId,
+        Guid toMeetingId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            return new List<MeetingPrepItem>();
+        }
+
+        try
+        {
+            Log($"Carrying forward prep items from {fromMeetingId} to {toMeetingId}");
+
+            // Get incomplete items marked for carry forward
+            var itemsToCarry = await client.From<MeetingPrepItem>()
+                .Filter("meeting_id", Operator.Equals, fromMeetingId.ToString())
+                .Filter("carry_forward", Operator.Equals, "true")
+                .Filter("status", Operator.In, new[] { "open", "in_progress" })
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Get();
+
+            var sourceItems = itemsToCarry.Models ?? new List<MeetingPrepItem>();
+            if (sourceItems.Count == 0)
+            {
+                Log("No items to carry forward");
+                return new List<MeetingPrepItem>();
+            }
+
+            var createdItems = new List<MeetingPrepItem>();
+            var orgId = session.TeamMember.OrganizationId;
+
+            foreach (var source in sourceItems)
+            {
+                var newItem = new MeetingPrepItem
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = orgId,
+                    MeetingId = toMeetingId,
+                    RequestedByTeamMemberId = source.RequestedByTeamMemberId,
+                    AssignedToTeamMemberId = source.AssignedToTeamMemberId,
+                    Title = source.Title,
+                    Body = source.Body,
+                    VisibilityScope = source.VisibilityScope,
+                    Status = "open",
+                    DueAt = source.DueAt,
+                    SortOrder = source.SortOrder,
+                    CarryForward = source.CarryForward,
+                    CarriedFromPrepItemId = source.Id,
+                    SourceType = "carry_forward",
+                    LinkedEntityType = source.LinkedEntityType,
+                    LinkedEntityId = source.LinkedEntityId,
+                    LinkedEntityTitleSnapshot = source.LinkedEntityTitleSnapshot,
+                    PrepPrompt = source.PrepPrompt,
+                    // Don't carry over the response - they need to prepare again
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var result = await client.From<MeetingPrepItem>().Insert(newItem);
+                var created = result.Models?.FirstOrDefault();
+                if (created != null)
+                {
+                    createdItems.Add(created);
+                }
+            }
+
+            Log($"Carried forward {createdItems.Count} prep items");
+            return createdItems;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"CarryForwardPrepItems ERROR: {ex.Message}");
+            return new List<MeetingPrepItem>();
+        }
     }
 
     #endregion

@@ -10,6 +10,7 @@ namespace ProCohere.Avalonia.Views.Dialogs;
 
 /// <summary>
 /// Result from the edit goal dialog.
+/// Only includes fields that exist in the procohere.goals table.
 /// </summary>
 public class EditGoalResult
 {
@@ -18,16 +19,11 @@ public class EditGoalResult
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? GoalType { get; set; }
-    public string? TimePeriod { get; set; }
-    public int? Year { get; set; }
     public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
+    public DateTime? DueDate { get; set; }
     public Guid? OwnerTeamMemberId { get; set; }
-    public string? Health { get; set; }
-    public string? HealthReason { get; set; }
-    public string? Lifecycle { get; set; }
-    public bool IsTeamVisible { get; set; }
-    public bool IsOrgVisible { get; set; }
+    public string? Status { get; set; }
+    public string? Priority { get; set; }
 }
 
 /// <summary>
@@ -97,52 +93,20 @@ public partial class EditGoalDialog : Window
             SelectComboBoxByTag(GoalTypeComboBox, goal.GoalTypeValue);
         }
         
-        // Set time period
-        if (!string.IsNullOrEmpty(goal.TimePeriod))
-        {
-            SelectComboBoxByTag(TimePeriodComboBox, goal.TimePeriod);
-        }
-        
-        // Set year
-        if (goal.Year.HasValue)
-        {
-            for (int i = 0; i < YearComboBox.Items.Count; i++)
-            {
-                var item = YearComboBox.Items[i] as ComboBoxItem;
-                if (item?.Tag is int year && year == goal.Year.Value)
-                {
-                    YearComboBox.SelectedIndex = i;
-                    break;
-                }
-            }
-        }
+        // Note: TimePeriod and Year properties don't exist in the database schema
+        // The dialog will use default values for new goals
         
         // Set dates
         if (goal.StartDate.HasValue)
             StartDatePicker.SelectedDate = new DateTimeOffset(goal.StartDate.Value);
-        if (goal.EndDate.HasValue)
-            EndDatePicker.SelectedDate = new DateTimeOffset(goal.EndDate.Value);
+        if (goal.DueDate.HasValue)
+            EndDatePicker.SelectedDate = new DateTimeOffset(goal.DueDate.Value);
         
-        // Set health
-        if (!string.IsNullOrEmpty(goal.HealthValue))
+        // Set status (displayed as "health" in UI)
+        if (!string.IsNullOrEmpty(goal.Status))
         {
-            SelectComboBoxByTag(HealthComboBox, goal.HealthValue);
+            SelectComboBoxByTag(HealthComboBox, goal.Status);
         }
-        HealthReasonTextBox.Text = goal.HealthReason ?? "";
-        
-        // Set lifecycle
-        if (!string.IsNullOrEmpty(goal.LifecycleValue))
-        {
-            SelectComboBoxByTag(LifecycleComboBox, goal.LifecycleValue);
-        }
-        
-        // Set visibility
-        if (goal.IsOrgVisible)
-            VisibilityComboBox.SelectedIndex = 2; // Organization
-        else if (goal.IsTeamVisible)
-            VisibilityComboBox.SelectedIndex = 1; // Team
-        else
-            VisibilityComboBox.SelectedIndex = 0; // Private
         
         // Owner is set in SetTeamMembers if called after LoadGoal
         if (goal.OwnerTeamMemberId.HasValue && _teamMembers.Count > 0)
@@ -207,27 +171,9 @@ public partial class EditGoalDialog : Window
         var goalTypeItem = GoalTypeComboBox.SelectedItem as ComboBoxItem;
         var goalType = goalTypeItem?.Tag?.ToString();
         
-        // Get time period
-        var timePeriodItem = TimePeriodComboBox.SelectedItem as ComboBoxItem;
-        var timePeriod = timePeriodItem?.Tag?.ToString();
-        
-        // Get year
-        var yearItem = YearComboBox.SelectedItem as ComboBoxItem;
-        var year = yearItem?.Tag as int?;
-        
-        // Get health
+        // Get status (from health dropdown)
         var healthItem = HealthComboBox.SelectedItem as ComboBoxItem;
-        var health = healthItem?.Tag?.ToString();
-        
-        // Get lifecycle
-        var lifecycleItem = LifecycleComboBox.SelectedItem as ComboBoxItem;
-        var lifecycle = lifecycleItem?.Tag?.ToString();
-        
-        // Get visibility
-        var visibilityItem = VisibilityComboBox.SelectedItem as ComboBoxItem;
-        var visibilityTag = visibilityItem?.Tag?.ToString() ?? "team";
-        bool isTeamVisible = visibilityTag == "team" || visibilityTag == "organization";
-        bool isOrgVisible = visibilityTag == "organization";
+        var status = healthItem?.Tag?.ToString();
         
         // Get owner
         Guid? ownerTeamMemberId = null;
@@ -242,16 +188,10 @@ public partial class EditGoalDialog : Window
             Title = title,
             Description = string.IsNullOrWhiteSpace(DescriptionTextBox.Text) ? null : DescriptionTextBox.Text.Trim(),
             GoalType = goalType,
-            TimePeriod = timePeriod,
-            Year = year,
             StartDate = StartDatePicker.SelectedDate?.DateTime,
-            EndDate = EndDatePicker.SelectedDate?.DateTime,
+            DueDate = EndDatePicker.SelectedDate?.DateTime,
             OwnerTeamMemberId = ownerTeamMemberId,
-            Health = health,
-            HealthReason = string.IsNullOrWhiteSpace(HealthReasonTextBox.Text) ? null : HealthReasonTextBox.Text.Trim(),
-            Lifecycle = lifecycle,
-            IsTeamVisible = isTeamVisible,
-            IsOrgVisible = isOrgVisible,
+            Status = status,
             IsDeleted = false
         };
         
