@@ -23,7 +23,7 @@ public class GoalDetail : BaseModel
     public Guid OrganizationId { get; set; }
 
     [Column("owner_id")]
-    public Guid? OwnerTeamMemberId { get; set; }
+    public Guid OwnerTeamMemberId { get; set; }
 
     [Column("parent_goal_id")]
     public Guid? ParentGoalId { get; set; }
@@ -88,7 +88,7 @@ public class GoalDetail : BaseModel
     public string Status { get; set; } = "not_started";
 
     [Column("progress_percent")]
-    public int? ProgressPercent { get; set; }
+    public int ProgressPercent { get; set; }
 
     /// <summary>
     /// Health is a computed view of Status for UI purposes.
@@ -163,6 +163,22 @@ public class GoalDetail : BaseModel
 
     [Column("deleted_by")]
     public Guid? DeletedBy { get; set; }
+
+    #endregion
+
+    #region Source Tracking
+
+    /// <summary>
+    /// Source entity type if goal was created from another entity (e.g., 'meeting', 'task').
+    /// </summary>
+    [Column("source_type")]
+    public string? SourceType { get; set; }
+
+    /// <summary>
+    /// Source entity ID if goal was created from another entity.
+    /// </summary>
+    [Column("source_id")]
+    public Guid? SourceId { get; set; }
 
     #endregion
 

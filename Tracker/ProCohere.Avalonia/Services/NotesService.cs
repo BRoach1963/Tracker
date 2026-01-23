@@ -56,7 +56,7 @@ public class NotesService
     #region Read Operations
 
     /// <summary>
-    /// Gets all notes for the organization (excluding archived/deleted).
+    /// Gets all notes for the organization (excluding deleted).
     /// Ordered by pinned first, then by creation date descending.
     /// </summary>
     public async Task<List<Note>> GetAllNotesAsync()
@@ -75,7 +75,6 @@ public class NotesService
 
             var result = await client.From<Note>()
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_archived", Operator.Equals, "false")
                 .Order("is_pinned", Ordering.Descending)
                 .Order("created_at", Ordering.Descending)
                 .Get();
@@ -124,7 +123,7 @@ public class NotesService
     }
 
     /// <summary>
-    /// Gets all notes linked to a specific entity.
+    /// Gets all notes linked to a specific entity (legacy column-based linking).
     /// </summary>
     public async Task<List<Note>> GetNotesForEntityAsync(LinkedEntityType entityType, Guid entityId)
     {
@@ -184,7 +183,6 @@ public class NotesService
             var result = await client.From<Note>()
                 .Filter("is_pinned", Operator.Equals, "true")
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_archived", Operator.Equals, "false")
                 .Order("pinned_at", Ordering.Descending)
                 .Get();
 
@@ -200,41 +198,7 @@ public class NotesService
     }
 
     /// <summary>
-    /// Gets archived notes.
-    /// </summary>
-    public async Task<List<Note>> GetArchivedNotesAsync()
-    {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-        if (client == null)
-        {
-            LastError = "Not authenticated";
-            return new List<Note>();
-        }
-
-        try
-        {
-            Log("Loading archived notes");
-
-            var result = await client.From<Note>()
-                .Filter("is_archived", Operator.Equals, "true")
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Order("archived_at", Ordering.Descending)
-                .Get();
-
-            Log($"Archived notes returned: {result.Models?.Count ?? 0}");
-            return result.Models ?? new List<Note>();
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"GetArchivedNotes ERROR: {ex.Message}");
-            return new List<Note>();
-        }
-    }
-
-    /// <summary>
-    /// Searches notes by content, title, or category.
+    /// Searches notes by content or title.
     /// Uses case-insensitive ILIKE for simple search.
     /// </summary>
     public async Task<List<Note>> SearchNotesAsync(string query)
@@ -256,12 +220,10 @@ public class NotesService
         {
             Log($"Searching notes: {query}");
 
-            // Use 'or' filter to search across title, content, and category
             var searchPattern = $"%{query}%";
             
             var result = await client.From<Note>()
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_archived", Operator.Equals, "false")
                 .Filter("title", Operator.ILike, searchPattern)
                 .Order("created_at", Ordering.Descending)
                 .Get();
@@ -269,7 +231,6 @@ public class NotesService
             // Also search content separately and merge results
             var contentResult = await client.From<Note>()
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_archived", Operator.Equals, "false")
                 .Filter("content", Operator.ILike, searchPattern)
                 .Order("created_at", Ordering.Descending)
                 .Get();
@@ -289,42 +250,6 @@ public class NotesService
         {
             LastError = ex.Message;
             Log($"SearchNotes ERROR: {ex.Message}");
-            return new List<Note>();
-        }
-    }
-
-    /// <summary>
-    /// Gets notes filtered by category.
-    /// </summary>
-    public async Task<List<Note>> GetNotesByCategoryAsync(string category)
-    {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-        if (client == null)
-        {
-            LastError = "Not authenticated";
-            return new List<Note>();
-        }
-
-        try
-        {
-            Log($"Loading notes by category: {category}");
-
-            var result = await client.From<Note>()
-                .Filter("category", Operator.Equals, category)
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_archived", Operator.Equals, "false")
-                .Order("is_pinned", Ordering.Descending)
-                .Order("created_at", Ordering.Descending)
-                .Get();
-
-            Log($"Notes by category returned: {result.Models?.Count ?? 0}");
-            return result.Models ?? new List<Note>();
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"GetNotesByCategory ERROR: {ex.Message}");
             return new List<Note>();
         }
     }
@@ -364,7 +289,6 @@ public class NotesService
             note.CreatedAt = DateTime.UtcNow;
             note.UpdatedAt = DateTime.UtcNow;
             note.IsDeleted = false;
-            note.IsArchived = false;
 
             var result = await client.From<Note>()
                 .Insert(note);
@@ -457,79 +381,6 @@ public class NotesService
         }
     }
 
-    /// <summary>
-    /// Archives a note.
-    /// </summary>
-    public async Task<Note?> ArchiveNoteAsync(Guid noteId)
-    {
-        LastError = null;
-        
-        var note = await GetNoteByIdAsync(noteId);
-        if (note == null)
-        {
-            LastError = "Note not found";
-            return null;
-        }
-
-        try
-        {
-            Log($"Archiving note: {noteId}");
-
-            note.IsArchived = true;
-            note.ArchivedAt = DateTime.UtcNow;
-
-            return await UpdateNoteAsync(note);
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"ArchiveNote ERROR: {ex.Message}");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Restores an archived note.
-    /// </summary>
-    public async Task<Note?> RestoreNoteAsync(Guid noteId)
-    {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-        if (client == null)
-        {
-            LastError = "Not authenticated";
-            return null;
-        }
-
-        try
-        {
-            Log($"Restoring note: {noteId}");
-
-            // Get the note including archived ones
-            var result = await client.From<Note>()
-                .Filter("id", Operator.Equals, noteId.ToString())
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Single();
-
-            if (result == null)
-            {
-                LastError = "Note not found";
-                return null;
-            }
-
-            result.IsArchived = false;
-            result.ArchivedAt = null;
-
-            return await UpdateNoteAsync(result);
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"RestoreNote ERROR: {ex.Message}");
-            return null;
-        }
-    }
-
     #endregion
 
     #region Delete Operations
@@ -574,7 +425,7 @@ public class NotesService
     #region Helper Methods
 
     /// <summary>
-    /// Gets linked entity info from a note.
+    /// Gets linked entity info from a note using column-based links.
     /// Returns a list of all entities linked to this note.
     /// Note: Display names are placeholders - would need additional queries to resolve.
     /// </summary>
@@ -588,7 +439,7 @@ public class NotesService
             {
                 EntityType = LinkedEntityType.TeamMember,
                 EntityId = note.LinkedTeamMemberId.Value,
-                DisplayName = "Team Member" // TODO: Resolve actual name
+                DisplayName = "Team Member"
             });
         }
 
@@ -632,26 +483,6 @@ public class NotesService
             });
         }
 
-        if (note.LinkedMetricId.HasValue)
-        {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.Metric,
-                EntityId = note.LinkedMetricId.Value,
-                DisplayName = "Metric"
-            });
-        }
-
-        if (note.LinkedTargetId.HasValue)
-        {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.Target,
-                EntityId = note.LinkedTargetId.Value,
-                DisplayName = "Target"
-            });
-        }
-
         return links;
     }
 
@@ -677,12 +508,7 @@ public class NotesService
             case LinkedEntityType.Task:
                 note.LinkedTaskId = entityId;
                 break;
-            case LinkedEntityType.Metric:
-                note.LinkedMetricId = entityId;
-                break;
-            case LinkedEntityType.Target:
-                note.LinkedTargetId = entityId;
-                break;
+            // Metric and Target not supported - columns don't exist in DB
         }
     }
 
@@ -696,8 +522,6 @@ public class NotesService
         note.LinkedProjectId = null;
         note.LinkedGoalId = null;
         note.LinkedTaskId = null;
-        note.LinkedMetricId = null;
-        note.LinkedTargetId = null;
     }
 
     #endregion

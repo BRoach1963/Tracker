@@ -29,12 +29,12 @@ public class MetricDetail : BaseModel
     public string? Description { get; set; }
 
     [Column("metric_type")]
-    public string? MetricType { get; set; }
+    public string MetricType { get; set; } = "number";
 
     #region Values (Hidden by default in UI)
 
     [Column("current_value")]
-    public decimal CurrentValue { get; set; }
+    public decimal? CurrentValue { get; set; }
 
     [Column("target_value")]
     public decimal? TargetValue { get; set; }

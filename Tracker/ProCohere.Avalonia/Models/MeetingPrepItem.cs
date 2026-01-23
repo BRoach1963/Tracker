@@ -54,6 +54,12 @@ public class MeetingPrepItem : BaseModel
     public string? AssigneeNotes { get; set; }
 
     /// <summary>
+    /// When the assignee notes were last updated.
+    /// </summary>
+    [Column("assignee_notes_updated_at")]
+    public DateTime? AssigneeNotesUpdatedAt { get; set; }
+
+    /// <summary>
     /// Visibility scope: 'personal', 'assigned', 'meeting'.
     /// - personal: Only visible to the requester
     /// - assigned: Visible to requester AND assignee only
@@ -72,7 +78,7 @@ public class MeetingPrepItem : BaseModel
     /// When the status was last updated.
     /// </summary>
     [Column("status_updated_at")]
-    public DateTime? StatusUpdatedAt { get; set; }
+    public DateTime StatusUpdatedAt { get; set; }
 
     /// <summary>
     /// Who last updated the status.
@@ -123,7 +129,7 @@ public class MeetingPrepItem : BaseModel
     /// Source type for provenance (e.g., 'manual', 'scaffold', 'ai').
     /// </summary>
     [Column("source_type")]
-    public string? SourceType { get; set; }
+    public string SourceType { get; set; } = "manual";
 
     /// <summary>
     /// Snapshot of source data for provenance tracking.
@@ -184,11 +190,7 @@ public class MeetingPrepItem : BaseModel
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; }
 
-    [Column("deleted_at")]
-    public DateTime? DeletedAt { get; set; }
-
-    [Column("deleted_by")]
-    public Guid? DeletedBy { get; set; }
+    // NOTE: meeting_prep_items does NOT have deleted_at/deleted_by columns
 
     #region Non-DB Properties (set by service)
 

@@ -36,7 +36,8 @@ public enum LinkedEntityType
 public static class LinkedEntityTypeExtensions
 {
     /// <summary>
-    /// Gets the database column name for the entity type.
+    /// Gets the database column name for the entity type in the notes table.
+    /// Note: Metric and Target do NOT have corresponding columns in the notes table.
     /// </summary>
     public static string GetColumnName(this LinkedEntityType entityType) => entityType switch
     {
@@ -45,8 +46,9 @@ public static class LinkedEntityTypeExtensions
         LinkedEntityType.Project => "linked_project_id",
         LinkedEntityType.Goal => "linked_goal_id",
         LinkedEntityType.Task => "linked_task_id",
-        LinkedEntityType.Metric => "linked_metric_id",
-        LinkedEntityType.Target => "linked_target_id",
+        // Metric and Target are not supported in the notes table
+        LinkedEntityType.Metric => throw new System.NotSupportedException("Metric links are not supported in notes - column does not exist"),
+        LinkedEntityType.Target => throw new System.NotSupportedException("Target links are not supported in notes - column does not exist"),
         _ => throw new System.ArgumentException($"Invalid entity type: {entityType}")
     };
 

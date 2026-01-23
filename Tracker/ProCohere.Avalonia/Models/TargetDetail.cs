@@ -14,6 +14,9 @@ public class TargetDetail : BaseModel
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
     [Column("goal_id")]
     public Guid GoalId { get; set; }
 
@@ -52,6 +55,15 @@ public class TargetDetail : BaseModel
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
 
     #region Computed Properties
 

@@ -28,22 +28,28 @@ public class MeetingTemplateDetail : BaseModel
     public string? Description { get; set; }
 
     /// <summary>
-    /// Category for grouping templates: 'one_on_one', 'team', 'project', 'custom'.
+    /// Meeting type: 'one_on_one', 'team', 'project', 'custom'.
     /// </summary>
-    [Column("category")]
-    public string Category { get; set; } = TemplateCategory.Custom;
+    [Column("meeting_type")]
+    public string MeetingType { get; set; } = TemplateCategory.Custom;
+
+    /// <summary>
+    /// Default duration in minutes for meetings created from this template.
+    /// </summary>
+    [Column("default_duration")]
+    public int? DefaultDuration { get; set; }
+
+    /// <summary>
+    /// Default agenda items stored as JSONB.
+    /// </summary>
+    [Column("default_agenda")]
+    public string? DefaultAgendaJson { get; set; }
 
     /// <summary>
     /// Whether this is a built-in template (cannot be deleted by users).
     /// </summary>
-    [Column("is_system")]
-    public bool IsSystem { get; set; }
-
-    /// <summary>
-    /// Whether this template is shared with the organization.
-    /// </summary>
-    [Column("is_shared")]
-    public bool IsShared { get; set; }
+    [Column("is_system_template")]
+    public bool IsSystemTemplate { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
@@ -54,17 +60,27 @@ public class MeetingTemplateDetail : BaseModel
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; }
 
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
+
     #region Non-DB Properties
 
     /// <summary>
-    /// Template items (agenda item templates). Set by service.
+    /// Template items (parsed from DefaultAgendaJson). Set by service.
     /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public List<MeetingTemplateItem> Items { get; set; } = new();
 
     /// <summary>
-    /// Display icon based on category.
+    /// Display icon based on meeting type.
     /// </summary>
-    public string CategoryIcon => Category switch
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public string CategoryIcon => MeetingType switch
     {
         TemplateCategory.OneOnOne => "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z",
         TemplateCategory.Team => "M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z",
@@ -73,59 +89,46 @@ public class MeetingTemplateDetail : BaseModel
     };
 
     /// <summary>
-    /// Display name for the category.
+    /// Display name for the meeting type.
     /// </summary>
-    public string CategoryDisplay => TemplateCategory.GetDisplayName(Category);
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public string CategoryDisplay => TemplateCategory.GetDisplayName(MeetingType);
 
     /// <summary>
     /// Number of items in the template.
     /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public int ItemCount => Items.Count;
 
     /// <summary>
     /// Display text for item count.
     /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string ItemCountDisplay => ItemCount == 1 ? "1 item" : $"{ItemCount} items";
 
     #endregion
 }
 
 /// <summary>
-/// Meeting template item - maps to the meeting_template_items table.
-/// Defines a single agenda item within a template.
+/// Meeting template item - stored as JSONB in meeting_templates.default_agenda.
+/// NOT a separate table in the database.
 /// </summary>
-[Table("meeting_template_items")]
-public class MeetingTemplateItem : BaseModel
+public class MeetingTemplateItem
 {
-    [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
-    [Column("template_id")]
-    public Guid TemplateId { get; set; }
-
-    [Column("title")]
     public string Title { get; set; } = string.Empty;
 
-    [Column("description")]
     public string? Description { get; set; }
 
-    [Column("sort_order")]
     public int SortOrder { get; set; }
 
-    /// <summary>
-    /// Whether this item is optional in the template.
-    /// </summary>
-    [Column("is_optional")]
     public bool IsOptional { get; set; }
 
-    /// <summary>
-    /// Suggested duration in minutes for this agenda item.
-    /// </summary>
-    [Column("suggested_duration_minutes")]
     public int? SuggestedDurationMinutes { get; set; }
-
-    [Column("created_at")]
-    public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>

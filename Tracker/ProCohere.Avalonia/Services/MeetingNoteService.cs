@@ -82,12 +82,13 @@ public class MeetingNoteService
             var allNotes = result.Models ?? new List<MeetingNote>();
 
             // Separate into my private notes and shared notes
+            // IsShared=false means private, IsShared=true means shared
             var myNotes = allNotes
-                .Where(n => n.IsPrivate && n.AuthorTeamMemberId == currentUserId)
+                .Where(n => !n.IsShared && n.AuthorId == currentUserId)
                 .ToList();
 
             var sharedNotes = allNotes
-                .Where(n => !n.IsPrivate)
+                .Where(n => n.IsShared)
                 .ToList();
 
             Log($"Loaded {myNotes.Count} personal notes, {sharedNotes.Count} shared notes");
@@ -124,9 +125,9 @@ public class MeetingNoteService
             {
                 Id = Guid.NewGuid(),
                 MeetingId = meetingId,
-                AuthorTeamMemberId = currentUserId,
+                AuthorId = currentUserId.Value,
                 Content = content,
-                IsPrivate = isPrivate,
+                IsShared = !isPrivate,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

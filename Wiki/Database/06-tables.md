@@ -171,7 +171,30 @@ Disabled – access controlled via meetings.
 **Purpose**  
 Represents a scheduled or completed meeting instance.
 
-**Visibility**  
+**Columns**
+- id (uuid, PK, default gen_random_uuid())
+- organization_id (uuid, FK → public.organizations.id)
+- title (text, not null)
+- description (text, nullable)
+- meeting_type (text, not null) – 'one_on_one', 'team', 'all_hands', etc.
+- status (text, not null) – 'scheduled', 'in_progress', 'completed', 'cancelled'
+- scheduled_at (timestamptz, nullable)
+- started_at (timestamptz, nullable)
+- ended_at (timestamptz, nullable)
+- duration_minutes (integer, nullable)
+- location (text, nullable)
+- video_link (text, nullable)
+- recurrence_rule (text, nullable)
+- parent_meeting_id (uuid, FK → meetings.id, nullable)
+- meeting_series_id (uuid, FK → meeting_series.id, nullable)
+- created_by (uuid, FK → team_members.id, not null)
+- is_deleted (boolean, not null, default false)
+- created_at (timestamptz, not null, default now())
+- updated_at (timestamptz, not null, default now())
+- deleted_at (timestamptz, nullable)
+- deleted_by (uuid, nullable)
+
+**RLS**  
 Owner (created_by), attendees, and management chain.
 
 ---

@@ -140,10 +140,52 @@ ProCohere.Avalonia/
 
 ---
 
+## Development Commands
+
+### Building
+
+```powershell
+# Build ProCohere.Avalonia only
+cd "c:\Users\vbpro\source\repos\Tracker\Tracker\ProCohere.Avalonia"
+dotnet build
+
+# Or use VS Code task
+# Ctrl+Shift+B → "build-procohere"
+```
+
+### Running
+
+```powershell
+# Run the app
+cd "c:\Users\vbpro\source\repos\Tracker\Tracker\ProCohere.Avalonia"
+dotnet run
+
+# Or run compiled executable
+Start-Process "bin\Debug\net8.0\ProCohere.Avalonia.exe"
+```
+
+### Kill and Rebuild
+
+```powershell
+# Kill existing instance before rebuild (useful when debugging)
+Stop-Process -Name "ProCohere.Avalonia" -Force -ErrorAction SilentlyContinue
+dotnet build
+```
+
+### VS Code Tasks
+
+| Task | Description |
+|------|-------------|
+| `build-procohere` | Build ProCohere.Avalonia only |
+| `build-all` | Build entire solution |
+
+---
+
 ## Related Documentation
 
 - [Wiki/Database/](../Database/) - Database schema and RLS policies
 - [Wiki/Tracker.Core/](../Tracker.Core/) - Shared data access layer
+- [Wiki/Roadmap/](../Roadmap/) - Development pipeline and TODO
 
 ---
 

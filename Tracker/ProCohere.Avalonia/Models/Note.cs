@@ -20,6 +20,10 @@ public class Note : BaseModel
     [Column("organization_id")]
     public Guid OrganizationId { get; set; }
 
+    /// <summary>
+    /// The team member who authored this note.
+    /// Maps to author_team_member_id in database.
+    /// </summary>
     [Column("author_team_member_id")]
     public Guid AuthorTeamMemberId { get; set; }
 
@@ -33,54 +37,64 @@ public class Note : BaseModel
     [Column("content")]
     public string Content { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Format of the content: 'plain', 'markdown', 'html', etc.
+    /// </summary>
     [Column("content_format")]
     public string ContentFormat { get; set; } = "plain";
 
-    #endregion
-
-    #region Entity Links (all nullable - note can be standalone)
-
-    [Column("linked_team_member_id")]
-    public Guid? LinkedTeamMemberId { get; set; }
-
-    [Column("linked_meeting_id")]
-    public Guid? LinkedMeetingId { get; set; }
-
-    [Column("linked_project_id")]
-    public Guid? LinkedProjectId { get; set; }
-
-    [Column("linked_goal_id")]
-    public Guid? LinkedGoalId { get; set; }
-
-    [Column("linked_task_id")]
-    public Guid? LinkedTaskId { get; set; }
-
-    [Column("linked_metric_id")]
-    public Guid? LinkedMetricId { get; set; }
-
-    [Column("linked_target_id")]
-    public Guid? LinkedTargetId { get; set; }
-
-    #endregion
-
-    #region Organization
-
+    /// <summary>
+    /// Category for organizing notes.
+    /// </summary>
     [Column("category")]
     public string? Category { get; set; }
 
     /// <summary>
-    /// Tags stored as JSONB array in database. 
-    /// Note: Supabase client handles JSONB serialization.
+    /// Tags stored as JSONB array in database.
     /// </summary>
     [Column("tags")]
     public List<string>? Tags { get; set; }
 
     #endregion
 
+    #region Entity Links
+
+    /// <summary>
+    /// Link to a team member (e.g., note about a direct report).
+    /// </summary>
+    [Column("linked_team_member_id")]
+    public Guid? LinkedTeamMemberId { get; set; }
+
+    /// <summary>
+    /// Link to a meeting.
+    /// </summary>
+    [Column("linked_meeting_id")]
+    public Guid? LinkedMeetingId { get; set; }
+
+    /// <summary>
+    /// Link to a project.
+    /// </summary>
+    [Column("linked_project_id")]
+    public Guid? LinkedProjectId { get; set; }
+
+    /// <summary>
+    /// Link to a goal.
+    /// </summary>
+    [Column("linked_goal_id")]
+    public Guid? LinkedGoalId { get; set; }
+
+    /// <summary>
+    /// Link to a task.
+    /// </summary>
+    [Column("linked_task_id")]
+    public Guid? LinkedTaskId { get; set; }
+
+    #endregion
+
     #region Status Flags
 
     [Column("is_private")]
-    public bool IsPrivate { get; set; }
+    public bool IsPrivate { get; set; } = true;
 
     [Column("is_pinned")]
     public bool IsPinned { get; set; }
@@ -96,14 +110,11 @@ public class Note : BaseModel
 
     #endregion
 
-    #region AI Features
+    #region AI Fields
 
     [Column("ai_summary")]
     public string? AiSummary { get; set; }
 
-    /// <summary>
-    /// AI suggested actions stored as JSONB array.
-    /// </summary>
     [Column("ai_suggested_actions")]
     public List<string>? AiSuggestedActions { get; set; }
 
@@ -132,6 +143,22 @@ public class Note : BaseModel
 
     #endregion
 
+    #region Sync Fields
+
+    [Column("sync_id")]
+    public Guid? SyncId { get; set; }
+
+    [Column("sync_version")]
+    public int SyncVersion { get; set; } = 1;
+
+    [Column("sync_modified_at")]
+    public DateTime? SyncModifiedAt { get; set; }
+
+    [Column("sync_status")]
+    public string SyncStatus { get; set; } = "synced";
+
+    #endregion
+
     #region Computed Properties (not mapped to DB)
 
     /// <summary>
@@ -141,9 +168,7 @@ public class Note : BaseModel
                            LinkedMeetingId.HasValue ||
                            LinkedProjectId.HasValue ||
                            LinkedGoalId.HasValue ||
-                           LinkedTaskId.HasValue ||
-                           LinkedMetricId.HasValue ||
-                           LinkedTargetId.HasValue;
+                           LinkedTaskId.HasValue;
 
     /// <summary>
     /// Count of linked entities.
@@ -152,9 +177,7 @@ public class Note : BaseModel
                            (LinkedMeetingId.HasValue ? 1 : 0) +
                            (LinkedProjectId.HasValue ? 1 : 0) +
                            (LinkedGoalId.HasValue ? 1 : 0) +
-                           (LinkedTaskId.HasValue ? 1 : 0) +
-                           (LinkedMetricId.HasValue ? 1 : 0) +
-                           (LinkedTargetId.HasValue ? 1 : 0);
+                           (LinkedTaskId.HasValue ? 1 : 0);
 
     /// <summary>
     /// Display title - uses title if set, otherwise first 50 chars of content.
@@ -169,11 +192,6 @@ public class Note : BaseModel
     public string ContentPreview => Content.Length > 200
         ? Content[..200] + "..."
         : Content;
-
-    /// <summary>
-    /// Whether this note has any tags.
-    /// </summary>
-    public bool HasTags => Tags != null && Tags.Count > 0;
 
     /// <summary>
     /// Display name for the author (populated by service layer).

@@ -115,8 +115,9 @@ public partial class ChronicleViewModel : ViewModelBase
     [ObservableProperty]
     private string? _selectedCategory;
 
-    [ObservableProperty]
-    private bool _showArchived;
+    // Archive functionality deferred - columns not yet added to DB
+    // [ObservableProperty]
+    // private bool _showArchived;
 
     #endregion
 
@@ -173,9 +174,7 @@ public partial class ChronicleViewModel : ViewModelBase
             ErrorMessage = null;
             Log("Loading notes...");
 
-            var notes = ShowArchived 
-                ? await NotesService.Instance.GetArchivedNotesAsync()
-                : await NotesService.Instance.GetAllNotesAsync();
+            var notes = await NotesService.Instance.GetAllNotesAsync();
 
             // Clear and repopulate collections
             PinnedNotes.Clear();
@@ -183,7 +182,7 @@ public partial class ChronicleViewModel : ViewModelBase
 
             foreach (var note in notes)
             {
-                if (note.IsPinned && !ShowArchived)
+                if (note.IsPinned)
                     PinnedNotes.Add(note);
                 else
                     Notes.Add(note);
@@ -253,6 +252,8 @@ public partial class ChronicleViewModel : ViewModelBase
         }
     }
 
+    // Category filtering deferred - category column not yet added to DB
+    // Use search functionality instead for now
     [RelayCommand]
     private async Task FilterByCategoryAsync(string? category)
     {
@@ -264,41 +265,10 @@ public partial class ChronicleViewModel : ViewModelBase
             return;
         }
 
-        try
-        {
-            IsLoading = true;
-            HasError = false;
-            ErrorMessage = null;
-            Log($"Filtering by category: {category}");
-
-            var notes = await NotesService.Instance.GetNotesByCategoryAsync(category);
-
-            PinnedNotes.Clear();
-            Notes.Clear();
-
-            foreach (var note in notes)
-            {
-                if (note.IsPinned)
-                    PinnedNotes.Add(note);
-                else
-                    Notes.Add(note);
-            }
-
-            PinnedCount = PinnedNotes.Count;
-            TotalCount = Notes.Count + PinnedNotes.Count;
-
-            Log($"Category filter returned {TotalCount} results");
-        }
-        catch (Exception ex)
-        {
-            HasError = true;
-            ErrorMessage = $"Filter failed: {ex.Message}";
-            Log($"FilterByCategory ERROR: {ex.Message}");
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+        // Category column doesn't exist yet - just reload all notes
+        // TODO: Implement when category column is added to DB
+        Log($"Category filter requested but column not yet available: {category}");
+        await LoadNotesAsync();
     }
 
     #endregion
@@ -517,75 +487,28 @@ public partial class ChronicleViewModel : ViewModelBase
         }
     }
 
+    // Archive functionality deferred - columns not yet added to DB
     [RelayCommand]
-    private async Task ArchiveNoteAsync(Note? note)
+    private Task ArchiveNoteAsync(Note? note)
     {
-        if (note == null) return;
+        if (note == null) return Task.CompletedTask;
 
-        try
-        {
-            Log($"Archiving note: {note.Id}");
-            var updated = await NotesService.Instance.ArchiveNoteAsync(note.Id);
-
-            if (updated != null)
-            {
-                // Remove from active collections
-                PinnedNotes.Remove(note);
-                Notes.Remove(note);
-                
-                TotalCount--;
-                if (note.IsPinned) PinnedCount--;
-
-                if (SelectedNote?.Id == note.Id)
-                    CloseNoteDetail();
-
-                Log("Note archived successfully");
-            }
-            else
-            {
-                throw new Exception(NotesService.Instance.LastError ?? "Failed to archive note");
-            }
-        }
-        catch (Exception ex)
-        {
-            HasError = true;
-            ErrorMessage = $"Failed to archive note: {ex.Message}";
-            Log($"ArchiveNote ERROR: {ex.Message}");
-        }
+        // Archive not implemented yet - use delete instead
+        Log($"Archive requested but not implemented yet for note: {note.Id}");
+        ErrorMessage = "Archive feature coming soon. Use delete for now.";
+        HasError = true;
+        return Task.CompletedTask;
     }
 
+    // Restore functionality deferred - columns not yet added to DB
     [RelayCommand]
-    private async Task RestoreNoteAsync(Note? note)
+    private Task RestoreNoteAsync(Note? note)
     {
-        if (note == null) return;
+        if (note == null) return Task.CompletedTask;
 
-        try
-        {
-            Log($"Restoring note: {note.Id}");
-            var updated = await NotesService.Instance.RestoreNoteAsync(note.Id);
-
-            if (updated != null)
-            {
-                // If viewing archived, remove from list
-                if (ShowArchived)
-                {
-                    Notes.Remove(note);
-                    TotalCount--;
-                }
-
-                Log("Note restored successfully");
-            }
-            else
-            {
-                throw new Exception(NotesService.Instance.LastError ?? "Failed to restore note");
-            }
-        }
-        catch (Exception ex)
-        {
-            HasError = true;
-            ErrorMessage = $"Failed to restore note: {ex.Message}";
-            Log($"RestoreNote ERROR: {ex.Message}");
-        }
+        // Restore not implemented yet
+        Log($"Restore requested but not implemented yet for note: {note?.Id}");
+        return Task.CompletedTask;
     }
 
     #endregion
@@ -603,12 +526,13 @@ public partial class ChronicleViewModel : ViewModelBase
 
     #region View Toggle Commands
 
+    // Archive view toggle deferred - columns not yet added to DB
     [RelayCommand]
-    private async Task ToggleArchivedViewAsync()
+    private Task ToggleArchivedViewAsync()
     {
-        ShowArchived = !ShowArchived;
-        Log($"Show archived: {ShowArchived}");
-        await LoadNotesAsync();
+        // Archive view not implemented yet
+        Log("Archive view toggle requested but not implemented yet");
+        return Task.CompletedTask;
     }
 
     #endregion

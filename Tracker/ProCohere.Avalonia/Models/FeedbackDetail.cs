@@ -12,6 +12,9 @@ public class FeedbackDetail : BaseModel
 {
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
     
     /// <summary>
     /// The team member who gave the feedback.
@@ -23,7 +26,7 @@ public class FeedbackDetail : BaseModel
     /// The team member who received the feedback.
     /// </summary>
     [Column("to_member_id")]
-    public Guid? TeamMemberId { get; set; }
+    public Guid TeamMemberId { get; set; }
     
     /// <summary>
     /// Type of feedback (praise, constructive, coaching, etc.)
@@ -78,6 +81,15 @@ public class FeedbackDetail : BaseModel
     /// </summary>
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
     
     #region Non-DB Properties (set by service)
     

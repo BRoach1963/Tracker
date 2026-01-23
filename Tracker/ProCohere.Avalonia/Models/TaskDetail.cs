@@ -15,6 +15,9 @@ public class TaskDetail : BaseModel
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
     [Column("title")]
     public string Title { get; set; } = string.Empty;
 
@@ -34,7 +37,7 @@ public class TaskDetail : BaseModel
     public Guid? OwnerTeamMemberId { get; set; }
 
     [Column("created_by")]
-    public Guid? CreatedByTeamMemberId { get; set; }
+    public Guid CreatedByTeamMemberId { get; set; }
 
     /// <summary>
     /// Source type for provenance tracking (e.g., 'meeting', 'agenda_item', 'goal', 'feedback', 'note').
@@ -61,6 +64,15 @@ public class TaskDetail : BaseModel
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
 
     #region Computed Properties
 
@@ -213,9 +225,8 @@ public class TaskDetail : BaseModel
     /// Returns true if CreatedByTeamMemberId differs from OwnerTeamMemberId.
     /// </summary>
     public bool IsAssignedByOther => 
-        CreatedByTeamMemberId.HasValue && 
         OwnerTeamMemberId.HasValue && 
-        CreatedByTeamMemberId.Value != OwnerTeamMemberId.Value;
+        CreatedByTeamMemberId != OwnerTeamMemberId.Value;
 
     /// <summary>
     /// Priority display text - no emoji colors, just clear text.
