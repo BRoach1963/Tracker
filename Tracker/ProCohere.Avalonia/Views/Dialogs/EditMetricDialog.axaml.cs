@@ -69,7 +69,7 @@ public partial class EditMetricDialog : Window
         // Note: Category doesn't exist in DB schema, leave blank
         CategoryTextBox.Text = "";
         
-        CurrentValueTextBox.Text = metric.CurrentValue.ToString(CultureInfo.InvariantCulture);
+        CurrentValueTextBox.Text = metric.CurrentValue?.ToString(CultureInfo.InvariantCulture) ?? "";
         TargetValueTextBox.Text = metric.TargetValue?.ToString(CultureInfo.InvariantCulture) ?? "";
         // Note: BaselineValue doesn't exist in DB schema, leave blank
         BaselineValueTextBox.Text = "";

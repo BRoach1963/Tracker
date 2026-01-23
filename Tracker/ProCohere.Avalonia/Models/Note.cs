@@ -162,6 +162,11 @@ public class Note : BaseModel
     #region Computed Properties (not mapped to DB)
 
     /// <summary>
+    /// Whether this note has any tags.
+    /// </summary>
+    public bool HasTags => Tags != null && Tags.Count > 0;
+
+    /// <summary>
     /// Whether this note has any entity links.
     /// </summary>
     public bool HasLinks => LinkedTeamMemberId.HasValue ||

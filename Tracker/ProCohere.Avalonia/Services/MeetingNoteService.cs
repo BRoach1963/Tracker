@@ -269,7 +269,8 @@ public class MeetingNoteService
                 return false;
             }
 
-            getResult.IsPrivate = !getResult.IsPrivate;
+            // IsShared = false means private, IsShared = true means shared
+            getResult.IsShared = !getResult.IsShared;
             getResult.UpdatedAt = DateTime.UtcNow;
 
             var updateResult = await client.From<MeetingNote>()
@@ -277,7 +278,7 @@ public class MeetingNoteService
                 .Update(getResult);
 
             var success = updateResult.Models?.Count > 0;
-            Log($"Note privacy toggled: {success} (now private: {getResult.IsPrivate})");
+            Log($"Note visibility toggled: {success} (now shared: {getResult.IsShared})");
             return success;
         }
         catch (Exception ex)

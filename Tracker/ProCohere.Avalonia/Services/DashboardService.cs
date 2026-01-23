@@ -193,7 +193,7 @@ public class DashboardService
         // Enrich goals with owner names
         foreach (var goal in data.Goals)
         {
-            if (goal.OwnerTeamMemberId.HasValue && memberDict.TryGetValue(goal.OwnerTeamMemberId.Value, out var owner))
+            if (goal.OwnerTeamMemberId != Guid.Empty && memberDict.TryGetValue(goal.OwnerTeamMemberId, out var owner))
             {
                 goal.OwnerName = owner.FullName;
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
 
@@ -11,6 +12,9 @@ namespace ProCohere.Avalonia.Services;
 /// <summary>
 /// Service for managing meeting templates.
 /// Provides CRUD operations and default template initialization.
+/// 
+/// Note: Template items are stored as JSONB in meeting_templates.default_agenda,
+/// NOT as a separate table. Items are serialized/deserialized by this service.
 /// </summary>
 public class MeetingTemplateService
 {
@@ -55,7 +59,7 @@ public class MeetingTemplateService
     #region Template CRUD
 
     /// <summary>
-    /// Gets all templates visible to the current user (own + shared).
+    /// Gets all templates visible to the current user (own + organization templates).
     /// </summary>
     public async Task<List<MeetingTemplateDetail>> GetTemplatesAsync()
     {
@@ -76,7 +80,7 @@ public class MeetingTemplateService
                 return new List<MeetingTemplateDetail>();
             }
 
-            // Get templates that are either owned by user or shared
+            // Get templates (RLS filters by organization)
             var response = await client
                 .From<MeetingTemplateDetail>()
                 .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
@@ -86,10 +90,10 @@ public class MeetingTemplateService
             var templates = response.Models.ToList();
             Log($"Loaded {templates.Count} templates");
 
-            // Load items for each template
+            // Parse items from JSONB for each template
             foreach (var template in templates)
             {
-                await LoadTemplateItemsAsync(template);
+                ParseTemplateItems(template);
             }
 
             return templates;
@@ -103,12 +107,12 @@ public class MeetingTemplateService
     }
 
     /// <summary>
-    /// Gets templates by category.
+    /// Gets templates by meeting type.
     /// </summary>
-    public async Task<List<MeetingTemplateDetail>> GetTemplatesByCategoryAsync(string category)
+    public async Task<List<MeetingTemplateDetail>> GetTemplatesByMeetingTypeAsync(string meetingType)
     {
         var templates = await GetTemplatesAsync();
-        return templates.Where(t => t.Category == category).ToList();
+        return templates.Where(t => t.MeetingType == meetingType).ToList();
     }
 
     /// <summary>
@@ -133,7 +137,7 @@ public class MeetingTemplateService
 
             if (response != null)
             {
-                await LoadTemplateItemsAsync(response);
+                ParseTemplateItems(response);
             }
 
             return response;
@@ -147,27 +151,42 @@ public class MeetingTemplateService
     }
 
     /// <summary>
-    /// Loads items for a template.
+    /// Parses template items from the JSONB default_agenda column.
     /// </summary>
-    private async Task LoadTemplateItemsAsync(MeetingTemplateDetail template)
+    private void ParseTemplateItems(MeetingTemplateDetail template)
     {
-        var client = AuthService.Instance.GetProCohereClient();
-        if (client == null) return;
+        template.Items = new List<MeetingTemplateItem>();
+        
+        if (string.IsNullOrEmpty(template.DefaultAgendaJson))
+            return;
 
         try
         {
-            var response = await client
-                .From<MeetingTemplateItem>()
-                .Filter("template_id", Supabase.Postgrest.Constants.Operator.Equals, template.Id.ToString())
-                .Order("sort_order", Supabase.Postgrest.Constants.Ordering.Ascending)
-                .Get();
-
-            template.Items = response.Models.ToList();
+            var items = JsonSerializer.Deserialize<List<MeetingTemplateItem>>(
+                template.DefaultAgendaJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (items != null)
+            {
+                template.Items = items;
+            }
         }
         catch (Exception ex)
         {
-            Log($"Error loading items for template {template.Id}: {ex.Message}");
+            Log($"Error parsing template items for {template.Id}: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Serializes template items to JSONB format.
+    /// </summary>
+    private string SerializeTemplateItems(List<MeetingTemplateItem> items)
+    {
+        return JsonSerializer.Serialize(items, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        });
     }
 
     /// <summary>
@@ -176,8 +195,9 @@ public class MeetingTemplateService
     public async Task<MeetingTemplateDetail?> CreateTemplateAsync(
         string name,
         string? description,
-        string category,
-        List<(string Title, string? Description, bool IsOptional, int? DurationMinutes)> items)
+        string meetingType,
+        List<(string Title, string? Description, bool IsOptional, int? DurationMinutes)> items,
+        bool isSystemTemplate = false)
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
@@ -196,6 +216,17 @@ public class MeetingTemplateService
                 return null;
             }
 
+            // Build the template items
+            var templateItems = items.Select((item, index) => new MeetingTemplateItem
+            {
+                Id = Guid.NewGuid(),
+                Title = item.Title,
+                Description = item.Description,
+                IsOptional = item.IsOptional,
+                SuggestedDurationMinutes = item.DurationMinutes,
+                SortOrder = index
+            }).ToList();
+
             var template = new MeetingTemplateDetail
             {
                 Id = Guid.NewGuid(),
@@ -203,9 +234,9 @@ public class MeetingTemplateService
                 CreatedBy = profile.Id,
                 Name = name,
                 Description = description,
-                Category = category,
-                IsSystem = false,
-                IsShared = false,
+                MeetingType = meetingType,
+                DefaultAgendaJson = SerializeTemplateItems(templateItems),
+                IsSystemTemplate = isSystemTemplate,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -221,33 +252,63 @@ public class MeetingTemplateService
                 return null;
             }
 
-            // Create items
-            for (int i = 0; i < items.Count; i++)
-            {
-                var item = items[i];
-                var templateItem = new MeetingTemplateItem
-                {
-                    Id = Guid.NewGuid(),
-                    TemplateId = created.Id,
-                    Title = item.Title,
-                    Description = item.Description,
-                    IsOptional = item.IsOptional,
-                    SuggestedDurationMinutes = item.DurationMinutes,
-                    SortOrder = i,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await client.From<MeetingTemplateItem>().Insert(templateItem);
-            }
-
             Log($"Created template: {name} with {items.Count} items");
-            return await GetTemplateAsync(created.Id);
+            
+            // Return with parsed items
+            ParseTemplateItems(created);
+            return created;
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
             Log($"Error creating template: {ex.Message}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Updates a template's items.
+    /// </summary>
+    public async Task<bool> UpdateTemplateItemsAsync(Guid templateId, List<MeetingTemplateItem> items)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            var template = await GetTemplateAsync(templateId);
+            if (template == null)
+            {
+                LastError = "Template not found";
+                return false;
+            }
+
+            if (template.IsSystemTemplate)
+            {
+                LastError = "Cannot modify system templates";
+                return false;
+            }
+
+            await client
+                .From<MeetingTemplateDetail>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, templateId.ToString())
+                .Set(t => t.DefaultAgendaJson!, SerializeTemplateItems(items))
+                .Set(t => t.UpdatedAt, DateTime.UtcNow)
+                .Update();
+
+            Log($"Updated template items: {templateId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"Error updating template items: {ex.Message}");
+            return false;
         }
     }
 
@@ -273,7 +334,7 @@ public class MeetingTemplateService
                 return false;
             }
 
-            if (template.IsSystem)
+            if (template.IsSystemTemplate)
             {
                 LastError = "Cannot delete system templates";
                 return false;
@@ -283,6 +344,7 @@ public class MeetingTemplateService
                 .From<MeetingTemplateDetail>()
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, templateId.ToString())
                 .Set(t => t.IsDeleted, true)
+                .Set(t => t.DeletedAt!, DateTime.UtcNow)
                 .Update();
 
             Log($"Deleted template: {templateId}");
@@ -381,7 +443,7 @@ public class MeetingTemplateService
             {
                 Name = "1:1 Check-in",
                 Description = "Standard one-on-one meeting structure for regular check-ins with team members.",
-                Category = TemplateCategory.OneOnOne,
+                MeetingType = TemplateCategory.OneOnOne,
                 Items = new List<DefaultTemplateItem>
                 {
                     new("Personal Check-in", "How are you doing? Any wins or challenges to share?", false, 5),
@@ -396,7 +458,7 @@ public class MeetingTemplateService
             {
                 Name = "Team Standup",
                 Description = "Quick team sync to align on priorities and blockers.",
-                Category = TemplateCategory.Team,
+                MeetingType = TemplateCategory.Team,
                 Items = new List<DefaultTemplateItem>
                 {
                     new("Yesterday's Accomplishments", "What did we complete?", false, 5),
@@ -409,7 +471,7 @@ public class MeetingTemplateService
             {
                 Name = "Project Review",
                 Description = "Periodic project status review and planning session.",
-                Category = TemplateCategory.Project,
+                MeetingType = TemplateCategory.Project,
                 Items = new List<DefaultTemplateItem>
                 {
                     new("Project Status Overview", "Current phase, timeline, key metrics", false, 10),
@@ -425,7 +487,7 @@ public class MeetingTemplateService
             {
                 Name = "Performance Review",
                 Description = "Structured performance discussion template.",
-                Category = TemplateCategory.OneOnOne,
+                MeetingType = TemplateCategory.OneOnOne,
                 Items = new List<DefaultTemplateItem>
                 {
                     new("Review Period Highlights", "Key accomplishments and contributions", false, 15),
@@ -440,7 +502,7 @@ public class MeetingTemplateService
             {
                 Name = "Sprint Retrospective",
                 Description = "Agile retrospective for continuous improvement.",
-                Category = TemplateCategory.Team,
+                MeetingType = TemplateCategory.Team,
                 Items = new List<DefaultTemplateItem>
                 {
                     new("What Went Well", "Celebrate successes and things to keep doing", false, 10),
@@ -459,7 +521,7 @@ public class MeetingTemplateService
     public async Task EnsureDefaultTemplatesAsync()
     {
         var existing = await GetTemplatesAsync();
-        if (existing.Any(t => t.IsSystem))
+        if (existing.Any(t => t.IsSystemTemplate))
         {
             Log("System templates already exist");
             return;
@@ -469,21 +531,7 @@ public class MeetingTemplateService
         foreach (var template in defaults)
         {
             var items = template.Items.Select(i => (i.Title, i.Description, i.IsOptional, i.DurationMinutes)).ToList();
-            var created = await CreateTemplateAsync(template.Name, template.Description, template.Category, items);
-            if (created != null)
-            {
-                // Mark as system template
-                var client = AuthService.Instance.GetProCohereClient();
-                if (client != null)
-                {
-                    await client
-                        .From<MeetingTemplateDetail>()
-                        .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, created.Id.ToString())
-                        .Set(t => t.IsSystem, true)
-                        .Set(t => t.IsShared, true)
-                        .Update();
-                }
-            }
+            await CreateTemplateAsync(template.Name, template.Description, template.MeetingType, items, isSystemTemplate: true);
         }
 
         Log("Created default templates");
@@ -499,7 +547,7 @@ public class DefaultTemplate
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string Category { get; set; } = TemplateCategory.Custom;
+    public string MeetingType { get; set; } = TemplateCategory.Custom;
     public List<DefaultTemplateItem> Items { get; set; } = new();
 }
 

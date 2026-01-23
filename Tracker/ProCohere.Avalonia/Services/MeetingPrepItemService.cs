@@ -380,14 +380,13 @@ public class MeetingPrepItemService
 
         try
         {
-            var deletedBy = session.TeamMember.Id;
             Log($"Deleting prep item: {prepItemId}");
 
+            // Note: meeting_prep_items only has is_deleted, no deleted_at/deleted_by columns
             await client.From<MeetingPrepItem>()
                 .Filter("id", Operator.Equals, prepItemId.ToString())
                 .Set(p => p.IsDeleted, true)
-                .Set(p => p.DeletedAt!, DateTime.UtcNow)
-                .Set(p => p.DeletedBy!, deletedBy)
+                .Set(p => p.UpdatedAt, DateTime.UtcNow)
                 .Update();
 
             Log($"Prep item deleted: {prepItemId}");

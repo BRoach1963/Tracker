@@ -354,7 +354,11 @@ public class GoalsService : IGoalsService
             // Set required fields
             goal.Id = goal.Id == Guid.Empty ? Guid.NewGuid() : goal.Id;
             goal.OrganizationId = session.TeamMember?.OrganizationId ?? Guid.Empty;
-            goal.OwnerTeamMemberId = goal.OwnerTeamMemberId ?? session.TeamMember?.Id;
+            // OwnerTeamMemberId is non-nullable - only set default if empty
+            if (goal.OwnerTeamMemberId == Guid.Empty)
+            {
+                goal.OwnerTeamMemberId = session.TeamMember?.Id ?? Guid.Empty;
+            }
             goal.CreatedAt = DateTime.UtcNow;
             goal.UpdatedAt = DateTime.UtcNow;
             goal.IsDeleted = false;

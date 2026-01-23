@@ -1443,7 +1443,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.FirstOrDefault()?.Id,
+            TeamMemberId = members.FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.FirstOrDefault()?.FullName ?? "Alex Martinez",
             FeedbackType = "praise",
             Content = "Outstanding presentation at the quarterly review! Your ability to communicate complex technical concepts to non-technical stakeholders was impressive. The visualizations really helped everyone understand the project status.",
@@ -1454,7 +1454,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(1).FirstOrDefault()?.Id,
+            TeamMemberId = members.Skip(1).FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.Skip(1).FirstOrDefault()?.FullName ?? "Sarah Chen",
             FeedbackType = "constructive",
             Content = "The code review feedback could be more specific. Instead of 'this needs work', try pointing to specific lines and suggesting concrete improvements. This will help junior developers learn faster.",
@@ -1465,7 +1465,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id,
+            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.Skip(2).FirstOrDefault()?.FullName ?? "Michael Johnson",
             FeedbackType = "coaching",
             Content = "Great progress on stakeholder management! For next level growth, focus on anticipating questions before meetings and preparing concise data-backed answers. Consider shadowing a senior PM for a week.",
@@ -1476,7 +1476,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(3).FirstOrDefault()?.Id,
+            TeamMemberId = members.Skip(3).FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.Skip(3).FirstOrDefault()?.FullName ?? "Emily Davis",
             FeedbackType = "praise",
             Content = "Thank you for mentoring the new team members! Your patience and clear explanations have helped them ramp up 50% faster than expected. This is exactly the culture we want to build.",
@@ -1487,7 +1487,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.FirstOrDefault()?.Id,
+            TeamMemberId = members.FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.FirstOrDefault()?.FullName ?? "Alex Martinez",
             FeedbackType = "constructive",
             Content = "Meeting facilitation could be improved. Try using timeboxing for each agenda item and designating someone to take notes. This will help keep discussions focused and ensure action items are captured.",
@@ -1498,7 +1498,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(4).FirstOrDefault()?.Id,
+            TeamMemberId = members.Skip(4).FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.Skip(4).FirstOrDefault()?.FullName ?? "David Kim",
             FeedbackType = "praise",
             Content = "Exceptional debugging skills demonstrated on the production incident last week. You remained calm under pressure and methodically isolated the issue. The post-mortem documentation was thorough and actionable.",
@@ -1509,7 +1509,7 @@ public partial class CircleViewModel : ViewModelBase
         _allFeedback.Add(new FeedbackDetail
         {
             Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id,
+            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id ?? Guid.Empty,
             RecipientName = members.Skip(2).FirstOrDefault()?.FullName ?? "Michael Johnson",
             FeedbackType = "coaching",
             Content = "To develop your technical leadership, consider leading a tech talk on your recent architecture decisions. Also, try writing RFC documents for major changes - this builds trust and creates alignment.",
@@ -1651,7 +1651,8 @@ public partial class CircleViewModel : ViewModelBase
             foreach (var goal in dashboardData.Goals)
             {
                 // Enrich with owner name, avatar, initials
-                if (goal.OwnerTeamMemberId.HasValue && memberDict.TryGetValue(goal.OwnerTeamMemberId.Value, out var owner))
+                // OwnerTeamMemberId is non-nullable Guid
+                if (goal.OwnerTeamMemberId != Guid.Empty && memberDict.TryGetValue(goal.OwnerTeamMemberId, out var owner))
                 {
                     goal.OwnerName = owner.FullName;
                     goal.OwnerAvatarUrl = owner.AvatarUrl;
@@ -1667,7 +1668,8 @@ public partial class CircleViewModel : ViewModelBase
             foreach (var feedback in dashboardData.Feedback)
             {
                 // Enrich with recipient name and avatar
-                if (feedback.TeamMemberId.HasValue && memberDict.TryGetValue(feedback.TeamMemberId.Value, out var recipient))
+                // TeamMemberId is non-nullable Guid
+                if (feedback.TeamMemberId != Guid.Empty && memberDict.TryGetValue(feedback.TeamMemberId, out var recipient))
                 {
                     feedback.RecipientName = recipient.FullName;
                     feedback.RecipientAvatarUrl = recipient.AvatarUrl;

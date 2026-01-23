@@ -76,7 +76,7 @@ public partial class ApplyTemplateDialog : Window
     {
         var filtered = string.IsNullOrEmpty(_currentCategoryFilter)
             ? _allTemplates
-            : _allTemplates.Where(t => t.Category == _currentCategoryFilter).ToList();
+            : _allTemplates.Where(t => t.MeetingType == _currentCategoryFilter).ToList();
 
         TemplatesItemsControl.ItemsSource = filtered;
         TemplatesItemsControl.IsVisible = filtered.Count > 0;

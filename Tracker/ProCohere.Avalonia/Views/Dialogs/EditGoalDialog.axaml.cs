@@ -109,9 +109,10 @@ public partial class EditGoalDialog : Window
         }
         
         // Owner is set in SetTeamMembers if called after LoadGoal
-        if (goal.OwnerTeamMemberId.HasValue && _teamMembers.Count > 0)
+        // OwnerTeamMemberId is non-nullable Guid, check for empty
+        if (goal.OwnerTeamMemberId != Guid.Empty && _teamMembers.Count > 0)
         {
-            var owner = _teamMembers.FirstOrDefault(t => t.Id == goal.OwnerTeamMemberId.Value);
+            var owner = _teamMembers.FirstOrDefault(t => t.Id == goal.OwnerTeamMemberId);
             if (owner != null)
             {
                 OwnerComboBox.SelectedItem = owner;
@@ -128,9 +129,10 @@ public partial class EditGoalDialog : Window
         OwnerComboBox.ItemsSource = _teamMembers;
         
         // If editing and we have an owner, select it
-        if (_existingGoal?.OwnerTeamMemberId.HasValue == true)
+        // OwnerTeamMemberId is non-nullable Guid, check for empty
+        if (_existingGoal != null && _existingGoal.OwnerTeamMemberId != Guid.Empty)
         {
-            var owner = _teamMembers.FirstOrDefault(t => t.Id == _existingGoal.OwnerTeamMemberId.Value);
+            var owner = _teamMembers.FirstOrDefault(t => t.Id == _existingGoal.OwnerTeamMemberId);
             if (owner != null)
             {
                 OwnerComboBox.SelectedItem = owner;

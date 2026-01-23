@@ -147,7 +147,7 @@
                                             <Run Text="{Binding ItemCountDisplay}" />
                                         </TextBlock>
                                         <TextBlock Classes="template-meta"
-                                                   IsVisible="{Binding IsSystem}">
+                                                   IsVisible="{Binding IsSystemTemplate}">
                                             <Run Text="• System template" />
                                         </TextBlock>
                                     </StackPanel>
