@@ -80,6 +80,9 @@ public sealed class TeamMemberDto
     [JsonPropertyName("manager_team_member_id")]
     public Guid? ManagerTeamMemberId { get; set; }
 
+    [JsonPropertyName("linked_user_id")]
+    public Guid? LinkedUserId { get; set; }
+
     /// <summary>
     /// Computed full name.
     /// </summary>

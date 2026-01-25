@@ -120,16 +120,16 @@
                                         <Panel>
                                             <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
                                                     CornerRadius="12"
-                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                    IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
                                                 <TextBlock Text="{Binding Initials}"
                                                            FontSize="10"
                                                            Foreground="White"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
                                             </Border>
-                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding UserAvatarUrl}"
                                                    Stretch="UniformToFill" Width="24" Height="24"
-                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                   IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                         </Panel>
                                     </Border>
                                     <TextBlock Text="{Binding FullName}"
@@ -159,20 +159,48 @@
                              Watermark="https://linkedin.com/in/username" />
                 </StackPanel>
                 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="X (Twitter) URL" FontSize="12" />
-                    <TextBox x:Name="XProfileTextBox"
-                             Watermark="https://x.com/username" />
-                </StackPanel>
-                
-                <!-- Notes -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Notes" FontSize="12" />
-                    <TextBox x:Name="NotesTextBox"
-                             Watermark="Private notes about this team member"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             Height="60" />
+                <!-- Notes Section -->
+                <StackPanel x:Name="NotesSection" Spacing="8" IsVisible="False">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Notes" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="AddNoteButton" Grid.Column="1" Content="+ Add Note" 
+                                Classes="accent" Padding="8,4" FontSize="11"
+                                Click="AddNoteButton_Click" />
+                    </Grid>
+                    
+                    <!-- Notes List -->
+                    <ItemsControl x:Name="NotesItemsControl" MaxHeight="200">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="models:Note">
+                                <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                        CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12"
+                                                       IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                            <TextBlock Text="{Binding Content}" FontSize="11" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       MaxLines="3" />
+                                            <TextBlock FontSize="10" Foreground="{DynamicResource BrushTextTertiary}">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0:MMM d, yyyy}">
+                                                        <Binding Path="CreatedAt" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="✕" Padding="4,2" FontSize="10"
+                                                VerticalAlignment="Top" Classes="subtle"
+                                                Tag="{Binding Id}"
+                                                Click="DeleteNoteButton_Click" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <TextBlock x:Name="NoNotesText" Text="No notes yet" FontSize="11" FontStyle="Italic"
+                               Foreground="{DynamicResource BrushTextTertiary}" IsVisible="False" />
                 </StackPanel>
                 
                 <!-- Active Status (only in edit mode) -->

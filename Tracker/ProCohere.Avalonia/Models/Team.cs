@@ -260,3 +260,105 @@ public class Team : BaseModel
 
     #endregion
 }
+
+/// <summary>
+/// Team membership model - maps to the team_memberships table in Supabase procohere schema.
+/// Represents a many-to-many relationship between teams and team members.
+/// A team member can belong to multiple teams, and a team can have multiple members.
+/// </summary>
+[Table("team_memberships")]
+public class TeamMembership : BaseModel
+{
+    #region Identity
+
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    #endregion
+
+    #region Membership
+
+    /// <summary>
+    /// FK to the team this membership is for.
+    /// </summary>
+    [Column("team_id")]
+    public Guid TeamId { get; set; }
+
+    /// <summary>
+    /// FK to the team member in this membership.
+    /// </summary>
+    [Column("team_member_id")]
+    public Guid TeamMemberId { get; set; }
+
+    /// <summary>
+    /// Role in the team: 'member', 'lead', or 'viewer'.
+    /// </summary>
+    [Column("role")]
+    public string Role { get; set; } = "member";
+
+    #endregion
+
+    #region Soft Delete
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
+
+    #endregion
+
+    #region Timestamps
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    #endregion
+
+    #region Navigation (not mapped)
+
+    /// <summary>
+    /// The team (populated by service).
+    /// </summary>
+    public Team? Team { get; set; }
+
+    /// <summary>
+    /// The team member (populated by service).
+    /// </summary>
+    public TeamMember? Member { get; set; }
+
+    #endregion
+
+    #region Computed Properties
+
+    /// <summary>
+    /// Whether this is a lead membership.
+    /// </summary>
+    public bool IsLead => Role == "lead";
+
+    /// <summary>
+    /// Whether this is a viewer membership.
+    /// </summary>
+    public bool IsViewer => Role == "viewer";
+
+    /// <summary>
+    /// Whether this is a regular member.
+    /// </summary>
+    public bool IsMember => Role == "member";
+
+    #endregion
+
+    #region Constants
+
+    public const string RoleMember = "member";
+    public const string RoleLead = "lead";
+    public const string RoleViewer = "viewer";
+
+    #endregion
+}

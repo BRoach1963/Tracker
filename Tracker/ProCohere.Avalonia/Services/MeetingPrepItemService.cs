@@ -203,7 +203,8 @@ public class MeetingPrepItemService
     #region Prep Item CRUD
 
     /// <summary>
-    /// Creates a new prep item.
+    /// Creates a new prep item using the procohere.insert_meeting_prep_item RPC.
+    /// The RPC returns the new UUID and handles organization_id, requested_by internally.
     /// </summary>
     public async Task<MeetingPrepItem?> CreatePrepItemAsync(MeetingPrepItem item)
     {
@@ -224,31 +225,66 @@ public class MeetingPrepItemService
 
             Log($"Creating prep item: {item.Title} for meeting: {item.MeetingId}");
 
-            // Set required fields
-            item.Id = Guid.NewGuid();
-            item.OrganizationId = orgId;
-            item.RequestedByTeamMemberId = creatorId;
+            // Set defaults for local model
             item.Status = item.Status ?? "open";
             item.VisibilityScope = item.VisibilityScope ?? "personal";
+            item.SourceType = item.SourceType ?? "manual";
             item.IsDeleted = false;
             item.CreatedAt = DateTime.UtcNow;
             item.UpdatedAt = DateTime.UtcNow;
 
-            var result = await client.From<MeetingPrepItem>().Insert(item);
-            var created = result.Models?.FirstOrDefault();
-
-            if (created != null)
+            // Use RPC to insert - it returns the new UUID
+            // RPC signature: procohere.insert_meeting_prep_item(
+            //   p_meeting_id, p_title, p_body, p_visibility_scope, p_assigned_to_team_member_id,
+            //   p_status, p_sort_order, p_carry_forward, p_carried_from_prep_item_id, p_source_type,
+            //   p_linked_entity_type, p_linked_entity_id, p_linked_entity_title_snapshot,
+            //   p_due_at, p_prep_prompt, p_prep_response)
+            var rpcResult = await client.Rpc("insert_meeting_prep_item", new
             {
-                created.CurrentUserTeamMemberId = creatorId;
-                Log($"Prep item created: {created.Id}");
-            }
-            else
+                p_meeting_id = item.MeetingId,
+                p_title = item.Title,
+                p_body = item.Body,
+                p_visibility_scope = item.VisibilityScope,
+                p_assigned_to_team_member_id = item.AssignedToTeamMemberId,
+                p_status = item.Status,
+                p_sort_order = item.SortOrder,
+                p_carry_forward = item.CarryForward,
+                p_carried_from_prep_item_id = item.CarriedFromPrepItemId,
+                p_source_type = item.SourceType,
+                p_linked_entity_type = item.LinkedEntityType,
+                p_linked_entity_id = item.LinkedEntityId,
+                p_linked_entity_title_snapshot = item.LinkedEntityTitleSnapshot,
+                p_due_at = item.DueAt,
+                p_prep_prompt = item.PrepPrompt,
+                p_prep_response = item.PrepResponse
+            });
+
+            Log($"Insert prep item RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
             {
-                LastError = "Failed to create prep item";
-                Log("CreatePrepItem ERROR: Insert returned no model");
+                LastError = rpcResult.Content;
+                Log($"CreatePrepItem ERROR: {LastError}");
+                return null;
             }
 
-            return created;
+            // Parse the returned UUID from the RPC result
+            var newId = ParseUuidFromRpcResult(rpcResult?.Content);
+            if (newId == Guid.Empty)
+            {
+                LastError = "Failed to parse UUID from RPC result";
+                Log($"CreatePrepItem ERROR: {LastError}");
+                return null;
+            }
+
+            // Update local model with database-assigned values
+            item.Id = newId;
+            item.OrganizationId = orgId;
+            item.RequestedByTeamMemberId = creatorId;
+            item.CurrentUserTeamMemberId = creatorId;
+            
+            Log($"Prep item created: {item.Id}");
+            return item;
         }
         catch (Exception ex)
         {
@@ -259,8 +295,27 @@ public class MeetingPrepItemService
     }
 
     /// <summary>
-    /// Updates an existing prep item.
-    /// Note: Only certain fields can be updated based on user's role (requester vs assignee).
+    /// Parses a UUID from the RPC result content.
+    /// Expected format: "uuid-value" or just the raw UUID string.
+    /// </summary>
+    private Guid ParseUuidFromRpcResult(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return Guid.Empty;
+
+        // Remove quotes if present
+        var cleaned = content.Trim().Trim('"');
+        
+        if (Guid.TryParse(cleaned, out var guid))
+            return guid;
+
+        return Guid.Empty;
+    }
+
+    /// <summary>
+    /// Updates an existing prep item using the appropriate RPC based on user's role.
+    /// Uses update_meeting_prep_item_as_requester if current user is the requester,
+    /// or update_meeting_prep_item_as_assignee if current user is the assignee.
     /// </summary>
     public async Task<bool> UpdatePrepItemAsync(MeetingPrepItem item)
     {
@@ -276,30 +331,68 @@ public class MeetingPrepItemService
 
         try
         {
-            Log($"Updating prep item: {item.Id}");
+            var currentUserId = session.TeamMember.Id;
+            Log($"Updating prep item: {item.Id} (requester: {item.RequestedByTeamMemberId}, assignee: {item.AssignedToTeamMemberId}, current: {currentUserId})");
 
             item.UpdatedAt = DateTime.UtcNow;
 
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, item.Id.ToString())
-                .Set(p => p.Title, item.Title)
-                .Set(p => p.Body!, item.Body)
-                .Set(p => p.AssignedToTeamMemberId!, item.AssignedToTeamMemberId)
-                .Set(p => p.VisibilityScope!, item.VisibilityScope)
-                .Set(p => p.Status!, item.Status)
-                .Set(p => p.AssigneeNotes!, item.AssigneeNotes)
-                .Set(p => p.DueAt!, item.DueAt)
-                .Set(p => p.SortOrder!, item.SortOrder)
-                .Set(p => p.CarryForward, item.CarryForward)
-                // Enhanced prep fields
-                .Set(p => p.LinkedEntityType!, item.LinkedEntityType)
-                .Set(p => p.LinkedEntityId!, item.LinkedEntityId)
-                .Set(p => p.LinkedEntityTitleSnapshot!, item.LinkedEntityTitleSnapshot)
-                .Set(p => p.PrepPrompt!, item.PrepPrompt)
-                .Set(p => p.PrepResponse!, item.PrepResponse)
-                .Set(p => p.PreparedAt!, item.PreparedAt)
-                .Set(p => p.UpdatedAt!, item.UpdatedAt)
-                .Update();
+            // Determine which RPC to use based on current user's role
+            if (item.RequestedByTeamMemberId == currentUserId)
+            {
+                // Current user is the requester - can update requester fields
+                // RPC signature: procohere.update_meeting_prep_item_as_requester(
+                //   p_id, p_title, p_body, p_visibility_scope, p_assigned_to_team_member_id,
+                //   p_status, p_sort_order, p_due_at, p_prep_prompt)
+                var rpcResult = await client.Rpc("update_meeting_prep_item_as_requester", new
+                {
+                    p_id = item.Id,
+                    p_title = item.Title,
+                    p_body = item.Body,
+                    p_visibility_scope = item.VisibilityScope,
+                    p_assigned_to_team_member_id = item.AssignedToTeamMemberId,
+                    p_status = item.Status,
+                    p_sort_order = item.SortOrder,
+                    p_due_at = item.DueAt,
+                    p_prep_prompt = item.PrepPrompt
+                });
+
+                Log($"Update prep item (as requester) RPC result: {rpcResult?.Content ?? "NULL"}");
+
+                if (rpcResult?.Content?.Contains("error") == true)
+                {
+                    LastError = rpcResult.Content;
+                    Log($"UpdatePrepItem ERROR: {LastError}");
+                    return false;
+                }
+            }
+            else if (item.AssignedToTeamMemberId == currentUserId)
+            {
+                // Current user is the assignee - can update assignee fields
+                // RPC signature: procohere.update_meeting_prep_item_as_assignee(
+                //   p_id, p_assignee_notes, p_status, p_prep_response)
+                var rpcResult = await client.Rpc("update_meeting_prep_item_as_assignee", new
+                {
+                    p_id = item.Id,
+                    p_assignee_notes = item.AssigneeNotes,
+                    p_status = item.Status,
+                    p_prep_response = item.PrepResponse
+                });
+
+                Log($"Update prep item (as assignee) RPC result: {rpcResult?.Content ?? "NULL"}");
+
+                if (rpcResult?.Content?.Contains("error") == true)
+                {
+                    LastError = rpcResult.Content;
+                    Log($"UpdatePrepItem ERROR: {LastError}");
+                    return false;
+                }
+            }
+            else
+            {
+                LastError = "Current user is neither the requester nor the assignee of this prep item";
+                Log($"UpdatePrepItem ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Prep item updated: {item.Id}");
             return true;
@@ -313,7 +406,104 @@ public class MeetingPrepItemService
     }
 
     /// <summary>
-    /// Updates the status of a prep item.
+    /// Updates an existing prep item as the requester (owner).
+    /// Use this when you know the current user is the requester.
+    /// </summary>
+    public async Task<bool> UpdatePrepItemAsRequesterAsync(MeetingPrepItem item)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Updating prep item as requester: {item.Id}");
+
+            var rpcResult = await client.Rpc("update_meeting_prep_item_as_requester", new
+            {
+                p_id = item.Id,
+                p_title = item.Title,
+                p_body = item.Body,
+                p_visibility_scope = item.VisibilityScope,
+                p_assigned_to_team_member_id = item.AssignedToTeamMemberId,
+                p_status = item.Status,
+                p_sort_order = item.SortOrder,
+                p_due_at = item.DueAt,
+                p_prep_prompt = item.PrepPrompt
+            });
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"UpdatePrepItemAsRequester ERROR: {LastError}");
+                return false;
+            }
+
+            Log($"Prep item updated as requester: {item.Id}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"UpdatePrepItemAsRequester ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing prep item as the assignee.
+    /// Use this when you know the current user is the assignee.
+    /// Assignees can only update the prep_response field.
+    /// </summary>
+    public async Task<bool> UpdatePrepItemAsAssigneeAsync(Guid prepItemId, string? prepResponse)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Updating prep item as assignee: {prepItemId}");
+
+            var rpcResult = await client.Rpc("update_meeting_prep_item_as_assignee", new
+            {
+                p_id = prepItemId,
+                p_prep_response = prepResponse
+            });
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"UpdatePrepItemAsAssignee ERROR: {LastError}");
+                return false;
+            }
+
+            Log($"Prep item updated as assignee: {prepItemId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"UpdatePrepItemAsAssignee ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Updates the status of a prep item using the requester RPC.
+    /// Note: Only the requester can change status.
     /// </summary>
     public async Task<bool> UpdateStatusAsync(Guid prepItemId, string newStatus)
     {
@@ -335,22 +525,21 @@ public class MeetingPrepItemService
 
         try
         {
-            var currentUserId = session.TeamMember.Id;
             Log($"Updating prep item status: {prepItemId} -> {newStatus}");
 
-            var now = DateTime.UtcNow;
-            DateTime? completedAt = (newStatus == "done") ? now : null;
-            Guid? completedBy = (newStatus == "done") ? currentUserId : null;
+            // Use the requester RPC with just the status field
+            var rpcResult = await client.Rpc("update_meeting_prep_item_as_requester", new
+            {
+                p_id = prepItemId,
+                p_status = newStatus
+            });
 
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, prepItemId.ToString())
-                .Set(p => p.Status!, newStatus)
-                .Set(p => p.StatusUpdatedAt!, now)
-                .Set(p => p.StatusUpdatedByTeamMemberId!, currentUserId)
-                .Set(p => p.CompletedAt!, completedAt)
-                .Set(p => p.CompletedByTeamMemberId!, completedBy)
-                .Set(p => p.UpdatedAt!, now)
-                .Update();
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"UpdateStatus ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Prep item status updated: {prepItemId}");
             return true;
@@ -364,7 +553,8 @@ public class MeetingPrepItemService
     }
 
     /// <summary>
-    /// Soft deletes a prep item.
+    /// Soft deletes a prep item using the procohere.delete_meeting_prep_item RPC.
+    /// Only the requester (requested_by) can delete a prep item.
     /// </summary>
     public async Task<bool> DeletePrepItemAsync(Guid prepItemId)
     {
@@ -382,12 +572,21 @@ public class MeetingPrepItemService
         {
             Log($"Deleting prep item: {prepItemId}");
 
-            // Note: meeting_prep_items only has is_deleted, no deleted_at/deleted_by columns
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, prepItemId.ToString())
-                .Set(p => p.IsDeleted, true)
-                .Set(p => p.UpdatedAt, DateTime.UtcNow)
-                .Update();
+            // Use RPC to delete - only requester can delete
+            // RPC signature: procohere.delete_meeting_prep_item(p_id)
+            var rpcResult = await client.Rpc("delete_meeting_prep_item", new
+            {
+                p_id = prepItemId
+            });
+
+            Log($"Delete prep item RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"DeletePrepItem ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Prep item deleted: {prepItemId}");
             return true;
@@ -406,14 +605,19 @@ public class MeetingPrepItemService
 
     /// <summary>
     /// Creates a quick personal prep item with minimal info.
+    /// Per constraint: personal visibility requires assigned_to_team_member_id (self-assigned).
     /// </summary>
     public async Task<MeetingPrepItem?> CreateQuickPrepAsync(Guid meetingId, string title)
     {
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+        var currentUserId = session?.TeamMember?.Id;
+        
         var item = new MeetingPrepItem
         {
             MeetingId = meetingId,
             Title = title,
             VisibilityScope = "personal",
+            AssignedToTeamMemberId = currentUserId, // Personal items are self-assigned per DB constraint
             Status = "open"
         };
 
@@ -466,6 +670,7 @@ public class MeetingPrepItemService
 
     /// <summary>
     /// Creates a prep item linked to an entity (task, goal, metric, project).
+    /// Per constraint: personal/assigned visibility requires assigned_to_team_member_id.
     /// </summary>
     public async Task<MeetingPrepItem?> CreateLinkedPrepAsync(
         Guid meetingId,
@@ -473,8 +678,20 @@ public class MeetingPrepItemService
         Guid linkedEntityId,
         string linkedEntityTitle,
         string? prepPrompt = null,
-        string visibilityScope = "personal")
+        string visibilityScope = "personal",
+        Guid? assigneeId = null)
     {
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+        var currentUserId = session?.TeamMember?.Id;
+        
+        // Per DB constraint: personal/assigned require assignee, meeting does not
+        Guid? effectiveAssigneeId = visibilityScope switch
+        {
+            "meeting" => null,
+            "assigned" => assigneeId ?? currentUserId, // Use provided or default to self
+            _ => currentUserId // "personal" = self-assigned
+        };
+        
         var item = new MeetingPrepItem
         {
             MeetingId = meetingId,
@@ -484,6 +701,7 @@ public class MeetingPrepItemService
             LinkedEntityTitleSnapshot = linkedEntityTitle,
             PrepPrompt = prepPrompt,
             VisibilityScope = visibilityScope,
+            AssignedToTeamMemberId = effectiveAssigneeId,
             Status = "open",
             SourceType = "manual"
         };
@@ -492,7 +710,8 @@ public class MeetingPrepItemService
     }
 
     /// <summary>
-    /// Captures the preparation response for a prep item.
+    /// Captures the preparation response for a prep item using the assignee RPC.
+    /// This is typically used by the assignee to provide their response.
     /// </summary>
     public async Task<bool> CapturePrepResponseAsync(Guid prepItemId, string response)
     {
@@ -510,13 +729,19 @@ public class MeetingPrepItemService
         {
             Log($"Capturing prep response for: {prepItemId}");
 
-            var now = DateTime.UtcNow;
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, prepItemId.ToString())
-                .Set(p => p.PrepResponse!, response)
-                .Set(p => p.PreparedAt!, now)
-                .Set(p => p.UpdatedAt!, now)
-                .Update();
+            // Use the assignee RPC to update the response
+            var rpcResult = await client.Rpc("update_meeting_prep_item_as_assignee", new
+            {
+                p_id = prepItemId,
+                p_prep_response = response
+            });
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"CapturePrepResponse ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Prep response captured: {prepItemId}");
             return true;
@@ -530,7 +755,8 @@ public class MeetingPrepItemService
     }
 
     /// <summary>
-    /// Updates the prep prompt for a prep item.
+    /// Updates the prep prompt for a prep item using the requester RPC.
+    /// Only the requester can update the prep prompt.
     /// </summary>
     public async Task<bool> UpdatePrepPromptAsync(Guid prepItemId, string prompt)
     {
@@ -547,11 +773,19 @@ public class MeetingPrepItemService
         {
             Log($"Updating prep prompt for: {prepItemId}");
 
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, prepItemId.ToString())
-                .Set(p => p.PrepPrompt!, prompt)
-                .Set(p => p.UpdatedAt!, DateTime.UtcNow)
-                .Update();
+            // Use the requester RPC to update the prompt
+            var rpcResult = await client.Rpc("update_meeting_prep_item_as_requester", new
+            {
+                p_id = prepItemId,
+                p_prep_prompt = prompt
+            });
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"UpdatePrepPrompt ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Prep prompt updated: {prepItemId}");
             return true;
@@ -565,7 +799,8 @@ public class MeetingPrepItemService
     }
 
     /// <summary>
-    /// Links an existing entity to a prep item.
+    /// Links an existing entity to a prep item using the insert_meeting_prep_item_link RPC.
+    /// Note: The update RPC doesn't support linked entity fields, so we use the link table directly.
     /// </summary>
     public async Task<bool> LinkEntityAsync(
         Guid prepItemId,
@@ -575,8 +810,9 @@ public class MeetingPrepItemService
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
 
-        if (client == null)
+        if (client == null || session?.TeamMember == null)
         {
             LastError = "Not authenticated";
             return false;
@@ -590,15 +826,27 @@ public class MeetingPrepItemService
 
         try
         {
+            var orgId = session.TeamMember.OrganizationId;
             Log($"Linking entity {entityType}:{entityId} to prep item: {prepItemId}");
 
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, prepItemId.ToString())
-                .Set(p => p.LinkedEntityType!, entityType)
-                .Set(p => p.LinkedEntityId!, entityId)
-                .Set(p => p.LinkedEntityTitleSnapshot!, entityTitle)
-                .Set(p => p.UpdatedAt!, DateTime.UtcNow)
-                .Update();
+            // Use the link RPC to create the association
+            // RPC signature: insert_meeting_prep_item_link(p_id, p_organization_id, p_meeting_prep_item_id, p_link_kind, p_entity_type, p_entity_id)
+            var rpcResult = await client.Rpc("insert_meeting_prep_item_link", new
+            {
+                p_id = Guid.NewGuid(),
+                p_organization_id = orgId,
+                p_meeting_prep_item_id = prepItemId,
+                p_link_kind = "reference",
+                p_entity_type = entityType,
+                p_entity_id = entityId
+            });
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"LinkEntity ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Entity linked to prep item: {prepItemId}");
             return true;
@@ -613,13 +861,15 @@ public class MeetingPrepItemService
 
     /// <summary>
     /// Removes the linked entity from a prep item.
+    /// Note: This requires direct table access or a dedicated delete RPC for prep item links.
     /// </summary>
     public async Task<bool> UnlinkEntityAsync(Guid prepItemId)
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
 
-        if (client == null)
+        if (client == null || session?.TeamMember == null)
         {
             LastError = "Not authenticated";
             return false;
@@ -629,13 +879,12 @@ public class MeetingPrepItemService
         {
             Log($"Unlinking entity from prep item: {prepItemId}");
 
-            await client.From<MeetingPrepItem>()
-                .Filter("id", Operator.Equals, prepItemId.ToString())
-                .Set(p => p.LinkedEntityType!, (string?)null)
-                .Set(p => p.LinkedEntityId!, (Guid?)null)
-                .Set(p => p.LinkedEntityTitleSnapshot!, (string?)null)
-                .Set(p => p.UpdatedAt!, DateTime.UtcNow)
-                .Update();
+            // Delete all reference links for this prep item
+            // Note: This uses direct table access - may need RPC if RLS blocks it
+            await client.From<MeetingPrepItemLink>()
+                .Filter("meeting_prep_item_id", Operator.Equals, prepItemId.ToString())
+                .Filter("link_kind", Operator.Equals, "reference")
+                .Delete();
 
             Log($"Entity unlinked from prep item: {prepItemId}");
             return true;
@@ -738,18 +987,54 @@ public class MeetingPrepItemService
 
             foreach (var source in sourceItems)
             {
-                var newItem = new MeetingPrepItem
+                // Use RPC to insert - it returns the new UUID
+                // RPC handles organization_id and requested_by_team_member_id internally
+                var rpcResult = await client.Rpc("insert_meeting_prep_item", new
                 {
-                    Id = Guid.NewGuid(),
+                    p_meeting_id = toMeetingId,
+                    p_title = source.Title,
+                    p_body = source.Body,
+                    p_visibility_scope = source.VisibilityScope ?? "personal",
+                    p_assigned_to_team_member_id = source.AssignedToTeamMemberId,
+                    p_status = "open",
+                    p_sort_order = source.SortOrder,
+                    p_carry_forward = source.CarryForward,
+                    p_carried_from_prep_item_id = source.Id,
+                    p_source_type = "carry_forward",
+                    p_linked_entity_type = source.LinkedEntityType,
+                    p_linked_entity_id = source.LinkedEntityId,
+                    p_linked_entity_title_snapshot = source.LinkedEntityTitleSnapshot,
+                    p_due_at = source.DueAt,
+                    p_prep_prompt = source.PrepPrompt,
+                    p_prep_response = (string?)null // Don't carry over response
+                });
+
+                if (rpcResult?.Content?.Contains("error") == true)
+                {
+                    Log($"CarryForward prep item failed: {rpcResult.Content}");
+                    continue;
+                }
+
+                // Parse the returned UUID from the RPC result
+                var newId = ParseUuidFromRpcResult(rpcResult?.Content);
+                if (newId == Guid.Empty)
+                {
+                    Log($"CarryForward prep item failed: could not parse UUID");
+                    continue;
+                }
+
+                // Build returned item
+                var created = new MeetingPrepItem
+                {
+                    Id = newId,
                     OrganizationId = orgId,
                     MeetingId = toMeetingId,
-                    RequestedByTeamMemberId = source.RequestedByTeamMemberId,
+                    RequestedByTeamMemberId = session.TeamMember.Id, // RPC sets this to current user
                     AssignedToTeamMemberId = source.AssignedToTeamMemberId,
                     Title = source.Title,
                     Body = source.Body,
                     VisibilityScope = source.VisibilityScope,
                     Status = "open",
-                    DueAt = source.DueAt,
                     SortOrder = source.SortOrder,
                     CarryForward = source.CarryForward,
                     CarriedFromPrepItemId = source.Id,
@@ -757,19 +1042,12 @@ public class MeetingPrepItemService
                     LinkedEntityType = source.LinkedEntityType,
                     LinkedEntityId = source.LinkedEntityId,
                     LinkedEntityTitleSnapshot = source.LinkedEntityTitleSnapshot,
+                    DueAt = source.DueAt,
                     PrepPrompt = source.PrepPrompt,
-                    // Don't carry over the response - they need to prepare again
-                    IsDeleted = false,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-
-                var result = await client.From<MeetingPrepItem>().Insert(newItem);
-                var created = result.Models?.FirstOrDefault();
-                if (created != null)
-                {
-                    createdItems.Add(created);
-                }
+                createdItems.Add(created);
             }
 
             Log($"Carried forward {createdItems.Count} prep items");

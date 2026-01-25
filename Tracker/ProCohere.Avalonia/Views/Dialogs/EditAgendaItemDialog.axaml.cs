@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Models.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

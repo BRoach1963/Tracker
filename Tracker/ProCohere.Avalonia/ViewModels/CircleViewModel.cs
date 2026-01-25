@@ -1655,7 +1655,7 @@ public partial class CircleViewModel : ViewModelBase
                 if (goal.OwnerTeamMemberId != Guid.Empty && memberDict.TryGetValue(goal.OwnerTeamMemberId, out var owner))
                 {
                     goal.OwnerName = owner.FullName;
-                    goal.OwnerAvatarUrl = owner.AvatarUrl;
+                    goal.OwnerAvatarUrl = owner.UserAvatarUrl;
                     goal.OwnerInitials = owner.Initials;
                 }
                 _allGoals.Add(goal);
@@ -1672,7 +1672,7 @@ public partial class CircleViewModel : ViewModelBase
                 if (feedback.TeamMemberId != Guid.Empty && memberDict.TryGetValue(feedback.TeamMemberId, out var recipient))
                 {
                     feedback.RecipientName = recipient.FullName;
-                    feedback.RecipientAvatarUrl = recipient.AvatarUrl;
+                    feedback.RecipientAvatarUrl = recipient.UserAvatarUrl;
                     // RecipientInitials is computed from RecipientName
                 }
                 _allFeedback.Add(feedback);

@@ -3,8 +3,10 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -28,8 +30,6 @@ public class EditTeamMemberResult
     public DateTime? Birthday { get; set; }
     public DateTime? HireDate { get; set; }
     public string? LinkedInUrl { get; set; }
-    public string? XProfileUrl { get; set; }
-    public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
     public string? AvatarFilePath { get; set; } // Local path to upload
     public bool RemoveAvatar { get; set; }
@@ -44,6 +44,7 @@ public partial class EditTeamMemberDialog : Window
     private List<TeamMemberDetail> _teamMembers = new();
     private string? _selectedAvatarPath;
     private bool _removeAvatar;
+    private ObservableCollection<Note> _notes = new();
     
     /// <summary>
     /// The result of the dialog (null if cancelled).
@@ -71,7 +72,7 @@ public partial class EditTeamMemberDialog : Window
         LastNameTextBox.Text = member.LastName;
         EmailTextBox.Text = member.Email;
         JobTitleTextBox.Text = member.JobTitle ?? "";
-        PhoneTextBox.Text = member.Phone ?? "";
+        PhoneTextBox.Text = member.UserPhone ?? "";
         
         // Set dates
         if (member.Birthday.HasValue)
@@ -81,10 +82,6 @@ public partial class EditTeamMemberDialog : Window
         
         // Social links
         LinkedInTextBox.Text = member.LinkedInUrl ?? "";
-        XProfileTextBox.Text = member.XProfileUrl ?? "";
-        
-        // Notes
-        NotesTextBox.Text = member.Notes ?? "";
         
         // Status
         IsActiveCheckBox.IsChecked = member.IsActive;
@@ -99,9 +96,87 @@ public partial class EditTeamMemberDialog : Window
             }
         }
         
+        // Show notes section and load notes
+        NotesSection.IsVisible = true;
+        _ = LoadNotesAsync(member.Id);
+        
         // Update avatar
         UpdateAvatarDisplay();
         UpdateInitials();
+    }
+    
+    /// <summary>
+    /// Load notes for this team member.
+    /// </summary>
+    private async Task LoadNotesAsync(Guid teamMemberId)
+    {
+        try
+        {
+            var notes = await NotesService.Instance.GetNotesForEntityAsync(LinkedEntityType.TeamMember, teamMemberId);
+            _notes.Clear();
+            foreach (var note in notes.OrderByDescending(n => n.CreatedAt))
+            {
+                _notes.Add(note);
+            }
+            NotesItemsControl.ItemsSource = _notes;
+            NoNotesText.IsVisible = _notes.Count == 0;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[EditTeamMemberDialog] Failed to load notes: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Handle add note button click.
+    /// </summary>
+    private async void AddNoteButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_existingMember == null) return;
+        
+        var dialog = new AddNoteDialog();
+        var result = await dialog.ShowDialog<AddNoteResult?>(this);
+        
+        if (result != null && !string.IsNullOrWhiteSpace(result.Content))
+        {
+            try
+            {
+                var note = new Note
+                {
+                    Title = result.Title,
+                    Content = result.Content,
+                    LinkedTeamMemberId = _existingMember.Id
+                };
+                await NotesService.Instance.CreateNoteAsync(note);
+                await LoadNotesAsync(_existingMember.Id);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EditTeamMemberDialog] Failed to create note: {ex.Message}");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Handle delete note button click.
+    /// </summary>
+    private async void DeleteNoteButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is Guid noteId)
+        {
+            try
+            {
+                await NotesService.Instance.DeleteNoteAsync(noteId);
+                if (_existingMember != null)
+                {
+                    await LoadNotesAsync(_existingMember.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EditTeamMemberDialog] Failed to delete note: {ex.Message}");
+            }
+        }
     }
     
     /// <summary>
@@ -172,7 +247,7 @@ public partial class EditTeamMemberDialog : Window
             }
         }
         
-        if (_existingMember != null && !string.IsNullOrEmpty(_existingMember.AvatarUrl))
+        if (_existingMember != null && !string.IsNullOrEmpty(_existingMember.UserAvatarUrl))
         {
             // For now, just show initials - URL loading would need async
             AvatarBorder.IsVisible = false;
@@ -270,8 +345,6 @@ public partial class EditTeamMemberDialog : Window
             Birthday = BirthdayPicker.SelectedDate?.DateTime,
             HireDate = HireDatePicker.SelectedDate?.DateTime,
             LinkedInUrl = string.IsNullOrWhiteSpace(LinkedInTextBox.Text) ? null : LinkedInTextBox.Text.Trim(),
-            XProfileUrl = string.IsNullOrWhiteSpace(XProfileTextBox.Text) ? null : XProfileTextBox.Text.Trim(),
-            Notes = string.IsNullOrWhiteSpace(NotesTextBox.Text) ? null : NotesTextBox.Text.Trim(),
             IsActive = IsActiveCheckBox.IsChecked ?? true,
             AvatarFilePath = _selectedAvatarPath,
             RemoveAvatar = _removeAvatar,

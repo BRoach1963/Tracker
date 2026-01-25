@@ -4,6 +4,7 @@
 
 1. **NEVER VIOLATE MVVM** (unless there is absolutely no other option)
 2. **NEVER TAKE SHORTCUTS** - Always fix things the right way, not the easy way
+3. **NO BACKWARDS COMPATIBILITY** - This is a pre-release product with NO clients. NEVER add backwards-compatible aliases, wrapper properties, or legacy mappings. Just fix things directly. This rule applies until explicitly told otherwise.
 
 ---
 

@@ -145,16 +145,16 @@
                                         <Panel>
                                             <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
                                                     CornerRadius="12"
-                                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                    IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
                                                 <TextBlock Text="{Binding Initials}"
                                                            FontSize="10"
                                                            Foreground="White"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
                                             </Border>
-                                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                            <Image asyncImageLoader:ImageLoader.Source="{Binding UserAvatarUrl}"
                                                    Stretch="UniformToFill" Width="24" Height="24"
-                                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                   IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                         </Panel>
                                     </Border>
                                     <TextBlock Text="{Binding FullName}"

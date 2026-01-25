@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.AddNoteDialog"
+        Title="Add Note"
+        Width="400"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False">
+    
+    <StackPanel Margin="20" Spacing="16">
+        <!-- Title -->
+        <StackPanel Spacing="4">
+            <TextBlock Text="Title (optional)" FontSize="12" />
+            <TextBox x:Name="TitleTextBox"
+                     Watermark="Enter a title..." />
+        </StackPanel>
+        
+        <!-- Content -->
+        <StackPanel Spacing="4">
+            <TextBlock Text="Note" FontSize="12" />
+            <TextBox x:Name="ContentTextBox"
+                     Watermark="Enter your note..."
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     Height="120" />
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
+            <Button Grid.Column="1" Content="Cancel" Margin="0,0,8,0"
+                    Click="CancelButton_Click" />
+            <Button Grid.Column="2" Content="Save" Classes="accent"
+                    Click="SaveButton_Click" />
+        </Grid>
+    </StackPanel>
+</Window>

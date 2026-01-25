@@ -3,7 +3,7 @@
 This document covers all tables related to meetings in the `procohere` schema.
 
 **Last Updated:** January 2026  
-**Total Tables in this domain:** 12
+**Total Tables in this domain:** 13
 
 ---
 
@@ -16,13 +16,14 @@ This document covers all tables related to meetings in the `procohere` schema.
 | 3 | meeting_attendees | ✅ MeetingAttendee.cs |
 | 4 | meeting_agenda_items | ✅ MeetingAgendaItem.cs |
 | 5 | meeting_agenda_item_links | ✅ MeetingAgendaItemLink.cs |
-| 6 | meeting_agenda_scaffolds | ✅ MeetingAgendaScaffold.cs |
-| 7 | meeting_agenda_scaffold_items | ✅ MeetingAgendaScaffoldItem.cs |
-| 8 | meeting_prep_items | ✅ MeetingPrepItem.cs |
-| 9 | meeting_prep_item_links | ✅ MeetingPrepItemLink.cs |
-| 10 | meeting_notes | ✅ MeetingNote.cs |
-| 11 | meeting_summaries | ❓ TBD |
-| 12 | meeting_templates | ✅ MeetingTemplateDetail.cs |
+| 6 | allowed_entity_types | N/A (lookup table) |
+| 7 | meeting_agenda_scaffolds | ✅ MeetingAgendaScaffold.cs |
+| 8 | meeting_agenda_scaffold_items | ✅ MeetingAgendaScaffoldItem.cs |
+| 9 | meeting_prep_items | ✅ MeetingPrepItem.cs |
+| 10 | meeting_prep_item_links | ✅ MeetingPrepItemLink.cs |
+| 11 | meeting_notes | ✅ MeetingNote.cs |
+| 12 | meeting_summaries | ❓ TBD |
+| 13 | meeting_templates | ✅ MeetingTemplateDetail.cs |
 
 ---
 
@@ -154,10 +155,44 @@ Individual discussion items on meeting agendas with rich conversation tracking.
 
 ---
 
+## procohere.allowed_entity_types
+
+**Purpose**  
+Lookup table defining valid entity types for linking. Data-driven approach avoids ALTER TABLE when adding new types.
+
+**Columns**
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| entity_type | text | NO | PK |
+| is_active | boolean | NO | Default `true`. Inactive types cannot be used for new links |
+| sort_order | integer | NO | Default `0`. For UI picklist ordering |
+| created_at | timestamptz | NO | Default `now()` |
+
+**Seed Data:**
+| entity_type | is_active | sort_order |
+|-------------|-----------|------------|
+| `task` | true | 10 |
+| `goal` | true | 20 |
+| `metric` | true | 30 |
+| `project` | true | 40 |
+
+**Grants:**
+```sql
+GRANT SELECT ON TABLE procohere.allowed_entity_types TO authenticated;
+REVOKE ALL ON TABLE procohere.allowed_entity_types FROM anon;
+```
+
+**Usage:** 
+- RPCs validate `is_active = true` before allowing links
+- UI can fetch for dynamic picklists
+- Add new types with simple INSERT (no schema change)
+
+---
+
 ## procohere.meeting_agenda_item_links
 
 **Purpose**  
-Links agenda items to other entities (goals, tasks, metrics). Simple junction table.
+Links agenda items to other entities (goals, tasks, metrics). Constrained to one reference link per agenda item.
 
 **Columns**
 | Column | Type | Nullable | Notes |
@@ -165,16 +200,54 @@ Links agenda items to other entities (goals, tasks, metrics). Simple junction ta
 | id | uuid | NO | PK |
 | organization_id | uuid | NO | FK → organizations |
 | meeting_agenda_item_id | uuid | NO | FK → meeting_agenda_items |
-| link_kind | text | NO | Type of link relationship |
-| entity_type | text | NO | 'task', 'goal', 'metric', etc. |
+| link_kind | text | NO | Constrained to `'reference'` only (CHECK) |
+| entity_type | text | NO | FK → allowed_entity_types |
 | entity_id | uuid | NO | FK to linked entity |
+| entity_title_snapshot | varchar | YES | Cached title for display |
 | created_at | timestamptz | NO | |
 
-**Note:** This table has NO soft-delete columns (is_deleted, deleted_at, deleted_by) or updated_at.
+**Constraints:**
+```sql
+-- Only 'reference' link kind allowed
+CONSTRAINT ck_meeting_agenda_item_links_link_kind
+CHECK (link_kind IN ('reference'))
 
-**Model:** None (links managed via MeetingAgendaItem properties or service)
+-- Entity type validated by FK to lookup table
+CONSTRAINT fk_meeting_agenda_item_links_entity_type
+FOREIGN KEY (entity_type) REFERENCES procohere.allowed_entity_types(entity_type)
+
+-- One reference link per agenda item (unique index)
+CREATE UNIQUE INDEX uq_meeting_agenda_item_links_reference
+ON procohere.meeting_agenda_item_links (organization_id, meeting_agenda_item_id, link_kind);
+```
+
+**Trigger (optional - enforces is_active):**
+```sql
+CREATE TRIGGER trg_validate_active_entity_type
+BEFORE INSERT OR UPDATE OF entity_type
+ON procohere.meeting_agenda_item_links
+FOR EACH ROW
+EXECUTE FUNCTION procohere.validate_active_entity_type();
+```
+
+**Design Decisions:**
+- `link_kind` constrained to `'reference'` via CHECK (simple, unlikely to change)
+- `entity_type` enforced via FK to `allowed_entity_types` (data-driven, extensible)
+- `is_active` check done in RPC for friendly error messages
+- Unique index ensures exactly one reference link per agenda item
+- `entity_title_snapshot` synced with `meeting_agenda_items.linked_entity_title_snapshot`
+
+**Note:** This table has NO soft-delete columns. Links are hard-deleted.
+
+**Model:** `MeetingAgendaItemLink.cs`
 
 **RLS:** Inherited from agenda item visibility.
+
+**RPCs:** 
+- `upsert_meeting_agenda_item_reference_link` - Create/update the reference link
+- `delete_meeting_agenda_item_reference_link` - Remove the reference link
+
+See [07-functions-reference.md](07-functions-reference.md) for full RPC documentation.
 
 ---
 

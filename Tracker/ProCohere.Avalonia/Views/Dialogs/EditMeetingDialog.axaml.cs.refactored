@@ -1,0 +1,547 @@
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Models.Dialogs;
+using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.ViewModels.Dialogs;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace ProCohere.Avalonia.Views.Dialogs;
+
+/// <summary>
+/// Dialog for creating or editing meetings.
+/// Code-behind contains only UI glue - all business logic is in EditMeetingDialogViewModel.
+/// </summary>
+public partial class EditMeetingDialog : Window
+{
+    #region Fields
+    
+    private readonly EditMeetingDialogViewModel _viewModel;
+    
+    #endregion
+    
+    #region Properties
+    
+    /// <summary>
+    /// The result of the dialog (null if cancelled).
+    /// </summary>
+    public EditMeetingResult? Result => _viewModel.Result;
+    
+    #endregion
+    
+    #region Constructor
+    
+    public EditMeetingDialog()
+    {
+        InitializeComponent();
+        
+        _viewModel = new EditMeetingDialogViewModel();
+        DataContext = _viewModel;
+        
+        // Subscribe to close request from ViewModel
+        _viewModel.CloseRequested += OnViewModelCloseRequested;
+        
+        // Wire up observable collections to ItemsControls
+        PrepItemsControl.ItemsSource = _viewModel.PrepItems;
+        AgendaItemsControl.ItemsSource = _viewModel.AgendaItems;
+        
+        // Wire up ComboBox selection changes that sync to ViewModel
+        MeetingTypeComboBox.SelectionChanged += OnMeetingTypeChanged;
+        AttendeeComboBox.SelectionChanged += OnAttendeeChanged;
+        PrepVisibilityComboBox.SelectionChanged += OnPrepVisibilityChanged;
+        DurationComboBox.SelectionChanged += OnDurationChanged;
+        
+        var teamPicker = this.FindControl<ComboBox>("TeamPickerComboBox");
+        if (teamPicker != null)
+        {
+            teamPicker.SelectionChanged += OnTeamPickerChanged;
+        }
+        
+        // Sync DateTimeSelector
+        DateTimeSelector.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(DateTimeSelector.SelectedDateTime))
+            {
+                _viewModel.ScheduledDateTime = DateTimeSelector.SelectedDateTime;
+            }
+        };
+        
+        // Sync TextBoxes to ViewModel (two-way binding alternative)
+        TitleTextBox.TextChanged += (_, _) => _viewModel.Title = TitleTextBox.Text ?? string.Empty;
+        LocationTextBox.TextChanged += (_, _) => _viewModel.Location = LocationTextBox.Text;
+        VideoLinkTextBox.TextChanged += (_, _) => _viewModel.VideoLink = VideoLinkTextBox.Text;
+        MeetingNotesTextBox.TextChanged += (_, _) => _viewModel.Notes = MeetingNotesTextBox.Text;
+        
+        // Add prep form sync
+        NewPrepTitleTextBox.TextChanged += (_, _) => _viewModel.NewPrepTitle = NewPrepTitleTextBox.Text ?? string.Empty;
+        NewPrepPromptTextBox.TextChanged += (_, _) => _viewModel.NewPrepPrompt = NewPrepPromptTextBox.Text;
+        NewPrepBodyTextBox.TextChanged += (_, _) => _viewModel.NewPrepBody = NewPrepBodyTextBox.Text;
+        
+        // Add agenda form sync
+        NewAgendaTitleTextBox.TextChanged += (_, _) => _viewModel.NewAgendaTitle = NewAgendaTitleTextBox.Text ?? string.Empty;
+        NewAgendaContextTextBox.TextChanged += (_, _) => _viewModel.NewAgendaContext = NewAgendaContextTextBox.Text;
+        NewAgendaTalkingPointsTextBox.TextChanged += (_, _) => _viewModel.NewAgendaTalkingPoints = NewAgendaTalkingPointsTextBox.Text;
+        
+        // Subscribe to ViewModel property changes for UI updates
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        
+        // Focus title on load
+        Loaded += (_, _) => TitleTextBox.Focus();
+    }
+    
+    #endregion
+    
+    #region Public Methods - Called by parent views before showing dialog
+    
+    /// <summary>
+    /// Sets the list of team members for attendee selection.
+    /// </summary>
+    public void SetTeamMembers(IEnumerable<TeamMemberDetail> teamMembers)
+    {
+        _viewModel.Initialize(teamMembers);
+        
+        // Update UI controls that need ItemsSource
+        AttendeeComboBox.ItemsSource = _viewModel.TeamMembers;
+        PrepAssigneeComboBox.ItemsSource = _viewModel.PrepAssignees;
+        
+        var teamAttendeesListBox = this.FindControl<ItemsControl>("TeamAttendeesListBox");
+        if (teamAttendeesListBox != null)
+        {
+            teamAttendeesListBox.ItemsSource = _viewModel.SelectableAttendees;
+        }
+        
+        var teamPicker = this.FindControl<ComboBox>("TeamPickerComboBox");
+        if (teamPicker != null)
+        {
+            teamPicker.ItemsSource = _viewModel.AvailableTeams;
+        }
+    }
+    
+    /// <summary>
+    /// Load an existing meeting for editing.
+    /// </summary>
+    public async void LoadMeeting(MeetingDetail meeting)
+    {
+        await _viewModel.LoadMeetingAsync(meeting);
+        
+        // Update UI to reflect loaded state
+        DialogTitle.Text = "Edit Meeting";
+        DeleteButton.IsVisible = true;
+        
+        // Sync UI controls from ViewModel
+        TitleTextBox.Text = _viewModel.Title;
+        LocationTextBox.Text = _viewModel.Location;
+        VideoLinkTextBox.Text = _viewModel.VideoLink;
+        MeetingNotesTextBox.Text = _viewModel.Notes;
+        DateTimeSelector.SelectedDateTime = _viewModel.ScheduledDateTime;
+        
+        // Set meeting type ComboBox
+        SelectComboBoxByTag(MeetingTypeComboBox, _viewModel.MeetingType);
+        
+        // Set duration ComboBox
+        SelectComboBoxByTag(DurationComboBox, _viewModel.DurationMinutes.ToString());
+        
+        // Set attendee
+        if (_viewModel.SelectedAttendee != null)
+        {
+            AttendeeComboBox.SelectedItem = _viewModel.SelectedAttendee;
+        }
+        
+        UpdateAttendeeVisibility();
+    }
+    
+    #endregion
+    
+    #region ViewModel Event Handlers
+    
+    private void OnViewModelCloseRequested(object? sender, EventArgs e)
+    {
+        Close();
+    }
+    
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(EditMeetingDialogViewModel.IsPrepTabActive):
+            case nameof(EditMeetingDialogViewModel.IsAgendaTabActive):
+            case nameof(EditMeetingDialogViewModel.IsNotesTabActive):
+                UpdateTabVisuals();
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.IsAddPrepPanelVisible):
+                AddPrepPanel.IsVisible = _viewModel.IsAddPrepPanelVisible;
+                if (_viewModel.IsAddPrepPanelVisible)
+                {
+                    NewPrepTitleTextBox.Text = string.Empty;
+                    NewPrepPromptTextBox.Text = string.Empty;
+                    NewPrepBodyTextBox.Text = string.Empty;
+                    PrepVisibilityComboBox.SelectedIndex = 0;
+                    NewPrepTitleTextBox.Focus();
+                }
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.IsAddAgendaPanelVisible):
+                AddAgendaPanel.IsVisible = _viewModel.IsAddAgendaPanelVisible;
+                if (_viewModel.IsAddAgendaPanelVisible)
+                {
+                    NewAgendaTitleTextBox.Text = string.Empty;
+                    NewAgendaContextTextBox.Text = string.Empty;
+                    NewAgendaTalkingPointsTextBox.Text = string.Empty;
+                    AgendaVisibilityComboBox.SelectedIndex = 0;
+                    NewAgendaTitleTextBox.Focus();
+                }
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.ShowPrepAssigneeSelector):
+                PrepAssigneePanel.IsVisible = _viewModel.ShowPrepAssigneeSelector;
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.ShowAttendeeSelector):
+            case nameof(EditMeetingDialogViewModel.ShowTeamAttendeesSelector):
+                UpdateAttendeeVisibility();
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.MeetingTypeDescription):
+                if (this.FindControl<TextBlock>("MeetingTypeDescription") is TextBlock descBlock)
+                {
+                    descBlock.Text = _viewModel.MeetingTypeDescription;
+                }
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.HasPrepItems):
+                PrepEmptyState.IsVisible = !_viewModel.HasPrepItems;
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.HasAgendaItems):
+                AgendaEmptyState.IsVisible = !_viewModel.HasAgendaItems;
+                break;
+                
+            case nameof(EditMeetingDialogViewModel.IsSaving):
+                SaveBorder.IsHitTestVisible = !_viewModel.IsSaving;
+                SaveBorder.Opacity = _viewModel.IsSaving ? 0.5 : 1.0;
+                break;
+        }
+    }
+    
+    #endregion
+    
+    #region UI Event Handlers - ComboBox Selection Sync
+    
+    private void OnMeetingTypeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        var selectedItem = MeetingTypeComboBox.SelectedItem as ComboBoxItem;
+        _viewModel.MeetingType = selectedItem?.Tag?.ToString() ?? "one_on_one";
+    }
+    
+    private void OnAttendeeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        _viewModel.SelectedAttendee = AttendeeComboBox.SelectedItem as TeamMemberDetail;
+    }
+    
+    private void OnPrepVisibilityChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        var selectedItem = PrepVisibilityComboBox.SelectedItem as ComboBoxItem;
+        _viewModel.NewPrepVisibility = selectedItem?.Tag?.ToString() ?? "personal";
+    }
+    
+    private void OnDurationChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        var selectedItem = DurationComboBox.SelectedItem as ComboBoxItem;
+        if (int.TryParse(selectedItem?.Tag?.ToString(), out var duration))
+        {
+            _viewModel.DurationMinutes = duration;
+        }
+    }
+    
+    private async void OnTeamPickerChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        var teamPicker = sender as ComboBox;
+        if (teamPicker?.SelectedItem is Team team)
+        {
+            await _viewModel.OnTeamSelectedAsync(team);
+            
+            // Refresh the team attendees list
+            var teamAttendeesListBox = this.FindControl<ItemsControl>("TeamAttendeesListBox");
+            if (teamAttendeesListBox != null)
+            {
+                teamAttendeesListBox.ItemsSource = null;
+                teamAttendeesListBox.ItemsSource = _viewModel.SelectableAttendees;
+            }
+            
+            var hint = this.FindControl<TextBlock>("TeamPickerHint");
+            if (hint != null)
+            {
+                var count = _viewModel.SelectableAttendees.Count(m => m.IsSelected);
+                hint.Text = $"Selected {count} members from {team.Name}";
+            }
+        }
+    }
+    
+    #endregion
+    
+    #region UI Event Handlers - Tab Navigation
+    
+    private void PrepTab_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.SetPrepTabCommand.Execute(null);
+    }
+    
+    private void AgendaTab_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.SetAgendaTabCommand.Execute(null);
+    }
+    
+    private void NotesTab_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.SetNotesTabCommand.Execute(null);
+    }
+    
+    private void UpdateTabVisuals()
+    {
+        PrepTabButton.Classes.Set("selected", _viewModel.IsPrepTabActive);
+        AgendaTabButton.Classes.Set("selected", _viewModel.IsAgendaTabActive);
+        NotesTabButton.Classes.Set("selected", _viewModel.IsNotesTabActive);
+        
+        PrepTabContent.IsVisible = _viewModel.IsPrepTabActive;
+        AgendaTabContent.IsVisible = _viewModel.IsAgendaTabActive;
+        NotesTabContent.IsVisible = _viewModel.IsNotesTabActive;
+    }
+    
+    #endregion
+    
+    #region UI Event Handlers - Prep Items
+    
+    private void AddPrepItem_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.ShowAddPrepPanelCommand.Execute(null);
+    }
+    
+    private void CancelAddPrep_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.CancelAddPrepCommand.Execute(null);
+    }
+    
+    private async void ConfirmAddPrep_Click(object? sender, RoutedEventArgs e)
+    {
+        await _viewModel.ConfirmAddPrepCommand.ExecuteAsync(null);
+    }
+    
+    private void NewPrepTitleTextBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _ = _viewModel.ConfirmAddPrepCommand.ExecuteAsync(null);
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _viewModel.CancelAddPrepCommand.Execute(null);
+        }
+    }
+    
+    private async void AddFromExistingPrep_Click(object? sender, RoutedEventArgs e)
+    {
+        var picker = new EntityPickerDialog();
+        await picker.ShowDialog(this);
+        
+        if (picker.Result != null)
+        {
+            var result = new EntityPickerResult
+            {
+                EntityType = picker.Result.EntityType,
+                EntityId = picker.Result.EntityId,
+                EntityTitle = picker.Result.EntityTitle
+            };
+            await _viewModel.AddFromExistingPrepCommand.ExecuteAsync(result);
+        }
+    }
+    
+    private async void EditPrepItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is MeetingPrepItem item)
+        {
+            var dialog = new EditPrepItemDialog(item);
+            
+            var attendees = _viewModel.PrepAssignees.Select(m => new MeetingAttendee
+            {
+                TeamMemberId = m.Id,
+                Name = m.FullName
+            }).ToList();
+            var currentTeamMemberId = AuthService.Instance.CurrentTeamMember?.Id ?? Guid.Empty;
+            dialog.SetAttendees(attendees, currentTeamMemberId);
+            
+            var result = await dialog.ShowDialog<bool>(this);
+            
+            if (result && dialog.UpdatedItem != null)
+            {
+                var index = _viewModel.PrepItems.IndexOf(item);
+                if (index >= 0)
+                {
+                    _viewModel.PrepItems[index] = dialog.UpdatedItem;
+                }
+            }
+        }
+    }
+    
+    private async void DeletePrepItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is MeetingPrepItem item)
+        {
+            await _viewModel.DeletePrepItemCommand.ExecuteAsync(item);
+        }
+    }
+    
+    private void PrepItem_CheckedChanged(object? sender, RoutedEventArgs e)
+    {
+        // Status updates are handled through binding - this is just for visual feedback
+    }
+    
+    #endregion
+    
+    #region UI Event Handlers - Agenda Items
+    
+    private void AddAgendaItem_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.ShowAddAgendaPanelCommand.Execute(null);
+    }
+    
+    private void CancelAddAgenda_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.CancelAddAgendaCommand.Execute(null);
+    }
+    
+    private async void ConfirmAddAgenda_Click(object? sender, RoutedEventArgs e)
+    {
+        await _viewModel.ConfirmAddAgendaCommand.ExecuteAsync(null);
+    }
+    
+    private void NewAgendaTitleTextBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _ = _viewModel.ConfirmAddAgendaCommand.ExecuteAsync(null);
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _viewModel.CancelAddAgendaCommand.Execute(null);
+        }
+    }
+    
+    private async void LinkExistingAgendaItem_Click(object? sender, RoutedEventArgs e)
+    {
+        var picker = new EntityPickerDialog();
+        await picker.ShowDialog(this);
+        
+        if (picker.Result != null)
+        {
+            var result = new EntityPickerResult
+            {
+                EntityType = picker.Result.EntityType,
+                EntityId = picker.Result.EntityId,
+                EntityTitle = picker.Result.EntityTitle
+            };
+            await _viewModel.LinkExistingAgendaItemCommand.ExecuteAsync(result);
+        }
+    }
+    
+    private async void EditAgendaItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is DialogAgendaItem item)
+        {
+            var dialog = new EditAgendaItemDialog(item);
+            await dialog.ShowDialog(this);
+            
+            if (dialog.Result != null && dialog.Result.WasSaved)
+            {
+                item.Title = dialog.Result.Title;
+                item.DisplayTitle = dialog.Result.DisplayTitle;
+                item.SharedContext = dialog.Result.SharedContext;
+                item.PrivateContext = dialog.Result.PrivateContext;
+                item.VisibilityScope = dialog.Result.VisibilityScope;
+                item.TalkingPoints = dialog.Result.TalkingPoints;
+                
+                if (_viewModel.IsEditing && item.Id != Guid.Empty)
+                {
+                    await MeetingAgendaItemService.Instance.UpdateAgendaItemAsync(
+                        item.Id,
+                        title: item.Title,
+                        displayTitle: item.DisplayTitle,
+                        sharedContext: item.SharedContext,
+                        privateContext: item.PrivateContext,
+                        visibilityScope: item.VisibilityScope,
+                        talkingPoints: item.TalkingPoints);
+                }
+            }
+        }
+    }
+    
+    private async void DeleteAgendaItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is DialogAgendaItem item)
+        {
+            await _viewModel.DeleteAgendaItemCommand.ExecuteAsync(item);
+        }
+    }
+    
+    #endregion
+    
+    #region UI Event Handlers - Dialog Actions
+    
+    private void CancelButton_Click(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.CancelCommand.Execute(null);
+    }
+    
+    private void CancelBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _viewModel.CancelCommand.Execute(null);
+    }
+    
+    private void SaveBorder_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _ = _viewModel.SaveCommand.ExecuteAsync(null);
+    }
+    
+    private async void SaveButton_Click(object? sender, RoutedEventArgs e)
+    {
+        await _viewModel.SaveCommand.ExecuteAsync(null);
+    }
+    
+    private async void DeleteButton_Click(object? sender, RoutedEventArgs e)
+    {
+        await _viewModel.DeleteCommand.ExecuteAsync(null);
+    }
+    
+    #endregion
+    
+    #region Private Helpers
+    
+    private void UpdateAttendeeVisibility()
+    {
+        AttendeeSection.IsVisible = _viewModel.ShowAttendeeSelector;
+        
+        var teamAttendeesSection = this.FindControl<StackPanel>("TeamAttendeesSection");
+        if (teamAttendeesSection != null)
+        {
+            teamAttendeesSection.IsVisible = _viewModel.ShowTeamAttendeesSelector;
+        }
+    }
+    
+    private static void SelectComboBoxByTag(ComboBox comboBox, string tag)
+    {
+        for (int i = 0; i < comboBox.Items.Count; i++)
+        {
+            var item = comboBox.Items[i] as ComboBoxItem;
+            if (item?.Tag?.ToString() == tag)
+            {
+                comboBox.SelectedIndex = i;
+                return;
+            }
+        }
+    }
+    
+    #endregion
+}

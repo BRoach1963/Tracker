@@ -370,36 +370,115 @@ private class LocalSettings
 ## Meeting Sub-Services
 
 ### MeetingAgendaItemService
-- `GetAgendaItemsAsync(meetingId)` - Get agenda items for meeting
-- `CreateAgendaItemAsync(item)` - Create new item
-- `UpdateAgendaItemAsync(item)` - Update item
-- `ReorderAgendaItemsAsync(meetingId, orderedIds)` - Change order
-- `DeleteAgendaItemAsync(itemId)` - Soft delete
+
+Uses `procohere.` schema RPC functions for all CRUD operations.
+
+**RPCs Used:**
+- `insert_meeting_agenda_item` - Create with optional entity link (also writes to link table)
+- `update_meeting_agenda_item` - Update item fields + handles linking internally
+- `delete_meeting_agenda_item` - Soft delete
+- `upsert_meeting_agenda_item_reference_link` - Create/update the reference link (called by update RPC)
+- `delete_meeting_agenda_item_reference_link` - Remove the reference link (called by update RPC)
+
+**Read View:**
+- `v_meeting_agenda_items_with_links` - Agenda items with flattened reference link + `links_json`
+
+**Methods:**
+| Method | RPC/View | Description |
+|--------|----------|-------------|
+| `GetAgendaItemsAsync(meetingId)` | `v_meeting_agenda_items_with_links` | Get agenda items with links |
+| `CreateAgendaItemAsync(item)` | `insert_meeting_agenda_item` | Create new item |
+| `UpdateAgendaItemAsync(item)` | `update_meeting_agenda_item` | Update item (handles links internally) |
+| `DeleteAgendaItemAsync(itemId)` | `delete_meeting_agenda_item` | Soft delete |
+| `LinkToEntityAsync(...)` | `upsert_meeting_agenda_item_reference_link` | Link to entity |
+| `UnlinkEntityAsync(...)` | `delete_meeting_agenda_item_reference_link` | Remove reference link |
+| `CreateTaskFromAgendaItemAsync(...)` | Task create + `upsert_meeting_agenda_item_reference_link` | Create task and link it |
+| `ReorderAgendaItemsAsync(meetingId, orderedIds)` | Multiple updates | Change order |
+
+**Link Management (Reference Link Only):**
+
+The link table is constrained to one `'reference'` link per agenda item. The `update_meeting_agenda_item` RPC handles linking/unlinking internally:
+- If `p_linked_entity_type` AND `p_linked_entity_id` are provided → upsert link
+- If both are NULL → unlink
+- If only one is provided → throws exception
+
+```csharp
+// Link via update RPC (recommended - atomic)
+await UpdateAgendaItemAsync(item); // If item has linked entity fields set
+
+// Or call link RPC directly
+await LinkToEntityAsync(agendaItemId, "task", taskId, taskTitle);
+
+// Unlink
+await UnlinkEntityAsync(agendaItemId);
+```
+
+**Allowed Entity Types:** 
+- Defined in `procohere.allowed_entity_types` lookup table
+- Currently: `task`, `goal`, `metric`, `project`
+- RPC validates `is_active = true` before allowing links
+- Add new types via INSERT (no schema change required)
+
+**Entity Type Picklist:**
+```csharp
+// Fetch allowed types for UI
+var types = await client.From<AllowedEntityType>()
+    .Filter("is_active", Operator.Equals, true)
+    .Order("sort_order", Ordering.Ascending)
+    .Get();
+```
 
 ### MeetingPrepItemService
-- `GetPrepItemsForMeetingAsync(meetingId)` - Get prep items visible to user
-- `CreatePrepItemAsync(item)` - Create new prep item
-- `UpdatePrepItemAsync(item)` - Update prep item (includes enhanced fields)
-- `UpdateStatusAsync(prepItemId, status)` - Update status with tracking
-- `DeletePrepItemAsync(prepItemId)` - Soft delete
-- **Helper Methods:**
-  - `CreateQuickPrepAsync(meetingId, title)` - Personal prep item
-  - `CreateAssignedPrepAsync(meetingId, title, assigneeId, body?, dueAt?)` - Assigned prep
-  - `CreateTeamPrepAsync(meetingId, title, body?)` - Team/meeting-scoped prep
-- **Enhanced Prep Methods:**
-  - `CreateLinkedPrepAsync(meetingId, entityType, entityId, entityTitle, prompt?, visibility?)` - Linked entity prep
-  - `CapturePrepResponseAsync(prepItemId, response)` - Capture preparation thinking
-  - `UpdatePrepPromptAsync(prepItemId, prompt)` - Update prep prompt
-  - `LinkEntityAsync(prepItemId, entityType, entityId, entityTitle)` - Link entity
-  - `UnlinkEntityAsync(prepItemId)` - Remove linked entity
-  - `GetPrepItemsForEntityAsync(entityType, entityId)` - Get prep items for entity
-  - `CarryForwardPrepItemsAsync(fromMeetingId, toMeetingId)` - Carry forward incomplete items
+
+Uses role-based RPCs for updates (requester vs assignee).
+
+**RPCs Used:**
+- `insert_meeting_prep_item` - Create (supports linked entity at insert time)
+- `update_meeting_prep_item_as_requester` - Update by requester (title, body, assignment, etc.)
+- `update_meeting_prep_item_as_assignee` - Update by assignee (notes, response, status)
+- `delete_meeting_prep_item` - Soft delete
+- `insert_meeting_prep_item_link` - Add entity link
+
+**Methods:**
+| Method | RPC | Description |
+|--------|-----|-------------|
+| `GetPrepItemsForMeetingAsync(meetingId)` | SELECT | Get prep items visible to user |
+| `CreatePrepItemAsync(item)` | `insert_meeting_prep_item` | Create new prep item |
+| `UpdatePrepItemAsync(item)` | `update_meeting_prep_item_as_*` | Update (dispatches by role) |
+| `UpdateStatusAsync(prepItemId, status)` | `update_meeting_prep_item_as_*` | Update status |
+| `DeletePrepItemAsync(prepItemId)` | `delete_meeting_prep_item` | Soft delete |
+| `CreateQuickPrepAsync(meetingId, title)` | `insert_meeting_prep_item` | Personal prep item |
+| `CreateAssignedPrepAsync(...)` | `insert_meeting_prep_item` | Assigned prep |
+| `CreateTeamPrepAsync(meetingId, title, body?)` | `insert_meeting_prep_item` | Team/meeting-scoped prep |
+| `CreateLinkedPrepAsync(...)` | `insert_meeting_prep_item` | Linked entity prep |
+| `CapturePrepResponseAsync(prepItemId, response)` | `update_meeting_prep_item_as_assignee` | Capture prep response |
+| `UpdatePrepPromptAsync(prepItemId, prompt)` | `update_meeting_prep_item_as_requester` | Update prep prompt |
+| `LinkEntityAsync(prepItemId, ...)` | `insert_meeting_prep_item_link` | Link entity |
+| `UnlinkEntityAsync(prepItemId)` | Direct table delete | Remove linked entity |
+| `GetPrepItemsForEntityAsync(entityType, entityId)` | SELECT | Get prep items for entity |
+| `CarryForwardPrepItemsAsync(...)` | `insert_meeting_prep_item` | Carry forward incomplete items |
+
+**Note:** Linked entity fields are only supported at insert time. To update links, delete and recreate the link.
 
 ### MeetingNoteService
-- `GetMeetingNotesAsync(meetingId)` - Get notes for meeting
-- `CreateMeetingNoteAsync(note)` - Create new note
-- `UpdateMeetingNoteAsync(note)` - Update note
-- `DeleteMeetingNoteAsync(noteId)` - Soft delete
+
+**RPCs Used:**
+- `insert_meeting_note(p_meeting_id, p_content, p_is_shared)` - Create
+- `update_meeting_note(p_id, p_content, p_is_shared)` - Update
+- `delete_meeting_note(p_id)` - Soft delete
+
+**Important:** Uses `p_is_shared` (NOT `p_is_private`). Invert the app's `isPrivate` flag:
+```csharp
+new KeyValuePair<string, object>("p_is_shared", !isPrivate)
+```
+
+**Methods:**
+| Method | RPC | Description |
+|--------|-----|-------------|
+| `GetMeetingNotesAsync(meetingId)` | SELECT | Get notes for meeting |
+| `CreateMeetingNoteAsync(meetingId, content, isPrivate)` | `insert_meeting_note` | Create new note |
+| `UpdateMeetingNoteAsync(noteId, content, isPrivate)` | `update_meeting_note` | Update note |
+| `DeleteMeetingNoteAsync(noteId)` | `delete_meeting_note` | Soft delete |
 
 ### MeetingTemplateService
 - `GetTemplatesAsync()` - Get all templates

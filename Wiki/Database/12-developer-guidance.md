@@ -165,7 +165,60 @@ If you think a GRANT change is needed, stop and document why.
 
 ---
 
-## 10. Review Checklist Before Merging
+## 10. Supabase C# Client RLS Workaround
+
+### The Problem
+
+The Supabase C# client v1.1.1 has a **critical limitation**: when using `SetSession()` to sync authentication, the Postgrest module does not inherit the Authorization header. This causes `auth.uid()` to return NULL during INSERT/UPDATE/DELETE operations, resulting in RLS policy violations.
+
+**Symptoms:**
+- SELECT queries work fine (different RLS conditions)
+- INSERT fails with `"new row violates row-level security policy"`
+- The client shows a valid session/token when logged
+- Database data is correct (user exists, flags are true, etc.)
+
+### The Solution
+
+Use **SECURITY DEFINER RPC functions** instead of direct `.Insert()` calls.
+
+Pattern:
+```csharp
+// WRONG - will fail with RLS error
+var result = await client.From<MeetingDetail>().Insert(meeting);
+
+// CORRECT - use RPC
+var rpcResult = await client.Rpc("insert_meeting", new {
+    p_id = meeting.Id,
+    p_organization_id = orgId,
+    // ... other params
+});
+```
+
+### Affected Operations
+
+All INSERT operations to `procohere` schema tables require RPC wrappers. See **07-functions-reference.md** for the complete list of available RPCs.
+
+### Tables Requiring RPC
+
+| Table | RPC Function |
+|-------|--------------|
+| meetings | `insert_meeting` |
+| meeting_attendees | `insert_meeting_attendee` |
+| meeting_agenda_items | `insert_meeting_agenda_item` |
+| meeting_prep_items | `insert_meeting_prep_item` |
+| meeting_notes | `insert_meeting_note` |
+| *(others TBD as needed)* | |
+
+### Long-Term Fix
+
+Options being considered:
+1. Upgrade Supabase C# client if/when fixed
+2. Patch the client to properly pass headers
+3. Continue using RPC pattern (stable, works with RLS)
+
+---
+
+## 11. Review Checklist Before Merging
 
 Before merging DB changes, confirm:
 
@@ -180,7 +233,7 @@ If any answer is “I’m not sure”, do not merge.
 
 ---
 
-## 11. Final Word
+## 12. Final Word
 
 This database is intentionally strict.
 

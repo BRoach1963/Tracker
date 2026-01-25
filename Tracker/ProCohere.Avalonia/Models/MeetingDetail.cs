@@ -834,16 +834,22 @@ public class MeetingAttendee : BaseModel
     /// <summary>
     /// Team member name (set by service after join with team_members).
     /// </summary>
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Team member email (set by service).
     /// </summary>
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
     /// Avatar URL for the attendee (set by service from team member).
     /// </summary>
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
     public string? AvatarUrl { get; set; }
 
     /// <summary>

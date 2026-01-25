@@ -39,8 +39,19 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
+    #region From team_members table (no prefix)
+
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("linked_user_id")]
+    public Guid? LinkedUserId { get; set; }
+
+    [Column("role_id")]
+    public Guid RoleId { get; set; }
 
     [Column("first_name")]
     public string FirstName { get; set; } = string.Empty;
@@ -48,23 +59,24 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     [Column("last_name")]
     public string LastName { get; set; } = string.Empty;
 
-    [Column("job_title")]
-    public string? JobTitle { get; set; }
+    [Column("display_name")]
+    public string? DisplayName { get; set; }
 
     [Column("email")]
     public string Email { get; set; } = string.Empty;
 
-    [Column("user_avatar_url")]
-    public string? AvatarUrl { get; set; }
+    [Column("job_title")]
+    public string? JobTitle { get; set; }
 
-    // NOTE: manager_user_id doesn't exist in DB - hierarchy uses manager_team_member_id
-    // This is a computed property set by the service layer
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    public Guid? ManagerUserId { get; set; }
+    [Column("manager_team_member_id")]
+    public Guid? ManagerTeamMemberId { get; set; }
 
-    [Column("user_phone")]
-    public string? Phone { get; set; }
+    [Column("linkedin_url")]
+    public string? LinkedInUrl { get; set; }
+
+    #endregion
+
+    #region From users table (no prefix - passed through)
 
     [Column("birthday")]
     public DateTime? Birthday { get; set; }
@@ -72,26 +84,28 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     [Column("hire_date")]
     public DateTime? HireDate { get; set; }
 
-    /// <summary>
-    /// LinkedIn URL - not in v_team_members view, set by service from team_members table if needed.
-    /// </summary>
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    public string? LinkedInUrl { get; set; }
+    #endregion
 
-    /// <summary>
-    /// X/Twitter profile URL - not in v_team_members view, set by service if needed.
-    /// </summary>
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    public string? XProfileUrl { get; set; }
+    #region From users table (with user_ prefix)
 
-    /// <summary>
-    /// Notes about the team member - not in v_team_members view, set by service if needed.
-    /// </summary>
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    public string? Notes { get; set; }
+    [Column("user_email")]
+    public string? UserEmail { get; set; }
+
+    [Column("user_display_name")]
+    public string? UserDisplayName { get; set; }
+
+    [Column("user_avatar_url")]
+    public string? UserAvatarUrl { get; set; }
+
+    [Column("user_phone")]
+    public string? UserPhone { get; set; }
+
+    [Column("user_timezone")]
+    public string? UserTimezone { get; set; }
+
+    #endregion
+
+    #region Status and Audit
 
     [Column("is_active")]
     public bool IsActive { get; set; }
@@ -99,13 +113,17 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 
-    #region Hierarchy Properties (from database)
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
 
-    /// <summary>
-    /// FK to the manager's team_member record.
-    /// </summary>
-    [Column("manager_team_member_id")]
-    public Guid? ManagerTeamMemberId { get; set; }
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
 
     #endregion
 
@@ -358,14 +376,9 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     public bool HasLinkedIn => !string.IsNullOrWhiteSpace(LinkedInUrl);
 
     /// <summary>
-    /// Has X (Twitter) profile.
+    /// Has phone number (from linked user account).
     /// </summary>
-    public bool HasXProfile => !string.IsNullOrWhiteSpace(XProfileUrl);
-
-    /// <summary>
-    /// Has phone number.
-    /// </summary>
-    public bool HasPhone => !string.IsNullOrWhiteSpace(Phone);
+    public bool HasPhone => !string.IsNullOrWhiteSpace(UserPhone);
 
     #endregion
 }

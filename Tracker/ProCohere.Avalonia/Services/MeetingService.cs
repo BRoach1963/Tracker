@@ -159,8 +159,15 @@ public class MeetingService
         {
             var orgId = session.TeamMember.OrganizationId;
             var creatorId = session.TeamMember.Id;
+            var authUserId = AuthService.Instance.CurrentUser?.Id;
 
-            Log($"Creating meeting: {meeting.Title} for org={orgId}");
+            Log($"Creating meeting: {meeting.Title}");
+            Log($"  Auth user ID: {authUserId}");
+            Log($"  Session org ID: {orgId}");
+            Log($"  Session team member ID: {creatorId}");
+            Log($"  Session TeamMember.LinkedUserId: {session.TeamMember.LinkedUserId}");
+            Log($"  ProCohere client has session: {client.Auth.CurrentSession != null}");
+            Log($"  ProCohere client access token: {client.Auth.CurrentSession?.AccessToken?.Substring(0, 20) ?? "NULL"}...");
 
             // Set required fields
             meeting.Id = Guid.NewGuid();
@@ -171,35 +178,50 @@ public class MeetingService
             meeting.CreatedAt = DateTime.UtcNow;
             meeting.UpdatedAt = DateTime.UtcNow;
 
-            // Insert the meeting
-            var result = await client.From<MeetingDetail>().Insert(meeting);
-            var createdMeeting = result.Models?.FirstOrDefault();
-
-            if (createdMeeting == null)
+            // Use RPC to insert meeting (bypasses RLS issues with direct INSERT)
+            Log($"Calling insert_meeting RPC...");
+            var rpcResult = await client.Rpc("insert_meeting", new
             {
-                LastError = "Failed to create meeting";
-                Log($"CreateMeeting ERROR: Insert returned no model");
+                p_id = meeting.Id,
+                p_organization_id = orgId,
+                p_title = meeting.Title,
+                p_meeting_type = meeting.MeetingType,
+                p_status = meeting.Status,
+                p_scheduled_at = meeting.ScheduledAt,
+                p_duration_minutes = meeting.DurationMinutes,
+                p_location = meeting.Location,
+                p_video_link = meeting.VideoLink,
+                p_description = meeting.Description,
+                p_created_by = creatorId
+            });
+
+            Log($"RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content == null || rpcResult.Content.Contains("error"))
+            {
+                LastError = rpcResult?.Content ?? "Failed to create meeting via RPC";
+                Log($"CreateMeeting ERROR: {LastError}");
                 return null;
             }
 
+            var createdMeeting = meeting; // The meeting object has all the data we need
+            createdMeeting.Id = meeting.Id; // ID was set above
+
             Log($"Meeting created: {createdMeeting.Id}");
 
-            // CRITICAL: Add creator as organizer attendee immediately
-            var organizerAttendee = new MeetingAttendee
+            // CRITICAL: Add creator as organizer attendee immediately (via RPC)
+            var organizerAttendeeId = Guid.NewGuid();
+            Log($"Adding creator as organizer attendee via RPC...");
+            var orgAttendeeResult = await client.Rpc("insert_meeting_attendee", new
             {
-                Id = Guid.NewGuid(),
-                OrganizationId = orgId,
-                MeetingId = createdMeeting.Id,
-                TeamMemberId = creatorId,
-                Role = "organizer",
-                ResponseStatus = "accepted",
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            await client.From<MeetingAttendee>().Insert(organizerAttendee);
-            Log($"Added creator as organizer attendee");
+                p_id = organizerAttendeeId,
+                p_organization_id = orgId,
+                p_meeting_id = createdMeeting.Id,
+                p_team_member_id = creatorId,
+                p_role = "organizer",
+                p_response_status = "accepted"
+            });
+            Log($"Organizer attendee RPC result: {orgAttendeeResult?.Content ?? "NULL"}");
 
             // Add additional attendees if provided
             if (additionalAttendeeIds != null && additionalAttendeeIds.Count > 0)
@@ -209,20 +231,16 @@ public class MeetingService
                     // Skip if same as creator (already added as organizer)
                     if (attendeeId == creatorId) continue;
 
-                    var attendee = new MeetingAttendee
+                    var newAttendeeId = Guid.NewGuid();
+                    await client.Rpc("insert_meeting_attendee", new
                     {
-                        Id = Guid.NewGuid(),
-                        OrganizationId = orgId,
-                        MeetingId = createdMeeting.Id,
-                        TeamMemberId = attendeeId,
-                        Role = "attendee",
-                        ResponseStatus = "pending",
-                        IsDeleted = false,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    await client.From<MeetingAttendee>().Insert(attendee);
+                        p_id = newAttendeeId,
+                        p_organization_id = orgId,
+                        p_meeting_id = createdMeeting.Id,
+                        p_team_member_id = attendeeId,
+                        p_role = "attendee",
+                        p_response_status = "pending"
+                    });
                     Log($"Added attendee: {attendeeId}");
                 }
             }
@@ -257,11 +275,26 @@ public class MeetingService
         {
             Log($"Updating meeting: {meeting.Id}");
 
-            meeting.UpdatedAt = DateTime.UtcNow;
+            var rpcResult = await client.Rpc("update_meeting", new
+            {
+                p_id = meeting.Id,
+                p_title = meeting.Title,
+                p_description = meeting.Description,
+                p_meeting_type = meeting.MeetingType,
+                p_status = meeting.Status,
+                p_scheduled_at = meeting.ScheduledAt,
+                p_duration_minutes = meeting.DurationMinutes,
+                p_location = meeting.Location,
+                p_video_link = meeting.VideoLink
+            });
 
-            await client.From<MeetingDetail>()
-                .Filter("id", Operator.Equals, meeting.Id.ToString())
-                .Update(meeting);
+            Log($"Update RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                return false;
+            }
 
             Log($"Meeting updated: {meeting.Id}");
             return true;
@@ -293,15 +326,18 @@ public class MeetingService
         {
             Log($"Deleting meeting: {meetingId}");
 
-            // Get the deleter's team member ID for deleted_by
-            var deletedBy = session.TeamMember.Id;
-            
-            await client.From<MeetingDetail>()
-                .Filter("id", Operator.Equals, meetingId.ToString())
-                .Set(m => m.IsDeleted, true)
-                .Set(m => m.DeletedAt!, DateTime.UtcNow)
-                .Set(m => m.DeletedBy!, deletedBy)
-                .Update();
+            var rpcResult = await client.Rpc("delete_meeting", new
+            {
+                p_id = meetingId
+            });
+
+            Log($"Delete RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                return false;
+            }
 
             Log($"Meeting deleted: {meetingId}");
             return true;
@@ -374,10 +410,27 @@ public class MeetingService
                 UpdatedAt = DateTime.UtcNow
             };
 
-            var result = await client.From<MeetingAttendee>().Insert(newAttendee);
-            Log($"Attendee added: {teamMemberId}");
+            // Use RPC to insert (bypasses RLS issues with direct INSERT)
+            var rpcResult = await client.Rpc("insert_meeting_attendee", new
+            {
+                p_id = newAttendee.Id,
+                p_organization_id = orgId,
+                p_meeting_id = meetingId,
+                p_team_member_id = teamMemberId,
+                p_role = role
+            });
 
-            return result.Models?.FirstOrDefault();
+            Log($"Insert attendee RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"AddAttendee ERROR: {LastError}");
+                return null;
+            }
+
+            Log($"Attendee added: {teamMemberId}");
+            return newAttendee;
         }
         catch (Exception ex)
         {
@@ -616,7 +669,7 @@ public class MeetingService
             {
                 attendee.Name = member.FullName;
                 attendee.Email = member.Email ?? string.Empty;
-                attendee.AvatarUrl = member.AvatarUrl;
+                attendee.AvatarUrl = member.UserAvatarUrl;
             }
         }
     }

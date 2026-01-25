@@ -281,4 +281,291 @@ public class TeamService
     }
 
     #endregion
+
+    #region Team Management
+
+    /// <summary>
+    /// Gets all teams in the organization.
+    /// </summary>
+    /// <returns>List of all active teams.</returns>
+    public async Task<List<Team>> GetAllTeamsAsync()
+    {
+        Log("GetAllTeamsAsync starting...");
+        LastError = null;
+
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            Log($"ERROR: {LastError}");
+            return new List<Team>();
+        }
+
+        try
+        {
+            var result = await client.From<Team>()
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Order("name", Ordering.Ascending)
+                .Get();
+
+            var teams = result.Models ?? new List<Team>();
+            Log($"Loaded {teams.Count} teams");
+
+            // Populate member counts via membership service
+            foreach (var team in teams)
+            {
+                var memberships = await TeamMembershipService.Instance.GetMembersForTeamAsync(team.Id);
+                team.Members.Clear();
+                foreach (var m in memberships)
+                {
+                    if (m.Member != null)
+                        team.Members.Add(m.Member);
+                }
+            }
+
+            return teams;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"ERROR: {ex.Message}");
+            return new List<Team>();
+        }
+    }
+
+    /// <summary>
+    /// Gets a team by ID with members populated.
+    /// </summary>
+    /// <param name="teamId">The team's ID.</param>
+    /// <returns>The team with members populated, or null if not found.</returns>
+    public async Task<Team?> GetTeamDetailAsync(Guid teamId)
+    {
+        Log($"GetTeamDetailAsync for team={teamId}...");
+        LastError = null;
+
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            Log($"ERROR: {LastError}");
+            return null;
+        }
+
+        try
+        {
+            var team = await client.From<Team>()
+                .Filter("id", Operator.Equals, teamId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Single();
+
+            if (team == null)
+            {
+                LastError = "Team not found";
+                return null;
+            }
+
+            // Populate members
+            var memberships = await TeamMembershipService.Instance.GetMembersForTeamAsync(teamId);
+            team.Members.Clear();
+            foreach (var m in memberships)
+            {
+                if (m.Member != null)
+                    team.Members.Add(m.Member);
+            }
+
+            // Populate lead if set
+            if (team.LeadTeamMemberId.HasValue)
+            {
+                var leadMembership = memberships.FirstOrDefault(m => m.TeamMemberId == team.LeadTeamMemberId.Value);
+                team.Lead = leadMembership?.Member;
+            }
+
+            Log($"Loaded team '{team.Name}' with {team.Members.Count} members");
+            return team;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"ERROR: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a new team.
+    /// </summary>
+    /// <param name="name">Team name (required).</param>
+    /// <param name="description">Team description (optional).</param>
+    /// <param name="leadTeamMemberId">Team lead's ID (optional).</param>
+    /// <param name="parentTeamId">Parent team's ID for hierarchy (optional).</param>
+    /// <returns>The created team, or null if failed.</returns>
+    public async Task<Team?> CreateTeamAsync(string name, string? description = null, 
+        Guid? leadTeamMemberId = null, Guid? parentTeamId = null)
+    {
+        Log($"CreateTeamAsync: name='{name}'");
+        LastError = null;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            LastError = "Team name is required";
+            return null;
+        }
+
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            Log($"ERROR: {LastError}");
+            return null;
+        }
+
+        try
+        {
+            var team = new Team
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = session.TeamMember.OrganizationId,
+                Name = name.Trim(),
+                Description = description?.Trim(),
+                LeadTeamMemberId = leadTeamMemberId,
+                ParentTeamId = parentTeamId,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var result = await client.From<Team>()
+                .Insert(team);
+
+            var created = result.Models?.FirstOrDefault();
+            if (created != null)
+            {
+                Log($"Created team: id={created.Id}, name='{created.Name}'");
+
+                // If a lead was specified, add them as a member with 'lead' role
+                if (leadTeamMemberId.HasValue)
+                {
+                    await TeamMembershipService.Instance.AddMemberToTeamAsync(
+                        created.Id, leadTeamMemberId.Value, TeamMembership.RoleLead);
+                }
+
+                return created;
+            }
+
+            LastError = "Insert returned no data";
+            Log($"ERROR: {LastError}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"ERROR: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing team.
+    /// </summary>
+    /// <param name="teamId">The team's ID.</param>
+    /// <param name="name">New team name.</param>
+    /// <param name="description">New description.</param>
+    /// <param name="leadTeamMemberId">New lead (null to clear).</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> UpdateTeamAsync(Guid teamId, string name, string? description = null, 
+        Guid? leadTeamMemberId = null)
+    {
+        Log($"UpdateTeamAsync: id={teamId}, name='{name}'");
+        LastError = null;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            LastError = "Team name is required";
+            return false;
+        }
+
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            Log($"ERROR: {LastError}");
+            return false;
+        }
+
+        try
+        {
+            var result = await client.From<Team>()
+                .Filter("id", Operator.Equals, teamId.ToString())
+                .Set(t => t.Name, name.Trim())
+                .Set(t => t.Description, description?.Trim())
+                .Set(t => t.LeadTeamMemberId, leadTeamMemberId)
+                .Set(t => t.UpdatedAt, DateTime.UtcNow)
+                .Update();
+
+            var success = result.Models?.Count > 0;
+            Log($"UpdateTeamAsync result: {success}");
+            return success;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Soft deletes a team.
+    /// </summary>
+    /// <param name="teamId">The team's ID.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> DeleteTeamAsync(Guid teamId)
+    {
+        Log($"DeleteTeamAsync: id={teamId}");
+        LastError = null;
+
+        var client = AuthService.Instance.GetProCohereClient();
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        if (client == null || session?.TeamMember == null)
+        {
+            LastError = "Not authenticated";
+            Log($"ERROR: {LastError}");
+            return false;
+        }
+
+        try
+        {
+            // Get current user ID for deleted_by
+            var currentUserId = AuthService.Instance.CurrentUser?.Id;
+            Guid? deletedByUserId = null;
+            if (!string.IsNullOrEmpty(currentUserId) && Guid.TryParse(currentUserId, out var parsedUserId))
+            {
+                deletedByUserId = parsedUserId;
+            }
+
+            var result = await client.From<Team>()
+                .Filter("id", Operator.Equals, teamId.ToString())
+                .Set(t => t.IsDeleted, true)
+                .Set(t => t.DeletedAt, DateTime.UtcNow)
+                .Set(t => t.DeletedBy, deletedByUserId)
+                .Set(t => t.UpdatedAt, DateTime.UtcNow)
+                .Update();
+
+            var success = result.Models?.Count > 0;
+            Log($"DeleteTeamAsync result: {success}");
+            return success;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    #endregion
 }

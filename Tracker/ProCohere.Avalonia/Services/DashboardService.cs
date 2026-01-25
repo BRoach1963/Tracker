@@ -146,7 +146,7 @@ public class DashboardService
                     {
                         att.Name = member.FullName;
                         att.Email = member.Email ?? string.Empty;
-                        att.AvatarUrl = member.AvatarUrl;
+                        att.AvatarUrl = member.UserAvatarUrl;
                     }
                 }
                 meeting.Attendees = meetingAttendees;

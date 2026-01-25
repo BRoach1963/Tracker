@@ -1,0 +1,168 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+             x:Class="ProCohere.Avalonia.Views.Controls.Meeting.PrepItemCard"
+             x:DataType="models:MeetingPrepItem">
+    
+    <Border Background="{DynamicResource BrushSurface}" 
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="6" Padding="10" Margin="0,0,0,6">
+        <StackPanel Spacing="6">
+            <!-- Main row -->
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Status/Type indicator for linked items -->
+                <Border Grid.Column="0" 
+                        Width="24" Height="24"
+                        CornerRadius="6"
+                        Background="{Binding StatusColor}"
+                        Margin="0,0,10,0"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding HasLinkedEntity}">
+                    <PathIcon Data="{Binding LinkedEntityIcon}" Width="12" Height="12" Foreground="White"/>
+                </Border>
+                
+                <!-- Checkbox for non-linked items -->
+                <CheckBox Grid.Column="0" 
+                          VerticalAlignment="Center" 
+                          Margin="0,0,8,0"
+                          IsChecked="{Binding IsComplete}"
+                          IsVisible="{Binding !HasLinkedEntity}"/>
+                
+                <!-- Content -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="{Binding EffectiveTitle}" 
+                               FontSize="13"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               TextDecorations="{Binding IsComplete, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                    
+                    <!-- Linked entity subtitle -->
+                    <TextBlock Text="{Binding LinkedEntityTitleSnapshot}" 
+                               FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               IsVisible="{Binding HasLinkedEntity}"/>
+                    
+                    <!-- Assignment/visibility info -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0"
+                                IsVisible="{Binding HasAssigneeOrScope}">
+                        <PathIcon Data="{Binding VisibilityIconPath}" 
+                                  Width="12" Height="12"
+                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                        <TextBlock Text="{Binding AssigneeNameDisplay}" 
+                                   FontSize="11"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   IsVisible="{Binding HasAssignee}"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <!-- Badges and actions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <!-- Prepared badge -->
+                    <Border Background="#10B981"
+                            CornerRadius="4" Padding="6,2"
+                            IsVisible="{Binding IsPrepared}"
+                            ToolTip.Tip="{Binding PreparedStatusDisplay}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                      Width="10" Height="10" Foreground="White"/>
+                            <TextBlock Text="Prepared" FontSize="10" Foreground="White" FontWeight="Medium"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Has prompt badge -->
+                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                            CornerRadius="4" Padding="6,2"
+                            IsVisible="{Binding HasPrepPrompt}"
+                            ToolTip.Tip="{Binding PrepPrompt}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <PathIcon Data="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z"
+                                      Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <TextBlock Text="Prompt" FontSize="10" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Linked type badge -->
+                    <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
+                            CornerRadius="4" Padding="6,2"
+                            IsVisible="{Binding HasLinkedEntity}"
+                            Opacity="0.9">
+                        <TextBlock Text="{Binding LinkedEntityTypeDisplay}" 
+                                   FontSize="10"
+                                   Foreground="White" 
+                                   FontWeight="Medium"/>
+                    </Border>
+                    
+                    <!-- Edit button -->
+                    <Button Classes="icon-button" Padding="4"
+                            ToolTip.Tip="Edit prep item"
+                            Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).EditPrepItemCommand}"
+                            CommandParameter="{Binding}">
+                        <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                  Width="10" Height="10" 
+                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                    </Button>
+                    
+                    <!-- Delete button -->
+                    <Button Classes="icon-button" Padding="4"
+                            ToolTip.Tip="Delete"
+                            Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).DeletePrepItemCommand}"
+                            CommandParameter="{Binding}">
+                        <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                  Width="10" Height="10" 
+                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+            
+            <!-- Prep prompt preview -->
+            <Border Background="{DynamicResource BrushSurfaceAlt}"
+                    CornerRadius="4" Padding="8,6"
+                    Margin="32,0,0,0"
+                    IsVisible="{Binding HasPrepPrompt}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Think about:" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                    <TextBlock Text="{Binding PrepPrompt}" FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               TextWrapping="Wrap" MaxLines="3"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Prep response preview -->
+            <Border Background="#10B98110"
+                    BorderBrush="#10B981" BorderThickness="1"
+                    CornerRadius="4" Padding="8,6"
+                    Margin="32,0,0,0"
+                    IsVisible="{Binding IsPrepared}">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                  Width="10" Height="10" Foreground="#10B981"/>
+                        <TextBlock Text="My preparation:" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="#10B981"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding PrepResponse}" FontSize="11"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               TextWrapping="Wrap" MaxLines="3"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Body preview -->
+            <TextBlock Text="{Binding Body}" FontSize="11"
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       TextTrimming="CharacterEllipsis" MaxLines="2"
+                       TextWrapping="Wrap"
+                       Margin="32,0,0,0">
+                <TextBlock.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="Body" Converter="{x:Static StringConverters.IsNotNullOrEmpty}"/>
+                        <Binding Path="!IsPrepared"/>
+                    </MultiBinding>
+                </TextBlock.IsVisible>
+            </TextBlock>
+        </StackPanel>
+    </Border>
+</UserControl>

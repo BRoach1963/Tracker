@@ -1,0 +1,162 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:dialogs="using:ProCohere.Avalonia.Models.Dialogs"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+             xmlns:local="using:ProCohere.Avalonia.Views.Controls.Meeting"
+             x:Class="ProCohere.Avalonia.Views.Controls.Meeting.AgendaItemsPanel"
+             x:DataType="vm:EditMeetingDialogViewModel">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel Spacing="12">
+            
+            <!-- Section Header -->
+            <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,8">
+                <StackPanel>
+                    <TextBlock Text="AGENDA" 
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushSecondary}" 
+                               Margin="0"/>
+                    <TextBlock Text="Topics to cover in this meeting" 
+                               FontSize="12"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="icon-button" Padding="6" Margin="0,0,4,0"
+                        ToolTip.Tip="Link to existing task, goal, or metric"
+                        Command="{Binding ShowEntityPickerForAgendaCommand}">
+                    <PathIcon Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C6.22,11.88 6.22,7.1 9.17,4.15C12.12,1.2 16.9,1.2 19.85,4.15C22.8,7.1 22.8,11.88 19.85,14.83L18.44,13.41C20.6,11.25 20.6,7.73 18.44,5.56C16.28,3.4 12.76,3.4 10.59,5.56C8.43,7.73 8.43,11.25 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C17.78,12.12 17.78,16.9 14.83,19.85C11.88,22.8 7.1,22.8 4.15,19.85C1.2,16.9 1.2,12.12 4.15,9.17L5.56,10.59C3.4,12.75 3.4,16.27 5.56,18.44C7.73,20.6 11.25,20.6 13.41,18.44C15.58,16.27 15.58,12.75 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" 
+                              Width="14" Height="14"/>
+                </Button>
+                <Button Grid.Column="2"
+                        Classes="icon-button" Padding="6"
+                        ToolTip.Tip="Add new agenda item"
+                        Command="{Binding ShowAddAgendaPanelCommand}">
+                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                              Width="14" Height="14"/>
+                </Button>
+            </Grid>
+            
+            <!-- Add agenda inline form -->
+            <Border Background="{DynamicResource BrushBackground}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1"
+                    CornerRadius="6" Padding="12" 
+                    IsVisible="{Binding IsAddAgendaPanelVisible}">
+                <StackPanel Spacing="12">
+                    <!-- Title -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Topic" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox Text="{Binding NewAgendaTitle}" 
+                                 Watermark="What do you want to discuss?"/>
+                    </StackPanel>
+                    
+                    <!-- Context -->
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="Context" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="(visible to attendees)" FontSize="10"
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding NewAgendaContext}" 
+                                 Watermark="Why are we discussing this? What's changed?"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="50"
+                                 MaxHeight="80"/>
+                    </StackPanel>
+                    
+                    <!-- Talking Points -->
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="Talking Points" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="(optional)" FontSize="10"
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding NewAgendaTalkingPoints}" 
+                                 Watermark="Enter points separated by new lines..."
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="50"
+                                 MaxHeight="100"/>
+                        <TextBlock Text="Each line becomes a talking point you can check off during the meeting"
+                                   FontSize="10" FontStyle="Italic"
+                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                    </StackPanel>
+                    
+                    <!-- Bottom row -->
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <!-- Visibility selector -->
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Visibility" FontSize="10" 
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <ComboBox x:Name="AgendaVisibilityComboBox" 
+                                      SelectedIndex="0"
+                                      MinWidth="160"
+                                      SelectionChanged="AgendaVisibilityComboBox_SelectionChanged">
+                                <ComboBoxItem Tag="meeting">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
+                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBlock Text="All attendees" FontSize="12"/>
+                                    </StackPanel>
+                                </ComboBoxItem>
+                                <ComboBoxItem Tag="personal">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
+                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBlock Text="Only me" FontSize="12"/>
+                                    </StackPanel>
+                                </ComboBoxItem>
+                            </ComboBox>
+                        </StackPanel>
+                        
+                        <!-- Action buttons -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" 
+                                    VerticalAlignment="Bottom">
+                            <Button Content="Cancel" Command="{Binding CancelAddAgendaCommand}" />
+                            <Button Content="Add" Classes="accent" Command="{Binding ConfirmAddAgendaCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
+            <!-- Agenda items list -->
+            <ItemsControl ItemsSource="{Binding AgendaItems}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="dialogs:DialogAgendaItem">
+                        <local:AgendaItemCard />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <!-- Empty state -->
+            <Border Background="{DynamicResource BrushSurface}" 
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="32" 
+                    IsVisible="{Binding !HasAgendaItems}">
+                <StackPanel HorizontalAlignment="Center" Spacing="8">
+                    <Border Width="48" Height="48" CornerRadius="24" 
+                            Background="{DynamicResource BrushSurfaceAlt}">
+                        <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
+                                  Width="24" Height="24" 
+                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                    </Border>
+                    <TextBlock Text="No agenda items yet" FontSize="14" FontWeight="Medium"
+                               Foreground="{DynamicResource BrushTextSecondary}" 
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Add topics or link to existing tasks, goals, or metrics" FontSize="12"
+                               Foreground="{DynamicResource BrushTextTertiary}"
+                               HorizontalAlignment="Center" TextWrapping="Wrap"
+                               TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

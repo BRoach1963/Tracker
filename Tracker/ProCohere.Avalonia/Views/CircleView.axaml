@@ -584,13 +584,13 @@
                                                     <Panel>
                                                         <!-- Initials fallback -->
                                                         <Border Background="{DynamicResource BrushPrimary}" CornerRadius="24"
-                                                                IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                                IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
                                                             <TextBlock Text="{Binding Initials}" FontSize="16" FontWeight="SemiBold"
                                                                        Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <!-- Avatar image -->
-                                                        <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="48" Height="48"
-                                                               IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                        <Image asyncImageLoader:ImageLoader.Source="{Binding UserAvatarUrl}" Stretch="UniformToFill" Width="48" Height="48"
+                                                               IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                     </Panel>
                                                 </Border>
                                                 
@@ -750,13 +750,13 @@
                                                 <Panel>
                                                     <!-- Initials fallback -->
                                                     <Border Background="{DynamicResource BrushPrimary}" CornerRadius="18"
-                                                            IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                                            IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
                                                         <TextBlock Text="{Binding Initials}" FontSize="12" FontWeight="SemiBold"
                                                                    Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                     <!-- Avatar image -->
-                                                    <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
-                                                           IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    <Image asyncImageLoader:ImageLoader.Source="{Binding UserAvatarUrl}" Stretch="UniformToFill" Width="36" Height="36"
+                                                           IsVisible="{Binding UserAvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                 </Panel>
                                             </Border>
                                             

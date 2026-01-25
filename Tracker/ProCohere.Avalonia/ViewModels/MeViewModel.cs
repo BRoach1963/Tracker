@@ -899,6 +899,13 @@ public partial class MeViewModel : ViewModelBase
     {
         Log($"[MeViewModel] Meeting saved: {meeting.Title}");
         
+        // Set current user ID for ownership/organizer checks
+        var currentUserId = AuthService.Instance.CurrentTeamMember?.Id;
+        if (currentUserId.HasValue)
+        {
+            meeting.CurrentUserTeamMemberId = currentUserId;
+        }
+        
         // Add to collection if new
         var existing = MyMeetings.FirstOrDefault(m => m.Id == meeting.Id);
         if (existing == null)

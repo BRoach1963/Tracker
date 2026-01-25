@@ -103,15 +103,24 @@ public class MeetingNoteService
     }
 
     /// <summary>
-    /// Creates a new meeting note.
+    /// Creates a new meeting note using the procohere.insert_meeting_note RPC.
+    /// The RPC returns the new UUID and handles organization_id, author_id internally.
     /// </summary>
-    public async Task<MeetingNote?> CreateNoteAsync(Guid meetingId, string content, bool isPrivate = true)
+    public async Task<MeetingNote?> CreateNoteAsync(
+        Guid meetingId, 
+        string content, 
+        bool isPrivate = true,
+        string? visibilityScope = null,
+        string? sharedContext = null,
+        string? privateContext = null,
+        int? sortOrder = null,
+        Guid? relatedAgendaItemId = null)
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
-        var currentUserId = AuthService.Instance.CurrentProfile?.Id;
+        var session = AuthService.Instance.CurrentSession_ProCohere;
 
-        if (client == null || currentUserId == null)
+        if (client == null || session?.TeamMember == null)
         {
             LastError = "Not authenticated";
             return null;
@@ -119,28 +128,54 @@ public class MeetingNoteService
 
         try
         {
+            var orgId = session.TeamMember.OrganizationId;
+            var authorId = session.TeamMember.Id;
             Log($"Creating note for meeting: {meetingId} (private: {isPrivate})");
 
-            var note = new MeetingNote
+            // Default visibility_scope based on isPrivate
+            visibilityScope ??= isPrivate ? "personal" : "meeting";
+
+            // Use RPC to insert - it returns the new UUID
+            // RPC signature: procohere.insert_meeting_note(p_meeting_id, p_content, p_is_shared)
+            var rpcResult = await client.Rpc("insert_meeting_note", new
             {
-                Id = Guid.NewGuid(),
+                p_meeting_id = meetingId,
+                p_content = content,
+                p_is_shared = !isPrivate  // Note: RPC uses is_shared (inverted from isPrivate)
+            });
+
+            Log($"Insert meeting note RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"CreateNote ERROR: {LastError}");
+                return null;
+            }
+
+            // Parse the returned UUID from the RPC result
+            var newId = ParseUuidFromRpcResult(rpcResult?.Content);
+            if (newId == Guid.Empty)
+            {
+                LastError = "Failed to parse UUID from RPC result";
+                Log($"CreateNote ERROR: {LastError}");
+                return null;
+            }
+
+            // Return a populated item with the database-assigned ID
+            var created = new MeetingNote
+            {
+                Id = newId,
+                OrganizationId = orgId,
                 MeetingId = meetingId,
-                AuthorId = currentUserId.Value,
+                AuthorId = authorId,
                 Content = content,
                 IsShared = !isPrivate,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
-            var result = await client.From<MeetingNote>()
-                .Insert(note);
-
-            var created = result.Models?.FirstOrDefault();
-            if (created != null)
-            {
-                Log($"Note created: {created.Id}");
-            }
-
+            Log($"Note created: {created.Id}");
             return created;
         }
         catch (Exception ex)
@@ -149,6 +184,24 @@ public class MeetingNoteService
             Log($"CreateNote ERROR: {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Parses a UUID from the RPC result content.
+    /// Expected format: "uuid-value" or just the raw UUID string.
+    /// </summary>
+    private Guid ParseUuidFromRpcResult(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return Guid.Empty;
+
+        // Remove quotes if present
+        var cleaned = content.Trim().Trim('"');
+        
+        if (Guid.TryParse(cleaned, out var guid))
+            return guid;
+
+        return Guid.Empty;
     }
 
     /// <summary>
@@ -168,7 +221,8 @@ public class MeetingNoteService
     }
 
     /// <summary>
-    /// Updates a note's content.
+    /// Updates a note's content using the procohere.update_meeting_note RPC.
+    /// Only the author can update a note.
     /// </summary>
     public async Task<MeetingNote?> UpdateNoteAsync(MeetingNote note)
     {
@@ -185,19 +239,27 @@ public class MeetingNoteService
         {
             Log($"Updating note: {note.Id}");
 
-            note.UpdatedAt = DateTime.UtcNow;
-
-            var result = await client.From<MeetingNote>()
-                .Filter("id", Operator.Equals, note.Id.ToString())
-                .Update(note);
-
-            var updated = result.Models?.FirstOrDefault();
-            if (updated != null)
+            // Use RPC to update - only author can update
+            // RPC signature: procohere.update_meeting_note(p_id, p_content, p_is_shared)
+            var rpcResult = await client.Rpc("update_meeting_note", new
             {
-                Log($"Note updated: {updated.Id}");
+                p_id = note.Id,
+                p_content = note.Content,
+                p_is_shared = note.IsShared
+            });
+
+            Log($"Update meeting note RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"UpdateNote ERROR: {LastError}");
+                return null;
             }
 
-            return updated;
+            note.UpdatedAt = DateTime.UtcNow;
+            Log($"Note updated: {note.Id}");
+            return note;
         }
         catch (Exception ex)
         {
@@ -208,7 +270,8 @@ public class MeetingNoteService
     }
 
     /// <summary>
-    /// Deletes a note (hard delete - notes don't use soft delete pattern).
+    /// Deletes a note using the procohere.delete_meeting_note RPC.
+    /// Only the author can delete a note.
     /// </summary>
     public async Task<bool> DeleteNoteAsync(Guid noteId)
     {
@@ -225,9 +288,21 @@ public class MeetingNoteService
         {
             Log($"Deleting note: {noteId}");
 
-            await client.From<MeetingNote>()
-                .Filter("id", Operator.Equals, noteId.ToString())
-                .Delete();
+            // Use RPC to delete - only author can delete
+            // RPC signature: procohere.delete_meeting_note(p_id)
+            var rpcResult = await client.Rpc("delete_meeting_note", new
+            {
+                p_id = noteId
+            });
+
+            Log($"Delete meeting note RPC result: {rpcResult?.Content ?? "NULL"}");
+
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"DeleteNote ERROR: {LastError}");
+                return false;
+            }
 
             Log($"Note deleted: {noteId}");
             return true;
@@ -241,7 +316,7 @@ public class MeetingNoteService
     }
 
     /// <summary>
-    /// Toggles a note between private and shared.
+    /// Toggles a note between private and shared using the update RPC.
     /// </summary>
     public async Task<bool> TogglePrivacyAsync(Guid noteId)
     {
@@ -258,7 +333,7 @@ public class MeetingNoteService
         {
             Log($"Toggling note privacy: {noteId}");
 
-            // First get the note
+            // First get the note to determine current state
             var getResult = await client.From<MeetingNote>()
                 .Filter("id", Operator.Equals, noteId.ToString())
                 .Single();
@@ -269,17 +344,25 @@ public class MeetingNoteService
                 return false;
             }
 
-            // IsShared = false means private, IsShared = true means shared
-            getResult.IsShared = !getResult.IsShared;
-            getResult.UpdatedAt = DateTime.UtcNow;
+            // Toggle: IsShared = false means private, IsShared = true means shared
+            var newIsPrivate = getResult.IsShared; // flip it
 
-            var updateResult = await client.From<MeetingNote>()
-                .Filter("id", Operator.Equals, noteId.ToString())
-                .Update(getResult);
+            // Use RPC to update privacy
+            var rpcResult = await client.Rpc("update_meeting_note", new
+            {
+                p_id = noteId,
+                p_is_shared = !newIsPrivate
+            });
 
-            var success = updateResult.Models?.Count > 0;
-            Log($"Note visibility toggled: {success} (now shared: {getResult.IsShared})");
-            return success;
+            if (rpcResult?.Content?.Contains("error") == true)
+            {
+                LastError = rpcResult.Content;
+                Log($"TogglePrivacy ERROR: {LastError}");
+                return false;
+            }
+
+            Log($"Note visibility toggled: {noteId} (now private: {newIsPrivate})");
+            return true;
         }
         catch (Exception ex)
         {
