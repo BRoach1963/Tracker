@@ -208,12 +208,14 @@ public partial class TasksViewModel : ViewModelBase
             if (task != null)
             {
                 await LoadTasksAsync();
+                NotificationService.Instance.ShowSuccess("Task Created", $"'{task.Title}' has been added.");
                 return true;
             }
             else
             {
                 ErrorMessage = TaskService.Instance.LastError ?? "Failed to create task";
                 HasError = true;
+                NotificationService.Instance.ShowError("Create Failed", ErrorMessage);
                 return false;
             }
         }
@@ -221,6 +223,7 @@ public partial class TasksViewModel : ViewModelBase
         {
             ErrorMessage = ex.Message;
             HasError = true;
+            NotificationService.Instance.ShowError("Create Failed", ex.Message);
             return false;
         }
     }
@@ -247,25 +250,40 @@ public partial class TasksViewModel : ViewModelBase
             if (success)
             {
                 await LoadTasksAsync();
+                var status = task.IsCompleted ? "marked incomplete" : "completed";
+                NotificationService.Instance.ShowSuccess("Task Updated", $"'{task.Title}' has been {status}.");
             }
             else
             {
                 ErrorMessage = TaskService.Instance.LastError;
                 HasError = true;
+                NotificationService.Instance.ShowError("Update Failed", ErrorMessage ?? "Failed to update task");
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
             HasError = true;
+            NotificationService.Instance.ShowError("Update Failed", ex.Message);
         }
     }
 
     [RelayCommand]
     private async Task DeleteTaskAsync(TaskDetail task)
     {
+        // Show confirmation dialog for destructive action
+        var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            "Delete Task",
+            $"Are you sure you want to delete '{task.Title}'? This action cannot be undone.",
+            "Delete Task",
+            "Cancel");
+        
+        if (!confirmed)
+            return;
+
         try
         {
+            var taskTitle = task.Title;
             var success = await TaskService.Instance.DeleteTaskAsync(task.Id);
             if (success)
             {
@@ -275,17 +293,20 @@ public partial class TasksViewModel : ViewModelBase
                     IsTaskDetailOpen = false;
                 }
                 await LoadTasksAsync();
+                NotificationService.Instance.ShowSuccess("Task Deleted", $"'{taskTitle}' has been removed.");
             }
             else
             {
                 ErrorMessage = TaskService.Instance.LastError;
                 HasError = true;
+                NotificationService.Instance.ShowError("Delete Failed", ErrorMessage ?? "Failed to delete task");
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
             HasError = true;
+            NotificationService.Instance.ShowError("Delete Failed", ex.Message);
         }
     }
 

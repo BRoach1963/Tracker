@@ -14,9 +14,17 @@ namespace ProCohere.Avalonia;
 
 public partial class App : Application
 {
+    /// <summary>
+    /// ViewModel for the system tray icon. Set as DataContext for App to enable tray menu bindings.
+    /// </summary>
+    public TrayIconViewModel TrayViewModel { get; } = new();
+    
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        
+        // Set DataContext for tray icon bindings
+        DataContext = TrayViewModel;
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -28,6 +36,9 @@ public partial class App : Application
 
             // Initialize theme service (applies saved theme preference)
             ThemeService.Instance.Initialize();
+            
+            // Initialize system tray service and wire up events
+            InitializeSystemTray(desktop);
 
             // Show splash screen while checking authentication
             var splashWindow = new SplashWindow();
@@ -38,6 +49,67 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+    
+    /// <summary>
+    /// Initializes the system tray service and wires up event handlers.
+    /// </summary>
+    private void InitializeSystemTray(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        SystemTrayService.Instance.Initialize();
+        
+        // Set up visibility check for NotificationService (to know when to show native toasts)
+        NotificationService.Instance.IsMainWindowVisible = () =>
+        {
+            return desktop.MainWindow?.IsVisible == true;
+        };
+        
+        // When user clicks "Open" or double-clicks tray icon
+        SystemTrayService.Instance.ShowWindowRequested += (_, _) =>
+        {
+            if (desktop.MainWindow != null)
+            {
+                desktop.MainWindow.Show();
+                desktop.MainWindow.WindowState = global::Avalonia.Controls.WindowState.Normal;
+                desktop.MainWindow.Activate();
+            }
+        };
+        
+        // When user clicks "Exit" in tray menu
+        SystemTrayService.Instance.ExitRequested += (_, _) =>
+        {
+            // Close all toasts
+            NotificationService.Instance.CloseAllToasts();
+            
+            // Clear native toast history on exit
+            ClearNativeToasts();
+            
+            // Set flag to force close (bypass minimize-to-tray)
+            if (desktop.MainWindow is MainWindow mainWindow)
+            {
+                mainWindow.ForceClose();
+            }
+            desktop.Shutdown();
+        };
+    }
+    
+    /// <summary>
+    /// Clears native Windows toast notification history for this app.
+    /// </summary>
+    private static void ClearNativeToasts()
+    {
+        try
+        {
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                Microsoft.Toolkit.Uwp.Notifications.ToastNotificationManagerCompat.History.Clear();
+            }
+        }
+        catch
+        {
+            // Ignore errors during cleanup
+        }
     }
 
     /// <summary>
@@ -72,8 +144,15 @@ public partial class App : Application
                     DataContext = new MainWindowViewModel()
                 };
                 desktop.MainWindow = mainWindow;
+                
+                // Initialize confirmation service with main window
+                ConfirmationService.Instance.Initialize(mainWindow);
+                
                 mainWindow.Show();
                 splashWindow.Close();
+                
+                // Show welcome toast
+                NotificationService.Instance.ShowSuccess("Welcome Back", "You have been signed in successfully.");
             }
             else
             {
@@ -110,6 +189,10 @@ public partial class App : Application
                 DataContext = new MainWindowViewModel()
             };
             desktop.MainWindow = mainWindow;
+            
+            // Initialize confirmation service with main window
+            ConfirmationService.Instance.Initialize(mainWindow);
+            
             mainWindow.Show();
             loginWindow.Close();
         };

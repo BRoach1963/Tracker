@@ -288,6 +288,7 @@ public partial class GoalsViewModel : ViewModelBase
                 {
                     Goals.Insert(0, created);
                     UpdateStats();
+                    NotificationService.Instance.ShowSuccess("Goal Created", $"'{created.Title}' has been added.");
                 }
             }
             else
@@ -309,6 +310,7 @@ public partial class GoalsViewModel : ViewModelBase
                     }
                     
                     UpdateStats();
+                    NotificationService.Instance.ShowSuccess("Goal Updated", $"'{updated.Title}' has been saved.");
                 }
             }
 
@@ -324,6 +326,7 @@ public partial class GoalsViewModel : ViewModelBase
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to save goal: {ex.Message}";
+            NotificationService.Instance.ShowError("Save Failed", ex.Message);
         }
         finally
         {
@@ -335,6 +338,16 @@ public partial class GoalsViewModel : ViewModelBase
     private async Task DeleteGoalAsync(GoalDetail? goal)
     {
         if (goal == null) return;
+
+        // Show confirmation dialog for destructive action
+        var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            "Delete Goal",
+            $"Are you sure you want to delete '{goal.Title}'? This action cannot be undone.",
+            "Delete Goal",
+            "Cancel");
+        
+        if (!confirmed)
+            return;
 
         try
         {
@@ -348,15 +361,18 @@ public partial class GoalsViewModel : ViewModelBase
                     CloseDetailFlyout();
                 }
                 UpdateStats();
+                NotificationService.Instance.ShowSuccess("Goal Deleted", $"'{goal.Title}' has been removed.");
             }
             else if (!string.IsNullOrEmpty(GoalsService.Instance.LastError))
             {
                 ErrorMessage = GoalsService.Instance.LastError;
+                NotificationService.Instance.ShowError("Delete Failed", GoalsService.Instance.LastError);
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to delete goal: {ex.Message}";
+            NotificationService.Instance.ShowError("Delete Failed", ex.Message);
         }
     }
 

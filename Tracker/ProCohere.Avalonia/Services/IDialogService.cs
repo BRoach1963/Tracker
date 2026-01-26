@@ -41,12 +41,37 @@ public interface IDialogService
     /// Shows a confirmation dialog.
     /// Returns true if confirmed, false if cancelled.
     /// </summary>
-    Task<bool> ShowConfirmationAsync(string title, string message);
+    /// <param name="title">Dialog title</param>
+    /// <param name="message">Message to display</param>
+    /// <param name="confirmText">Text for confirm button (default: "Confirm")</param>
+    /// <param name="cancelText">Text for cancel button (default: "Cancel")</param>
+    Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Confirm", string cancelText = "Cancel");
+    
+    /// <summary>
+    /// Shows a destructive action confirmation dialog (styled with danger colors).
+    /// Use for delete operations and other destructive actions.
+    /// Returns true if confirmed, false if cancelled.
+    /// </summary>
+    /// <param name="title">Dialog title</param>
+    /// <param name="message">Message to display</param>
+    /// <param name="confirmText">Text for confirm button (default: "Delete")</param>
+    /// <param name="cancelText">Text for cancel button (default: "Cancel")</param>
+    Task<bool> ShowDestructiveConfirmationAsync(string title, string message, string confirmText = "Delete", string cancelText = "Cancel");
     
     /// <summary>
     /// Shows an error message dialog.
     /// </summary>
     Task ShowErrorAsync(string title, string message);
+    
+    /// <summary>
+    /// Shows an information message dialog.
+    /// </summary>
+    Task ShowInfoAsync(string title, string message);
+    
+    /// <summary>
+    /// Shows a warning message dialog.
+    /// </summary>
+    Task ShowWarningAsync(string title, string message);
 }
 
 /// <summary>

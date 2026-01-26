@@ -448,10 +448,21 @@ public partial class MetricsViewModel : ViewModelBase
     {
         if (metric == null) return;
 
+        // Show confirmation dialog for destructive action
+        var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            "Delete Metric",
+            $"Are you sure you want to delete '{metric.Name}'? All historical values will be lost. This action cannot be undone.",
+            "Delete Metric",
+            "Cancel");
+        
+        if (!confirmed)
+            return;
+
         try
         {
             IsLoading = true;
             ErrorMessage = null;
+            var metricName = metric.Name;
 
             await MetricsService.Instance.DeleteMetricAsync(metric.Id);
 
@@ -460,10 +471,12 @@ public partial class MetricsViewModel : ViewModelBase
             {
                 CloseDetailFlyout();
             }
+            NotificationService.Instance.ShowSuccess("Metric Deleted", $"'{metricName}' has been removed.");
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to delete metric: {ex.Message}";
+            NotificationService.Instance.ShowError("Delete Failed", ex.Message);
         }
         finally
         {
@@ -663,11 +676,14 @@ public partial class MetricsViewModel : ViewModelBase
                 
                 // Reload history
                 await LoadMetricHistoryAsync();
+                
+                NotificationService.Instance.ShowSuccess("Value Updated", $"'{updated.Name}' recorded new value: {newValue}");
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to update value: {ex.Message}";
+            NotificationService.Instance.ShowError("Update Failed", ex.Message);
         }
         finally
         {

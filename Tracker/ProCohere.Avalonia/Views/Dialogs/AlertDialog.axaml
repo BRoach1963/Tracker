@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.AlertDialog"
+        Title="Alert"
+        Width="420"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="BorderOnly"
+        CanResize="False"
+        ShowInTaskbar="False">
+    
+    <Window.Resources>
+        <!-- Icon paths -->
+        <StreamGeometry x:Key="InfoIcon">M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z</StreamGeometry>
+        <StreamGeometry x:Key="SuccessIcon">M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z</StreamGeometry>
+        <StreamGeometry x:Key="WarningIcon">M13 14H11V10H13M13 18H11V16H13M1 21H23L12 2L1 21Z</StreamGeometry>
+        <StreamGeometry x:Key="ErrorIcon">M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z</StreamGeometry>
+    </Window.Resources>
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource CornerRadiusControl}"
+            Padding="24">
+        <Grid RowDefinitions="Auto,Auto,Auto">
+            
+            <!-- Icon and Title -->
+            <StackPanel Grid.Row="0" 
+                        Orientation="Horizontal" 
+                        Margin="0,0,0,16">
+                <Viewbox Width="32" 
+                         Height="32"
+                         Margin="0,0,12,0">
+                    <PathIcon x:Name="DialogIcon"
+                              Data="{StaticResource InfoIcon}"
+                              Foreground="{DynamicResource BrushInfo}"/>
+                </Viewbox>
+                <TextBlock x:Name="TitleText"
+                           Text="Information"
+                           FontSize="{DynamicResource FontSizeTitle}"
+                           FontWeight="SemiBold"
+                           FontFamily="{DynamicResource FontFamilyDefault}"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+            
+            <!-- Message -->
+            <ScrollViewer Grid.Row="1"
+                          MaxHeight="300"
+                          VerticalScrollBarVisibility="Auto"
+                          Margin="0,0,0,24">
+                <TextBlock x:Name="MessageText"
+                           Text="Message content goes here."
+                           FontSize="{DynamicResource FontSizeBody}"
+                           FontFamily="{DynamicResource FontFamilyDefault}"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           TextWrapping="Wrap"
+                           MaxWidth="360"/>
+            </ScrollViewer>
+            
+            <!-- OK Button -->
+            <Button x:Name="OkButton"
+                    Grid.Row="2"
+                    Content="OK"
+                    MinWidth="100"
+                    HorizontalAlignment="Right"
+                    Click="OkButton_Click"
+                    Classes="primary"/>
+        </Grid>
+    </Border>
+</Window>

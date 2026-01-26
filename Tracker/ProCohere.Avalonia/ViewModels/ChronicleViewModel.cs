@@ -357,6 +357,7 @@ public partial class ChronicleViewModel : ViewModelBase
                     if (created.IsPinned) PinnedCount++;
                     
                     Log($"Note created: {created.Id}");
+                    NotificationService.Instance.ShowSuccess("Note Created", $"'{created.Title ?? "Untitled"}' has been saved.");
                 }
                 else
                 {
@@ -374,6 +375,7 @@ public partial class ChronicleViewModel : ViewModelBase
                     // Update in collection
                     await LoadNotesAsync(); // Simplest approach - reload all
                     Log($"Note updated: {updated.Id}");
+                    NotificationService.Instance.ShowSuccess("Note Updated", $"'{updated.Title ?? "Untitled"}' has been saved.");
                 }
                 else
                 {
@@ -388,6 +390,7 @@ public partial class ChronicleViewModel : ViewModelBase
             HasError = true;
             ErrorMessage = $"Failed to save note: {ex.Message}";
             Log($"SaveNote ERROR: {ex.Message}");
+            NotificationService.Instance.ShowError("Save Failed", ex.Message);
         }
         finally
         {
@@ -403,6 +406,18 @@ public partial class ChronicleViewModel : ViewModelBase
     private async Task DeleteNoteAsync(Note? note)
     {
         if (note == null) return;
+
+        var noteTitle = note.Title ?? "Untitled";
+        
+        // Show confirmation dialog for destructive action
+        var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            "Delete Note",
+            $"Are you sure you want to delete '{noteTitle}'? This action cannot be undone.",
+            "Delete Note",
+            "Cancel");
+        
+        if (!confirmed)
+            return;
 
         try
         {
@@ -422,6 +437,7 @@ public partial class ChronicleViewModel : ViewModelBase
                     CloseNoteDetail();
 
                 Log("Note deleted successfully");
+                NotificationService.Instance.ShowSuccess("Note Deleted", $"'{noteTitle}' has been removed.");
             }
             else
             {
@@ -433,6 +449,7 @@ public partial class ChronicleViewModel : ViewModelBase
             HasError = true;
             ErrorMessage = $"Failed to delete note: {ex.Message}";
             Log($"DeleteNote ERROR: {ex.Message}");
+            NotificationService.Instance.ShowError("Delete Failed", ex.Message);
         }
     }
 

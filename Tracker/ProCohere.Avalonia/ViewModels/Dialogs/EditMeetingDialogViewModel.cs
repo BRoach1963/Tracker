@@ -732,6 +732,8 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             
             if (savedMeeting != null)
             {
+                var action = _existingMeeting != null ? "updated" : "created";
+                NotificationService.Instance.ShowSuccess("Meeting Saved", $"Meeting '{savedMeeting.Title}' has been {action}.");
                 Result = EditMeetingResult.Success(savedMeeting);
                 CloseRequested?.Invoke(this, EventArgs.Empty);
             }
@@ -740,6 +742,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         {
             Log($"EXCEPTION in SaveCommand: {ex.GetType().Name}: {ex.Message}");
             ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Save Failed", ex.Message);
             Result = EditMeetingResult.Failed(ex.Message);
         }
         finally
@@ -762,16 +765,34 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     {
         if (_existingMeeting == null) return;
         
+        // Show confirmation dialog for destructive action
+        if (_dialogService != null)
+        {
+            var confirmed = await _dialogService.ShowDestructiveConfirmationAsync(
+                "Delete Meeting",
+                $"Are you sure you want to delete '{_existingMeeting.Title}'? This action cannot be undone.",
+                "Delete Meeting",
+                "Cancel");
+            
+            if (!confirmed)
+            {
+                Log("Delete cancelled by user");
+                return;
+            }
+        }
+        
         Log($"DeleteCommand executed for meeting: {_existingMeeting.Id}");
         
         var success = await MeetingService.Instance.DeleteMeetingAsync(_existingMeeting.Id);
         
         if (success)
         {
+            NotificationService.Instance.ShowSuccess("Meeting Deleted", $"'{_existingMeeting.Title}' has been removed.");
             Result = EditMeetingResult.Deleted(_existingMeeting.Id);
         }
         else
         {
+            NotificationService.Instance.ShowError("Delete Failed", MeetingService.Instance.LastError ?? "Failed to delete meeting");
             Result = EditMeetingResult.Failed(MeetingService.Instance.LastError ?? "Failed to delete meeting");
         }
         

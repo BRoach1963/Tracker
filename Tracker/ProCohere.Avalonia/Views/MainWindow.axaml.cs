@@ -10,12 +10,42 @@ namespace ProCohere.Avalonia.Views;
 
 public partial class MainWindow : Window
 {
+    private bool _forceClose = false;
+    
     public MainWindow()
     {
         InitializeComponent();
         
         // Wire up events after loading
         Loaded += OnLoaded;
+    }
+    
+    /// <summary>
+    /// Call this to force the window to close (bypass minimize-to-tray).
+    /// Used when user clicks "Exit" from tray menu.
+    /// </summary>
+    public void ForceClose()
+    {
+        _forceClose = true;
+    }
+    
+    /// <summary>
+    /// Override closing to minimize to tray instead of closing (if enabled).
+    /// </summary>
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        // Check if minimize-to-tray is enabled and not force closing
+        if (LocalSettingsService.Instance.MinimizeToTray && !_forceClose)
+        {
+            e.Cancel = true;
+            Hide();
+            
+            // Tray icon is already visible (defined in App.axaml)
+            // Optionally show a balloon/notification that app is still running
+            System.Diagnostics.Debug.WriteLine("MainWindow minimized to tray");
+        }
+        
+        base.OnClosing(e);
     }
 
     private void OnLoaded(object? sender, RoutedEventArgs e)

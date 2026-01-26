@@ -2,8 +2,33 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:ProCohere.Avalonia"
              xmlns:converters="using:ProCohere.Avalonia.Converters"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              x:Class="ProCohere.Avalonia.App"
+             x:DataType="vm:TrayIconViewModel"
              RequestedThemeVariant="Light">
+    
+    <!-- System Tray Icon -->
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/procohere.ico"
+                      ToolTipText="{Binding ToolTipText}"
+                      IsVisible="True">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="Open ProCohere" 
+                                        Command="{Binding OpenCommand}" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Reminders Enabled" 
+                                        ToggleType="CheckBox"
+                                        IsChecked="{Binding RemindersEnabled}" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Exit" 
+                                        Command="{Binding ExitCommand}" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
 
     <Application.DataTemplates>
         <local:ViewLocator/>

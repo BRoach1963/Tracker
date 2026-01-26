@@ -145,6 +145,103 @@ public static class AppDialogService
 
     #endregion
 
+    #region Confirmation Dialogs
+
+    /// <summary>
+    /// Shows a confirmation dialog and returns the user's choice.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="title">Dialog title</param>
+    /// <param name="message">Message to display</param>
+    /// <param name="confirmText">Text for confirm button (default: "Confirm")</param>
+    /// <param name="cancelText">Text for cancel button (default: "Cancel")</param>
+    /// <returns>True if user confirmed, false if cancelled</returns>
+    public static async Task<bool> ShowConfirmationAsync(
+        Window parentWindow,
+        string title,
+        string message,
+        string confirmText = "Confirm",
+        string cancelText = "Cancel")
+    {
+        var dialog = new ConfirmationDialog(
+            title, 
+            message, 
+            confirmText, 
+            cancelText, 
+            ConfirmationDialog.ConfirmationType.Default);
+        await dialog.ShowDialog(parentWindow);
+        return dialog.IsConfirmed;
+    }
+
+    /// <summary>
+    /// Shows a destructive action confirmation dialog (styled with danger colors).
+    /// Use for delete operations and other destructive actions.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="title">Dialog title</param>
+    /// <param name="message">Message to display</param>
+    /// <param name="confirmText">Text for confirm button (default: "Delete")</param>
+    /// <param name="cancelText">Text for cancel button (default: "Cancel")</param>
+    /// <returns>True if user confirmed, false if cancelled</returns>
+    public static async Task<bool> ShowDestructiveConfirmationAsync(
+        Window parentWindow,
+        string title,
+        string message,
+        string confirmText = "Delete",
+        string cancelText = "Cancel")
+    {
+        var dialog = new ConfirmationDialog(
+            title, 
+            message, 
+            confirmText, 
+            cancelText, 
+            ConfirmationDialog.ConfirmationType.Destructive);
+        await dialog.ShowDialog(parentWindow);
+        return dialog.IsConfirmed;
+    }
+
+    #endregion
+
+    #region Alert Dialogs
+
+    /// <summary>
+    /// Shows an error message dialog.
+    /// </summary>
+    public static async Task ShowErrorAsync(Window parentWindow, string title, string message)
+    {
+        var dialog = new AlertDialog(title, message, AlertDialog.AlertType.Error);
+        await dialog.ShowDialog(parentWindow);
+    }
+
+    /// <summary>
+    /// Shows an information message dialog.
+    /// </summary>
+    public static async Task ShowInfoAsync(Window parentWindow, string title, string message)
+    {
+        var dialog = new AlertDialog(title, message, AlertDialog.AlertType.Information);
+        await dialog.ShowDialog(parentWindow);
+    }
+
+    /// <summary>
+    /// Shows a warning message dialog.
+    /// </summary>
+    public static async Task ShowWarningAsync(Window parentWindow, string title, string message)
+    {
+        var dialog = new AlertDialog(title, message, AlertDialog.AlertType.Warning);
+        await dialog.ShowDialog(parentWindow);
+    }
+
+    /// <summary>
+    /// Shows a success message dialog.
+    /// </summary>
+    public static async Task ShowSuccessAsync(Window parentWindow, string title, string message)
+    {
+        var dialog = new AlertDialog(title, message, AlertDialog.AlertType.Success);
+        await dialog.ShowDialog(parentWindow);
+    }
+
+    #endregion
+
     #region Goal Dialogs (Future)
 
     // TODO: Implement when goal dialogs are needed

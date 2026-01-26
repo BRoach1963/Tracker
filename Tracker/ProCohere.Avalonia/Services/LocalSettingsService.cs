@@ -123,6 +123,54 @@ public class LocalSettingsService
         }
     }
 
+    /// <summary>
+    /// Gets or sets whether to minimize to system tray instead of closing.
+    /// </summary>
+    public bool MinimizeToTray
+    {
+        get => _settings.MinimizeToTray;
+        set
+        {
+            if (_settings.MinimizeToTray != value)
+            {
+                _settings.MinimizeToTray = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether reminders are enabled.
+    /// </summary>
+    public bool EnableReminders
+    {
+        get => _settings.EnableReminders;
+        set
+        {
+            if (_settings.EnableReminders != value)
+            {
+                _settings.EnableReminders = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether to start with Windows.
+    /// </summary>
+    public bool StartWithWindows
+    {
+        get => _settings.StartWithWindows;
+        set
+        {
+            if (_settings.StartWithWindows != value)
+            {
+                _settings.StartWithWindows = value;
+                SaveSettings();
+            }
+        }
+    }
+
     #endregion
 
     #region Load/Save
@@ -171,6 +219,9 @@ public class LocalSettingsService
         public string? RememberedEmail { get; set; }
         public bool RememberEmail { get; set; } = true;
         public bool StaySignedIn { get; set; } = false;
+        public bool MinimizeToTray { get; set; } = true;
+        public bool EnableReminders { get; set; } = true;
+        public bool StartWithWindows { get; set; } = false;
     }
 
     #endregion

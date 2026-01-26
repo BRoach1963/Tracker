@@ -414,17 +414,20 @@ public partial class SettingsViewModel : ViewModelBase
                 IsEditingProfile = false;
                 ProfileErrorMessage = null;
                 ProfileUpdated?.Invoke();
+                NotificationService.Instance.ShowSuccess("Profile Saved", "Your profile has been updated.");
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to save profile: {error}");
                 ProfileErrorMessage = error ?? "Failed to save profile. Please try again.";
+                NotificationService.Instance.ShowError("Save Failed", ProfileErrorMessage);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to save profile: {ex.Message}");
             ProfileErrorMessage = $"Error: {ex.Message}";
+            NotificationService.Instance.ShowError("Save Failed", ex.Message);
         }
         finally
         {

@@ -5,6 +5,8 @@ using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using static ProCohere.Avalonia.Views.Dialogs.AlertDialog;
+using static ProCohere.Avalonia.Views.Dialogs.ConfirmationDialog;
 
 namespace ProCohere.Avalonia.Services;
 
@@ -71,18 +73,39 @@ public class DialogService : IDialogService
     }
     
     /// <inheritdoc />
-    public async Task<bool> ShowConfirmationAsync(string title, string message)
+    public async Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Confirm", string cancelText = "Cancel")
     {
-        // TODO: Implement proper confirmation dialog
-        // For now, return true (confirm)
-        await Task.CompletedTask;
-        return true;
+        var dialog = new ConfirmationDialog(title, message, confirmText, cancelText, ConfirmationType.Default);
+        await dialog.ShowDialog(_parentWindow);
+        return dialog.IsConfirmed;
+    }
+    
+    /// <inheritdoc />
+    public async Task<bool> ShowDestructiveConfirmationAsync(string title, string message, string confirmText = "Delete", string cancelText = "Cancel")
+    {
+        var dialog = new ConfirmationDialog(title, message, confirmText, cancelText, ConfirmationType.Destructive);
+        await dialog.ShowDialog(_parentWindow);
+        return dialog.IsConfirmed;
     }
     
     /// <inheritdoc />
     public async Task ShowErrorAsync(string title, string message)
     {
-        // TODO: Implement proper error dialog
-        await Task.CompletedTask;
+        var dialog = new AlertDialog(title, message, AlertType.Error);
+        await dialog.ShowDialog(_parentWindow);
+    }
+    
+    /// <inheritdoc />
+    public async Task ShowInfoAsync(string title, string message)
+    {
+        var dialog = new AlertDialog(title, message, AlertType.Information);
+        await dialog.ShowDialog(_parentWindow);
+    }
+    
+    /// <inheritdoc />
+    public async Task ShowWarningAsync(string title, string message)
+    {
+        var dialog = new AlertDialog(title, message, AlertType.Warning);
+        await dialog.ShowDialog(_parentWindow);
     }
 }
