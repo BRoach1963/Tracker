@@ -25,8 +25,10 @@
         </Border>
         
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
-            <StackPanel Spacing="16">
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Visible"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="16" Margin="20,20,20,24">
                 
                 <!-- Linked Entity Badge (if linked) -->
                 <Border IsVisible="{Binding HasLinkedEntity}"

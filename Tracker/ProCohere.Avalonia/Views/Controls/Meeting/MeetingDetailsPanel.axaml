@@ -10,8 +10,9 @@
     <Border Background="{DynamicResource BrushSurfaceAlt}"
             BorderBrush="{DynamicResource BrushBorder}"
             BorderThickness="0,0,1,0">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,16">
-            <StackPanel Spacing="14">
+        <ScrollViewer VerticalScrollBarVisibility="Visible"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14" Margin="16,16,16,24">
                 
                 <TextBlock Text="DETAILS" 
                            FontSize="10"

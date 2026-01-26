@@ -17,9 +17,12 @@
         PointerExited="Toast_PointerExited">
     
     <Window.Resources>
-        <!-- Toast type colors - using ProCohere theme semantic colors -->
-        <SolidColorBrush x:Key="InfoAccentBrush" Color="{DynamicResource ColorInfo}"/>
+        <!-- Toast type colors - using ProCohere theme colors -->
+        <!-- Info uses app Primary (green) for brand consistency -->
+        <SolidColorBrush x:Key="InfoAccentBrush" Color="{DynamicResource ColorPrimary}"/>
+        <!-- Success uses the semantic success color (mint green) -->
         <SolidColorBrush x:Key="SuccessAccentBrush" Color="{DynamicResource ColorSuccess}"/>
+        <!-- Warning and Error use semantic colors -->
         <SolidColorBrush x:Key="WarningAccentBrush" Color="{DynamicResource ColorWarning}"/>
         <SolidColorBrush x:Key="ErrorAccentBrush" Color="{DynamicResource ColorError}"/>
         

@@ -34,15 +34,33 @@ public partial class MainWindow : Window
     /// </summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"[MainWindow] OnClosing: MinimizeToTray={LocalSettingsService.Instance.MinimizeToTray}, ForceClose={_forceClose}");
+        
         // Check if minimize-to-tray is enabled and not force closing
         if (LocalSettingsService.Instance.MinimizeToTray && !_forceClose)
         {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Canceling close, hiding window...");
             e.Cancel = true;
             Hide();
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Window hidden, sending native toast...");
             
-            // Tray icon is already visible (defined in App.axaml)
-            // Optionally show a balloon/notification that app is still running
-            System.Diagnostics.Debug.WriteLine("MainWindow minimized to tray");
+            // Show native toast to let user know app is still running
+            // Must be called after Hide() so the window is hidden
+            try
+            {
+                NotificationService.Instance.SendNativeToast(
+                    "ProCohere Minimized", 
+                    "The app is still running in the system tray. Right-click the tray icon to exit.");
+                System.Diagnostics.Debug.WriteLine("[MainWindow] Native toast call completed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Native toast failed: {ex.Message}");
+            }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Actually closing window");
         }
         
         base.OnClosing(e);

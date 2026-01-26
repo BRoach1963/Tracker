@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -16,6 +17,39 @@ namespace ProCohere.Avalonia.Views.Toasts;
 /// </summary>
 public partial class ProCohereToast : Window
 {
+    #region Win32 Interop for Screen Positioning
+    
+    [DllImport("user32.dll")]
+    private static extern bool SystemParametersInfo(int uiAction, int uiParam, ref RECT pvParam, int fWinIni);
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+    
+    private const int SPI_GETWORKAREA = 0x0030;
+    
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+    
+    private static RECT GetWorkArea()
+    {
+        var rect = new RECT();
+        SystemParametersInfo(SPI_GETWORKAREA, 0, ref rect, 0);
+        return rect;
+    }
+    
+    #endregion
+    
     #region Fields
 
     private readonly DispatcherTimer _dismissTimer;
@@ -26,6 +60,7 @@ public partial class ProCohereToast : Window
     private DateTime _timerStartTime;
     private TimeSpan _remainingTime;
     private ScaleTransform? _progressScaleTransform;
+    private int _stackIndex;
 
     #endregion
 
@@ -92,7 +127,8 @@ public partial class ProCohereToast : Window
 
     private void OnOpened(object? sender, EventArgs e)
     {
-        PositionToast();
+        // Position after window is shown and measured
+        PositionToast(_stackIndex);
         AnimateIn();
         _timerStartTime = DateTime.Now;
         _dismissTimer.Start();
@@ -279,40 +315,52 @@ public partial class ProCohereToast : Window
 
     #region Positioning
 
-    private void PositionToast()
+    private void PositionToast(int stackIndex)
     {
-        // Get the primary screen's working area
+        // Get the work area (screen minus taskbar) in physical pixels
+        var workArea = GetWorkArea();
+        
+        // Get DPI scaling from primary screen
         var screen = Screens.Primary;
-        if (screen == null) return;
+        var scaling = screen?.Scaling ?? 1.0;
+        
+        // Toast dimensions in physical pixels
+        // Width=400 DIPs, Height estimate=100 DIPs
+        var toastWidthPx = (int)(400 * scaling);
+        var toastHeightPx = (int)(100 * scaling);
+        var marginPx = (int)(12 * scaling);
+        var stackGapPx = (int)(8 * scaling);
 
-        var workingArea = screen.WorkingArea;
-        var scaling = screen.Scaling;
-
-        // Position in bottom-right corner
-        var toastHeight = Height > 0 ? Height : 100;
-
-        Position = new PixelPoint(
-            (int)(workingArea.Right / scaling - Width - 10),
-            (int)(workingArea.Bottom / scaling - toastHeight - 10)
-        );
+        // Calculate position in bottom-right corner of work area
+        var x = workArea.Right - toastWidthPx - marginPx;
+        var y = workArea.Bottom - (toastHeightPx + stackGapPx) * (stackIndex + 1) - marginPx + stackGapPx;
+        
+        System.Diagnostics.Debug.WriteLine($"[Toast] WorkArea: R={workArea.Right} B={workArea.Bottom}, Scaling={scaling}");
+        System.Diagnostics.Debug.WriteLine($"[Toast] Positioning to ({x}, {y})");
+        
+        // Get the native window handle and use SetWindowPos for reliable positioning
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle != IntPtr.Zero)
+        {
+            // Use SetWindowPos to position at absolute screen coordinates
+            // SWP_NOSIZE = don't change size, SWP_NOZORDER = don't change z-order, SWP_NOACTIVATE = don't activate
+            SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+            System.Diagnostics.Debug.WriteLine($"[Toast] SetWindowPos called with handle {handle}");
+        }
+        else
+        {
+            // Fallback to Avalonia Position property
+            Position = new PixelPoint(x, y);
+            System.Diagnostics.Debug.WriteLine($"[Toast] Fallback: Position={Position}");
+        }
     }
 
     /// <summary>
-    /// Sets the vertical offset for toast stacking.
+    /// Sets the vertical offset for toast stacking. Call before Show().
     /// </summary>
     public void SetStackOffset(int stackIndex)
     {
-        var screen = Screens.Primary;
-        if (screen == null) return;
-
-        var workingArea = screen.WorkingArea;
-        var scaling = screen.Scaling;
-        var toastHeight = Height > 0 ? Height : 100;
-
-        Position = new PixelPoint(
-            (int)(workingArea.Right / scaling - Width - 10),
-            (int)(workingArea.Bottom / scaling - (toastHeight * (stackIndex + 1)) - (10 * (stackIndex + 1)))
-        );
+        _stackIndex = stackIndex;
     }
 
     /// <summary>
@@ -320,17 +368,8 @@ public partial class ProCohereToast : Window
     /// </summary>
     public void AnimateToStackPosition(int stackIndex)
     {
-        var screen = Screens.Primary;
-        if (screen == null) return;
-
-        var workingArea = screen.WorkingArea;
-        var scaling = screen.Scaling;
-        var toastHeight = Height > 0 ? Height : 100;
-
-        var targetY = (int)(workingArea.Bottom / scaling - (toastHeight * (stackIndex + 1)) - (10 * (stackIndex + 1)));
-
-        // Simple position update (could be animated with more effort)
-        Position = new PixelPoint(Position.X, targetY);
+        _stackIndex = stackIndex;
+        PositionToast(stackIndex);
     }
 
     #endregion

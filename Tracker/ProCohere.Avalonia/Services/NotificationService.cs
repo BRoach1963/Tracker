@@ -139,20 +139,36 @@ public class NotificationService
     /// <param name="message">The toast message.</param>
     public void SendNativeToast(string title, string message)
     {
+        System.Diagnostics.Debug.WriteLine($"[NotificationService] SendNativeToast called: '{title}'");
+        
         // Only supported on Windows
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            System.Diagnostics.Debug.WriteLine("[NotificationService] Not Windows, skipping native toast");
             return;
+        }
 
         try
         {
-            new ToastContentBuilder()
+            System.Diagnostics.Debug.WriteLine("[NotificationService] Creating ToastContentBuilder...");
+            
+            // Build and show the toast
+            var builder = new ToastContentBuilder()
                 .AddText(title)
-                .AddText(message)
-                .Show();
+                .AddText(message);
+            
+            // Set expiration time so it doesn't stay in Action Center forever
+            builder.Show(toast =>
+            {
+                toast.ExpirationTime = DateTime.Now.AddMinutes(5);
+            });
+            
+            System.Diagnostics.Debug.WriteLine("[NotificationService] Native toast shown successfully");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[NotificationService] Native toast failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[NotificationService] Stack trace: {ex.StackTrace}");
         }
     }
 

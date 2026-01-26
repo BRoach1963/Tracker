@@ -1142,19 +1142,50 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     /// <summary>
     /// Gets meeting attendees for the assignee picker in dialogs.
+    /// Includes current user (self) and all meeting attendees based on meeting type.
     /// </summary>
     private List<MeetingAttendee> GetMeetingAttendeesForAssignment()
     {
         var attendees = new List<MeetingAttendee>();
         
-        // Convert selected team members to MeetingAttendee format
-        foreach (var member in SelectableAttendees.Where(m => m.IsSelected))
+        // Always include self (the current user) - they can assign items to themselves
+        var self = TeamMembers.FirstOrDefault(m => m.Relation == "self");
+        if (self != null)
         {
             attendees.Add(new MeetingAttendee
             {
-                TeamMemberId = member.Id,
-                Name = member.FullName
+                TeamMemberId = self.Id,
+                Name = self.FullName
             });
+        }
+        
+        if (ShowAttendeeSelector)
+        {
+            // For 1:1 meetings, include the selected attendee
+            if (SelectedAttendee != null)
+            {
+                attendees.Add(new MeetingAttendee
+                {
+                    TeamMemberId = SelectedAttendee.Id,
+                    Name = SelectedAttendee.FullName
+                });
+            }
+        }
+        else if (ShowTeamAttendeesSelector)
+        {
+            // For team meetings, include all selected team members
+            foreach (var member in SelectableAttendees.Where(m => m.IsSelected))
+            {
+                // Don't add self again if they're in the selected list
+                if (self != null && member.Id == self.Id)
+                    continue;
+                    
+                attendees.Add(new MeetingAttendee
+                {
+                    TeamMemberId = member.Id,
+                    Name = member.FullName
+                });
+            }
         }
         
         return attendees;

@@ -76,8 +76,26 @@ public partial class App : Application
         };
         
         // When user clicks "Exit" in tray menu
-        SystemTrayService.Instance.ExitRequested += (_, _) =>
+        SystemTrayService.Instance.ExitRequested += async (_, _) =>
         {
+            // Ensure main window is visible for the confirmation dialog
+            if (desktop.MainWindow != null && !desktop.MainWindow.IsVisible)
+            {
+                desktop.MainWindow.Show();
+                desktop.MainWindow.WindowState = global::Avalonia.Controls.WindowState.Normal;
+                desktop.MainWindow.Activate();
+            }
+            
+            // Show confirmation dialog warning about notifications being silenced
+            var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+                "Exit ProCohere?",
+                "If you exit the app, notifications and reminders will be silenced until you open the app again.\n\nAre you sure you want to exit?",
+                "Exit",
+                "Cancel");
+            
+            if (!confirmed)
+                return;
+            
             // Close all toasts
             NotificationService.Instance.CloseAllToasts();
             
