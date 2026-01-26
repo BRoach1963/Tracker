@@ -40,7 +40,7 @@ namespace Tracker.Managers
         private readonly ObservableCollection<Feedback> _feedbacks = new();
         private readonly ObservableCollection<DevelopmentGoal> _developmentGoals = new();
         private readonly ObservableCollection<QuickNote> _quickNotes = new();
-        private readonly ObservableCollection<PulseSurvey> _pulseSurveys = new();
+        private readonly ObservableCollection<Survey> _pulseSurveys = new();
         private readonly ObservableCollection<Target> _targets = new();
         private readonly ObservableCollection<TargetMeasurable> _measurables = new();
         private readonly ObservableCollection<TaskCollection> _taskCollections = new();
@@ -56,7 +56,7 @@ namespace Tracker.Managers
         private readonly ReadOnlyObservableCollection<Feedback> _feedbacksReadOnly;
         private readonly ReadOnlyObservableCollection<DevelopmentGoal> _developmentGoalsReadOnly;
         private readonly ReadOnlyObservableCollection<QuickNote> _quickNotesReadOnly;
-        private readonly ReadOnlyObservableCollection<PulseSurvey> _pulseSurveysReadOnly;
+        private readonly ReadOnlyObservableCollection<Survey> _pulseSurveysReadOnly;
         private readonly ReadOnlyObservableCollection<Target> _targetsReadOnly;
         private readonly ReadOnlyObservableCollection<TargetMeasurable> _measurablesReadOnly;
         private readonly ReadOnlyObservableCollection<TaskCollection> _taskCollectionsReadOnly;
@@ -108,7 +108,7 @@ namespace Tracker.Managers
             _feedbacksReadOnly = new ReadOnlyObservableCollection<Feedback>(_feedbacks);
             _developmentGoalsReadOnly = new ReadOnlyObservableCollection<DevelopmentGoal>(_developmentGoals);
             _quickNotesReadOnly = new ReadOnlyObservableCollection<QuickNote>(_quickNotes);
-            _pulseSurveysReadOnly = new ReadOnlyObservableCollection<PulseSurvey>(_pulseSurveys);
+            _pulseSurveysReadOnly = new ReadOnlyObservableCollection<Survey>(_pulseSurveys);
             _targetsReadOnly = new ReadOnlyObservableCollection<Target>(_targets);
             _measurablesReadOnly = new ReadOnlyObservableCollection<TargetMeasurable>(_measurables);
             _taskCollectionsReadOnly = new ReadOnlyObservableCollection<TaskCollection>(_taskCollections);
@@ -211,7 +211,7 @@ namespace Tracker.Managers
         public ReadOnlyObservableCollection<Feedback> Feedbacks => _feedbacksReadOnly;
         public ReadOnlyObservableCollection<DevelopmentGoal> DevelopmentGoals => _developmentGoalsReadOnly;
         public ReadOnlyObservableCollection<QuickNote> QuickNotes => _quickNotesReadOnly;
-        public ReadOnlyObservableCollection<PulseSurvey> PulseSurveys => _pulseSurveysReadOnly;
+        public ReadOnlyObservableCollection<Survey> PulseSurveys => _pulseSurveysReadOnly;
         public ReadOnlyObservableCollection<Target> Targets => _targetsReadOnly;
         public ReadOnlyObservableCollection<TargetMeasurable> Measurables => _measurablesReadOnly;
         public ReadOnlyObservableCollection<TaskCollection> TaskCollections => _taskCollectionsReadOnly;
@@ -791,7 +791,7 @@ namespace Tracker.Managers
 
         #region PulseSurvey Methods
 
-        public async Task<ReadOnlyObservableCollection<PulseSurvey>> GetPulseSurveys()
+        public async Task<ReadOnlyObservableCollection<Survey>> GetPulseSurveys()
         {
             if (!_pulseSurveysLoaded)
             {
@@ -814,7 +814,7 @@ namespace Tracker.Managers
             return _pulseSurveysReadOnly;
         }
 
-        public async Task<int> AddPulseSurvey(PulseSurvey survey)
+        public async Task<int> AddPulseSurvey(Survey survey)
         {
             var repo = new PulseSurveyRepository(GetConnectionFactory(), CreateLogger<PulseSurveyRepository>());
             var created = await repo.CreateAsync(survey);
@@ -827,7 +827,7 @@ namespace Tracker.Managers
             return 0;
         }
 
-        public async Task<bool> UpdatePulseSurvey(PulseSurvey survey)
+        public async Task<bool> UpdatePulseSurvey(Survey survey)
         {
             var repo = new PulseSurveyRepository(GetConnectionFactory(), CreateLogger<PulseSurveyRepository>());
             var success = await repo.UpdateAsync(survey);

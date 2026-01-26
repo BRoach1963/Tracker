@@ -29,6 +29,9 @@ Anything not documented here is undefined behavior.
 15 AI Vector Store (pgvector)
 
 16 Onboarding Flow – Organizations & Users
+
+17 Soft Delete Purge System – Retention & Monthly Cleanup
+
 ---
 
 ## Reading Order
@@ -39,6 +42,9 @@ New engineers:
 Schema or security changes:
 6 → 7 → 11 → 12
 
+Data lifecycle / retention:
+17
+
 ---
 
 ## Conceptual vs Physical
@@ -46,5 +52,6 @@ Schema or security changes:
 - Conceptual truth lives in 06–12
 - Physical truth lives in 13
 - Hierarchy mechanics live in 14
+- Data lifecycle mechanics live in 17
 
 Undocumented changes are defects.

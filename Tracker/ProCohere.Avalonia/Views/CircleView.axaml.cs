@@ -7,7 +7,9 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.ViewModels.Dialogs;
 using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.ComponentModel;
@@ -33,7 +35,8 @@ public partial class CircleView : UserControl
         
         // Subscribe to dialog events
         _viewModel.EditTeamMemberDialogRequested += OnEditTeamMemberDialogRequested;
-        _viewModel.AddTeamMemberDialogRequested += OnAddTeamMemberDialogRequested;
+        _viewModel.InviteTeamMemberDialogRequested += OnInviteTeamMemberDialogRequested;
+        _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
         
         // Initial population after control is loaded
         Loaded += CircleView_Loaded;
@@ -46,14 +49,24 @@ public partial class CircleView : UserControl
     }
 
     #region Dialog Handlers
-
     private async void OnEditTeamMemberDialogRequested(object? sender, TeamMemberDetail member)
     {
         var window = TopLevel.GetTopLevel(this) as Window;
         if (window == null || _viewModel == null) return;
 
-        var dialog = new EditTeamMemberDialog();
-        dialog.LoadTeamMember(member);
+        var viewModel = new TeamMemberDetailsDialogViewModel();
+        
+        // Filter out the member being edited from available managers
+        var availableManagers = _viewModel.FilteredTeamMembers
+            .Where(m => m.Id != member.Id)
+            .ToList();
+        viewModel.Initialize(availableManagers);
+        
+        // Load the member's details
+        await viewModel.LoadTeamMemberAsync(member);
+
+        var dialog = new TeamMemberDetailsDialog();
+        dialog.Initialize(viewModel);
 
         await dialog.ShowDialog(window);
 
@@ -64,20 +77,38 @@ public partial class CircleView : UserControl
         }
     }
 
-    private async void OnAddTeamMemberDialogRequested(object? sender, EventArgs e)
+    private async void OnInviteTeamMemberDialogRequested(object? sender, EventArgs e)
     {
         var window = TopLevel.GetTopLevel(this) as Window;
         if (window == null || _viewModel == null) return;
 
-        var dialog = new EditTeamMemberDialog();
-        // Don't call LoadTeamMember - this is a new member
+        var dialog = new InviteTeamMemberDialog();
+        dialog.SetManagers(_viewModel.FilteredTeamMembers);
 
         await dialog.ShowDialog(window);
 
         if (dialog.Result != null)
         {
-            // Refresh the team list after add
+            // TODO: Send invite via service
+            // For now, refresh the team list
             _viewModel.RefreshCommand.Execute(null);
+        }
+    }
+
+    private async void OnCreateMeetingDialogRequested(object? sender, TeamMemberDetail? preSelectedAttendee)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowCreateMeetingAsync(window, preSelectedAttendee);
+        
+        if (result.WasDeleted && result.DeletedMeetingId.HasValue)
+        {
+            _viewModel.OnMeetingDeleted(result.DeletedMeetingId.Value);
+        }
+        else if (result.Success && result.Meeting != null)
+        {
+            _viewModel.OnMeetingSaved(result.Meeting);
         }
     }
 

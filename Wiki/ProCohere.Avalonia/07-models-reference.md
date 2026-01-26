@@ -45,6 +45,14 @@ All models inherit from `Supabase.Postgrest.Models.BaseModel`.
 | `AgendaItemOutcome` | AgendaItemOutcome.cs | `agenda_item_outcomes` | Outcome/action from agenda |
 | `MetricHistoryEntry` | MetricHistoryEntry.cs | `metric_history` | Metric data point |
 
+### Dialog Models
+
+| Model | File | Table | Description |
+|-------|------|-------|-------------|
+| `DialogMeetingNote` | DialogMeetingNote.cs | N/A (wraps MeetingNote) | Meeting note with inline editing and tagging UI state |
+| `NoteTag` | DialogMeetingNote.cs | N/A (categories stored in meeting_notes.tags) | Tag category for meeting notes |
+| `DialogAgendaItem` | DialogAgendaItem.cs | N/A (wraps MeetingAgendaItem) | Agenda item with edit state |
+
 ### Session DTOs
 
 | Model | File | Source | Description |
@@ -508,6 +516,180 @@ public class MeetingPrepItem : BaseModel
     public string PreparedStatusDisplay { get; }  // Prepared/Not Prepared
 }
 ```
+
+---
+
+## MeetingNote
+
+**Table**: `meeting_notes`
+
+**File**: `MeetingNote.cs`
+
+```csharp
+[Table("meeting_notes")]
+public class MeetingNote : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("meeting_id")]
+    public Guid MeetingId { get; set; }
+
+    [Column("author_id")]
+    public Guid AuthorId { get; set; }
+
+    [Column("content")]
+    public string Content { get; set; } = string.Empty;
+
+    [Column("is_shared")]
+    public bool IsShared { get; set; }
+
+    [Column("tags")]
+    public List<string>? Tags { get; set; }  // Tag categories: ["action", "decision", etc.]
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    // Computed Properties
+    public bool HasContent => !string.IsNullOrWhiteSpace(Content);
+    public string ContentPreview { get; }  // First 100 chars
+    public string LastUpdatedDisplay { get; }  // Formatted timestamp
+}
+```
+
+---
+
+## DialogMeetingNote
+
+**File**: `Models/Dialogs/DialogMeetingNote.cs`
+
+UI wrapper model for meeting notes with inline editing support and tagging.
+
+```csharp
+public partial class DialogMeetingNote : ObservableObject
+{
+    // Identity
+    public Guid Id { get; set; }
+    public Guid MeetingId { get; set; }
+    public Guid AuthorId { get; set; }
+    
+    // State
+    public bool IsDirty { get; set; }      // Has unsaved changes
+    public bool IsEditing { get; set; }    // Currently being edited
+    
+    // Content
+    public string Content { get; set; }     // Actual content
+    public string EditContent { get; set; } // Temp content while editing
+    
+    // Visibility
+    public bool IsShared { get; set; }      // false = private to author
+    
+    // Tags
+    public List<NoteTag> Tags { get; set; } // Assigned tags
+    
+    // Metadata
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public string? AuthorName { get; set; }
+    
+    // Computed Properties
+    public bool HasContent { get; }
+    public bool HasTags { get; }
+    public string TimestampDisplay { get; }
+    public string VisibilityIcon { get; }      // Lock/Unlock icon
+    public string VisibilityTooltip { get; }   // "Private"/"Shared"
+    
+    // Factory Methods
+    public static DialogMeetingNote FromMeetingNote(MeetingNote note, string? authorName = null);
+    public static DialogMeetingNote CreateNew(Guid meetingId, Guid authorId, ...);
+    
+    // Conversion
+    public List<string> GetTagCategories();  // Convert Tags to category strings for DB
+}
+```
+
+### Factory Methods
+
+**FromMeetingNote**: Convert database model to UI model
+```csharp
+public static DialogMeetingNote FromMeetingNote(MeetingNote note, string? authorName = null)
+{
+    return new DialogMeetingNote
+    {
+        Id = note.Id,
+        MeetingId = note.MeetingId,
+        Content = note.Content,
+        Tags = TagsFromCategories(note.Tags),  // Convert ["action"] → [NoteTag]
+        IsEditing = false,
+        IsDirty = false
+    };
+}
+```
+
+**CreateNew**: Create a new note in edit mode
+```csharp
+public static DialogMeetingNote CreateNew(Guid meetingId, Guid authorId, ...)
+{
+    return new DialogMeetingNote
+    {
+        Id = Guid.Empty,  // New note
+        IsEditing = true,
+        IsDirty = true
+    };
+}
+```
+
+---
+
+## NoteTag
+
+**File**: `Models/Dialogs/DialogMeetingNote.cs` (nested class)
+
+Tag category for meeting notes. Uses predefined standard tags.
+
+```csharp
+public class NoteTag
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }      // Display name: "Action Item"
+    public string Category { get; set; }  // DB key: "action"
+    public string Color { get; set; }     // Hex color: "#EF4444"
+    public string Icon { get; set; }      // SVG path data
+    
+    // Standard predefined tags
+    public static readonly List<NoteTag> StandardTags = new()
+    {
+        new NoteTag { Name = "Action Item", Category = "action", Color = "#EF4444" },
+        new NoteTag { Name = "Decision", Category = "decision", Color = "#10B981" },
+        new NoteTag { Name = "Question", Category = "question", Color = "#F59E0B" },
+        new NoteTag { Name = "Follow-up", Category = "followup", Color = "#8B5CF6" },
+        new NoteTag { Name = "Blocker", Category = "blocker", Color = "#DC2626" },
+        new NoteTag { Name = "Idea", Category = "idea", Color = "#3B82F6" },
+        new NoteTag { Name = "Risk", Category = "risk", Color = "#F97316" }
+    };
+}
+```
+
+### Tag Color Reference
+
+| Category | Display Name | Color | Hex |
+|----------|-------------|-------|-----|
+| `action` | Action Item | 🔴 Red | #EF4444 |
+| `decision` | Decision | 🟢 Green | #10B981 |
+| `question` | Question | 🟡 Amber | #F59E0B |
+| `followup` | Follow-up | 🟣 Purple | #8B5CF6 |
+| `blocker` | Blocker | 🔴 Dark Red | #DC2626 |
+| `idea` | Idea | 🔵 Blue | #3B82F6 |
+| `risk` | Risk | 🟠 Orange | #F97316 |
 
 ---
 

@@ -480,7 +480,7 @@ public partial class MetricsViewModel : ViewModelBase
     {
         if (SelectedMetric == null) return;
 
-        NewValueText = SelectedMetric.CurrentValue.ToString();
+        NewValueText = SelectedMetric.CurrentValue?.ToString() ?? string.Empty;
         WhatChangedNote = string.Empty;
         IsValueUpdateDialogOpen = true;
     }

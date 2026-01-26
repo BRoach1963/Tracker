@@ -2,11 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:dialogs="clr-namespace:ProCohere.Avalonia.Views.Dialogs"
+        xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="700"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditAgendaItemDialog"
-        x:DataType="dialogs:EditAgendaItemDialog"
+        x:DataType="vm:EditAgendaItemDialogViewModel"
         Title="Edit Agenda Item"
         Width="500" Height="700"
         MinWidth="400" MinHeight="500"
@@ -32,7 +32,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="TITLE" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBox x:Name="TitleTextBox" Watermark="Agenda item title"/>
+                    <TextBox x:Name="TitleTextBox" Text="{Binding Title}" Watermark="Agenda item title"/>
                 </StackPanel>
                 
                 <!-- Display Title (optional) -->
@@ -43,7 +43,7 @@
                         <TextBlock Grid.Column="1" Text="Optional" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
-                    <TextBox x:Name="DisplayTitleTextBox" 
+                    <TextBox x:Name="DisplayTitleTextBox" Text="{Binding DisplayTitle}"
                              Watermark="Optional styled title for display"/>
                     <TextBlock Text="Override how this item appears in the agenda without changing the underlying link" 
                                FontSize="11" Foreground="{DynamicResource BrushTextTertiary}" TextWrapping="Wrap"/>
@@ -53,8 +53,9 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="VISIBILITY" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="VisibilityComboBox" HorizontalAlignment="Stretch">
-                        <ComboBoxItem Tag="meeting" IsSelected="True">
+                    <ComboBox x:Name="VisibilityComboBox" HorizontalAlignment="Stretch"
+                              SelectedIndex="{Binding VisibilityIndex}">
+                        <ComboBoxItem Tag="meeting">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
                                           Width="14" Height="14"/>
@@ -75,7 +76,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="SHARED CONTEXT" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBox x:Name="SharedContextTextBox" 
+                    <TextBox x:Name="SharedContextTextBox" Text="{Binding SharedContext}"
                              Watermark="Why are we discussing this? What's changed?"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="60" MaxHeight="120"/>
@@ -91,7 +92,7 @@
                         <TextBlock Grid.Column="1" Text="PRIVATE NOTES" FontSize="11" FontWeight="SemiBold" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Grid>
-                    <TextBox x:Name="PrivateContextTextBox" 
+                    <TextBox x:Name="PrivateContextTextBox" Text="{Binding PrivateContext}"
                              Watermark="Your private framing or notes (not visible to others)"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="60" MaxHeight="120"/>
@@ -107,61 +108,83 @@
                         <Button x:Name="AddTalkingPointButton" Grid.Column="1" 
                                 Classes="icon-button" Padding="4"
                                 ToolTip.Tip="Add talking point"
-                                Click="AddTalkingPoint_Click">
+                                Command="{Binding ShowAddPanelCommand}">
                             <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="12" Height="12"/>
                         </Button>
                     </Grid>
                     
                     <!-- Add talking point inline -->
-                    <Border x:Name="AddTalkingPointPanel" IsVisible="False"
+                    <Border x:Name="AddTalkingPointPanel" IsVisible="{Binding IsAddPanelVisible}"
                             Background="{DynamicResource BrushSurfaceAlt}"
                             CornerRadius="4" Padding="8">
                         <Grid ColumnDefinitions="*,Auto,Auto">
                             <TextBox x:Name="NewTalkingPointTextBox" Grid.Column="0"
+                                     Text="{Binding NewTalkingPointText}"
                                      Watermark="Enter a talking point..."
                                      KeyDown="NewTalkingPointTextBox_KeyDown"/>
                             <Button Grid.Column="1" Content="Add" Classes="accent" Margin="8,0,0,0"
-                                    Click="ConfirmAddTalkingPoint_Click"/>
+                                    Command="{Binding ConfirmAddCommand}"/>
                             <Button Grid.Column="2" Content="Cancel" Margin="4,0,0,0"
-                                    Click="CancelAddTalkingPoint_Click"/>
+                                    Command="{Binding CancelAddCommand}"/>
                         </Grid>
                     </Border>
                     
-                    <!-- Talking points list -->
-                    <ItemsControl x:Name="TalkingPointsControl">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:TalkingPoint">
-                                <Border Background="{DynamicResource BrushSurface}"
-                                        BorderBrush="{DynamicResource BrushBorder}"
-                                        BorderThickness="1" CornerRadius="4" 
-                                        Padding="8" Margin="0,0,0,4">
-                                    <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <PathIcon Grid.Column="0" 
-                                                  Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
-                                                  Width="12" Height="12" 
-                                                  Foreground="{DynamicResource BrushTextTertiary}"
-                                                  Margin="0,0,8,0"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Text}" 
-                                                   FontSize="12" VerticalAlignment="Center"
-                                                   TextWrapping="Wrap"/>
-                                        <Button Grid.Column="2" Classes="icon-button" Padding="4"
-                                                ToolTip.Tip="Remove"
-                                                Click="RemoveTalkingPoint_Click"
-                                                Tag="{Binding}">
-                                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                                      Width="10" Height="10" 
-                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
-                                        </Button>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <!-- Talking points list (scrollable within dialog) -->
+                    <Border MaxHeight="200">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="TalkingPointsControl" ItemsSource="{Binding TalkingPoints}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:TalkingPoint">
+                                        <Border Background="{DynamicResource BrushSurface}"
+                                                BorderBrush="{DynamicResource BrushBorder}"
+                                                BorderThickness="1" CornerRadius="4" 
+                                                Padding="8" Margin="0,0,0,4">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <PathIcon Grid.Column="0" 
+                                                          Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
+                                                          Width="12" Height="12" 
+                                                          Foreground="{DynamicResource BrushTextTertiary}"
+                                                          Margin="0,0,8,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Text}" 
+                                                           FontSize="12" VerticalAlignment="Center"
+                                                           TextWrapping="Wrap"/>
+                                                <!-- More menu for Edit/Delete -->
+                                                <Button Grid.Column="2" Classes="icon-button" Padding="4"
+                                                        ToolTip.Tip="Options">
+                                                    <Button.Flyout>
+                                                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                                            <MenuItem Header="Edit" 
+                                                                      Command="{Binding $parent[ItemsControl].((vm:EditAgendaItemDialogViewModel)DataContext).EditTalkingPointCommand}"
+                                                                      CommandParameter="{Binding}">
+                                                                <MenuItem.Icon>
+                                                                    <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" Width="12" Height="12"/>
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                            <MenuItem Header="Delete"
+                                                                      Command="{Binding $parent[ItemsControl].((vm:EditAgendaItemDialogViewModel)DataContext).RemoveTalkingPointCommand}"
+                                                                      CommandParameter="{Binding}">
+                                                                <MenuItem.Icon>
+                                                                    <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" Width="12" Height="12"/>
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                        </MenuFlyout>
+                                                    </Button.Flyout>
+                                                    <PathIcon Data="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" 
+                                                              Width="12" Height="12" 
+                                                              Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
                     
                     <!-- Empty state for talking points -->
                     <Border x:Name="TalkingPointsEmptyState"
                             Background="{DynamicResource BrushSurfaceAlt}"
-                            CornerRadius="4" Padding="16" IsVisible="True">
+                            CornerRadius="4" Padding="16" IsVisible="{Binding !HasTalkingPoints}">
                         <TextBlock Text="No talking points yet. Add specific points to discuss during the meeting."
                                    FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"
                                    TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
@@ -170,14 +193,13 @@
                 
             </StackPanel>
         </ScrollViewer>
-        
         <!-- Footer -->
         <Border Grid.Row="2" Background="{DynamicResource BrushSurface}" 
                 BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,1,0,0"
                 Padding="20,12">
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <Button Content="Cancel" Click="Cancel_Click"/>
-                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Click="Save_Click"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}"/>
+                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Command="{Binding SaveCommand}"/>
             </Grid>
         </Border>
         

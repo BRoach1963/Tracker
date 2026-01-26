@@ -2,9 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="using:ProCohere.Avalonia.Models"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="520"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AddTaskDialog"
+        x:DataType="vm:AddTaskDialogViewModel"
         Title="Task"
         Width="450"
         Height="520"
@@ -26,7 +28,7 @@
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                 Padding="24,16">
             <TextBlock x:Name="DialogTitle"
-                       Text="New Task"
+                       Text="{Binding DialogTitleText}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -39,6 +41,7 @@
                 <StackPanel Spacing="6">
                     <TextBlock Text="Title *" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox x:Name="TitleTextBox"
+                             Text="{Binding Title}"
                              Watermark="What needs to be done?"
                              FontSize="14"/>
                 </StackPanel>
@@ -47,6 +50,7 @@
                 <StackPanel Spacing="6">
                     <TextBlock Text="Description" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox x:Name="DescriptionTextBox"
+                             Text="{Binding Description}"
                              Watermark="Add more details (optional)"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
@@ -60,6 +64,7 @@
                         <TextBlock Text="Priority" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox x:Name="PriorityComboBox" 
                                   HorizontalAlignment="Stretch"
+                                  SelectedIndex="{Binding PriorityIndex}"
                                   PlaceholderText="Select priority">
                             <ComboBoxItem Content="High" Tag="high"/>
                             <ComboBoxItem Content="Medium" Tag="medium"/>
@@ -70,15 +75,17 @@
                     <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
                         <TextBlock Text="Due Date" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <DatePicker x:Name="DueDatePicker" 
+                                    SelectedDate="{Binding DueDate}"
                                     HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </Grid>
                 
                 <!-- Status (only in edit mode) -->
-                <StackPanel x:Name="StatusSection" Spacing="6" IsVisible="False">
+                <StackPanel x:Name="StatusSection" Spacing="6" IsVisible="{Binding IsEditMode}">
                     <TextBlock Text="Status" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox x:Name="StatusComboBox" 
-                              HorizontalAlignment="Stretch">
+                              HorizontalAlignment="Stretch"
+                              SelectedIndex="{Binding StatusIndex}">
                         <ComboBoxItem Content="Not Started" Tag="not_started"/>
                         <ComboBoxItem Content="In Progress" Tag="in_progress"/>
                         <ComboBoxItem Content="Completed" Tag="completed"/>
@@ -91,6 +98,8 @@
                     <TextBlock Text="Assignee" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox x:Name="AssigneeComboBox" 
                               HorizontalAlignment="Stretch"
+                              ItemsSource="{Binding TeamMembers}"
+                              SelectedItem="{Binding SelectedAssignee}"
                               PlaceholderText="Assign to someone">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:TeamMemberDetail">
@@ -111,21 +120,21 @@
                         Grid.Column="0"
                         Content="Delete"
                         Foreground="#E74C3C"
-                        IsVisible="False"
-                        Click="DeleteButton_Click" />
+                        IsVisible="{Binding IsEditMode}"
+                        Command="{Binding DeleteCommand}" />
                 <Button Grid.Column="2"
                         x:Name="CancelButton" 
                         Content="Cancel" 
                         Classes="secondary-button"
                         Padding="16,8"
                         Margin="0,0,8,0"
-                        Click="CancelButton_Click"/>
+                        Command="{Binding CancelCommand}"/>
                 <Button Grid.Column="3"
                         x:Name="CreateButton" 
-                        Content="Create Task" 
+                        Content="{Binding SaveButtonText}" 
                         Classes="primary-button"
                         Padding="16,8"
-                        Click="CreateButton_Click"/>
+                        Command="{Binding SaveCommand}"/>
             </Grid>
         </Border>
     </Grid>

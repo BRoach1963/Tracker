@@ -136,12 +136,13 @@ public class MeetingNoteService
             visibilityScope ??= isPrivate ? "personal" : "meeting";
 
             // Use RPC to insert - it returns the new UUID
-            // RPC signature: procohere.insert_meeting_note(p_meeting_id, p_content, p_is_shared)
+            // RPC signature: procohere.insert_meeting_note(p_meeting_id, p_content, p_is_shared, p_tags)
             var rpcResult = await client.Rpc("insert_meeting_note", new
             {
                 p_meeting_id = meetingId,
                 p_content = content,
-                p_is_shared = !isPrivate  // Note: RPC uses is_shared (inverted from isPrivate)
+                p_is_shared = !isPrivate,  // Note: RPC uses is_shared (inverted from isPrivate)
+                p_tags = new List<string>() // Default empty tags for new notes
             });
 
             Log($"Insert meeting note RPC result: {rpcResult?.Content ?? "NULL"}");
@@ -240,12 +241,13 @@ public class MeetingNoteService
             Log($"Updating note: {note.Id}");
 
             // Use RPC to update - only author can update
-            // RPC signature: procohere.update_meeting_note(p_id, p_content, p_is_shared)
+            // RPC signature: procohere.update_meeting_note(p_id, p_content, p_is_shared, p_tags)
             var rpcResult = await client.Rpc("update_meeting_note", new
             {
                 p_id = note.Id,
                 p_content = note.Content,
-                p_is_shared = note.IsShared
+                p_is_shared = note.IsShared,
+                p_tags = note.Tags ?? []
             });
 
             Log($"Update meeting note RPC result: {rpcResult?.Content ?? "NULL"}");

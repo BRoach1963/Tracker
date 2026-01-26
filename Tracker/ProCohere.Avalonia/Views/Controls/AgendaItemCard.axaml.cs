@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ProCohere.Avalonia.Models;
-using ProCohere.Avalonia.Services;
 
 namespace ProCohere.Avalonia.Views.Controls;
 
@@ -45,14 +42,29 @@ public partial class AgendaItemCard : UserControl
     public event EventHandler<MeetingAgendaItem>? AddNoteRequested;
 
     /// <summary>
-    /// Raised when status changes.
+    /// Raised when user wants to set status to Open.
     /// </summary>
-    public event EventHandler<(MeetingAgendaItem Item, string NewStatus)>? StatusChanged;
+    public event EventHandler<MeetingAgendaItem>? SetOpenRequested;
+
+    /// <summary>
+    /// Raised when user wants to set status to Discussed.
+    /// </summary>
+    public event EventHandler<MeetingAgendaItem>? SetDiscussedRequested;
+
+    /// <summary>
+    /// Raised when user wants to set status to Dropped.
+    /// </summary>
+    public event EventHandler<MeetingAgendaItem>? SetDroppedRequested;
 
     /// <summary>
     /// Raised when user wants to defer the item (needs to select anchor person).
     /// </summary>
     public event EventHandler<MeetingAgendaItem>? DeferRequested;
+
+    /// <summary>
+    /// Raised when outcomes need to be loaded for this item.
+    /// </summary>
+    public event EventHandler<MeetingAgendaItem>? LoadOutcomesRequested;
 
     #endregion
 
@@ -94,10 +106,10 @@ public partial class AgendaItemCard : UserControl
     {
         IsExpanded = !IsExpanded;
         
-        // Load outcomes on first expand
+        // Request outcomes load on first expand
         if (IsExpanded && _outcomes.Count == 0 && AgendaItem != null)
         {
-            _ = LoadOutcomesAsync();
+            LoadOutcomesRequested?.Invoke(this, AgendaItem);
         }
     }
 
@@ -165,50 +177,35 @@ public partial class AgendaItemCard : UserControl
 
     #region Status Changes
 
-    private async void OnSetOpen(object? sender, RoutedEventArgs e)
+    private void OnSetOpen(object? sender, RoutedEventArgs e)
     {
-        if (AgendaItem == null) return;
-        
-        var success = await MeetingAgendaItemService.Instance.UpdateStatusAsync(AgendaItem.Id, "open");
-        if (success)
+        if (AgendaItem != null)
         {
-            AgendaItem.Status = "open";
-            AgendaItem.IsCompleted = false;
-            StatusChanged?.Invoke(this, (AgendaItem, "open"));
+            SetOpenRequested?.Invoke(this, AgendaItem);
         }
     }
 
-    private async void OnSetDiscussed(object? sender, RoutedEventArgs e)
+    private void OnSetDiscussed(object? sender, RoutedEventArgs e)
     {
-        if (AgendaItem == null) return;
-        
-        var success = await MeetingAgendaItemService.Instance.UpdateStatusAsync(AgendaItem.Id, "discussed");
-        if (success)
+        if (AgendaItem != null)
         {
-            AgendaItem.Status = "discussed";
-            AgendaItem.IsCompleted = true;
-            StatusChanged?.Invoke(this, (AgendaItem, "discussed"));
+            SetDiscussedRequested?.Invoke(this, AgendaItem);
         }
     }
 
     private void OnSetDeferred(object? sender, RoutedEventArgs e)
     {
-        if (AgendaItem == null) return;
-        
-        // Raise event - parent handles showing the deferral dialog to select anchor person
-        DeferRequested?.Invoke(this, AgendaItem);
+        if (AgendaItem != null)
+        {
+            DeferRequested?.Invoke(this, AgendaItem);
+        }
     }
 
-    private async void OnSetDropped(object? sender, RoutedEventArgs e)
+    private void OnSetDropped(object? sender, RoutedEventArgs e)
     {
-        if (AgendaItem == null) return;
-        
-        var success = await MeetingAgendaItemService.Instance.UpdateStatusAsync(AgendaItem.Id, "dropped");
-        if (success)
+        if (AgendaItem != null)
         {
-            AgendaItem.Status = "dropped";
-            AgendaItem.IsCompleted = true;
-            StatusChanged?.Invoke(this, (AgendaItem, "dropped"));
+            SetDroppedRequested?.Invoke(this, AgendaItem);
         }
     }
 
@@ -253,29 +250,18 @@ public partial class AgendaItemCard : UserControl
     #region Data Loading
 
     /// <summary>
-    /// Loads outcomes for the current agenda item.
+    /// Sets the outcomes for display. Called by parent after loading from service.
     /// </summary>
-    public async Task LoadOutcomesAsync()
+    public void SetOutcomes(List<AgendaItemOutcomeDetail> allOutcomes)
     {
-        if (AgendaItem == null) return;
+        // Separate notes from other outcomes
+        _outcomes = allOutcomes.FindAll(o => o.OutcomeType != OutcomeType.NotesAdded);
+        _notes = allOutcomes.FindAll(o => o.OutcomeType == OutcomeType.NotesAdded);
 
-        try
-        {
-            var allOutcomes = await AgendaItemOutcomeService.Instance.GetOutcomesForAgendaItemAsync(AgendaItem.Id);
-            
-            // Separate notes from other outcomes
-            _outcomes = allOutcomes.FindAll(o => o.OutcomeType != OutcomeType.NotesAdded);
-            _notes = allOutcomes.FindAll(o => o.OutcomeType == OutcomeType.NotesAdded);
-
-            // Update UI
-            UpdateOutcomesList();
-            UpdateNotesList();
-            UpdateBadgeCounts();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"AgendaItemCard.LoadOutcomesAsync ERROR: {ex.Message}");
-        }
+        // Update UI
+        UpdateOutcomesList();
+        UpdateNotesList();
+        UpdateBadgeCounts();
     }
 
     private void UpdateOutcomesList()
@@ -328,11 +314,14 @@ public partial class AgendaItemCard : UserControl
     }
 
     /// <summary>
-    /// Refreshes the outcomes display.
+    /// Requests a refresh of outcomes from the parent.
     /// </summary>
-    public async Task RefreshAsync()
+    public void RequestRefresh()
     {
-        await LoadOutcomesAsync();
+        if (AgendaItem != null)
+        {
+            LoadOutcomesRequested?.Invoke(this, AgendaItem);
+        }
     }
 
     /// <summary>

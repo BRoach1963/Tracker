@@ -234,8 +234,11 @@
                                     RecordDecisionRequested="OnAgendaItemRecordDecisionRequested"
                                     CaptureFeedbackRequested="OnAgendaItemCaptureFeedbackRequested"
                                     AddNoteRequested="OnAgendaItemAddNoteRequested"
-                                    StatusChanged="OnAgendaItemStatusChanged"
-                                    DeferRequested="OnAgendaItemDeferRequested"/>
+                                    SetOpenRequested="OnAgendaItemSetOpenRequested"
+                                    SetDiscussedRequested="OnAgendaItemSetDiscussedRequested"
+                                    SetDroppedRequested="OnAgendaItemSetDroppedRequested"
+                                    DeferRequested="OnAgendaItemDeferRequested"
+                                    LoadOutcomesRequested="OnAgendaItemLoadOutcomesRequested"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

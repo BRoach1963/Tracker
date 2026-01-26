@@ -25,12 +25,12 @@ namespace Tracker.ViewModels
         private readonly ILogger _logger = LoggingManager.GetComponentLogger("PulseSurveysVM");
         private readonly IPulseSurveyRepository _pulseSurveyRepository;
 
-        private ObservableCollection<PulseSurvey> _surveys = new();
+        private ObservableCollection<Survey> _surveys = new();
         private ObservableCollection<TeamMember> _teamMembers = new();
         private ObservableCollection<SurveyTokenInfo> _generatedTokens = new();
         private ObservableCollection<SurveyResponse> _surveyResponses = new();
 
-        private PulseSurvey? _selectedSurvey;
+        private Survey? _selectedSurvey;
         private SurveyQuestion? _selectedQuestion;
         private SurveyTokenInfo? _selectedToken;
         private SurveyResponse? _selectedResponse;
@@ -99,7 +99,7 @@ namespace Tracker.ViewModels
 
         #region Properties - Collections
 
-        public ObservableCollection<PulseSurvey> Surveys
+        public ObservableCollection<Survey> Surveys
         {
             get => _surveys;
             private set
@@ -138,7 +138,7 @@ namespace Tracker.ViewModels
 
         #region Properties - Selection & State
 
-        public PulseSurvey? SelectedSurvey
+        public Survey? SelectedSurvey
         {
             get => _selectedSurvey;
             set
@@ -503,7 +503,7 @@ namespace Tracker.ViewModels
 
                 // Use TrackerDataManager as single source of truth for all data
                 var surveys = await TrackerDataManager.Instance.GetPulseSurveys();
-                _surveys = new ObservableCollection<PulseSurvey>(surveys);
+                _surveys = new ObservableCollection<Survey>(surveys);
                 RaisePropertyChanged(nameof(Surveys));
 
                 var members = await TrackerDataManager.Instance.GetTeamData();
@@ -522,7 +522,7 @@ namespace Tracker.ViewModels
             }
         }
 
-        private void LoadSurveyForEditing(PulseSurvey survey)
+        private void LoadSurveyForEditing(Survey survey)
         {
             EditTitle = survey.Title;
             EditDescription = survey.Description;
@@ -616,7 +616,7 @@ namespace Tracker.ViewModels
 
         private void CreateNewSurvey()
         {
-            _selectedSurvey = new PulseSurvey
+            _selectedSurvey = new Survey
             {
                 Title = "New Survey",
                 IsAnonymous = true,

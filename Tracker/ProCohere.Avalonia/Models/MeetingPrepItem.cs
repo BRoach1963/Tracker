@@ -190,9 +190,19 @@ public class MeetingPrepItem : BaseModel
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; }
 
-    // NOTE: meeting_prep_items does NOT have deleted_at/deleted_by columns
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+
+    [Column("deleted_by")]
+    public Guid? DeletedBy { get; set; }
 
     #region Non-DB Properties (set by service)
+
+    /// <summary>
+    /// Tracks whether this item has been modified and needs to be persisted.
+    /// Not stored in database - used for dirty tracking in dialogs.
+    /// </summary>
+    public bool IsDirty { get; set; }
 
     /// <summary>
     /// Name of the person who requested this item (set by service).
@@ -330,18 +340,6 @@ public class MeetingPrepItem : BaseModel
     /// Used by UI to show visibility/assignment row.
     /// </summary>
     public bool HasAssigneeOrScope => HasAssignee || VisibilityScope != "personal";
-
-    /// <summary>
-    /// Icon to display for visibility scope.
-    /// </summary>
-    [Obsolete("Use VisibilityIconPath for XAML binding with PathIcon")]
-    public string VisibilityIcon => VisibilityScope switch
-    {
-        "personal" => "🔒",
-        "assigned" => "👤",
-        "meeting" => "👥",
-        _ => ""
-    };
 
     /// <summary>
     /// PathIcon data for visibility scope - use with PathIcon in XAML.

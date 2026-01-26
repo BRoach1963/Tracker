@@ -395,8 +395,8 @@ public class MetricsService : IMetricsService
                 .Set(m => m.Description!, metric.Description)
                 .Set(m => m.MetricType!, metric.MetricType)
                 .Set(m => m.Unit!, metric.Unit)
-                .Set(m => m.TargetValue, metric.TargetValue)
-                .Set(m => m.CurrentValue, metric.CurrentValue)
+                .Set(m => m.TargetValue!, metric.TargetValue)
+                .Set(m => m.CurrentValue!, metric.CurrentValue)
                 .Set(m => m.TargetDirection!, metric.TargetDirection)
                 .Set(m => m.Frequency!, metric.Frequency)
                 .Set(m => m.UpdatedAt, metric.UpdatedAt)
@@ -508,7 +508,7 @@ public class MetricsService : IMetricsService
             // Update the metric's current value
             var result = await client.From<MetricDetail>()
                 .Where(m => m.Id == metricId)
-                .Set(m => m.CurrentValue, newValue)
+                .Set(m => m.CurrentValue!, newValue)
                 .Set(m => m.UpdatedAt, now)
                 .Update();
 

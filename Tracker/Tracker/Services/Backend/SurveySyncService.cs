@@ -109,9 +109,9 @@ namespace Tracker.Services.Backend
         #region Survey Upload
 
         /// <summary>
-        /// Uploads a local PulseSurvey to Supabase.
+        /// Uploads a local Survey to Supabase.
         /// </summary>
-        public async Task<(bool Success, string? Error, string? SupabaseSurveyId)> UploadSurveyAsync(PulseSurvey survey)
+        public async Task<(bool Success, string? Error, string? SupabaseSurveyId)> UploadSurveyAsync(Survey survey)
         {
             EnsureInitialized();
 

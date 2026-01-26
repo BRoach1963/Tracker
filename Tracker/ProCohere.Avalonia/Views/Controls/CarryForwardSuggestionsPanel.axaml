@@ -4,8 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:ProCohere.Avalonia.Views.Controls"
              xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="ProCohere.Avalonia.Views.Controls.CarryForwardSuggestionsPanel"
+             x:DataType="vm:CarryForwardSuggestionsPanelViewModel"
              x:Name="Root">
 
     <UserControl.Styles>
@@ -64,8 +66,7 @@
                             CornerRadius="10"
                             Padding="8,2"
                             VerticalAlignment="Center">
-                        <TextBlock x:Name="CountBadge"
-                                   Text="0"
+                        <TextBlock Text="{Binding ItemCount}"
                                    FontSize="12"
                                    FontWeight="Bold"
                                    Foreground="White" />
@@ -80,7 +81,8 @@
             
             <!-- Items List -->
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="SuggestionsItemsControl">
+                <ItemsControl ItemsSource="{Binding PendingItems}"
+                              IsVisible="{Binding HasItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:MeetingAgendaItem">
                             <Border Classes="suggestion-card">
@@ -111,18 +113,18 @@
                                                 Content="Add to Meeting"
                                                 FontSize="11"
                                                 Padding="10,4"
-                                                Tag="{Binding}"
-                                                Click="AddToMeetingButton_Click" />
+                                                Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).AddToMeetingCommand}"
+                                                CommandParameter="{Binding}" />
                                         <Button Content="Skip This Time"
                                                 FontSize="11"
                                                 Padding="10,4"
-                                                Tag="{Binding}"
-                                                Click="SkipButton_Click" />
+                                                Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).SkipCommand}"
+                                                CommandParameter="{Binding}" />
                                         <Button Content="Mark Resolved"
                                                 FontSize="11"
                                                 Padding="10,4"
-                                                Tag="{Binding}"
-                                                Click="MarkResolvedButton_Click" />
+                                                Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).MarkResolvedCommand}"
+                                                CommandParameter="{Binding}" />
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -133,8 +135,7 @@
             
             <!-- Empty State -->
             <StackPanel Grid.Row="1"
-                        x:Name="EmptyStatePanel"
-                        IsVisible="False"
+                        IsVisible="{Binding IsEmpty}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="8">

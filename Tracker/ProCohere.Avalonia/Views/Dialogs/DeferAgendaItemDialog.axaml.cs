@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Models.Dialogs;
+using ProCohere.Avalonia.ViewModels.Dialogs;
 
 namespace ProCohere.Avalonia.Views.Dialogs;
 
@@ -11,7 +11,7 @@ namespace ProCohere.Avalonia.Views.Dialogs;
 /// </summary>
 public partial class DeferAgendaItemDialog : Window
 {
-    private MeetingAgendaItem? _agendaItem;
+    private readonly DeferAgendaItemDialogViewModel _viewModel;
 
     /// <summary>
     /// Result of the dialog - the deferral data if confirmed, null if cancelled.
@@ -21,6 +21,11 @@ public partial class DeferAgendaItemDialog : Window
     public DeferAgendaItemDialog()
     {
         InitializeComponent();
+        
+        _viewModel = new DeferAgendaItemDialogViewModel();
+        DataContext = _viewModel;
+        
+        _viewModel.CloseRequested += OnCloseRequested;
     }
 
     /// <summary>
@@ -28,8 +33,7 @@ public partial class DeferAgendaItemDialog : Window
     /// </summary>
     public void SetAgendaItem(MeetingAgendaItem item)
     {
-        _agendaItem = item;
-        AgendaItemTitleText.Text = item.Title;
+        _viewModel.Initialize(item);
     }
 
     /// <summary>
@@ -37,7 +41,7 @@ public partial class DeferAgendaItemDialog : Window
     /// </summary>
     public void SetTeamMembers(IEnumerable<TeamMemberDetail> members)
     {
-        AnchorPersonComboBox.ItemsSource = members;
+        _viewModel.SetTeamMembers(members);
     }
 
     /// <summary>
@@ -45,64 +49,12 @@ public partial class DeferAgendaItemDialog : Window
     /// </summary>
     public void SetPreselectedMember(TeamMemberDetail? member)
     {
-        if (member != null)
-        {
-            AnchorPersonComboBox.SelectedItem = member;
-        }
+        _viewModel.SetPreselectedMember(member);
     }
 
-    private int GetSelectedExpirationDays()
+    private void OnCloseRequested(object? sender, DeferAgendaItemResult? result)
     {
-        var selectedItem = ExpirationComboBox.SelectedItem as ComboBoxItem;
-        if (selectedItem?.Tag != null && int.TryParse(selectedItem.Tag.ToString(), out var days))
-        {
-            return days;
-        }
-        return 30; // Default
-    }
-
-    private void CancelButton_Click(object? sender, RoutedEventArgs e)
-    {
-        Result = null;
+        Result = result;
         Close();
     }
-
-    private void DeferButton_Click(object? sender, RoutedEventArgs e)
-    {
-        var selectedMember = AnchorPersonComboBox.SelectedItem as TeamMemberDetail;
-        
-        if (selectedMember == null)
-        {
-            // Must select a person
-            AnchorPersonComboBox.Focus();
-            return;
-        }
-
-        if (_agendaItem == null)
-        {
-            Close();
-            return;
-        }
-
-        Result = new DeferAgendaItemResult
-        {
-            AgendaItemId = _agendaItem.Id,
-            AnchorTeamMemberId = selectedMember.Id,
-            ExpirationDays = GetSelectedExpirationDays(),
-            Note = NoteTextBox.Text?.Trim()
-        };
-
-        Close();
-    }
-}
-
-/// <summary>
-/// Result data from the DeferAgendaItemDialog.
-/// </summary>
-public class DeferAgendaItemResult
-{
-    public required Guid AgendaItemId { get; init; }
-    public required Guid AnchorTeamMemberId { get; init; }
-    public required int ExpirationDays { get; init; }
-    public string? Note { get; init; }
 }

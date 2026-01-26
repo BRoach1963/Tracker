@@ -56,7 +56,7 @@ namespace Tracker.Services.MeetingPrep.Gatherers
                     return null;
                 }
 
-                var recentResponses = new List<(PulseSurvey Survey, SurveyResponse Response)>();
+                var recentResponses = new List<(Survey Survey, SurveyResponse Response)>();
 
                 foreach (var survey in surveys)
                 {

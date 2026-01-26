@@ -500,8 +500,8 @@ public class TeamService
             var result = await client.From<Team>()
                 .Filter("id", Operator.Equals, teamId.ToString())
                 .Set(t => t.Name, name.Trim())
-                .Set(t => t.Description, description?.Trim())
-                .Set(t => t.LeadTeamMemberId, leadTeamMemberId)
+                .Set(t => t.Description!, description?.Trim())
+                .Set(t => t.LeadTeamMemberId!, leadTeamMemberId)
                 .Set(t => t.UpdatedAt, DateTime.UtcNow)
                 .Update();
 
@@ -550,8 +550,8 @@ public class TeamService
             var result = await client.From<Team>()
                 .Filter("id", Operator.Equals, teamId.ToString())
                 .Set(t => t.IsDeleted, true)
-                .Set(t => t.DeletedAt, DateTime.UtcNow)
-                .Set(t => t.DeletedBy, deletedByUserId)
+                .Set(t => t.DeletedAt!, DateTime.UtcNow)
+                .Set(t => t.DeletedBy!, deletedByUserId)
                 .Set(t => t.UpdatedAt, DateTime.UtcNow)
                 .Update();
 

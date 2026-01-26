@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -28,6 +29,13 @@ public class MeetingNote : BaseModel
 
     [Column("is_shared")]
     public bool IsShared { get; set; }
+
+    /// <summary>
+    /// Tags/categories assigned to this note for filtering.
+    /// Stored as JSONB array of category strings (e.g., ["action", "decision"]).
+    /// </summary>
+    [Column("tags")]
+    public List<string>? Tags { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }

@@ -18,6 +18,7 @@ Services follow the **Singleton pattern** and wrap Supabase client operations:
 
 | Service | File | Lines | Purpose |
 |---------|------|-------|---------|
+| `AppDialogService` | AppDialogService.cs | ~230 | Centralized dialog management (static) |
 | `AuthService` | AuthService.cs | ~1068 | Authentication, session management |
 | `GoalsService` | GoalsService.cs | ~783 | Goal CRUD, health/lifecycle |
 | `MetricsService` | MetricsService.cs | ~764 | Metric CRUD, data points, trends |
@@ -35,6 +36,8 @@ Services follow the **Singleton pattern** and wrap Supabase client operations:
 | `ThemeService` | ThemeService.cs | ~108 | Light/Dark theme switching |
 | `LocalSettingsService` | LocalSettingsService.cs | ~178 | Local app settings |
 | `WindowsCredentialService` | WindowsCredentialService.cs | ~160 | DPAPI session storage |
+| `DialogService` | DialogService.cs | ~90 | Internal dialog service for EditMeetingDialog |
+| `IDialogService` | IDialogService.cs | ~111 | Interface for internal dialog operations |
 
 ---
 
@@ -65,6 +68,120 @@ public class SomeService
 
     // CRUD methods...
 }
+```
+
+---
+
+## AppDialogService
+
+**Purpose**: Centralized dialog management for the application.
+
+This is a **static service** (not a singleton) that encapsulates all dialog creation and display logic, eliminating code duplication across views. ViewModels raise events, Views subscribe and call this service with the parent Window reference.
+
+### Design Pattern
+
+```
+ViewModel                    View                         AppDialogService
+    |                         |                                 |
+    |-- CreateMeetingCommand -|                                 |
+    |   (raises event)        |                                 |
+    |                         |-- subscribes to event --------->|
+    |                         |                                 |
+    |                         |-- ShowCreateMeetingAsync(window, preSelected)
+    |                         |                                 |
+    |                         |<-- MeetingDialogResult ---------|
+    |                         |                                 |
+    |<-- OnMeetingSaved(mtg) -|                                 |
+```
+
+### Usage Pattern
+
+**In ViewModel:**
+```csharp
+// Define event
+public event EventHandler<TeamMemberDetail?>? CreateMeetingDialogRequested;
+
+// Raise event from command
+[RelayCommand]
+private void ScheduleMeeting(TeamMemberDetail? member)
+{
+    CreateMeetingDialogRequested?.Invoke(this, member);
+}
+
+// Define callback for result handling
+public void OnMeetingSaved(MeetingDetail meeting) { /* update collections */ }
+```
+
+**In View code-behind:**
+```csharp
+// Subscribe in constructor
+_viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+
+// Handle event
+private async void OnCreateMeetingDialogRequested(object? sender, TeamMemberDetail? preSelected)
+{
+    var window = TopLevel.GetTopLevel(this) as Window;
+    if (window == null) return;
+
+    var result = await AppDialogService.ShowCreateMeetingAsync(window, preSelected);
+    
+    if (result.Success && result.Meeting != null)
+    {
+        _viewModel.OnMeetingSaved(result.Meeting);
+    }
+}
+```
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `ShowCreateMeetingAsync(window, preSelectedAttendee?)` | Task\<MeetingDialogResult\> | Show create meeting dialog |
+| `ShowEditMeetingAsync(window, meeting)` | Task\<MeetingDialogResult\> | Show edit meeting dialog |
+
+### MeetingDialogResult
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Meeting` | MeetingDetail? | Created/updated meeting (null if cancelled/deleted) |
+| `DeletedMeetingId` | Guid? | ID of deleted meeting |
+| `Error` | string? | Error message if operation failed |
+| `WasCancelled` | bool | True if user cancelled |
+| `WasCreated` | bool | True if meeting was created |
+| `WasUpdated` | bool | True if meeting was updated |
+| `WasDeleted` | bool | True if meeting was deleted |
+| `Success` | bool | True if operation succeeded (created/updated/deleted) |
+
+### Factory Methods
+
+```csharp
+MeetingDialogResult.Created(meeting)   // Meeting was created
+MeetingDialogResult.Updated(meeting)   // Meeting was updated
+MeetingDialogResult.Deleted(meetingId) // Meeting was deleted
+MeetingDialogResult.Cancelled()        // User cancelled
+MeetingDialogResult.Failed(error)      // Operation failed
+```
+
+### Views Using AppDialogService
+
+| View | Events Subscribed |
+|------|-------------------|
+| `MeView` | `CreateMeetingDialogRequested`, `EditMeetingDialogRequested` |
+| `CircleView` | `CreateMeetingDialogRequested` (with pre-selection) |
+| `BriefingView` | `CreateMeetingDialogRequested` |
+
+### Future Extensions
+
+The service is designed to be extended with additional dialog types:
+
+```csharp
+// Goals (future)
+Task<GoalDialogResult> ShowCreateGoalAsync(Window parent, TeamMemberDetail? owner = null);
+Task<GoalDialogResult> ShowEditGoalAsync(Window parent, GoalDetail goal);
+
+// Tasks (future)
+Task<TaskDialogResult> ShowCreateTaskAsync(Window parent, MeetingDetail? relatedMeeting = null);
+Task<TaskDialogResult> ShowEditTaskAsync(Window parent, TaskDetail task);
 ```
 
 ---
@@ -463,8 +580,8 @@ Uses role-based RPCs for updates (requester vs assignee).
 ### MeetingNoteService
 
 **RPCs Used:**
-- `insert_meeting_note(p_meeting_id, p_content, p_is_shared)` - Create
-- `update_meeting_note(p_id, p_content, p_is_shared)` - Update
+- `insert_meeting_note(p_meeting_id, p_content, p_is_shared, p_tags)` - Create note with tags
+- `update_meeting_note(p_id, p_content, p_is_shared, p_tags)` - Update note and tags
 - `delete_meeting_note(p_id)` - Soft delete
 
 **Important:** Uses `p_is_shared` (NOT `p_is_private`). Invert the app's `isPrivate` flag:
@@ -475,10 +592,18 @@ new KeyValuePair<string, object>("p_is_shared", !isPrivate)
 **Methods:**
 | Method | RPC | Description |
 |--------|-----|-------------|
-| `GetMeetingNotesAsync(meetingId)` | SELECT | Get notes for meeting |
-| `CreateMeetingNoteAsync(meetingId, content, isPrivate)` | `insert_meeting_note` | Create new note |
-| `UpdateMeetingNoteAsync(noteId, content, isPrivate)` | `update_meeting_note` | Update note |
-| `DeleteMeetingNoteAsync(noteId)` | `delete_meeting_note` | Soft delete |
+| `GetMeetingNotesAsync(meetingId)` | SELECT | Get notes for meeting (includes tags) |
+| `CreateNoteAsync(meetingId, content, isPrivate)` | `insert_meeting_note` | Create new note |
+| `UpdateNoteAsync(MeetingNote)` | `update_meeting_note` | Update note (content, visibility, tags) |
+| `DeleteNoteAsync(noteId)` | `delete_meeting_note` | Soft delete |
+| `CreateQuickNoteAsync(meetingId, content)` | `insert_meeting_note` | Create private note |
+| `CreateSharedNoteAsync(meetingId, content)` | `insert_meeting_note` | Create shared note |
+
+**Tags Parameter:**
+Tags are passed as a JSONB array of category strings:
+```csharp
+p_tags = note.Tags ?? []  // e.g., ["action", "decision"]
+```
 
 ### MeetingTemplateService
 - `GetTemplatesAsync()` - Get all templates

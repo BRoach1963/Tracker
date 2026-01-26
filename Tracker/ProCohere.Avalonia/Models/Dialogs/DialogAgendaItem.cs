@@ -13,6 +13,12 @@ public partial class DialogAgendaItem : ObservableObject
     [ObservableProperty]
     private Guid _id = Guid.Empty;
     
+    /// <summary>
+    /// Tracks whether this item has been modified and needs to be persisted.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isDirty;
+    
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EffectiveTitle))]
     private string _title = string.Empty;

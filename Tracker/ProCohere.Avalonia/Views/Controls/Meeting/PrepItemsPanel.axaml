@@ -31,118 +31,14 @@
                 <Button Grid.Column="2" 
                         Classes="icon-button" Padding="6"
                         ToolTip.Tip="Add new prep item"
-                        Command="{Binding ShowAddPrepPanelCommand}">
+                        Command="{Binding AddPrepItemCommand}">
                     <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                               Width="14" Height="14"/>
                 </Button>
             </Grid>
             
-            <!-- Add prep item inline form -->
-            <Border Background="{DynamicResource BrushBackground}"
-                    BorderBrush="{DynamicResource BrushBorder}"
-                    BorderThickness="1"
-                    CornerRadius="6" Padding="12" 
-                    IsVisible="{Binding IsAddPrepPanelVisible}">
-                <StackPanel Spacing="12">
-                    <!-- Title -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Title" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBox Text="{Binding NewPrepTitle}" 
-                                 Watermark="What needs to be prepared?"/>
-                    </StackPanel>
-                    
-                    <!-- Prep Prompt -->
-                    <StackPanel Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="Prep Prompt" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="(what to think about)" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextTertiary}"/>
-                        </StackPanel>
-                        <TextBox Text="{Binding NewPrepPrompt}" 
-                                 Watermark="What questions should be considered? What's the focus?"
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 MinHeight="50"
-                                 MaxHeight="80"/>
-                    </StackPanel>
-                    
-                    <!-- Details -->
-                    <StackPanel Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="Details" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="(optional)" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextTertiary}"/>
-                        </StackPanel>
-                        <TextBox Text="{Binding NewPrepBody}" 
-                                 Watermark="Additional context or notes..."
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 MinHeight="40"
-                                 MaxHeight="80"/>
-                    </StackPanel>
-                    
-                    <!-- Scope and Assignment -->
-                    <Grid ColumnDefinitions="*,8,*">
-                        <StackPanel Grid.Column="0" Spacing="4">
-                            <TextBlock Text="Scope" FontSize="11" 
-                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="Who can see this item" FontSize="10" 
-                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,-2,0,2"/>
-                            <ComboBox x:Name="PrepVisibilityComboBox" 
-                                      HorizontalAlignment="Stretch"
-                                      SelectedIndex="0"
-                                      SelectionChanged="PrepVisibilityComboBox_SelectionChanged">
-                                <ComboBoxItem Tag="meeting">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
-                                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        <TextBlock Text="Meeting – everyone"/>
-                                    </StackPanel>
-                                </ComboBoxItem>
-                                <ComboBoxItem Tag="assigned">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
-                                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        <TextBlock Text="Assigned – one person"/>
-                                    </StackPanel>
-                                </ComboBoxItem>
-                                <ComboBoxItem Tag="personal">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
-                                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        <TextBlock Text="Personal – just me"/>
-                                    </StackPanel>
-                                </ComboBoxItem>
-                            </ComboBox>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="4" 
-                                    IsVisible="{Binding ShowPrepAssigneeSelector}">
-                            <TextBlock Text="Assign to" FontSize="11" 
-                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="Who should prepare this" FontSize="10" 
-                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,-2,0,2"/>
-                            <ComboBox ItemsSource="{Binding PrepAssignees}"
-                                      SelectedItem="{Binding NewPrepAssignee}"
-                                      HorizontalAlignment="Stretch"
-                                      PlaceholderText="Select person">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="models:TeamMemberDetail">
-                                        <TextBlock Text="{Binding FullName}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                    </Grid>
-                    
-                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                        <Button Content="Cancel" Command="{Binding CancelAddPrepCommand}" />
-                        <Button Content="Add" Classes="accent" Command="{Binding ConfirmAddPrepCommand}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+            <!-- Add prep item inline form - REMOVED, now uses dialog -->
+            <!-- The ShowAddPrepPanelCommand triggers a dialog in the code-behind -->
             
             <!-- Prep items list -->
             <ItemsControl ItemsSource="{Binding PrepItems}">

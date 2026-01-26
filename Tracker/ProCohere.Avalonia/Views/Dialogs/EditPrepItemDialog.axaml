@@ -2,11 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:dialogs="clr-namespace:ProCohere.Avalonia.Views.Dialogs"
+        xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="650"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditPrepItemDialog"
-        x:DataType="dialogs:EditPrepItemDialog"
+        x:DataType="vm:EditPrepItemDialogViewModel"
         Title="Edit Prep Item"
         Width="500" Height="650"
         MinWidth="400" MinHeight="450"
@@ -29,14 +29,14 @@
             <StackPanel Spacing="16">
                 
                 <!-- Linked Entity Badge (if linked) -->
-                <Border x:Name="LinkedEntityBanner" IsVisible="False"
+                <Border IsVisible="{Binding HasLinkedEntity}"
                         Background="{DynamicResource AccentFillColorDefaultBrush}"
                         CornerRadius="6" Padding="12" Opacity="0.9">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <PathIcon x:Name="LinkedEntityIcon" Width="16" Height="16" Foreground="White"/>
+                        <PathIcon Data="{Binding LinkedEntityIconData}" Width="16" Height="16" Foreground="White"/>
                         <StackPanel>
-                            <TextBlock x:Name="LinkedEntityTypeText" FontSize="10" FontWeight="SemiBold" Foreground="#FFFFFFCC"/>
-                            <TextBlock x:Name="LinkedEntityTitleText" FontSize="13" Foreground="White" FontWeight="Medium"/>
+                            <TextBlock Text="{Binding LinkedEntityType}" FontSize="10" FontWeight="SemiBold" Foreground="#FFFFFFCC"/>
+                            <TextBlock Text="{Binding LinkedEntityTitle}" FontSize="13" Foreground="White" FontWeight="Medium"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -45,7 +45,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="TITLE" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBox x:Name="TitleTextBox" Watermark="What needs to be prepared?"/>
+                    <TextBox Text="{Binding Title}" Watermark="What needs to be prepared?"/>
                 </StackPanel>
                 
                 <!-- Prep Prompt -->
@@ -60,7 +60,7 @@
                         <TextBlock Grid.Column="1" Text="What to think about" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
-                    <TextBox x:Name="PrepPromptTextBox" 
+                    <TextBox Text="{Binding PrepPrompt}"
                              Watermark="What questions should be considered? What's the framing?"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="70" MaxHeight="120"/>
@@ -76,7 +76,7 @@
                         <TextBlock Grid.Column="1" Text="Optional" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
-                    <TextBox x:Name="BodyTextBox" 
+                    <TextBox Text="{Binding Body}"
                              Watermark="Additional context, background, or notes..."
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="60" MaxHeight="100"/>
@@ -91,10 +91,10 @@
                             <TextBlock Text="YOUR PREPARATION" FontSize="11" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
-                        <TextBlock x:Name="PreparedStatusText" Grid.Column="1" FontSize="10" 
+                        <TextBlock Text="{Binding PreparedStatusText}" Grid.Column="1" FontSize="10" 
                                    Foreground="#10B981" FontStyle="Italic"/>
                     </Grid>
-                    <TextBox x:Name="PrepResponseTextBox" 
+                    <TextBox Text="{Binding PrepResponse}"
                              Watermark="Capture your thoughts, decisions, and prepared points..."
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="100" MaxHeight="200"/>
@@ -106,8 +106,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="SCOPE" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="ScopeComboBox" HorizontalAlignment="Stretch"
-                              SelectionChanged="ScopeComboBox_SelectionChanged">
+                    <ComboBox SelectedIndex="{Binding ScopeIndex}" HorizontalAlignment="Stretch">
                         <ComboBoxItem Tag="meeting">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
@@ -133,10 +132,12 @@
                 </StackPanel>
                 
                 <!-- Assignee Picker (when assigned scope) -->
-                <StackPanel x:Name="AssigneePanel" Spacing="4" IsVisible="False">
+                <StackPanel Spacing="4" IsVisible="{Binding IsAssigneePanelVisible}">
                     <TextBlock Text="ASSIGN TO" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="AssigneeComboBox" HorizontalAlignment="Stretch"
+                    <ComboBox ItemsSource="{Binding Attendees}" 
+                              SelectedItem="{Binding SelectedAttendee}"
+                              HorizontalAlignment="Stretch"
                               PlaceholderText="Select attendee">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:MeetingAttendee">
@@ -144,12 +145,12 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBlock x:Name="AssigneeHint" Text="This person will see the item as 'Requested by you'" 
+                    <TextBlock Text="This person will see the item as 'Requested by you'" 
                                FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
                 </StackPanel>
                 
                 <!-- Assignee Notes (when assigned scope) -->
-                <StackPanel x:Name="AssigneeNotesPanel" Spacing="4" IsVisible="False">
+                <StackPanel Spacing="4" IsVisible="{Binding IsAssigneePanelVisible}">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
@@ -160,7 +161,7 @@
                         <TextBlock Grid.Column="1" Text="Optional" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
-                    <TextBox x:Name="AssigneeNotesTextBox" 
+                    <TextBox Text="{Binding AssigneeNotes}"
                              Watermark="Instructions or context for the person assigned..."
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="50" MaxHeight="100"/>
@@ -170,7 +171,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="STATUS" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="StatusComboBox" HorizontalAlignment="Stretch">
+                    <ComboBox SelectedIndex="{Binding StatusIndex}" HorizontalAlignment="Stretch">
                         <ComboBoxItem Tag="open">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="8" Height="8" Fill="{DynamicResource BrushTextTertiary}"/>
@@ -200,8 +201,8 @@
                 BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,1,0,0"
                 Padding="20,12">
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <Button Content="Cancel" Click="Cancel_Click"/>
-                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Click="Save_Click"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}"/>
+                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Command="{Binding SaveCommand}"/>
             </Grid>
         </Border>
         

@@ -344,10 +344,10 @@ Pre-meeting preparation items supporting personal, assigned, and team-wide visib
 | is_deleted | boolean | NO | |
 | created_at | timestamptz | NO | |
 | updated_at | timestamptz | NO | |
+| deleted_at | timestamptz | YES | When soft-deleted |
+| deleted_by | uuid | YES | FK → team_members (who deleted) |
 
-**Note:** This table does NOT have `deleted_at` or `deleted_by` columns.
-
-**Model:** `MeetingPrepItem.cs` ✅ Verified match (after fix)
+**Model:** `MeetingPrepItem.cs` ✅ Verified match
 
 **RLS:** Organization isolation enforced. App layer handles visibility_scope logic.
 
@@ -380,7 +380,7 @@ Links prep items to other entities for context.
 ## procohere.meeting_notes
 
 **Purpose**  
-Notes captured during or after meetings.
+Notes captured during or after meetings. Notes can be tagged with categories for filtering and organization.
 
 **Columns**
 | Column | Type | Nullable | Notes |
@@ -391,15 +391,75 @@ Notes captured during or after meetings.
 | author_id | uuid | NO | FK → team_members |
 | content | text | NO | |
 | is_shared | boolean | NO | false = private to author |
+| tags | jsonb | YES | Array of tag categories (e.g., `["action", "decision"]`) |
 | is_deleted | boolean | NO | |
 | created_at | timestamptz | NO | |
 | updated_at | timestamptz | NO | |
 | deleted_at | timestamptz | YES | |
 | deleted_by | uuid | YES | |
 
-**Model:** `MeetingNote.cs` ✅ Verified match (after fix)
+**Tag Categories:**
+Meeting notes support optional tagging with predefined categories:
+| Category | Display Name | Color | Purpose |
+|----------|-------------|-------|---------|
+| `action` | Action Item | #EF4444 (Red) | Tasks to do |
+| `decision` | Decision | #10B981 (Green) | Decisions made |
+| `question` | Question | #F59E0B (Amber) | Questions raised |
+| `followup` | Follow-up | #8B5CF6 (Purple) | Items to follow up on |
+| `blocker` | Blocker | #DC2626 (Dark Red) | Blocking issues |
+| `idea` | Idea | #3B82F6 (Blue) | Ideas discussed |
+| `risk` | Risk | #F97316 (Orange) | Risks identified |
+
+**Indexes:**
+| Index | Type | Purpose |
+|-------|------|---------|
+| `meeting_notes_tags_gin_idx` | GIN | Supports tag filtering queries with `@>` operator |
+
+**Constraints:**
+| Constraint | Type | Purpose |
+|------------|------|---------||
+| `meeting_notes_tags_valid_chk` | CHECK | Validates tags via `is_meeting_note_tags_valid()` function |
+
+**Model:** `MeetingNote.cs` ✅ Verified match (includes tags property)
 
 **RLS:** Forced RLS; visible via meeting access or author if private.
+
+**Schema Change (2026-01-26):**
+```sql
+-- 1. Add tags column
+ALTER TABLE procohere.meeting_notes
+ADD COLUMN IF NOT EXISTS tags jsonb NULL;
+
+-- 2. Create validator function
+CREATE OR REPLACE FUNCTION procohere.is_meeting_note_tags_valid(p_tags jsonb)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $function$
+    select
+        p_tags is null
+        or (
+            jsonb_typeof(p_tags) = 'array'
+            and (
+                select bool_and(val in ('action','decision','question','followup','blocker','idea','risk'))
+                from jsonb_array_elements_text(p_tags) as x(val)
+            ) is not false
+        );
+$function$;
+
+-- 3. Add CHECK constraint
+ALTER TABLE procohere.meeting_notes
+DROP CONSTRAINT IF EXISTS meeting_notes_tags_valid_chk;
+
+ALTER TABLE procohere.meeting_notes
+ADD CONSTRAINT meeting_notes_tags_valid_chk
+CHECK (procohere.is_meeting_note_tags_valid(tags));
+
+-- 4. GIN index for filtering
+CREATE INDEX IF NOT EXISTS meeting_notes_tags_gin_idx
+ON procohere.meeting_notes
+USING gin (tags);
+```
 
 ---
 

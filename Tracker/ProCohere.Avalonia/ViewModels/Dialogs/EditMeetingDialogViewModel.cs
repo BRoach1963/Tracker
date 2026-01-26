@@ -7,6 +7,7 @@ using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -38,6 +39,12 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     private MeetingDetail? _existingMeeting;
     private List<Team> _availableTeams = new();
+    private IDialogService? _dialogService;
+    
+    // Track items to delete - actual deletion happens on Save
+    private readonly List<Guid> _prepItemsToDelete = new();
+    private readonly List<Guid> _agendaItemsToDelete = new();
+    private readonly List<Guid> _notesToDelete = new();
     
     #endregion
     
@@ -92,8 +99,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     [ObservableProperty]
     private string? _videoLink;
     
-    [ObservableProperty]
-    private string? _notes;
+    // Note: _notes removed - now using MeetingNotes collection
     
     [ObservableProperty]
     private TeamMemberDetail? _selectedAttendee;
@@ -152,6 +158,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     public ObservableCollection<TeamMemberDetail> PrepAssignees { get; } = new();
     public ObservableCollection<MeetingPrepItem> PrepItems { get; } = new();
     public ObservableCollection<DialogAgendaItem> AgendaItems { get; } = new();
+    public ObservableCollection<DialogMeetingNote> MeetingNotes { get; } = new();
     public ObservableCollection<Team> AvailableTeams { get; } = new();
     
     #endregion
@@ -172,6 +179,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     public bool HasPrepItems => PrepItems.Count > 0;
     public bool HasAgendaItems => AgendaItems.Count > 0;
+    public bool HasMeetingNotes => MeetingNotes.Count > 0;
     
     public string MeetingTypeDescription => MeetingType switch
     {
@@ -199,6 +207,19 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     #endregion
     
+    #region Dialog Service
+    
+    /// <summary>
+    /// Sets the dialog service. Must be called by the View before any dialog commands are used.
+    /// This allows the View to provide its Window reference without the ViewModel knowing about it.
+    /// </summary>
+    public void SetDialogService(IDialogService dialogService)
+    {
+        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+    }
+    
+    #endregion
+    
     #region Constructor
     
     public EditMeetingDialogViewModel()
@@ -222,6 +243,12 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     /// </summary>
     public void Initialize(IEnumerable<TeamMemberDetail> teamMembers)
     {
+        // Unsubscribe from existing members
+        foreach (var member in SelectableAttendees)
+        {
+            member.PropertyChanged -= OnAttendeePropertyChanged;
+        }
+        
         TeamMembers.Clear();
         SelectableAttendees.Clear();
         
@@ -231,12 +258,45 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             if (member.Relation != "self")
             {
                 member.IsSelected = false;
+                member.PropertyChanged += OnAttendeePropertyChanged;
                 SelectableAttendees.Add(member);
             }
         }
         
         UpdatePrepAssigneeList();
         _ = LoadTeamsAsync();
+    }
+    
+    /// <summary>
+    /// Pre-select an attendee for the meeting.
+    /// Useful for "Schedule Meeting with [Person]" scenarios.
+    /// Call this after Initialize and before showing the dialog.
+    /// </summary>
+    public void PreSelectAttendee(TeamMemberDetail attendee)
+    {
+        // Find the attendee in our loaded team members
+        var member = TeamMembers.FirstOrDefault(t => t.Id == attendee.Id);
+        if (member != null)
+        {
+            SelectedAttendee = member;
+            MeetingType = "one_on_one";
+            Log($"Pre-selected attendee: {member.FullName}");
+        }
+        else
+        {
+            Log($"Warning: Pre-selected attendee {attendee.FullName} not found in team members");
+        }
+    }
+    
+    /// <summary>
+    /// Handler for attendee property changes - updates PrepAssignees when selection changes.
+    /// </summary>
+    private void OnAttendeePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TeamMemberDetail.IsSelected))
+        {
+            UpdatePrepAssigneeList();
+        }
     }
     
     /// <summary>
@@ -247,13 +307,17 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         _existingMeeting = meeting;
         MeetingId = meeting.Id;
         
+        // Clear any pending delete operations from previous load
+        _prepItemsToDelete.Clear();
+        _agendaItemsToDelete.Clear();
+        _notesToDelete.Clear();
+        
         Title = meeting.Title;
         MeetingType = meeting.MeetingType;
         ScheduledDateTime = meeting.ScheduledAt;
         DurationMinutes = meeting.DurationMinutes ?? 30;
         Location = meeting.Location;
         VideoLink = meeting.VideoLink;
-        Notes = meeting.Notes;
         
         // Set attendee for 1:1 meetings
         if (meeting.TeamMemberId.HasValue)
@@ -273,9 +337,10 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         
         UpdatePrepAssigneeList();
         
-        // Load prep and agenda items
+        // Load prep, agenda, and notes
         await LoadPrepItemsAsync();
         await LoadAgendaItemsAsync();
+        await LoadNotesAsync();
     }
     
     #endregion
@@ -295,142 +360,214 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     #region Commands - Prep Items
     
+    /// <summary>
+    /// Shows dialog to add a new prep item.
+    /// All dialog handling is in the ViewModel - proper MVVM.
+    /// </summary>
     [RelayCommand]
-    private void ShowAddPrepPanel()
+    private async Task AddPrepItemAsync()
     {
-        NewPrepTitle = string.Empty;
-        NewPrepPrompt = null;
-        NewPrepBody = null;
-        NewPrepVisibility = "personal";
-        NewPrepAssignee = null;
-        IsAddPrepPanelVisible = true;
-    }
-    
-    [RelayCommand]
-    private void CancelAddPrep()
-    {
-        IsAddPrepPanelVisible = false;
-    }
-    
-    [RelayCommand]
-    private async Task ConfirmAddPrepAsync()
-    {
-        Log($"ConfirmAddPrepAsync called. NewPrepTitle='{NewPrepTitle}'");
-        
-        if (string.IsNullOrWhiteSpace(NewPrepTitle))
+        if (_dialogService == null)
         {
-            Log("NewPrepTitle is empty, returning");
+            Log("AddPrepItem: DialogService not set");
             return;
         }
         
-        Log($"Before AddPrepItemAsync. PrepItems.Count={PrepItems.Count}");
-        await AddPrepItemAsync(NewPrepTitle.Trim(), NewPrepPrompt?.Trim(), NewPrepBody?.Trim());
-        Log($"After AddPrepItemAsync. PrepItems.Count={PrepItems.Count}");
-        
-        IsAddPrepPanelVisible = false;
-        NewPrepTitle = string.Empty;
-        NewPrepPrompt = null;
-        NewPrepBody = null;
-        
-        Log($"HasPrepItems={HasPrepItems}");
-    }
-    
-    [RelayCommand]
-    private async Task DeletePrepItemAsync(MeetingPrepItem item)
-    {
-        if (_existingMeeting != null)
+        // Create a new empty prep item for the dialog
+        var newItem = new MeetingPrepItem
         {
-            await MeetingPrepItemService.Instance.DeletePrepItemAsync(item.Id);
-        }
-        PrepItems.Remove(item);
+            Id = Guid.Empty,
+            Title = string.Empty,
+            VisibilityScope = "personal",
+            Status = "open"
+        };
+        
+        // Get attendees for assignee picker
+        var attendees = GetMeetingAttendeesForAssignment();
+        var currentUserTeamMemberId = GetCurrentUserTeamMemberId();
+        
+        var result = await _dialogService.ShowEditPrepItemDialogAsync(
+            newItem, 
+            attendees, 
+            currentUserTeamMemberId);
+        
+        if (result == null || string.IsNullOrWhiteSpace(result.Title))
+            return;
+        
+        Log($"AddPrepItem: Adding '{result.Title}'");
+        await AddPrepItemInternalAsync(
+            result.Title.Trim(),
+            result.PrepPrompt?.Trim(),
+            result.Body?.Trim(),
+            result.VisibilityScope,
+            result.AssignedToTeamMemberId,
+            result.AssignedToName);
     }
     
+    /// <summary>
+    /// Shows dialog to edit an existing prep item.
+    /// All result processing is in the ViewModel - proper MVVM.
+    /// </summary>
     [RelayCommand]
-    private async Task AddFromExistingPrepAsync(EntityPickerResult? result)
+    private async Task EditPrepItemAsync(MeetingPrepItem item)
     {
-        if (result == null) return;
+        if (_dialogService == null)
+        {
+            Log("EditPrepItem: DialogService not set");
+            return;
+        }
+        
+        var attendees = GetMeetingAttendeesForAssignment();
+        var currentUserTeamMemberId = GetCurrentUserTeamMemberId();
+        
+        var result = await _dialogService.ShowEditPrepItemDialogAsync(
+            item, 
+            attendees, 
+            currentUserTeamMemberId);
+        
+        if (result == null)
+            return;
+        
+        // Apply result to the item (ViewModel handles the business logic)
+        item.Title = result.Title;
+        item.Body = result.Body;
+        item.PrepPrompt = result.PrepPrompt;
+        item.PrepResponse = result.PrepResponse;
+        item.AssigneeNotes = result.AssigneeNotes;
+        item.VisibilityScope = result.VisibilityScope ?? "personal";
+        item.AssignedToTeamMemberId = result.AssignedToTeamMemberId;
+        item.AssignedToName = result.AssignedToName ?? string.Empty;
+        item.Status = result.Status ?? "open";
+        item.PreparedAt = result.PreparedAt;
+        item.IsDirty = true;
+        
+        Log($"EditPrepItem: Updated '{item.Title}'");
+    }
+    
+    /// <summary>
+    /// Shows entity picker to link an existing entity as prep.
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowEntityPickerForPrepAsync()
+    {
+        if (_dialogService == null)
+        {
+            Log("ShowEntityPickerForPrep: DialogService not set");
+            return;
+        }
+        
+        var result = await _dialogService.ShowEntityPickerAsync();
+        
+        if (result == null)
+            return;
         
         await AddLinkedPrepItemAsync(result.EntityType, result.EntityId, result.EntityTitle);
     }
     
-    /// <summary>
-    /// Event raised when entity picker should be shown for prep items.
-    /// The View handles showing the dialog and calling AddFromExistingPrepCommand with result.
-    /// </summary>
-    public event EventHandler? EntityPickerForPrepRequested;
-    
     [RelayCommand]
-    private void ShowEntityPickerForPrep()
+    private void DeletePrepItem(MeetingPrepItem item)
     {
-        EntityPickerForPrepRequested?.Invoke(this, EventArgs.Empty);
-    }
-    
-    /// <summary>
-    /// Event raised when a prep item should be edited.
-    /// The View handles showing the edit dialog.
-    /// </summary>
-    public event EventHandler<MeetingPrepItem>? EditPrepItemRequested;
-    
-    [RelayCommand]
-    private void EditPrepItem(MeetingPrepItem item)
-    {
-        EditPrepItemRequested?.Invoke(this, item);
+        // If this is an existing item (has an Id), mark it for deletion on Save
+        if (item.Id != Guid.Empty)
+        {
+            _prepItemsToDelete.Add(item.Id);
+            Log($"Marked prep item for deletion: {item.Id}");
+        }
+        // Remove from UI immediately
+        PrepItems.Remove(item);
     }
     
     #endregion
     
     #region Commands - Agenda Items
     
+    /// <summary>
+    /// Shows dialog to add a new agenda item.
+    /// All dialog handling is in the ViewModel - proper MVVM.
+    /// </summary>
     [RelayCommand]
-    private void ShowAddAgendaPanel()
+    private async Task AddAgendaItemAsync()
     {
-        NewAgendaTitle = string.Empty;
-        NewAgendaContext = null;
-        NewAgendaTalkingPoints = null;
-        NewAgendaVisibility = "meeting";
-        IsAddAgendaPanelVisible = true;
-    }
-    
-    [RelayCommand]
-    private void CancelAddAgenda()
-    {
-        IsAddAgendaPanelVisible = false;
-    }
-    
-    [RelayCommand]
-    private void ConfirmAddAgenda()
-    {
-        if (string.IsNullOrWhiteSpace(NewAgendaTitle))
+        if (_dialogService == null)
+        {
+            Log("AddAgendaItem: DialogService not set");
+            return;
+        }
+        
+        // Create a new empty agenda item for the dialog
+        var newItem = new DialogAgendaItem
+        {
+            Id = Guid.Empty,
+            Title = string.Empty,
+            VisibilityScope = "meeting"
+        };
+        
+        var result = await _dialogService.ShowEditAgendaItemDialogAsync(newItem);
+        
+        if (result == null || string.IsNullOrWhiteSpace(result.Title))
             return;
         
-        var talkingPoints = ParseTalkingPointsFromText(NewAgendaTalkingPoints);
-        
+        Log($"AddAgendaItem: Adding '{result.Title}'");
         AddAgendaItem(
-            NewAgendaTitle.Trim(), 
-            visibilityScope: NewAgendaVisibility,
-            sharedContext: NewAgendaContext?.Trim(),
-            talkingPoints: talkingPoints);
-        
-        IsAddAgendaPanelVisible = false;
-        NewAgendaTitle = string.Empty;
-        NewAgendaContext = null;
-        NewAgendaTalkingPoints = null;
+            result.Title.Trim(),
+            visibilityScope: result.VisibilityScope ?? "meeting",
+            sharedContext: result.SharedContext?.Trim(),
+            privateContext: result.PrivateContext?.Trim(),
+            talkingPoints: result.TalkingPoints);
     }
     
+    /// <summary>
+    /// Shows dialog to edit an existing agenda item.
+    /// All result processing is in the ViewModel - proper MVVM.
+    /// </summary>
     [RelayCommand]
-    private async Task DeleteAgendaItemAsync(DialogAgendaItem item)
+    private async Task EditAgendaItemAsync(DialogAgendaItem item)
     {
-        if (_existingMeeting != null && item.Id != Guid.Empty)
+        if (_dialogService == null)
         {
-            await MeetingAgendaItemService.Instance.DeleteAgendaItemAsync(item.Id);
+            Log("EditAgendaItem: DialogService not set");
+            return;
         }
-        AgendaItems.Remove(item);
+        
+        var result = await _dialogService.ShowEditAgendaItemDialogAsync(item);
+        
+        if (result == null)
+            return;
+        
+        // Apply result to the item (ViewModel handles the business logic)
+        item.Title = result.Title;
+        item.DisplayTitle = result.DisplayTitle;
+        item.SharedContext = result.SharedContext;
+        item.PrivateContext = result.PrivateContext;
+        item.VisibilityScope = result.VisibilityScope ?? "meeting";
+        item.IsDirty = true;
+        
+        // Update talking points
+        item.TalkingPoints.Clear();
+        foreach (var tp in result.TalkingPoints)
+        {
+            item.TalkingPoints.Add(tp);
+        }
+        
+        Log($"EditAgendaItem: Updated '{item.Title}'");
     }
     
+    /// <summary>
+    /// Shows entity picker to link an existing entity as agenda item.
+    /// </summary>
     [RelayCommand]
-    private void LinkExistingAgendaItem(EntityPickerResult? result)
+    private async Task ShowEntityPickerForAgendaAsync()
     {
-        if (result == null) return;
+        if (_dialogService == null)
+        {
+            Log("ShowEntityPickerForAgenda: DialogService not set");
+            return;
+        }
+        
+        var result = await _dialogService.ShowEntityPickerAsync();
+        
+        if (result == null)
+            return;
         
         AddAgendaItem(
             $"Discuss {result.EntityTitle}",
@@ -439,29 +576,111 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             linkedEntityTitle: result.EntityTitle);
     }
     
-    /// <summary>
-    /// Event raised when entity picker should be shown for agenda items.
-    /// The View handles showing the dialog and calling LinkExistingAgendaItemCommand with result.
-    /// </summary>
-    public event EventHandler? EntityPickerForAgendaRequested;
+    [RelayCommand]
+    private void DeleteAgendaItem(DialogAgendaItem item)
+    {
+        // If this is an existing item (has an Id), mark it for deletion on Save
+        if (item.Id != Guid.Empty)
+        {
+            _agendaItemsToDelete.Add(item.Id);
+            Log($"Marked agenda item for deletion: {item.Id}");
+        }
+        // Remove from UI immediately
+        AgendaItems.Remove(item);
+    }
+    
+    #endregion
+    
+    #region Commands - Notes
     
     [RelayCommand]
-    private void ShowEntityPickerForAgenda()
+    private void AddNote()
     {
-        EntityPickerForAgendaRequested?.Invoke(this, EventArgs.Empty);
+        var currentUserId = AuthService.Instance.CurrentProfile?.Id ?? Guid.Empty;
+        var currentUserName = AuthService.Instance.CurrentProfile?.DisplayName ?? "Me";
+        var meetingId = _existingMeeting?.Id ?? Guid.Empty;
+        
+        var newNote = DialogMeetingNote.CreateNew(meetingId, currentUserId, currentUserName, isShared: false);
+        MeetingNotes.Insert(0, newNote); // Add at top
+        OnPropertyChanged(nameof(HasMeetingNotes));
+        Log($"Added new note, total: {MeetingNotes.Count}");
+    }
+    
+    [RelayCommand]
+    private void EditNote(DialogMeetingNote note)
+    {
+        note.BeginEdit();
+    }
+    
+    [RelayCommand]
+    private void SaveNoteEdit(DialogMeetingNote note)
+    {
+        note.ConfirmEdit();
+        OnPropertyChanged(nameof(HasMeetingNotes));
+    }
+    
+    [RelayCommand]
+    private void CancelNoteEdit(DialogMeetingNote note)
+    {
+        // If this is a new note with no content, remove it entirely
+        if (note.Id == Guid.Empty && string.IsNullOrWhiteSpace(note.Content))
+        {
+            MeetingNotes.Remove(note);
+            OnPropertyChanged(nameof(HasMeetingNotes));
+        }
+        else
+        {
+            note.CancelEdit();
+        }
+    }
+    
+    [RelayCommand]
+    private void DeleteNote(DialogMeetingNote note)
+    {
+        // If this is an existing note (has an Id), mark it for deletion on Save
+        if (note.Id != Guid.Empty)
+        {
+            _notesToDelete.Add(note.Id);
+            Log($"Marked note for deletion: {note.Id}");
+        }
+        // Remove from UI immediately
+        MeetingNotes.Remove(note);
+        OnPropertyChanged(nameof(HasMeetingNotes));
+    }
+    
+    [RelayCommand]
+    private void ToggleNoteVisibility(DialogMeetingNote note)
+    {
+        note.IsShared = !note.IsShared;
+        note.IsDirty = true;
     }
     
     /// <summary>
-    /// Event raised when an agenda item should be edited.
-    /// The View handles showing the edit dialog.
+    /// Toggles a tag on/off for a note. The command parameter is a Tuple of (note, tag).
     /// </summary>
-    public event EventHandler<DialogAgendaItem>? EditAgendaItemRequested;
-    
     [RelayCommand]
-    private void EditAgendaItem(DialogAgendaItem item)
+    private void ToggleNoteTag(object? parameter)
     {
-        EditAgendaItemRequested?.Invoke(this, item);
+        if (parameter is not Tuple<DialogMeetingNote, NoteTag> tuple) return;
+        var (note, tag) = tuple;
+        
+        var existingTag = note.Tags.FirstOrDefault(t => t.Id == tag.Id);
+        if (existingTag != null)
+        {
+            var newTags = note.Tags.Where(t => t.Id != tag.Id).ToList();
+            note.Tags = newTags;  // Setting the property triggers PropertyChanged
+        }
+        else
+        {
+            note.Tags = new List<NoteTag>(note.Tags) { tag };  // Setting the property triggers PropertyChanged
+        }
+        note.IsDirty = true;
     }
+    
+    /// <summary>
+    /// Available tags for notes.
+    /// </summary>
+    public List<NoteTag> AvailableNoteTags => NoteTag.StandardTags;
     
     #endregion
     
@@ -475,6 +694,15 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         Log("SaveCommand executed");
         IsSaving = true;
         ErrorMessage = null;
+        
+        // Auto-confirm any notes still being edited
+        Log($"Checking {MeetingNotes.Count} notes for auto-confirm...");
+        foreach (var note in MeetingNotes.Where(n => n.IsEditing))
+        {
+            Log($"Auto-confirming note: EditContent='{note.EditContent}' -> Content");
+            note.ConfirmEdit();
+            Log($"After confirm: Content='{note.Content}', HasContent={note.HasContent}");
+        }
         
         try
         {
@@ -565,8 +793,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             ScheduledAt = ScheduledDateTime!.Value,
             DurationMinutes = DurationMinutes,
             Location = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
-            VideoLink = string.IsNullOrWhiteSpace(VideoLink) ? null : VideoLink.Trim(),
-            Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim()
+            VideoLink = string.IsNullOrWhiteSpace(VideoLink) ? null : VideoLink.Trim()
         };
         
         // Get attendee IDs
@@ -612,6 +839,19 @@ public partial class EditMeetingDialogViewModel : ObservableObject
                 talkingPoints: agendaItem.TalkingPoints);
         }
         
+        // Save notes
+        Log($"Saving {MeetingNotes.Count} notes (filtering by HasContent)");
+        var notesWithContent = MeetingNotes.Where(n => n.HasContent).ToList();
+        Log($"Found {notesWithContent.Count} notes with content");
+        foreach (var note in notesWithContent)
+        {
+            Log($"Saving note: Content='{note.Content}' (length={note.Content.Length}), IsShared={note.IsShared}");
+            await MeetingNoteService.Instance.CreateNoteAsync(
+                savedMeeting.Id,
+                note.Content,
+                isPrivate: !note.IsShared);
+        }
+        
         Log($"Meeting created successfully: {savedMeeting.Id}");
         return savedMeeting;
     }
@@ -628,7 +868,6 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         _existingMeeting.DurationMinutes = DurationMinutes;
         _existingMeeting.Location = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim();
         _existingMeeting.VideoLink = string.IsNullOrWhiteSpace(VideoLink) ? null : VideoLink.Trim();
-        _existingMeeting.Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim();
         
         var success = await MeetingService.Instance.UpdateMeetingAsync(_existingMeeting);
         
@@ -656,6 +895,14 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             await SavePrepItemForNewMeetingAsync(_existingMeeting.Id, prepItem);
         }
         
+        // Update EXISTING dirty prep items
+        var dirtyPrepItems = PrepItems.Where(p => p.Id != Guid.Empty && p.IsDirty).ToList();
+        Log($"Updating {dirtyPrepItems.Count} modified prep items");
+        foreach (var prepItem in dirtyPrepItems)
+        {
+            await MeetingPrepItemService.Instance.UpdatePrepItemAsync(prepItem);
+        }
+        
         // Save NEW agenda items (those with empty Id)
         var newAgendaItems = AgendaItems.Where(a => a.Id == Guid.Empty).ToList();
         Log($"Saving {newAgendaItems.Count} new agenda items");
@@ -672,6 +919,71 @@ public partial class EditMeetingDialogViewModel : ObservableObject
                 talkingPoints: agendaItem.TalkingPoints);
         }
         
+        // Update EXISTING dirty agenda items
+        var dirtyAgendaItems = AgendaItems.Where(a => a.Id != Guid.Empty && a.IsDirty).ToList();
+        Log($"Updating {dirtyAgendaItems.Count} modified agenda items");
+        foreach (var agendaItem in dirtyAgendaItems)
+        {
+            await MeetingAgendaItemService.Instance.UpdateAgendaItemAsync(
+                agendaItem.Id,
+                title: agendaItem.Title,
+                displayTitle: agendaItem.DisplayTitle,
+                sharedContext: agendaItem.SharedContext,
+                privateContext: agendaItem.PrivateContext,
+                visibilityScope: agendaItem.VisibilityScope,
+                talkingPoints: agendaItem.TalkingPoints);
+        }
+        
+        // Delete prep items marked for deletion
+        Log($"Deleting {_prepItemsToDelete.Count} prep items");
+        foreach (var prepItemId in _prepItemsToDelete)
+        {
+            await MeetingPrepItemService.Instance.DeletePrepItemAsync(prepItemId);
+        }
+        _prepItemsToDelete.Clear();
+        
+        // Delete agenda items marked for deletion
+        Log($"Deleting {_agendaItemsToDelete.Count} agenda items");
+        foreach (var agendaItemId in _agendaItemsToDelete)
+        {
+            await MeetingAgendaItemService.Instance.DeleteAgendaItemAsync(agendaItemId);
+        }
+        _agendaItemsToDelete.Clear();
+        
+        // Save NEW notes (those with empty Id)
+        var newNotes = MeetingNotes.Where(n => n.Id == Guid.Empty && n.HasContent).ToList();
+        Log($"Saving {newNotes.Count} new notes");
+        foreach (var note in newNotes)
+        {
+            await MeetingNoteService.Instance.CreateNoteAsync(
+                _existingMeeting.Id,
+                note.Content,
+                isPrivate: !note.IsShared);
+        }
+        
+        // Update EXISTING dirty notes
+        var dirtyNotes = MeetingNotes.Where(n => n.Id != Guid.Empty && n.IsDirty && n.HasContent).ToList();
+        Log($"Updating {dirtyNotes.Count} modified notes");
+        foreach (var note in dirtyNotes)
+        {
+            var meetingNote = new MeetingNote
+            {
+                Id = note.Id,
+                Content = note.Content,
+                IsShared = note.IsShared,
+                Tags = note.GetTagCategories()
+            };
+            await MeetingNoteService.Instance.UpdateNoteAsync(meetingNote);
+        }
+        
+        // Delete notes marked for deletion
+        Log($"Deleting {_notesToDelete.Count} notes");
+        foreach (var noteId in _notesToDelete)
+        {
+            await MeetingNoteService.Instance.DeleteNoteAsync(noteId);
+        }
+        _notesToDelete.Clear();
+        
         var savedMeeting = await MeetingService.Instance.GetMeetingAsync(_existingMeeting.Id);
         Log($"Meeting updated successfully: {savedMeeting?.Id}");
         
@@ -680,18 +992,34 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     private async Task SavePrepItemForNewMeetingAsync(Guid meetingId, MeetingPrepItem prepItem)
     {
-        if (prepItem.VisibilityScope == "assigned" && prepItem.AssignedToTeamMemberId.HasValue)
+        if (prepItem.LinkedEntityType != null && prepItem.LinkedEntityId.HasValue)
+        {
+            // Linked prep item
+            await MeetingPrepItemService.Instance.CreateLinkedPrepAsync(
+                meetingId,
+                prepItem.LinkedEntityType,
+                prepItem.LinkedEntityId.Value,
+                prepItem.LinkedEntityTitleSnapshot ?? prepItem.Title,
+                prepItem.PrepPrompt,
+                prepItem.VisibilityScope,
+                prepItem.AssignedToTeamMemberId);
+        }
+        else if (prepItem.VisibilityScope == "assigned" && prepItem.AssignedToTeamMemberId.HasValue)
         {
             await MeetingPrepItemService.Instance.CreateAssignedPrepAsync(
-                meetingId, prepItem.Title, prepItem.AssignedToTeamMemberId.Value);
+                meetingId, prepItem.Title, prepItem.AssignedToTeamMemberId.Value, 
+                prepItem.Body, prepItem.DueAt);
         }
         else if (prepItem.VisibilityScope == "meeting")
         {
-            await MeetingPrepItemService.Instance.CreateTeamPrepAsync(meetingId, prepItem.Title);
+            await MeetingPrepItemService.Instance.CreateTeamPrepAsync(
+                meetingId, prepItem.Title, prepItem.Body);
         }
         else
         {
-            await MeetingPrepItemService.Instance.CreateQuickPrepAsync(meetingId, prepItem.Title);
+            // Personal/quick prep - need to pass body and prepPrompt
+            await MeetingPrepItemService.Instance.CreateQuickPrepAsync(
+                meetingId, prepItem.Title, prepItem.Body, prepItem.PrepPrompt);
         }
     }
     
@@ -737,6 +1065,35 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         }
     }
     
+    private async Task LoadNotesAsync()
+    {
+        if (_existingMeeting == null) return;
+        
+        try
+        {
+            var (myNotes, sharedNotes) = await MeetingNoteService.Instance.GetNotesForMeetingAsync(_existingMeeting.Id);
+            MeetingNotes.Clear();
+            
+            // Add all notes - personal first, then shared
+            foreach (var note in myNotes)
+            {
+                MeetingNotes.Add(DialogMeetingNote.FromMeetingNote(note));
+            }
+            foreach (var note in sharedNotes)
+            {
+                // Get author name if available (would need lookup in real implementation)
+                MeetingNotes.Add(DialogMeetingNote.FromMeetingNote(note));
+            }
+            
+            OnPropertyChanged(nameof(HasMeetingNotes));
+            Log($"Loaded {MeetingNotes.Count} notes ({myNotes.Count} personal, {sharedNotes.Count} shared)");
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading notes: {ex.Message}");
+        }
+    }
+    
     private async Task LoadTeamsAsync()
     {
         try
@@ -763,18 +1120,48 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     #region Private Helpers - Prep Items
     
     /// <summary>
+    /// Gets meeting attendees for the assignee picker in dialogs.
+    /// </summary>
+    private List<MeetingAttendee> GetMeetingAttendeesForAssignment()
+    {
+        var attendees = new List<MeetingAttendee>();
+        
+        // Convert selected team members to MeetingAttendee format
+        foreach (var member in SelectableAttendees.Where(m => m.IsSelected))
+        {
+            attendees.Add(new MeetingAttendee
+            {
+                TeamMemberId = member.Id,
+                Name = member.FullName
+            });
+        }
+        
+        return attendees;
+    }
+    
+    /// <summary>
+    /// Gets the current user's team member ID.
+    /// </summary>
+    private Guid GetCurrentUserTeamMemberId()
+    {
+        // Find self in the team members list
+        var self = TeamMembers.FirstOrDefault(m => m.Relation == "self");
+        return self?.Id ?? Guid.Empty;
+    }
+    
+    /// <summary>
     /// Adds a prep item to the local collection. 
     /// Items are saved to database only when Save is clicked.
     /// </summary>
-    private Task AddPrepItemAsync(string title, string? prepPrompt = null, string? body = null)
+    private Task AddPrepItemInternalAsync(
+        string title, 
+        string? prepPrompt = null, 
+        string? body = null, 
+        string? visibilityScope = null,
+        Guid? assignedToTeamMemberId = null,
+        string? assignedToName = null)
     {
         Log($"AddPrepItemAsync: title='{title}'");
-        
-        Guid? assigneeId = null;
-        if (NewPrepVisibility == "assigned" && NewPrepAssignee != null)
-        {
-            assigneeId = NewPrepAssignee.Id;
-        }
         
         // Always add to local collection - Save will persist to database
         // Leave Id as Guid.Empty to indicate this is a new item not yet saved
@@ -785,8 +1172,9 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             Title = title,
             PrepPrompt = prepPrompt,
             Body = body,
-            VisibilityScope = NewPrepVisibility,
-            AssignedToTeamMemberId = assigneeId,
+            VisibilityScope = visibilityScope ?? "personal",
+            AssignedToTeamMemberId = assignedToTeamMemberId,
+            AssignedToName = assignedToName ?? string.Empty,
             Status = "open",
             CreatedAt = DateTime.UtcNow
         };
@@ -871,6 +1259,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         string? linkedEntityTitle = null,
         string visibilityScope = "meeting",
         string? sharedContext = null,
+        string? privateContext = null,
         List<TalkingPoint>? talkingPoints = null)
     {
         var newItem = new DialogAgendaItem
@@ -882,6 +1271,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             LinkedEntityTitleSnapshot = linkedEntityTitle,
             VisibilityScope = visibilityScope,
             SharedContext = sharedContext,
+            PrivateContext = privateContext,
             TalkingPoints = talkingPoints ?? new List<TalkingPoint>()
         };
         

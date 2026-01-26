@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using ProCohere.Avalonia.Models;
-using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.ViewModels.Controls;
 
 namespace ProCohere.Avalonia.Views.Controls;
 
@@ -15,8 +12,7 @@ namespace ProCohere.Avalonia.Views.Controls;
 /// </summary>
 public partial class CarryForwardSuggestionsPanel : UserControl
 {
-    private Guid? _teamMemberId;
-    private List<MeetingAgendaItem> _pendingItems = new();
+    private readonly CarryForwardSuggestionsPanelViewModel _viewModel;
 
     /// <summary>
     /// Event fired when user wants to add an item to the current meeting.
@@ -36,88 +32,25 @@ public partial class CarryForwardSuggestionsPanel : UserControl
     public CarryForwardSuggestionsPanel()
     {
         InitializeComponent();
+        
+        _viewModel = new CarryForwardSuggestionsPanelViewModel();
+        DataContext = _viewModel;
+        
+        // Wire ViewModel events to control events for parent consumption
+        _viewModel.AddToMeetingRequested += (s, e) => AddToMeetingRequested?.Invoke(this, e);
+        _viewModel.ItemSkipped += (s, e) => ItemSkipped?.Invoke(this, e);
+        _viewModel.ItemResolved += (s, e) => ItemResolved?.Invoke(this, e);
     }
 
     /// <summary>
     /// Loads pending carry-forward items for a specific team member.
     /// </summary>
-    public async Task LoadForTeamMemberAsync(Guid teamMemberId)
-    {
-        _teamMemberId = teamMemberId;
-        await RefreshAsync();
-    }
+    public Task LoadForTeamMemberAsync(Guid teamMemberId) 
+        => _viewModel.LoadForTeamMemberAsync(teamMemberId);
 
     /// <summary>
     /// Refreshes the pending items list.
     /// </summary>
-    public async Task RefreshAsync()
-    {
-        if (_teamMemberId == null)
-        {
-            UpdateUI(new List<MeetingAgendaItem>());
-            return;
-        }
-
-        try
-        {
-            var carryForwardService = CarryForwardService.Instance;
-            _pendingItems = (await carryForwardService.GetPendingCarryForwardsAsync(_teamMemberId.Value)).ToList();
-            UpdateUI(_pendingItems);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error loading carry-forward items: {ex.Message}");
-            UpdateUI(new List<MeetingAgendaItem>());
-        }
-    }
-
-    private void UpdateUI(List<MeetingAgendaItem> items)
-    {
-        SuggestionsItemsControl.ItemsSource = items;
-        CountBadge.Text = items.Count.ToString();
-        
-        EmptyStatePanel.IsVisible = items.Count == 0;
-        SuggestionsItemsControl.IsVisible = items.Count > 0;
-    }
-
-    private void AddToMeetingButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button button && button.Tag is MeetingAgendaItem item)
-        {
-            System.Diagnostics.Debug.WriteLine($"Add to meeting requested for item: {item.Title}");
-            AddToMeetingRequested?.Invoke(this, item);
-        }
-    }
-
-    private void SkipButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button button && button.Tag is MeetingAgendaItem item)
-        {
-            System.Diagnostics.Debug.WriteLine($"Item skipped: {item.Title}");
-            ItemSkipped?.Invoke(this, item);
-        }
-    }
-
-    private async void MarkResolvedButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button button && button.Tag is MeetingAgendaItem item)
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"Marking item as resolved: {item.Title}");
-                
-                var carryForwardService = CarryForwardService.Instance;
-                await carryForwardService.MarkAsResolvedAsync(item.Id);
-                
-                ItemResolved?.Invoke(this, item);
-                
-                // Refresh the list
-                await RefreshAsync();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error marking item as resolved: {ex.Message}");
-            }
-        }
-    }
+    public Task RefreshAsync() 
+        => _viewModel.RefreshAsync();
 }

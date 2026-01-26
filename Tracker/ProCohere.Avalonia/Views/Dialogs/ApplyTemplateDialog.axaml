@@ -2,9 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
         mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="500"
         x:Class="ProCohere.Avalonia.Views.Dialogs.ApplyTemplateDialog"
+        x:DataType="vm:ApplyTemplateDialogViewModel"
         Title="Apply Meeting Template"
         Width="550" Height="500"
         WindowStartupLocation="CenterOwner"
@@ -70,7 +72,7 @@
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                 <TextBlock x:Name="MeetingTitleText"
-                           Text="Select a template to add agenda items"
+                           Text="{Binding MeetingTitleText}"
                            FontSize="13"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             </StackPanel>
@@ -91,8 +93,7 @@
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <ComboBox x:Name="CategoryFilterComboBox"
                           Width="150"
-                          SelectedIndex="0"
-                          SelectionChanged="CategoryFilterComboBox_SelectionChanged">
+                          SelectedIndex="{Binding CategoryFilterIndex}">
                     <ComboBoxItem Content="All Templates" Tag="" />
                     <ComboBoxItem Content="1:1 Meeting" Tag="one_on_one" />
                     <ComboBoxItem Content="Team Meeting" Tag="team" />
@@ -102,8 +103,9 @@
             </StackPanel>
             
             <!-- Templates List -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="TemplatesItemsControl">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding HasTemplates}">
+                <ItemsControl x:Name="TemplatesItemsControl" ItemsSource="{Binding FilteredTemplates}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:MeetingTemplateDetail">
                             <Border Classes="template-card"
@@ -160,7 +162,7 @@
             
             <!-- Empty State -->
             <StackPanel x:Name="EmptyStatePanel"
-                        IsVisible="False"
+                        IsVisible="{Binding !HasTemplates}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="8">
@@ -181,7 +183,7 @@
             
             <!-- Loading State -->
             <StackPanel x:Name="LoadingPanel"
-                        IsVisible="False"
+                        IsVisible="{Binding IsLoading}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="12">
@@ -205,7 +207,7 @@
                             Spacing="8"
                             VerticalAlignment="Center">
                     <TextBlock x:Name="SelectedTemplateText"
-                               Text="No template selected"
+                               Text="{Binding SelectedTemplateText, TargetNullValue='No template selected'}"
                                FontSize="12"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
@@ -213,14 +215,14 @@
                         Content="Cancel"
                         MinWidth="80"
                         Margin="0,0,8,0"
-                        Click="CancelButton_Click" />
+                        Command="{Binding CancelCommand}" />
                 <Button Grid.Column="2"
                         x:Name="ApplyButton"
-                        Content="Apply Template"
+                        Content="{Binding ApplyButtonText}"
                         Classes="accent"
                         MinWidth="120"
-                        IsEnabled="False"
-                        Click="ApplyButton_Click" />
+                        IsEnabled="{Binding IsApplyEnabled}"
+                        Command="{Binding ApplyCommand}" />
             </Grid>
         </Border>
     </Grid>

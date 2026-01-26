@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using ProCohere.Avalonia.Models;
@@ -642,5 +643,102 @@ public class BoolToObjectConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Combines multiple binding values into a Tuple for multi-parameter commands.
+/// </summary>
+public class TupleConverter : IMultiValueConverter
+{
+    public static readonly TupleConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values == null || values.Count < 2)
+            return null;
+
+        return Tuple.Create(values[0], values[1]);
+    }
+}
+
+/// <summary>
+/// Checks if a tag is selected (exists in the note's Tags list).
+/// Binding[0] = DialogMeetingNote, Binding[1] = NoteTag
+/// Returns true if the tag is in the note's Tags list.
+/// </summary>
+public class TagSelectedConverter : IMultiValueConverter
+{
+    public static readonly TagSelectedConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values == null || values.Count < 2)
+            return false;
+
+        if (values[0] is not ProCohere.Avalonia.Models.Dialogs.DialogMeetingNote note)
+            return false;
+        if (values[1] is not ProCohere.Avalonia.Models.Dialogs.NoteTag tag)
+            return false;
+
+        return note.Tags.Any(t => t.Id == tag.Id);
+    }
+}
+
+/// <summary>
+/// Returns a background brush for tag picker buttons.
+/// Selected tags get a filled background with the tag's color.
+/// </summary>
+public class TagSelectedBackgroundConverter : IMultiValueConverter
+{
+    public static readonly TagSelectedBackgroundConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values == null || values.Count < 2)
+            return Brushes.Transparent;
+
+        if (values[0] is not ProCohere.Avalonia.Models.Dialogs.DialogMeetingNote note)
+            return Brushes.Transparent;
+        if (values[1] is not ProCohere.Avalonia.Models.Dialogs.NoteTag tag)
+            return Brushes.Transparent;
+
+        var isSelected = note.Tags.Any(t => t.Id == tag.Id);
+        if (isSelected)
+        {
+            try
+            {
+                var color = Color.Parse(tag.Color);
+                return new SolidColorBrush(color);
+            }
+            catch
+            {
+                return Brushes.Gray;
+            }
+        }
+        return Brushes.Transparent;
+    }
+}
+
+/// <summary>
+/// Returns a border thickness for tag picker buttons.
+/// Unselected tags get a visible border, selected tags get no border.
+/// </summary>
+public class TagSelectedBorderConverter : IMultiValueConverter
+{
+    public static readonly TagSelectedBorderConverter Instance = new();
+
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values == null || values.Count < 2)
+            return new Thickness(1);
+
+        if (values[0] is not ProCohere.Avalonia.Models.Dialogs.DialogMeetingNote note)
+            return new Thickness(1);
+        if (values[1] is not ProCohere.Avalonia.Models.Dialogs.NoteTag tag)
+            return new Thickness(1);
+
+        var isSelected = note.Tags.Any(t => t.Id == tag.Id);
+        return isSelected ? new Thickness(0) : new Thickness(1);
     }
 }

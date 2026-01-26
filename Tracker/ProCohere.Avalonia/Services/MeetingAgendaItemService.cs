@@ -394,9 +394,6 @@ public class MeetingAgendaItemService
         {
             Log($"Updating agenda item: {itemId}");
 
-            // Align is_private with visibility_scope if provided
-            bool? isPrivate = visibilityScope != null ? visibilityScope == "personal" : null;
-
             // Serialize talking points to JSON if provided
             string? talkingPointsJson = null;
             if (talkingPoints != null)
@@ -405,10 +402,7 @@ public class MeetingAgendaItemService
             }
 
             // Use RPC to update - only owner can update
-            // RPC signature: procohere.update_meeting_agenda_item(
-            //   p_id, p_title, p_description, p_display_title, p_status, p_is_completed,
-            //   p_shared_context, p_private_context, p_talking_points,
-            //   p_outcome_type, p_outcome_summary, p_sort_order)
+            // RPC handles visibility_scope → is_private sync internally
             var rpcResult = await client.Rpc("update_meeting_agenda_item", new
             {
                 p_id = itemId,
@@ -418,7 +412,8 @@ public class MeetingAgendaItemService
                 p_private_context = privateContext,
                 p_talking_points = talkingPointsJson,
                 p_outcome_type = outcomeType,
-                p_outcome_summary = outcomeSummary
+                p_outcome_summary = outcomeSummary,
+                p_visibility_scope = visibilityScope
             });
 
             Log($"Update agenda item RPC result: {rpcResult?.Content ?? "NULL"}");

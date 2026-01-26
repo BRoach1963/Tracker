@@ -2,8 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
         x:Class="ProCohere.Avalonia.Views.Dialogs.RecordOutcomeDialog"
+        x:DataType="vm:RecordOutcomeDialogViewModel"
         Title="Record Outcome"
         Width="500"
         Height="380"
@@ -42,8 +44,7 @@
         <!-- Header with agenda item context -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
             <TextBlock Text="Recording outcome for:" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
-            <TextBlock x:Name="AgendaItemTitleText" 
-                       Text="Agenda Item Title" 
+            <TextBlock Text="{Binding AgendaItemTitle}" 
                        FontSize="14" 
                        FontWeight="SemiBold"
                        TextWrapping="Wrap"/>
@@ -56,31 +57,30 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="Outcome Type" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                 <WrapPanel Orientation="Horizontal">
-                    <RadioButton x:Name="DecisionRadio" 
-                                 Classes="outcome-type" 
+                    <RadioButton Classes="outcome-type" 
                                  GroupName="OutcomeType"
                                  Margin="0,0,8,8"
-                                 IsChecked="True">
+                                 IsChecked="{Binding IsDecisionSelected}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10Z" 
                                       Width="14" Height="14" Foreground="#F59E0B"/>
                             <TextBlock Text="Decision" FontSize="12"/>
                         </StackPanel>
                     </RadioButton>
-                    <RadioButton x:Name="FeedbackRadio" 
-                                 Classes="outcome-type" 
+                    <RadioButton Classes="outcome-type" 
                                  GroupName="OutcomeType"
-                                 Margin="0,0,8,8">
+                                 Margin="0,0,8,8"
+                                 IsChecked="{Binding IsFeedbackSelected}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
                                       Width="14" Height="14" Foreground="#E91E63"/>
                             <TextBlock Text="Feedback" FontSize="12"/>
                         </StackPanel>
                     </RadioButton>
-                    <RadioButton x:Name="NotesRadio" 
-                                 Classes="outcome-type" 
+                    <RadioButton Classes="outcome-type" 
                                  GroupName="OutcomeType"
-                                 Margin="0,0,8,8">
+                                 Margin="0,0,8,8"
+                                 IsChecked="{Binding IsNotesSelected}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,13H7V11H13V13M17,17H7V15H17V17Z" 
                                       Width="14" Height="14" Foreground="#607D8B"/>
@@ -92,9 +92,10 @@
             
             <!-- Content -->
             <StackPanel Spacing="6">
-                <TextBlock x:Name="ContentLabel" Text="Decision" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <TextBlock Text="{Binding ContentLabel}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                 <TextBox x:Name="ContentTextBox"
-                         Watermark="Enter the outcome details..."
+                         Text="{Binding Content}"
+                         Watermark="{Binding ContentWatermark}"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          MinHeight="100"
@@ -104,13 +105,12 @@
             <!-- Visibility -->
             <StackPanel Spacing="6">
                 <TextBlock Text="Who can see this?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <ComboBox x:Name="VisibilityComboBox" 
-                          HorizontalAlignment="Stretch"
-                          SelectedIndex="1">
-                    <ComboBoxItem Content="Private (only me)" Tag="private"/>
-                    <ComboBoxItem Content="Meeting Attendees" Tag="attendees"/>
-                    <ComboBoxItem Content="My Team" Tag="team"/>
-                    <ComboBoxItem Content="Organization" Tag="organization"/>
+                <ComboBox HorizontalAlignment="Stretch"
+                          SelectedIndex="{Binding SelectedVisibilityIndex}">
+                    <ComboBoxItem Content="Private (only me)"/>
+                    <ComboBoxItem Content="Meeting Attendees"/>
+                    <ComboBoxItem Content="My Team"/>
+                    <ComboBoxItem Content="Organization"/>
                 </ComboBox>
             </StackPanel>
             
@@ -118,16 +118,14 @@
         
         <!-- Action Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
-            <Button x:Name="CancelButton" 
-                    Content="Cancel" 
+            <Button Content="Cancel" 
                     Classes="secondary-button"
                     Padding="16,8"
-                    Click="CancelButton_Click"/>
-            <Button x:Name="SaveButton" 
-                    Content="Save Outcome" 
+                    Command="{Binding CancelCommand}"/>
+            <Button Content="Save Outcome" 
                     Classes="primary-button"
                     Padding="16,8"
-                    Click="SaveButton_Click"/>
+                    Command="{Binding SaveCommand}"/>
         </StackPanel>
     </Grid>
 </Window>

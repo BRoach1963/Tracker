@@ -1,32 +1,229 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+             xmlns:dialogs="using:ProCohere.Avalonia.Models.Dialogs"
+             xmlns:conv="using:ProCohere.Avalonia.Converters"
              x:Class="ProCohere.Avalonia.Views.Controls.Meeting.MeetingNotesPanel"
              x:DataType="vm:EditMeetingDialogViewModel">
 
-    <Grid Margin="16" RowDefinitions="Auto,*">
-        <StackPanel Grid.Row="0" Margin="0,4,0,12">
-            <TextBlock Text="MEETING NOTES" 
-                       FontSize="10"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource BrushSecondary}" 
-                       Margin="0,0,0,4"/>
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
-                          Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}"/>
-                <TextBlock Text="Only you can see these notes" FontSize="12"
-                           Foreground="{DynamicResource BrushTextSecondary}"/>
-            </StackPanel>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel Spacing="12" Margin="0,0,0,20">
+            
+            <!-- Section Header -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,8">
+                <StackPanel>
+                    <TextBlock Text="MEETING NOTES" 
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushSecondary}" 
+                               Margin="0,0,0,4"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
+                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextTertiary}"/>
+                        <TextBlock Text="Private notes are only visible to you" FontSize="12"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="icon-button" Padding="6"
+                        ToolTip.Tip="Add new note"
+                        Command="{Binding AddNoteCommand}">
+                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                              Width="14" Height="14"/>
+                </Button>
+            </Grid>
+            
+            <!-- Notes list -->
+            <ItemsControl ItemsSource="{Binding MeetingNotes}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="dialogs:DialogMeetingNote">
+                        <Border Background="{DynamicResource BrushSurface}" 
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                            <StackPanel Spacing="8">
+                                
+                                <!-- Header row: visibility, timestamp, actions -->
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <!-- Visibility indicator -->
+                                    <Button Grid.Column="0" Classes="icon-button" Padding="4"
+                                            ToolTip.Tip="{Binding VisibilityTooltip}"
+                                            Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).ToggleNoteVisibilityCommand}"
+                                            CommandParameter="{Binding}">
+                                        <PathIcon Data="{Binding VisibilityIcon}" 
+                                                  Width="14" Height="14" 
+                                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    </Button>
+                                    
+                                    <!-- Timestamp -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" 
+                                                VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock Text="{Binding TimestampDisplay}" 
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="(edited)" FontSize="11" FontStyle="Italic"
+                                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                                   IsVisible="{Binding WasEdited}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Actions (when not editing) -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                                                IsVisible="{Binding !IsEditing}">
+                                        <Button Classes="icon-button" Padding="4"
+                                                ToolTip.Tip="Edit note"
+                                                Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).EditNoteCommand}"
+                                                CommandParameter="{Binding}">
+                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                      Width="12" Height="12" 
+                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Button>
+                                        <Button Classes="icon-button" Padding="4"
+                                                ToolTip.Tip="Delete note"
+                                                Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).DeleteNoteCommand}"
+                                                CommandParameter="{Binding}">
+                                            <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                                      Width="12" Height="12" 
+                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Button>
+                                    </StackPanel>
+                                    
+                                    <!-- Actions (when editing) -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                                                IsVisible="{Binding IsEditing}">
+                                        <Button Content="Save" Classes="accent" Padding="12,4"
+                                                Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).SaveNoteEditCommand}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Cancel" Padding="12,4"
+                                                Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).CancelNoteEditCommand}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- Content (view mode) -->
+                                <TextBlock Text="{Binding Content}" 
+                                           FontSize="13"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding !IsEditing}"/>
+                                
+                                <!-- Content (edit mode) -->
+                                <TextBox Text="{Binding EditContent, Mode=TwoWay}"
+                                         Watermark="Write your note..."
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="80"
+                                         IsVisible="{Binding IsEditing}"/>
+                                
+                                <!-- Tag picker (when editing) -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsEditing}" Margin="0,4,0,0"
+                                            Tag="{Binding}">
+                                    <TextBlock Text="Tags:" FontSize="11" 
+                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <ItemsControl ItemsSource="{Binding $parent[UserControl].((vm:EditMeetingDialogViewModel)DataContext).AvailableNoteTags}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="dialogs:NoteTag">
+                                                <Border Margin="0,0,4,4" 
+                                                        Padding="8,4"
+                                                        CornerRadius="4"
+                                                        Cursor="Hand"
+                                                        PointerPressed="TagButton_PointerPressed">
+                                                    <Border.Tag>
+                                                        <MultiBinding Converter="{x:Static conv:TupleConverter.Instance}">
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource AncestorType=StackPanel}"/>
+                                                            <Binding/>
+                                                        </MultiBinding>
+                                                    </Border.Tag>
+                                                    <Border.Background>
+                                                        <MultiBinding Converter="{x:Static conv:TagSelectedBackgroundConverter.Instance}">
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource AncestorType=StackPanel}"/>
+                                                            <Binding/>
+                                                        </MultiBinding>
+                                                    </Border.Background>
+                                                    <Border.BorderBrush>
+                                                        <SolidColorBrush Color="{Binding Color}"/>
+                                                    </Border.BorderBrush>
+                                                    <Border.BorderThickness>
+                                                        <MultiBinding Converter="{x:Static conv:TagSelectedBorderConverter.Instance}">
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource AncestorType=StackPanel}"/>
+                                                            <Binding/>
+                                                        </MultiBinding>
+                                                    </Border.BorderThickness>
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <PathIcon Data="{Binding Icon}" Width="12" Height="12">
+                                                            <PathIcon.Foreground>
+                                                                <SolidColorBrush Color="{Binding Color}"/>
+                                                            </PathIcon.Foreground>
+                                                        </PathIcon>
+                                                        <TextBlock Text="{Binding Name}" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                
+                                <!-- Tags display -->
+                                <ItemsControl ItemsSource="{Binding Tags}" 
+                                              Margin="0,4,0,0"
+                                              IsVisible="{Binding HasTags}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="dialogs:NoteTag">
+                                            <Border CornerRadius="4" 
+                                                    Padding="6,2" 
+                                                    Margin="0,0,4,4">
+                                                <Border.Background>
+                                                    <SolidColorBrush Color="{Binding Color}"/>
+                                                </Border.Background>
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <PathIcon Data="{Binding Icon}" Width="10" Height="10" Foreground="White"/>
+                                                    <TextBlock Text="{Binding Name}" 
+                                                               FontSize="11" 
+                                                               Foreground="White"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <!-- Empty state -->
+            <Border Background="{DynamicResource BrushSurface}" 
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="32" 
+                    IsVisible="{Binding !HasMeetingNotes}">
+                <StackPanel HorizontalAlignment="Center" Spacing="8">
+                    <Border Width="48" Height="48" CornerRadius="24" 
+                            Background="{DynamicResource BrushSurfaceAlt}">
+                        <PathIcon Data="M14,10H19.5L14,4.5V10M5,3H15L21,9V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3M5,5V19H19V12H12V5H5Z"
+                                  Width="24" Height="24" 
+                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                    </Border>
+                    <TextBlock Text="No notes yet" FontSize="14" FontWeight="Medium"
+                               Foreground="{DynamicResource BrushTextSecondary}" 
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Click + to add your first note for this meeting" FontSize="12"
+                               Foreground="{DynamicResource BrushTextTertiary}"
+                               HorizontalAlignment="Center" TextWrapping="Wrap"
+                               TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
         </StackPanel>
-        <Border Grid.Row="1" Background="{DynamicResource BrushSurface}"
-                BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
-                CornerRadius="6" Padding="0">
-            <TextBox Text="{Binding Notes}"
-                     Watermark="Add your notes here..."
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     BorderThickness="0"
-                     VerticalContentAlignment="Top"/>
-        </Border>
-    </Grid>
+    </ScrollViewer>
 </UserControl>

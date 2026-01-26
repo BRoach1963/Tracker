@@ -125,26 +125,29 @@
                        IsVisible="{Binding HasContext}"
                        Margin="34,0,0,0"/>
             
-            <!-- Talking points preview -->
+            <!-- Talking points preview (collapsed, max 3 visible) -->
             <Border Background="{DynamicResource BrushSurfaceAlt}"
                     CornerRadius="4" Padding="8,6"
                     Margin="34,0,0,0"
+                    MaxHeight="90"
                     IsVisible="{Binding HasTalkingPoints}">
-                <ItemsControl ItemsSource="{Binding TalkingPoints}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:TalkingPoint">
-                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,1">
-                                <CheckBox IsChecked="{Binding Discussed}" 
-                                          Padding="0" MinWidth="0"
-                                          VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Text}" FontSize="11"
-                                           Foreground="{DynamicResource BrushTextSecondary}"
-                                           TextDecorations="{Binding TextDecoration}"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding TalkingPoints}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TalkingPoint">
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,1">
+                                    <CheckBox IsChecked="{Binding Discussed}" 
+                                              Padding="0" MinWidth="0"
+                                              VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Text}" FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               TextDecorations="{Binding TextDecoration}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Border>
         </StackPanel>
     </Border>

@@ -106,7 +106,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
         /// <summary>
         /// Analyzes responses for a single survey.
         /// </summary>
-        private List<Insight> AnalyzeSurveyResponses(PulseSurvey survey, DateTime cutoffDate)
+        private List<Insight> AnalyzeSurveyResponses(Survey survey, DateTime cutoffDate)
         {
             var insights = new List<Insight>();
 
@@ -216,7 +216,7 @@ namespace Tracker.Services.AI.Insights.Analyzers
         /// Creates an insight for a survey question with low ratings.
         /// </summary>
         private Insight? CreateSurveyInsight(
-            PulseSurvey survey, 
+            Survey survey, 
             SurveyQuestion? question, 
             List<(SurveyResponse Response, SurveyAnswer Answer)> lowResponses)
         {

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
-using Avalonia.Interactivity;
+using ProCohere.Avalonia.Models.Dialogs;
+using ProCohere.Avalonia.ViewModels.Dialogs;
 
 namespace ProCohere.Avalonia.Views.Dialogs;
 
@@ -8,6 +9,8 @@ namespace ProCohere.Avalonia.Views.Dialogs;
 /// </summary>
 public partial class UpdateMetricValueDialog : Window
 {
+    private readonly UpdateMetricValueDialogViewModel _viewModel;
+
     /// <summary>
     /// Result of the dialog - the new value data if updated, null if cancelled.
     /// </summary>
@@ -16,6 +19,11 @@ public partial class UpdateMetricValueDialog : Window
     public UpdateMetricValueDialog()
     {
         InitializeComponent();
+        
+        _viewModel = new UpdateMetricValueDialogViewModel();
+        DataContext = _viewModel;
+        
+        _viewModel.CloseRequested += OnCloseRequested;
         
         // Focus the value field
         NewValueTextBox.AttachedToVisualTree += (s, e) => NewValueTextBox.Focus();
@@ -26,58 +34,12 @@ public partial class UpdateMetricValueDialog : Window
     /// </summary>
     public void Initialize(string? currentValue, bool isManualMetric)
     {
-        if (!string.IsNullOrEmpty(currentValue))
-        {
-            CurrentValueText.Text = currentValue;
-            CurrentValueBorder.IsVisible = true;
-        }
-        else
-        {
-            CurrentValueBorder.IsVisible = false;
-        }
-        
-        RequiredLabel.IsVisible = isManualMetric;
+        _viewModel.Initialize(currentValue, isManualMetric);
     }
 
-    private void CancelButton_Click(object? sender, RoutedEventArgs e)
+    private void OnCloseRequested(object? sender, UpdateMetricValueResult? result)
     {
-        Result = null;
+        Result = result;
         Close();
     }
-
-    private void UpdateButton_Click(object? sender, RoutedEventArgs e)
-    {
-        var newValue = NewValueTextBox.Text?.Trim();
-        
-        if (string.IsNullOrWhiteSpace(newValue))
-        {
-            NewValueTextBox.Focus();
-            return;
-        }
-
-        // Try to parse as decimal
-        if (!decimal.TryParse(newValue, out var value))
-        {
-            // Could show error, but for now just refocus
-            NewValueTextBox.Focus();
-            return;
-        }
-
-        Result = new UpdateMetricValueResult
-        {
-            NewValue = value,
-            WhatChanged = WhatChangedTextBox.Text?.Trim()
-        };
-
-        Close();
-    }
-}
-
-/// <summary>
-/// Result data from the UpdateMetricValueDialog.
-/// </summary>
-public class UpdateMetricValueResult
-{
-    public decimal NewValue { get; init; }
-    public string? WhatChanged { get; init; }
 }

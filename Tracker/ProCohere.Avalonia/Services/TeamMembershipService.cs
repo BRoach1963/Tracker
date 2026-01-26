@@ -303,8 +303,8 @@ public class TeamMembershipService
                 .Filter("team_member_id", Operator.Equals, teamMemberId.ToString())
                 .Filter("is_deleted", Operator.Equals, "false")
                 .Set(m => m.IsDeleted, true)
-                .Set(m => m.DeletedAt, DateTime.UtcNow)
-                .Set(m => m.DeletedBy, deletedByUserId)
+                .Set(m => m.DeletedAt!, DateTime.UtcNow)
+                .Set(m => m.DeletedBy!, deletedByUserId)
                 .Update();
 
             var success = result.Models?.Count > 0;

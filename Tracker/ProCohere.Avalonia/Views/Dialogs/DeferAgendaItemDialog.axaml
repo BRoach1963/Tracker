@@ -3,9 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="380"
         x:Class="ProCohere.Avalonia.Views.Dialogs.DeferAgendaItemDialog"
+        x:DataType="vm:DeferAgendaItemDialogViewModel"
         Title="Defer Agenda Item"
         Width="450"
         Height="380"
@@ -26,8 +28,7 @@
         <!-- Header with agenda item context -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
             <TextBlock Text="Deferring:" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
-            <TextBlock x:Name="AgendaItemTitleText" 
-                       Text="Agenda Item Title" 
+            <TextBlock Text="{Binding AgendaItemTitle}" 
                        FontSize="14" 
                        FontWeight="SemiBold"
                        TextWrapping="Wrap"/>
@@ -58,7 +59,8 @@
                 <TextBlock Text="Anchor to Person" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                 <TextBlock Text="This item will appear when you have meetings with this person."
                            FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
-                <ComboBox x:Name="AnchorPersonComboBox" 
+                <ComboBox ItemsSource="{Binding TeamMembers}"
+                          SelectedItem="{Binding SelectedTeamMember}"
                           HorizontalAlignment="Stretch"
                           PlaceholderText="Select team member...">
                     <ComboBox.ItemTemplate>
@@ -91,13 +93,12 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="Expiration (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <ComboBox x:Name="ExpirationComboBox" 
-                              HorizontalAlignment="Stretch"
-                              SelectedIndex="1">
-                        <ComboBoxItem Content="1 week" Tag="7"/>
-                        <ComboBoxItem Content="30 days (default)" Tag="30"/>
-                        <ComboBoxItem Content="60 days" Tag="60"/>
-                        <ComboBoxItem Content="90 days" Tag="90"/>
+                    <ComboBox HorizontalAlignment="Stretch"
+                              SelectedIndex="{Binding SelectedExpirationIndex}">
+                        <ComboBoxItem Content="1 week"/>
+                        <ComboBoxItem Content="30 days (default)"/>
+                        <ComboBoxItem Content="60 days"/>
+                        <ComboBoxItem Content="90 days"/>
                     </ComboBox>
                 </Grid>
             </StackPanel>
@@ -105,7 +106,7 @@
             <!-- Optional note -->
             <StackPanel Spacing="6">
                 <TextBlock Text="Note (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <TextBox x:Name="NoteTextBox"
+                <TextBox Text="{Binding Note}"
                          Watermark="Add context for when this resurfaces..."
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
@@ -117,16 +118,14 @@
         
         <!-- Action Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
-            <Button x:Name="CancelButton" 
-                    Content="Cancel" 
+            <Button Content="Cancel" 
                     Classes="secondary-button"
                     Padding="16,8"
-                    Click="CancelButton_Click"/>
-            <Button x:Name="DeferButton" 
-                    Content="Defer Item" 
+                    Command="{Binding CancelCommand}"/>
+            <Button Content="Defer Item" 
                     Classes="primary-button"
                     Padding="16,8"
-                    Click="DeferButton_Click"/>
+                    Command="{Binding DeferCommand}"/>
         </StackPanel>
     </Grid>
 </Window>

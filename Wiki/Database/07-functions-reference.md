@@ -113,6 +113,38 @@ Must:
 
 ---
 
+## Validation Functions
+
+### is_meeting_note_tags_valid(p_tags jsonb)
+Validates that meeting note tags conform to allowed values.
+
+```sql
+CREATE OR REPLACE FUNCTION procohere.is_meeting_note_tags_valid(p_tags jsonb)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $function$
+    select
+        p_tags is null
+        or (
+            jsonb_typeof(p_tags) = 'array'
+            and (
+                select bool_and(val in ('action','decision','question','followup','blocker','idea','risk'))
+                from jsonb_array_elements_text(p_tags) as x(val)
+            ) is not false
+        );
+$function$;
+```
+
+**Validation Rules:**
+- `NULL` is allowed
+- Otherwise must be a JSON array
+- Every entry must be one of: `action`, `decision`, `question`, `followup`, `blocker`, `idea`, `risk`
+
+**Used by:** `meeting_notes_tags_valid_chk` CHECK constraint on `procohere.meeting_notes`
+
+---
+
 ## SECURITY DEFINER Functions
 
 Any SECURITY DEFINER function must be listed explicitly here.
@@ -143,8 +175,8 @@ These functions bypass RLS to perform INSERT operations. They are necessary beca
 | `update_meeting_prep_item_as_requester(...)` | Updates prep item (requester role) | 2026-01-25 | |
 | `update_meeting_prep_item_as_assignee(...)` | Updates prep item (assignee role) | 2026-01-25 | |
 | `delete_meeting_prep_item(...)` | Deletes a prep item (soft) | 2026-01-25 | |
-| `insert_meeting_note(...)` | Creates a meeting note | 2026-01-24 | 2026-01-25 |
-| `update_meeting_note(...)` | Updates a meeting note | 2026-01-25 | |
+| `insert_meeting_note(...)` | Creates a meeting note with optional tags | 2026-01-24 | 2026-01-26 |
+| `update_meeting_note(...)` | Updates a meeting note with optional tags | 2026-01-25 | 2026-01-26 |
 | `delete_meeting_note(...)` | Deletes a meeting note (soft) | 2026-01-25 | |
 | `insert_meeting_prep_item_link(...)` | Creates a prep item link | 2026-01-24 | |
 
@@ -218,22 +250,25 @@ procohere.update_meeting_agenda_item(
     p_id uuid,
     p_title text DEFAULT NULL,
     p_description text DEFAULT NULL,
-    p_display_title text DEFAULT NULL,
+    p_display_title varchar DEFAULT NULL,
     p_status text DEFAULT NULL,
     p_is_completed boolean DEFAULT NULL,
     p_shared_context text DEFAULT NULL,
     p_private_context text DEFAULT NULL,
-    p_talking_points text DEFAULT NULL,
-    p_outcome_type text DEFAULT NULL,
+    p_talking_points jsonb DEFAULT NULL,
+    p_outcome_type varchar DEFAULT NULL,
     p_outcome_summary text DEFAULT NULL,
     p_sort_order integer DEFAULT NULL,
+    p_visibility_scope text DEFAULT NULL,
     p_linked_entity_type varchar DEFAULT NULL,
     p_linked_entity_id uuid DEFAULT NULL,
     p_linked_entity_title_snapshot varchar DEFAULT NULL,
-    p_clear_link boolean DEFAULT false
+    p_clear_link boolean DEFAULT NULL
 ) RETURNS boolean
 ```
 
+- All parameters except `p_id` are optional - only provided values are updated (COALESCE pattern)
+- Set `p_visibility_scope` to update visibility ('meeting', 'personal'); also syncs `is_private` flag
 - Set `p_clear_link = true` to remove an existing entity link
 - Provide `p_linked_entity_type`, `p_linked_entity_id`, `p_linked_entity_title_snapshot` to create/update a link
 
@@ -316,12 +351,83 @@ Performs soft delete (sets `is_deleted = true`, `deleted_at`, `deleted_by`).
 #### insert_meeting_note
 
 ```sql
-procohere.insert_meeting_note(
+CREATE OR REPLACE FUNCTION procohere.insert_meeting_note(
     p_meeting_id uuid,
     p_content text,
-    p_is_shared boolean DEFAULT false
-) RETURNS uuid
+    p_is_shared boolean,
+    p_tags jsonb DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'procohere', 'public'
+SET row_security TO 'on'
+AS $function$
+declare
+    v_org_id uuid;
+    v_tm_id uuid;
+    v_new_id uuid;
+begin
+    v_org_id := procohere.get_current_organization_id();
+    v_tm_id := procohere.get_current_team_member_id();
+
+    if v_org_id is null or v_tm_id is null then
+        raise exception 'Not authenticated';
+    end if;
+
+    if not exists (
+        select 1
+        from procohere.meetings m
+        where m.id = p_meeting_id
+          and m.organization_id = v_org_id
+          and m.is_deleted = false
+    ) then
+        raise exception 'Meeting not found or access denied';
+    end if;
+
+    if not procohere.rls_can_see_meeting(p_meeting_id) then
+        raise exception 'Cannot access this meeting';
+    end if;
+
+    v_new_id := gen_random_uuid();
+
+    insert into procohere.meeting_notes
+    (
+        id,
+        organization_id,
+        meeting_id,
+        author_id,
+        content,
+        is_shared,
+        tags,
+        is_deleted,
+        created_at,
+        updated_at
+    )
+    values
+    (
+        v_new_id,
+        v_org_id,
+        p_meeting_id,
+        v_tm_id,
+        p_content,
+        p_is_shared,
+        p_tags,
+        false,
+        now(),
+        now()
+    );
+
+    return v_new_id;
+end;
+$function$;
 ```
+
+**Parameters:**
+- `p_meeting_id` - Meeting to attach note to (required)
+- `p_content` - Note content (required)
+- `p_is_shared` - Whether note is visible to all attendees (required)
+- `p_tags` - Tag categories array (optional, e.g., `["action", "decision"]`)
 
 Note: Uses `p_is_shared` (NOT `p_is_private`). The application must invert the `isPrivate` flag:
 ```csharp
@@ -331,14 +437,81 @@ new KeyValuePair<string, object>("p_is_shared", !isPrivate)
 #### update_meeting_note
 
 ```sql
-procohere.update_meeting_note(
+CREATE OR REPLACE FUNCTION procohere.update_meeting_note(
     p_id uuid,
-    p_content text DEFAULT NULL,
-    p_is_shared boolean DEFAULT NULL
-) RETURNS uuid
+    p_content text,
+    p_is_shared boolean,
+    p_tags jsonb DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'procohere', 'public'
+SET row_security TO 'on'
+AS $function$
+declare
+    v_org_id uuid;
+    v_tm_id uuid;
+    v_meeting_id uuid;
+begin
+    v_org_id := procohere.get_current_organization_id();
+    v_tm_id := procohere.get_current_team_member_id();
+
+    if v_org_id is null or v_tm_id is null then
+        raise exception 'Not authenticated';
+    end if;
+
+    select mn.meeting_id
+      into v_meeting_id
+    from procohere.meeting_notes mn
+    where mn.id = p_id
+      and mn.organization_id = v_org_id
+      and mn.is_deleted = false;
+
+    if v_meeting_id is null then
+        raise exception 'Meeting note not found or access denied';
+    end if;
+
+    if not procohere.rls_can_see_meeting(v_meeting_id) then
+        raise exception 'Cannot access this meeting';
+    end if;
+
+    update procohere.meeting_notes
+    set
+        content = p_content,
+        is_shared = p_is_shared,
+        tags = case when p_tags is null then tags else p_tags end,
+        updated_at = now()
+    where id = p_id
+      and organization_id = v_org_id
+      and is_deleted = false;
+
+    return found;
+end;
+$function$;
 ```
 
-Note: Uses `p_is_shared`. Returns the note id on success.
+**Parameters:**
+- `p_id` - Note ID to update (required)
+- `p_content` - New content (required)
+- `p_is_shared` - Visibility flag (required)
+- `p_tags` - Tag categories array (optional; if null, keeps existing tags)
+
+**Tag Behavior:**
+- If `p_tags` is NULL, existing tags are preserved
+- If `p_tags` is an empty array `[]`, tags are cleared
+- Otherwise, tags are replaced with the new array
+
+**Valid Tag Categories:**
+- `action` - Action Item
+- `decision` - Decision
+- `question` - Question
+- `followup` - Follow-up
+- `blocker` - Blocker
+- `idea` - Idea
+- `risk` - Risk
+
+Note: Uses `p_is_shared`. Returns boolean indicating success.
 
 #### delete_meeting_note
 

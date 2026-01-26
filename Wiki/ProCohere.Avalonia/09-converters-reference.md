@@ -48,6 +48,10 @@ All converters use static `Instance` for singleton access in XAML.
 | `HealthToBrushConverter` | IValueConverter | GoalHealth → Brush |
 | `TrendToArrowConverter` | IValueConverter | MetricTrend → string |
 | `TrendToBrushConverter` | IValueConverter | MetricTrend → Brush |
+| `TupleConverter` | IMultiValueConverter | object, object → Tuple |
+| `TagSelectedConverter` | IMultiValueConverter | DialogMeetingNote, NoteTag → bool |
+| `TagSelectedBackgroundConverter` | IMultiValueConverter | DialogMeetingNote, NoteTag → Brush |
+| `TagSelectedBorderConverter` | IMultiValueConverter | DialogMeetingNote, NoteTag → Thickness |
 
 ### Phone Converter (PhoneNumberConverter.cs)
 
@@ -405,6 +409,91 @@ public object? Convert(IList<object?> values, ...)
         <Binding Path="IsActive" />
     </MultiBinding.Bindings>
 </Ellipse>
+```
+
+---
+
+## Tag Selection Converters
+
+These converters support the meeting note tagging feature, allowing users to tag notes with categories like "Action Item", "Decision", "Question", etc.
+
+### TupleConverter
+Combines multiple binding values into a Tuple for multi-parameter commands:
+
+```csharp
+public object? Convert(IList<object?> values, Type targetType, 
+    object? parameter, CultureInfo culture)
+{
+    if (values == null || values.Count < 2)
+        return null;
+    return Tuple.Create(values[0], values[1]);
+}
+```
+
+**XAML Usage**:
+```xml
+<Button.CommandParameter>
+    <MultiBinding Converter="{x:Static conv:TupleConverter.Instance}">
+        <Binding Path="Tag" RelativeSource="{RelativeSource AncestorType=StackPanel}"/>
+        <Binding/>
+    </MultiBinding>
+</Button.CommandParameter>
+```
+
+### TagSelectedConverter
+Checks if a `NoteTag` is selected in a `DialogMeetingNote`'s Tags list:
+
+```csharp
+public object? Convert(IList<object?> values, ...)
+{
+    if (values[0] is not DialogMeetingNote note) return false;
+    if (values[1] is not NoteTag tag) return false;
+    return note.Tags.Any(t => t.Id == tag.Id);
+}
+```
+
+### TagSelectedBackgroundConverter
+Returns a filled background brush for selected tags, transparent for unselected:
+
+```csharp
+public object? Convert(IList<object?> values, ...)
+{
+    // Returns tag's Color as SolidColorBrush if selected
+    // Returns Brushes.Transparent if not selected
+}
+```
+
+### TagSelectedBorderConverter
+Returns border thickness - selected tags have no border, unselected have thin border:
+
+```csharp
+public object? Convert(IList<object?> values, ...)
+{
+    var isSelected = note.Tags.Any(t => t.Id == tag.Id);
+    return isSelected ? new Thickness(0) : new Thickness(1);
+}
+```
+
+**Combined XAML Usage** (MeetingNotesPanel.axaml):
+```xml
+<Border Padding="8,4" CornerRadius="4">
+    <Border.Background>
+        <MultiBinding Converter="{x:Static conv:TagSelectedBackgroundConverter.Instance}">
+            <Binding Path="Tag" RelativeSource="{RelativeSource AncestorType=StackPanel}"/>
+            <Binding/>
+        </MultiBinding>
+    </Border.Background>
+    <Border.BorderBrush>
+        <SolidColorBrush Color="{Binding Color}"/>
+    </Border.BorderBrush>
+    <Border.BorderThickness>
+        <MultiBinding Converter="{x:Static conv:TagSelectedBorderConverter.Instance}">
+            <Binding Path="Tag" RelativeSource="{RelativeSource AncestorType=StackPanel}"/>
+            <Binding/>
+        </MultiBinding>
+    </Border.BorderThickness>
+    <!-- Tag content -->
+</Border>
 ```
 
 ---

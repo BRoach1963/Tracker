@@ -657,32 +657,4 @@ namespace Tracker.DataModels
 
         #endregion
     }
-
-    #region Legacy Aliases (for backward compatibility)
-
-    /// <summary>
-    /// Alias for Survey (backward compatibility).
-    /// </summary>
-    [Obsolete("Use Survey instead")]
-    public class PulseSurvey : Survey { }
-
-    /// <summary>
-    /// Alias for SurveyQuestion (backward compatibility).
-    /// </summary>
-    [Obsolete("Use SurveyQuestion instead")]
-    public class PulseSurveyQuestion : SurveyQuestion { }
-
-    /// <summary>
-    /// Alias for SurveyResponse (backward compatibility).
-    /// </summary>
-    [Obsolete("Use SurveyResponse instead")]
-    public class PulseSurveyResponse : SurveyResponse { }
-
-    /// <summary>
-    /// Alias for SurveyAnswer (backward compatibility).
-    /// </summary>
-    [Obsolete("Use SurveyAnswer instead")]
-    public class PulseSurveyAnswer : SurveyAnswer { }
-
-    #endregion
 }

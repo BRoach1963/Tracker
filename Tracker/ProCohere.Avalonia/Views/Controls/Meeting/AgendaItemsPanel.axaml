@@ -8,7 +8,7 @@
              x:DataType="vm:EditMeetingDialogViewModel">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel Spacing="12">
+        <StackPanel Spacing="12" Margin="0,0,0,20">
             
             <!-- Section Header -->
             <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,8">
@@ -32,98 +32,14 @@
                 <Button Grid.Column="2"
                         Classes="icon-button" Padding="6"
                         ToolTip.Tip="Add new agenda item"
-                        Command="{Binding ShowAddAgendaPanelCommand}">
+                        Command="{Binding AddAgendaItemCommand}">
                     <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                               Width="14" Height="14"/>
                 </Button>
             </Grid>
             
-            <!-- Add agenda inline form -->
-            <Border Background="{DynamicResource BrushBackground}"
-                    BorderBrush="{DynamicResource BrushBorder}"
-                    BorderThickness="1"
-                    CornerRadius="6" Padding="12" 
-                    IsVisible="{Binding IsAddAgendaPanelVisible}">
-                <StackPanel Spacing="12">
-                    <!-- Title -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Topic" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBox Text="{Binding NewAgendaTitle}" 
-                                 Watermark="What do you want to discuss?"/>
-                    </StackPanel>
-                    
-                    <!-- Context -->
-                    <StackPanel Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="Context" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="(visible to attendees)" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextTertiary}"/>
-                        </StackPanel>
-                        <TextBox Text="{Binding NewAgendaContext}" 
-                                 Watermark="Why are we discussing this? What's changed?"
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 MinHeight="50"
-                                 MaxHeight="80"/>
-                    </StackPanel>
-                    
-                    <!-- Talking Points -->
-                    <StackPanel Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="Talking Points" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="(optional)" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextTertiary}"/>
-                        </StackPanel>
-                        <TextBox Text="{Binding NewAgendaTalkingPoints}" 
-                                 Watermark="Enter points separated by new lines..."
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 MinHeight="50"
-                                 MaxHeight="100"/>
-                        <TextBlock Text="Each line becomes a talking point you can check off during the meeting"
-                                   FontSize="10" FontStyle="Italic"
-                                   Foreground="{DynamicResource BrushTextTertiary}"/>
-                    </StackPanel>
-                    
-                    <!-- Bottom row -->
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <!-- Visibility selector -->
-                        <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Visibility" FontSize="10" 
-                                       Foreground="{DynamicResource BrushTextTertiary}"/>
-                            <ComboBox x:Name="AgendaVisibilityComboBox" 
-                                      SelectedIndex="0"
-                                      MinWidth="160"
-                                      SelectionChanged="AgendaVisibilityComboBox_SelectionChanged">
-                                <ComboBoxItem Tag="meeting">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
-                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        <TextBlock Text="All attendees" FontSize="12"/>
-                                    </StackPanel>
-                                </ComboBoxItem>
-                                <ComboBoxItem Tag="personal">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
-                                                  Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        <TextBlock Text="Only me" FontSize="12"/>
-                                    </StackPanel>
-                                </ComboBoxItem>
-                            </ComboBox>
-                        </StackPanel>
-                        
-                        <!-- Action buttons -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" 
-                                    VerticalAlignment="Bottom">
-                            <Button Content="Cancel" Command="{Binding CancelAddAgendaCommand}" />
-                            <Button Content="Add" Classes="accent" Command="{Binding ConfirmAddAgendaCommand}" />
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </Border>
+            <!-- Add agenda inline form - REMOVED, now uses dialog -->
+            <!-- The ShowAddAgendaPanelCommand triggers a dialog in the code-behind -->
             
             <!-- Agenda items list -->
             <ItemsControl ItemsSource="{Binding AgendaItems}">

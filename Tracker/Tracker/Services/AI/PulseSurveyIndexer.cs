@@ -48,7 +48,7 @@ namespace Tracker.Services.AI
 
         protected override async Task IndexSingleEntityAsync(object entity)
         {
-            var survey = (PulseSurvey)entity;
+            var survey = (Survey)entity;
             try
             {
                 // Create rich text representation of the survey

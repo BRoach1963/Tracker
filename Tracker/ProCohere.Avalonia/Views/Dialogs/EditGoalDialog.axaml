@@ -3,9 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="650"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditGoalDialog"
+        x:DataType="vm:EditGoalDialogViewModel"
         Title="Goal"
         Width="520" Height="650"
         WindowStartupLocation="CenterOwner"
@@ -20,8 +22,7 @@
         <Border Grid.Row="0" 
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                 Padding="20,16">
-            <TextBlock x:Name="DialogTitle"
-                       Text="New Goal"
+            <TextBlock Text="{Binding DialogTitle}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -36,14 +37,14 @@
                 <!-- Title -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="Title *" FontSize="12" />
-                    <TextBox x:Name="TitleTextBox"
+                    <TextBox Text="{Binding Title}"
                              Watermark="What do you want to achieve?" />
                 </StackPanel>
                 
                 <!-- Description -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="Description" FontSize="12" />
-                    <TextBox x:Name="DescriptionTextBox"
+                    <TextBox Text="{Binding Description}"
                              Watermark="Why is this goal important? What does success look like?"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
@@ -53,9 +54,8 @@
                 <!-- Goal Type -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="Goal Type" FontSize="12" />
-                    <ComboBox x:Name="GoalTypeComboBox"
-                              HorizontalAlignment="Stretch"
-                              SelectedIndex="0">
+                    <ComboBox SelectedIndex="{Binding GoalTypeIndex}"
+                              HorizontalAlignment="Stretch">
                         <ComboBoxItem Content="Growth" Tag="growth" />
                         <ComboBoxItem Content="Execution" Tag="execution" />
                         <ComboBoxItem Content="Operational" Tag="operational" />
@@ -67,9 +67,8 @@
                 <Grid ColumnDefinitions="*,12,Auto">
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Time Period" FontSize="12" />
-                        <ComboBox x:Name="TimePeriodComboBox"
-                                  HorizontalAlignment="Stretch"
-                                  SelectedIndex="0">
+                        <ComboBox SelectedIndex="{Binding TimePeriodIndex}"
+                                  HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="Q1" Tag="Q1" />
                             <ComboBoxItem Content="Q2" Tag="Q2" />
                             <ComboBoxItem Content="Q3" Tag="Q3" />
@@ -81,7 +80,8 @@
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
                         <TextBlock Text="Year" FontSize="12" />
-                        <ComboBox x:Name="YearComboBox"
+                        <ComboBox ItemsSource="{Binding Years}"
+                                  SelectedIndex="{Binding SelectedYearIndex}"
                                   MinWidth="100" />
                     </StackPanel>
                 </Grid>
@@ -90,18 +90,19 @@
                 <Grid ColumnDefinitions="*,12,*">
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Start Date" FontSize="12" />
-                        <DatePicker x:Name="StartDatePicker" />
+                        <DatePicker SelectedDate="{Binding StartDate}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
                         <TextBlock Text="End Date" FontSize="12" />
-                        <DatePicker x:Name="EndDatePicker" />
+                        <DatePicker SelectedDate="{Binding EndDate}" />
                     </StackPanel>
                 </Grid>
                 
                 <!-- Owner -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="Owner" FontSize="12" />
-                    <ComboBox x:Name="OwnerComboBox"
+                    <ComboBox ItemsSource="{Binding TeamMembers}"
+                              SelectedItem="{Binding SelectedOwner}"
                               HorizontalAlignment="Stretch"
                               PlaceholderText="Select owner">
                         <ComboBox.ItemTemplate>
@@ -134,27 +135,25 @@
                 </StackPanel>
                 
                 <!-- Health (only in edit mode) -->
-                <StackPanel x:Name="HealthSection" Spacing="4" IsVisible="False">
+                <StackPanel Spacing="4" IsVisible="{Binding IsEditMode}">
                     <TextBlock Text="Health Status" FontSize="12" />
-                    <ComboBox x:Name="HealthComboBox"
-                              HorizontalAlignment="Stretch"
-                              SelectedIndex="0">
+                    <ComboBox SelectedIndex="{Binding HealthIndex}"
+                              HorizontalAlignment="Stretch">
                         <ComboBoxItem Content="On Track" Tag="on_track" />
                         <ComboBoxItem Content="Needs Attention" Tag="needs_attention" />
                         <ComboBoxItem Content="At Risk" Tag="at_risk" />
                         <ComboBoxItem Content="Reframing Needed" Tag="reframing_needed" />
                     </ComboBox>
-                    <TextBox x:Name="HealthReasonTextBox"
+                    <TextBox Text="{Binding HealthReason}"
                              Watermark="What has changed?"
                              Margin="0,4,0,0" />
                 </StackPanel>
                 
                 <!-- Lifecycle (only in edit mode) -->
-                <StackPanel x:Name="LifecycleSection" Spacing="4" IsVisible="False">
+                <StackPanel Spacing="4" IsVisible="{Binding IsEditMode}">
                     <TextBlock Text="Lifecycle" FontSize="12" />
-                    <ComboBox x:Name="LifecycleComboBox"
-                              HorizontalAlignment="Stretch"
-                              SelectedIndex="0">
+                    <ComboBox SelectedIndex="{Binding LifecycleIndex}"
+                              HorizontalAlignment="Stretch">
                         <ComboBoxItem Content="Active" Tag="active" />
                         <ComboBoxItem Content="Evolving" Tag="evolving" />
                         <ComboBoxItem Content="Paused" Tag="paused" />
@@ -166,9 +165,8 @@
                 <!-- Visibility -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="Visibility" FontSize="12" />
-                    <ComboBox x:Name="VisibilityComboBox"
-                              HorizontalAlignment="Stretch"
-                              SelectedIndex="1">
+                    <ComboBox SelectedIndex="{Binding VisibilityIndex}"
+                              HorizontalAlignment="Stretch">
                         <ComboBoxItem Content="Private (only me)" Tag="private" />
                         <ComboBoxItem Content="Team" Tag="team" />
                         <ComboBoxItem Content="Organization" Tag="organization" />
@@ -183,23 +181,21 @@
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                 Padding="20,12">
             <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                <Button x:Name="DeleteButton"
-                        Grid.Column="0"
+                <Button Grid.Column="0"
                         Content="Delete"
                         Foreground="#E74C3C"
-                        IsVisible="False"
-                        Click="DeleteButton_Click" />
+                        IsVisible="{Binding IsDeleteVisible}"
+                        Command="{Binding DeleteCommand}" />
                 <Button Grid.Column="2"
                         Content="Cancel"
                         MinWidth="80"
                         Margin="0,0,8,0"
-                        Click="CancelButton_Click" />
+                        Command="{Binding CancelCommand}" />
                 <Button Grid.Column="3"
-                        x:Name="SaveButton"
-                        Content="Create Goal"
+                        Content="{Binding SaveButtonText}"
                         Classes="accent"
                         MinWidth="100"
-                        Click="SaveButton_Click" />
+                        Command="{Binding SaveCommand}" />
             </Grid>
         </Border>
     </Grid>

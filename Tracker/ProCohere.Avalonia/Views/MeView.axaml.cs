@@ -8,11 +8,9 @@ using Avalonia.Threading;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
-using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 
 namespace ProCohere.Avalonia.Views;
 
@@ -57,33 +55,19 @@ public partial class MeView : UserControl
         var window = TopLevel.GetTopLevel(this) as Window;
         if (window == null || _viewModel == null) return;
 
-        try
+        var result = await AppDialogService.ShowCreateMeetingAsync(window);
+        
+        if (result.WasDeleted && result.DeletedMeetingId.HasValue)
         {
-            var dialog = new EditMeetingDialog();
-            
-            // Load team members for attendee selection
-            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
-            dialog.SetTeamMembers(teamMembers.Where(t => t.Relation != "self")); // Don't show self as attendee
-
-            await dialog.ShowDialog(window);
-
-            if (dialog.Result != null)
-            {
-                if (dialog.Result.SavedMeeting != null)
-                {
-                    // Meeting was created - notify ViewModel to open flyout
-                    _viewModel.OnMeetingSaved(dialog.Result.SavedMeeting);
-                }
-                else if (dialog.Result.Error != null)
-                {
-                    Debug.WriteLine($"[MeView] Create meeting error: {dialog.Result.Error}");
-                    // TODO: Show error notification
-                }
-            }
+            _viewModel.OnMeetingDeleted(result.DeletedMeetingId.Value);
         }
-        catch (Exception ex)
+        else if (result.Success && result.Meeting != null)
         {
-            Debug.WriteLine($"[MeView] Error showing create meeting dialog: {ex.Message}");
+            _viewModel.OnMeetingSaved(result.Meeting);
+        }
+        else if (result.Error != null)
+        {
+            Debug.WriteLine($"[MeView] Create meeting error: {result.Error}");
         }
     }
 
@@ -95,41 +79,19 @@ public partial class MeView : UserControl
         var window = TopLevel.GetTopLevel(this) as Window;
         if (window == null || _viewModel == null) return;
 
-        try
+        var result = await AppDialogService.ShowEditMeetingAsync(window, meeting);
+        
+        if (result.WasDeleted && result.DeletedMeetingId.HasValue)
         {
-            var dialog = new EditMeetingDialog();
-            
-            // Load team members for attendee selection
-            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
-            dialog.SetTeamMembers(teamMembers.Where(t => t.Relation != "self"));
-            
-            // Load the meeting into the dialog
-            dialog.LoadMeeting(meeting);
-
-            await dialog.ShowDialog(window);
-
-            if (dialog.Result != null)
-            {
-                if (dialog.Result.IsDeleted && dialog.Result.DeletedMeetingId.HasValue)
-                {
-                    // Meeting was deleted
-                    _viewModel.OnMeetingDeleted(dialog.Result.DeletedMeetingId.Value);
-                }
-                else if (dialog.Result.SavedMeeting != null)
-                {
-                    // Meeting was updated
-                    _viewModel.OnMeetingSaved(dialog.Result.SavedMeeting);
-                }
-                else if (dialog.Result.Error != null)
-                {
-                    Debug.WriteLine($"[MeView] Edit meeting error: {dialog.Result.Error}");
-                    // TODO: Show error notification
-                }
-            }
+            _viewModel.OnMeetingDeleted(result.DeletedMeetingId.Value);
         }
-        catch (Exception ex)
+        else if (result.Success && result.Meeting != null)
         {
-            Debug.WriteLine($"[MeView] Error showing edit meeting dialog: {ex.Message}");
+            _viewModel.OnMeetingSaved(result.Meeting);
+        }
+        else if (result.Error != null)
+        {
+            Debug.WriteLine($"[MeView] Edit meeting error: {result.Error}");
         }
     }
 

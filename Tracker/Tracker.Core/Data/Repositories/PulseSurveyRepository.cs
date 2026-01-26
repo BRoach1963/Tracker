@@ -8,7 +8,7 @@ using Tracker.Core.DataModels;
 namespace Tracker.Core.Data.Repositories
 {
     /// <summary>
-    /// Repository for PulseSurvey entity.
+    /// Repository for Survey entity (pulse surveys).
     /// Provides data access for all pulse survey-related operations.
     /// 
     /// This is the ONLY place that queries the 'pulse_surveys' table.
@@ -16,37 +16,37 @@ namespace Tracker.Core.Data.Repositories
     /// 
     /// Pulse surveys are lightweight, frequent engagement/satisfaction surveys.
     /// </summary>
-    public interface IPulseSurveyRepository : IRepository<PulseSurvey>
+    public interface IPulseSurveyRepository : IRepository<Survey>
     {
         /// <summary>
         /// Get all pulse surveys (convenience method).
         /// </summary>
-        Task<IEnumerable<PulseSurvey>> GetPulseSurveysAsync();
+        Task<IEnumerable<Survey>> GetPulseSurveysAsync();
 
         /// <summary>
         /// Get a pulse survey by ID with all related data.
         /// </summary>
-        Task<PulseSurvey?> GetPulseSurveyByIdAsync(Guid surveyId);
+        Task<Survey?> GetPulseSurveyByIdAsync(Guid surveyId);
 
         /// <summary>
         /// Get all pulse surveys in an organization.
         /// </summary>
-        Task<IEnumerable<PulseSurvey>> GetByOrganizationAsync(Guid organizationId);
+        Task<IEnumerable<Survey>> GetByOrganizationAsync(Guid organizationId);
 
         /// <summary>
         /// Get active pulse surveys in an organization.
         /// </summary>
-        Task<IEnumerable<PulseSurvey>> GetActiveByOrganizationAsync(Guid organizationId);
+        Task<IEnumerable<Survey>> GetActiveByOrganizationAsync(Guid organizationId);
 
         /// <summary>
         /// Get pulse surveys created by a specific user.
         /// </summary>
-        Task<IEnumerable<PulseSurvey>> GetByCreatorAsync(Guid creatorId);
+        Task<IEnumerable<Survey>> GetByCreatorAsync(Guid creatorId);
 
         /// <summary>
         /// Get pulse surveys by status (draft, active, closed, etc.).
         /// </summary>
-        Task<IEnumerable<PulseSurvey>> GetByStatusAsync(string status);
+        Task<IEnumerable<Survey>> GetByStatusAsync(string status);
 
         /// <summary>
         /// Add a survey response.
@@ -54,7 +54,7 @@ namespace Tracker.Core.Data.Repositories
         Task<Guid> AddSurveyResponseAsync(SurveyResponse response);
     }
 
-    public class PulseSurveyRepository : BaseRepository<PulseSurvey>, IPulseSurveyRepository
+    public class PulseSurveyRepository : BaseRepository<Survey>, IPulseSurveyRepository
     {
         public PulseSurveyRepository(
             IDapperConnectionFactory connectionFactory,
@@ -64,7 +64,7 @@ namespace Tracker.Core.Data.Repositories
             TableName = "pulse_surveys";
         }
 
-        public async Task<IEnumerable<PulseSurvey>> GetByOrganizationAsync(Guid organizationId)
+        public async Task<IEnumerable<Survey>> GetByOrganizationAsync(Guid organizationId)
         {
             try
             {
@@ -74,7 +74,7 @@ namespace Tracker.Core.Data.Repositories
                     WHERE organization_id = @OrgId AND is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<PulseSurvey>(sql, new { OrgId = organizationId });
+                return await connection.QueryAsync<Survey>(sql, new { OrgId = organizationId });
             }
             catch (Exception ex)
             {
@@ -83,7 +83,7 @@ namespace Tracker.Core.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<PulseSurvey>> GetActiveByOrganizationAsync(Guid organizationId)
+        public async Task<IEnumerable<Survey>> GetActiveByOrganizationAsync(Guid organizationId)
         {
             try
             {
@@ -95,7 +95,7 @@ namespace Tracker.Core.Data.Repositories
                       AND is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<PulseSurvey>(sql, new { OrgId = organizationId });
+                return await connection.QueryAsync<Survey>(sql, new { OrgId = organizationId });
             }
             catch (Exception ex)
             {
@@ -104,7 +104,7 @@ namespace Tracker.Core.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<PulseSurvey>> GetByCreatorAsync(Guid creatorId)
+        public async Task<IEnumerable<Survey>> GetByCreatorAsync(Guid creatorId)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace Tracker.Core.Data.Repositories
                     WHERE created_by = @CreatorId AND is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<PulseSurvey>(sql, new { CreatorId = creatorId });
+                return await connection.QueryAsync<Survey>(sql, new { CreatorId = creatorId });
             }
             catch (Exception ex)
             {
@@ -123,7 +123,7 @@ namespace Tracker.Core.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<PulseSurvey>> GetByStatusAsync(string status)
+        public async Task<IEnumerable<Survey>> GetByStatusAsync(string status)
         {
             try
             {
@@ -133,7 +133,7 @@ namespace Tracker.Core.Data.Repositories
                     WHERE status = @Status AND is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<PulseSurvey>(sql, new { Status = status });
+                return await connection.QueryAsync<Survey>(sql, new { Status = status });
             }
             catch (Exception ex)
             {
@@ -142,7 +142,7 @@ namespace Tracker.Core.Data.Repositories
             }
         }
 
-        public async Task<IEnumerable<PulseSurvey>> GetPulseSurveysAsync()
+        public async Task<IEnumerable<Survey>> GetPulseSurveysAsync()
         {
             try
             {
@@ -152,7 +152,7 @@ namespace Tracker.Core.Data.Repositories
                     WHERE is_deleted = false
                     ORDER BY created_at DESC";
 
-                return await connection.QueryAsync<PulseSurvey>(sql);
+                return await connection.QueryAsync<Survey>(sql);
             }
             catch (Exception ex)
             {
@@ -161,7 +161,7 @@ namespace Tracker.Core.Data.Repositories
             }
         }
 
-        public async Task<PulseSurvey?> GetPulseSurveyByIdAsync(Guid surveyId)
+        public async Task<Survey?> GetPulseSurveyByIdAsync(Guid surveyId)
         {
             try
             {
@@ -170,7 +170,7 @@ namespace Tracker.Core.Data.Repositories
                     SELECT * FROM pulse_surveys
                     WHERE id = @Id AND is_deleted = false";
 
-                return await connection.QueryFirstOrDefaultAsync<PulseSurvey>(sql, new { Id = surveyId });
+                return await connection.QueryFirstOrDefaultAsync<Survey>(sql, new { Id = surveyId });
             }
             catch (Exception ex)
             {

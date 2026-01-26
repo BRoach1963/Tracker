@@ -607,7 +607,11 @@ public class MeetingPrepItemService
     /// Creates a quick personal prep item with minimal info.
     /// Per constraint: personal visibility requires assigned_to_team_member_id (self-assigned).
     /// </summary>
-    public async Task<MeetingPrepItem?> CreateQuickPrepAsync(Guid meetingId, string title)
+    public async Task<MeetingPrepItem?> CreateQuickPrepAsync(
+        Guid meetingId, 
+        string title,
+        string? body = null,
+        string? prepPrompt = null)
     {
         var session = AuthService.Instance.CurrentSession_ProCohere;
         var currentUserId = session?.TeamMember?.Id;
@@ -616,6 +620,8 @@ public class MeetingPrepItemService
         {
             MeetingId = meetingId,
             Title = title,
+            Body = body,
+            PrepPrompt = prepPrompt,
             VisibilityScope = "personal",
             AssignedToTeamMemberId = currentUserId, // Personal items are self-assigned per DB constraint
             Status = "open"
@@ -1033,7 +1039,7 @@ public class MeetingPrepItemService
                     AssignedToTeamMemberId = source.AssignedToTeamMemberId,
                     Title = source.Title,
                     Body = source.Body,
-                    VisibilityScope = source.VisibilityScope,
+                    VisibilityScope = source.VisibilityScope ?? "personal",
                     Status = "open",
                     SortOrder = source.SortOrder,
                     CarryForward = source.CarryForward,

@@ -868,6 +868,90 @@ public partial class CircleViewModel : ViewModelBase
         }
     }
 
+    #region Agenda Item Outcome Commands
+
+    /// <summary>
+    /// Records an outcome (decision, feedback, or notes) for an agenda item.
+    /// Called by View after showing RecordOutcomeDialog.
+    /// </summary>
+    public async Task RecordOutcomeAsync(Guid agendaItemId, string outcomeType, string content, string visibility)
+    {
+        try
+        {
+            var outcomeService = AgendaItemOutcomeService.Instance;
+            
+            switch (outcomeType)
+            {
+                case OutcomeType.DecisionRecorded:
+                    await outcomeService.RecordDecisionAsync(agendaItemId, content, visibility);
+                    break;
+                case OutcomeType.FeedbackCaptured:
+                    await outcomeService.CaptureFeedbackAsync(agendaItemId, content, visibility);
+                    break;
+                case OutcomeType.NotesAdded:
+                    await outcomeService.AddNotesAsync(agendaItemId, content, visibility);
+                    break;
+            }
+            
+            Log($"Recorded {outcomeType} for agenda item: {agendaItemId}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Error recording outcome: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads outcomes for an agenda item.
+    /// </summary>
+    public async Task<List<AgendaItemOutcomeDetail>> LoadAgendaItemOutcomesAsync(Guid agendaItemId)
+    {
+        try
+        {
+            return await AgendaItemOutcomeService.Instance.GetOutcomesForAgendaItemAsync(agendaItemId);
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading outcomes: {ex.Message}");
+            return new List<AgendaItemOutcomeDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Defers an agenda item with carry-forward.
+    /// Called by View after showing DeferAgendaItemDialog.
+    /// </summary>
+    public async Task DeferAgendaItemWithCarryForwardAsync(Guid agendaItemId, Guid anchorTeamMemberId, int expirationDays)
+    {
+        try
+        {
+            await CarryForwardService.Instance.DeferAgendaItemAsync(agendaItemId, anchorTeamMemberId, expirationDays);
+            Log($"Deferred agenda item: {agendaItemId} to team member {anchorTeamMemberId}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Error deferring agenda item: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Gets team members for defer dialog.
+    /// </summary>
+    public async Task<List<TeamMemberDetail>> GetTeamMembersForDeferAsync()
+    {
+        try
+        {
+            return await TeamService.Instance.GetVisibleTeamMembersAsync();
+        }
+        catch (Exception ex)
+        {
+            Log($"Error getting team members: {ex.Message}");
+            return new List<TeamMemberDetail>();
+        }
+    }
+
+    #endregion
+
     private static DateTime GetWeekStart(DateTime date)
     {
         int diff = (7 + (date.DayOfWeek - DayOfWeek.Sunday)) % 7;
@@ -991,9 +1075,16 @@ public partial class CircleViewModel : ViewModelBase
     public event EventHandler<TeamMemberDetail>? EditTeamMemberDialogRequested;
 
     /// <summary>
-    /// Event to request showing the Add Team Member dialog.
+    /// Event to request showing the Invite Team Member dialog.
     /// </summary>
-    public event EventHandler? AddTeamMemberDialogRequested;
+    public event EventHandler? InviteTeamMemberDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Create Meeting dialog.
+    /// The TeamMemberDetail parameter is the pre-selected attendee (for "Schedule Meeting with [Person]").
+    /// Pass null for a general meeting creation without pre-selection.
+    /// </summary>
+    public event EventHandler<TeamMemberDetail?>? CreateMeetingDialogRequested;
 
     #endregion
 
@@ -1002,23 +1093,23 @@ public partial class CircleViewModel : ViewModelBase
     [RelayCommand]
     private void AddTeamMember()
     {
-        Log("AddTeamMember command - requesting dialog");
-        AddTeamMemberDialogRequested?.Invoke(this, EventArgs.Empty);
+        Log("AddTeamMember command - requesting invite dialog");
+        InviteTeamMemberDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
     private void EditTeamMember(TeamMemberDetail? member)
     {
         if (member == null) return;
-        Log($"EditTeamMember command - requesting dialog for {member.FullName}");
+        Log($"EditTeamMember command - requesting details dialog for {member.FullName}");
         EditTeamMemberDialogRequested?.Invoke(this, member);
     }
 
     [RelayCommand]
     private void ScheduleMeeting(TeamMemberDetail? member)
     {
-        Debug.WriteLine($"Schedule Meeting with: {member?.FullName ?? "team"}");
-        // TODO: Open schedule meeting dialog
+        Log($"ScheduleMeeting command - requesting dialog for {member?.FullName ?? "team"}");
+        CreateMeetingDialogRequested?.Invoke(this, member);
     }
 
     [RelayCommand]
@@ -1058,6 +1149,77 @@ public partial class CircleViewModel : ViewModelBase
     private async Task RefreshAsync()
     {
         await LoadDataAsync();
+    }
+
+    #endregion
+
+    #region Meeting Dialog Callbacks
+
+    /// <summary>
+    /// Called by the View when a meeting is saved from the dialog.
+    /// </summary>
+    public void OnMeetingSaved(MeetingDetail meeting)
+    {
+        Log($"[CircleViewModel] Meeting saved: {meeting.Title}");
+        
+        // Update main meetings collection
+        var existing = Meetings.FirstOrDefault(m => m.Id == meeting.Id);
+        if (existing == null)
+        {
+            Meetings.Add(meeting);
+            Log("[CircleViewModel] Added new meeting to Meetings collection");
+        }
+        else
+        {
+            var index = Meetings.IndexOf(existing);
+            Meetings[index] = meeting;
+            Log("[CircleViewModel] Updated existing meeting in Meetings collection");
+        }
+        
+        // Update filtered meetings if visible
+        var existingFiltered = FilteredMeetings.FirstOrDefault(m => m.Id == meeting.Id);
+        if (existingFiltered == null)
+        {
+            // Check if this meeting should be in filtered view based on selected member
+            if (SelectedTeamMember == null || 
+                meeting.Attendees?.Any(a => a.TeamMemberId == SelectedTeamMember.Id) == true)
+            {
+                FilteredMeetings.Add(meeting);
+            }
+        }
+        else
+        {
+            var index = FilteredMeetings.IndexOf(existingFiltered);
+            FilteredMeetings[index] = meeting;
+        }
+        
+        // Refresh calendar views to reflect changes
+        RefreshWeekDays();
+        RefreshCalendarDays();
+    }
+
+    /// <summary>
+    /// Called by the View when a meeting is deleted from the dialog.
+    /// </summary>
+    public void OnMeetingDeleted(Guid meetingId)
+    {
+        Log($"[CircleViewModel] Meeting deleted: {meetingId}");
+        
+        var existing = Meetings.FirstOrDefault(m => m.Id == meetingId);
+        if (existing != null)
+        {
+            Meetings.Remove(existing);
+        }
+        
+        var existingFiltered = FilteredMeetings.FirstOrDefault(m => m.Id == meetingId);
+        if (existingFiltered != null)
+        {
+            FilteredMeetings.Remove(existingFiltered);
+        }
+        
+        // Refresh calendar views
+        RefreshWeekDays();
+        RefreshCalendarDays();
     }
 
     #endregion
@@ -1221,7 +1383,7 @@ public partial class CircleViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async System.Threading.Tasks.Task DeleteGoalAsync(GoalDetail? goal)
+    private async Task DeleteGoalAsync(GoalDetail? goal)
     {
         if (goal == null) return;
         // TODO: Confirm and delete goal
@@ -1258,90 +1420,6 @@ public partial class CircleViewModel : ViewModelBase
         {
             Log($"Error creating task from goal: {ex.Message}");
         }
-    }
-
-    private void LoadSampleGoals()
-    {
-        _allGoals.Clear();
-        var members = _allTeamMembers.ToList();
-        
-        _allGoals.Add(new GoalDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = "Increase Customer Satisfaction Score",
-            Description = "Improve NPS from 42 to 55 through targeted initiatives focusing on response time and product quality.",
-            Status = "on_track",
-            ProgressPercent = 75,
-            StartDate = DateTime.Today.AddMonths(-2),
-            DueDate = DateTime.Today.AddMonths(1),
-            OwnerName = members.FirstOrDefault()?.FullName ?? "Team"
-        });
-        
-        _allGoals.Add(new GoalDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = "Launch Mobile App v2.0",
-            Description = "Complete redesign and launch of mobile application with new features including offline mode and push notifications.",
-            Status = "at_risk",
-            ProgressPercent = 45,
-            StartDate = DateTime.Today.AddMonths(-3),
-            DueDate = DateTime.Today.AddDays(21),
-            OwnerName = members.Skip(1).FirstOrDefault()?.FullName ?? "Engineering"
-        });
-        
-        _allGoals.Add(new GoalDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = "Reduce Support Ticket Volume",
-            Description = "Decrease monthly support tickets by 30% through improved documentation and self-service tools.",
-            Status = "on_track",
-            ProgressPercent = 88,
-            StartDate = DateTime.Today.AddMonths(-4),
-            DueDate = DateTime.Today.AddDays(14),
-            OwnerName = members.Skip(2).FirstOrDefault()?.FullName ?? "Support"
-        });
-        
-        _allGoals.Add(new GoalDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = "Implement CI/CD Pipeline",
-            Description = "Establish automated testing and deployment pipeline to reduce release cycle time from 2 weeks to 2 days.",
-            Status = "off_track",
-            ProgressPercent = 25,
-            StartDate = DateTime.Today.AddMonths(-2),
-            DueDate = DateTime.Today.AddDays(-7), // Overdue
-            OwnerName = members.Skip(3).FirstOrDefault()?.FullName ?? "DevOps"
-        });
-        
-        _allGoals.Add(new GoalDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = "Expand to European Market",
-            Description = "Complete GDPR compliance and launch marketing campaigns in UK, Germany, and France.",
-            Status = "on_track",
-            ProgressPercent = 60,
-            StartDate = DateTime.Today.AddMonths(-1),
-            DueDate = DateTime.Today.AddMonths(3),
-            OwnerName = members.Skip(4).FirstOrDefault()?.FullName ?? "Marketing"
-        });
-        
-        _allGoals.Add(new GoalDetail
-        {
-            Id = Guid.NewGuid(),
-            Title = "Team Training Program",
-            Description = "Complete leadership training for all senior team members and technical certifications for engineers.",
-            Status = "at_risk",
-            ProgressPercent = 35,
-            StartDate = DateTime.Today.AddMonths(-2),
-            DueDate = DateTime.Today.AddMonths(1),
-            OwnerName = "HR"
-        });
-
-        ApplyGoalFilters();
-        OnPropertyChanged(nameof(OnTrackGoalsCount));
-        OnPropertyChanged(nameof(AtRiskGoalsCount));
-        OnPropertyChanged(nameof(OffTrackGoalsCount));
-        OnPropertyChanged(nameof(TotalGoalsCount));
     }
 
     #endregion
@@ -1433,95 +1511,6 @@ public partial class CircleViewModel : ViewModelBase
     {
         IsFeedbackDetailOpen = false;
         SelectedFeedback = null;
-    }
-
-    private void LoadSampleFeedback()
-    {
-        _allFeedback.Clear();
-        var members = _allTeamMembers.ToList();
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.FirstOrDefault()?.FullName ?? "Alex Martinez",
-            FeedbackType = "praise",
-            Content = "Outstanding presentation at the quarterly review! Your ability to communicate complex technical concepts to non-technical stakeholders was impressive. The visualizations really helped everyone understand the project status.",
-            Context = "Q4 Quarterly Review",
-            CreatedAt = DateTime.UtcNow.AddDays(-1)
-        });
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(1).FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.Skip(1).FirstOrDefault()?.FullName ?? "Sarah Chen",
-            FeedbackType = "constructive",
-            Content = "The code review feedback could be more specific. Instead of 'this needs work', try pointing to specific lines and suggesting concrete improvements. This will help junior developers learn faster.",
-            Context = "Code Review Process",
-            CreatedAt = DateTime.UtcNow.AddDays(-3)
-        });
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.Skip(2).FirstOrDefault()?.FullName ?? "Michael Johnson",
-            FeedbackType = "coaching",
-            Content = "Great progress on stakeholder management! For next level growth, focus on anticipating questions before meetings and preparing concise data-backed answers. Consider shadowing a senior PM for a week.",
-            Context = "Career Development",
-            CreatedAt = DateTime.UtcNow.AddDays(-5)
-        });
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(3).FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.Skip(3).FirstOrDefault()?.FullName ?? "Emily Davis",
-            FeedbackType = "praise",
-            Content = "Thank you for mentoring the new team members! Your patience and clear explanations have helped them ramp up 50% faster than expected. This is exactly the culture we want to build.",
-            Context = "New Hire Onboarding",
-            CreatedAt = DateTime.UtcNow.AddDays(-7)
-        });
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.FirstOrDefault()?.FullName ?? "Alex Martinez",
-            FeedbackType = "constructive",
-            Content = "Meeting facilitation could be improved. Try using timeboxing for each agenda item and designating someone to take notes. This will help keep discussions focused and ensure action items are captured.",
-            Context = "Team Meetings",
-            CreatedAt = DateTime.UtcNow.AddDays(-10)
-        });
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(4).FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.Skip(4).FirstOrDefault()?.FullName ?? "David Kim",
-            FeedbackType = "praise",
-            Content = "Exceptional debugging skills demonstrated on the production incident last week. You remained calm under pressure and methodically isolated the issue. The post-mortem documentation was thorough and actionable.",
-            Context = "Production Incident Response",
-            CreatedAt = DateTime.UtcNow.AddDays(-14)
-        });
-        
-        _allFeedback.Add(new FeedbackDetail
-        {
-            Id = Guid.NewGuid(),
-            TeamMemberId = members.Skip(2).FirstOrDefault()?.Id ?? Guid.Empty,
-            RecipientName = members.Skip(2).FirstOrDefault()?.FullName ?? "Michael Johnson",
-            FeedbackType = "coaching",
-            Content = "To develop your technical leadership, consider leading a tech talk on your recent architecture decisions. Also, try writing RFC documents for major changes - this builds trust and creates alignment.",
-            Context = "Technical Leadership",
-            CreatedAt = DateTime.UtcNow.AddDays(-21)
-        });
-
-        ApplyFeedbackFilters();
-        OnPropertyChanged(nameof(PraiseFeedbackCount));
-        OnPropertyChanged(nameof(ConstructiveFeedbackCount));
-        OnPropertyChanged(nameof(CoachingFeedbackCount));
-        OnPropertyChanged(nameof(TotalFeedbackCount));
     }
 
     #endregion

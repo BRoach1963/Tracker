@@ -360,8 +360,8 @@ public partial class BriefingViewModel : ViewModelBase
     [RelayCommand]
     private void AddMeeting()
     {
-        // TODO: Navigate to schedule meeting view or show dialog
-        System.Diagnostics.Debug.WriteLine("Add Meeting clicked");
+        Log("[BriefingViewModel] AddMeeting command - requesting dialog");
+        CreateMeetingDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -672,6 +672,51 @@ public partial class BriefingViewModel : ViewModelBase
         
         return 3; // Everything else
     }
+
+    #region Dialog Events
+
+    /// <summary>
+    /// Event raised when the user wants to create a new meeting.
+    /// The View subscribes to this and shows the dialog using AppDialogService.
+    /// </summary>
+    public event EventHandler? CreateMeetingDialogRequested;
+
+    /// <summary>
+    /// Called by the View when a meeting is saved from the dialog.
+    /// </summary>
+    public void OnMeetingSaved(MeetingDetail meeting)
+    {
+        Log($"[BriefingViewModel] Meeting saved: {meeting.Title}");
+        
+        // Add to the meetings collection if it's scheduled for today/this week
+        var existing = UpcomingMeetings.FirstOrDefault(m => m.Id == meeting.Id);
+        if (existing == null)
+        {
+            // Check if it belongs in the current view
+            if (meeting.ScheduledAtLocal.HasValue)
+            {
+                var scheduledDate = meeting.ScheduledAtLocal.Value.Date;
+                var today = DateTime.Now.Date;
+                var endOfWeek = today.AddDays(7);
+                
+                if ((IsTodayScope && scheduledDate == today) || 
+                    (IsWeekScope && scheduledDate >= today && scheduledDate < endOfWeek))
+                {
+                    UpcomingMeetings.Add(meeting);
+                    Log($"[BriefingViewModel] Added new meeting to collection");
+                }
+            }
+        }
+        else
+        {
+            // Update existing meeting in place
+            var index = UpcomingMeetings.IndexOf(existing);
+            UpcomingMeetings[index] = meeting;
+            Log($"[BriefingViewModel] Updated existing meeting in collection");
+        }
+    }
+
+    #endregion
 }
 
 /// <summary>
