@@ -422,106 +422,322 @@ public class NotesService
 
     #endregion
 
+    #region Note Links Operations
+
+    /// <summary>
+    /// Loads links for a single note from note_links table.
+    /// </summary>
+    public async Task<List<NoteLink>> GetLinksForNoteAsync(Guid noteId)
+    {
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null) return new List<NoteLink>();
+
+        try
+        {
+            var result = await client.From<NoteLink>()
+                .Filter("note_id", Operator.Equals, noteId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Order("created_at", Ordering.Ascending)
+                .Get();
+
+            return result.Models ?? new List<NoteLink>();
+        }
+        catch (Exception ex)
+        {
+            Log($"GetLinksForNote ERROR: {ex.Message}");
+            return new List<NoteLink>();
+        }
+    }
+
+    /// <summary>
+    /// Loads links for multiple notes in one query.
+    /// </summary>
+    public async Task<Dictionary<Guid, List<NoteLink>>> GetLinksForNotesAsync(IEnumerable<Guid> noteIds)
+    {
+        var result = new Dictionary<Guid, List<NoteLink>>();
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null) return result;
+
+        var idList = noteIds.ToList();
+        if (idList.Count == 0) return result;
+
+        try
+        {
+            // Initialize empty lists for all note IDs
+            foreach (var id in idList)
+                result[id] = new List<NoteLink>();
+
+            var queryResult = await client.From<NoteLink>()
+                .Filter("note_id", Operator.In, idList.Select(id => id.ToString()).ToList())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Get();
+
+            foreach (var link in queryResult.Models ?? new List<NoteLink>())
+            {
+                if (result.ContainsKey(link.NoteId))
+                    result[link.NoteId].Add(link);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Log($"GetLinksForNotes ERROR: {ex.Message}");
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// Populates the Links collection on notes by loading from note_links table.
+    /// </summary>
+    public async Task PopulateLinksAsync(IEnumerable<Note> notes)
+    {
+        var notesList = notes.ToList();
+        if (notesList.Count == 0) return;
+
+        var linksMap = await GetLinksForNotesAsync(notesList.Select(n => n.Id));
+        foreach (var note in notesList)
+        {
+            note.Links = linksMap.TryGetValue(note.Id, out var links) ? links : new List<NoteLink>();
+        }
+    }
+
+    /// <summary>
+    /// Adds a link between a note and an entity.
+    /// </summary>
+    public async Task<NoteLink?> AddNoteLinkAsync(Guid noteId, string entityType, Guid entityId, string? entityTitle = null)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return null;
+        }
+
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+        if (session?.TeamMember == null)
+        {
+            LastError = "No team member session";
+            return null;
+        }
+
+        try
+        {
+            Log($"Adding link: note={noteId}, type={entityType}, entity={entityId}");
+
+            var link = new NoteLink
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = session.TeamMember.OrganizationId,
+                NoteId = noteId,
+                EntityType = entityType,
+                EntityId = entityId,
+                EntityTitleSnapshot = entityTitle,
+                CreatedByTeamMemberId = session.TeamMember.Id,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false,
+                SortOrder = 0
+            };
+
+            var result = await client.From<NoteLink>().Insert(link);
+            var created = result.Models?.FirstOrDefault();
+
+            if (created != null)
+                Log($"Link added: {created.Id}");
+
+            return created;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"AddNoteLink ERROR: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Removes a link (soft delete).
+    /// </summary>
+    public async Task<bool> RemoveNoteLinkAsync(Guid linkId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        try
+        {
+            Log($"Removing link: {linkId}");
+
+            // Get the existing link
+            var existingResult = await client.From<NoteLink>()
+                .Filter("id", Operator.Equals, linkId.ToString())
+                .Single();
+
+            if (existingResult == null)
+            {
+                LastError = "Link not found";
+                return false;
+            }
+
+            existingResult.IsDeleted = true;
+            existingResult.DeletedAt = DateTime.UtcNow;
+            existingResult.DeletedBy = session?.User?.Id;
+
+            await client.From<NoteLink>()
+                .Filter("id", Operator.Equals, linkId.ToString())
+                .Update(existingResult);
+
+            Log($"Link removed: {linkId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"RemoveNoteLink ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Removes a specific link by note + entity (soft delete).
+    /// </summary>
+    public async Task<bool> RemoveNoteLinkAsync(Guid noteId, string entityType, Guid entityId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        var session = AuthService.Instance.CurrentSession_ProCohere;
+
+        try
+        {
+            Log($"Removing link: note={noteId}, type={entityType}, entity={entityId}");
+
+            var existingResult = await client.From<NoteLink>()
+                .Filter("note_id", Operator.Equals, noteId.ToString())
+                .Filter("entity_type", Operator.Equals, entityType)
+                .Filter("entity_id", Operator.Equals, entityId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Single();
+
+            if (existingResult == null)
+            {
+                Log("Link not found - may already be deleted");
+                return true; // Idempotent - if it's gone, that's fine
+            }
+
+            existingResult.IsDeleted = true;
+            existingResult.DeletedAt = DateTime.UtcNow;
+            existingResult.DeletedBy = session?.User?.Id;
+
+            await client.From<NoteLink>()
+                .Filter("id", Operator.Equals, existingResult.Id.ToString())
+                .Update(existingResult);
+
+            Log($"Link removed");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"RemoveNoteLink ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets all notes linked to a specific entity via note_links table.
+    /// </summary>
+    public async Task<List<Note>> GetNotesForEntityViaLinksAsync(string entityType, Guid entityId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<Note>();
+        }
+
+        try
+        {
+            Log($"Loading notes linked to {entityType}: {entityId}");
+
+            // First get the note IDs from links
+            var linksResult = await client.From<NoteLink>()
+                .Filter("entity_type", Operator.Equals, entityType)
+                .Filter("entity_id", Operator.Equals, entityId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Get();
+
+            var noteIds = linksResult.Models?.Select(l => l.NoteId).Distinct().ToList() 
+                          ?? new List<Guid>();
+
+            if (noteIds.Count == 0)
+                return new List<Note>();
+
+            // Then get the actual notes
+            var notesResult = await client.From<Note>()
+                .Filter("id", Operator.In, noteIds.Select(id => id.ToString()).ToList())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            Log($"Notes for entity returned: {notesResult.Models?.Count ?? 0}");
+            return notesResult.Models ?? new List<Note>();
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetNotesForEntityViaLinks ERROR: {ex.Message}");
+            return new List<Note>();
+        }
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>
-    /// Gets linked entity info from a note using column-based links.
+    /// Gets linked entity info from a note's Links collection.
     /// Returns a list of all entities linked to this note.
-    /// Note: Display names are placeholders - would need additional queries to resolve.
     /// </summary>
     public List<LinkedEntityInfo> GetLinkedEntities(Note note)
     {
-        var links = new List<LinkedEntityInfo>();
-
-        if (note.LinkedTeamMemberId.HasValue)
+        return note.Links.Select(link => new LinkedEntityInfo
         {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.TeamMember,
-                EntityId = note.LinkedTeamMemberId.Value,
-                DisplayName = "Team Member"
-            });
-        }
-
-        if (note.LinkedMeetingId.HasValue)
-        {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.Meeting,
-                EntityId = note.LinkedMeetingId.Value,
-                DisplayName = "Meeting"
-            });
-        }
-
-        if (note.LinkedProjectId.HasValue)
-        {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.Project,
-                EntityId = note.LinkedProjectId.Value,
-                DisplayName = "Project"
-            });
-        }
-
-        if (note.LinkedGoalId.HasValue)
-        {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.Goal,
-                EntityId = note.LinkedGoalId.Value,
-                DisplayName = "Goal"
-            });
-        }
-
-        if (note.LinkedTaskId.HasValue)
-        {
-            links.Add(new LinkedEntityInfo
-            {
-                EntityType = LinkedEntityType.Task,
-                EntityId = note.LinkedTaskId.Value,
-                DisplayName = "Task"
-            });
-        }
-
-        return links;
+            EntityType = ParseEntityType(link.EntityType),
+            EntityId = link.EntityId,
+            DisplayName = link.EntityTitleSnapshot ?? link.EntityType
+        }).ToList();
     }
 
     /// <summary>
-    /// Sets a link on a note for the specified entity type.
+    /// Parses entity type string to enum.
     /// </summary>
-    public void SetNoteLink(Note note, LinkedEntityType entityType, Guid? entityId)
+    private static LinkedEntityType ParseEntityType(string entityType)
     {
-        switch (entityType)
+        return entityType.ToLowerInvariant() switch
         {
-            case LinkedEntityType.TeamMember:
-                note.LinkedTeamMemberId = entityId;
-                break;
-            case LinkedEntityType.Meeting:
-                note.LinkedMeetingId = entityId;
-                break;
-            case LinkedEntityType.Project:
-                note.LinkedProjectId = entityId;
-                break;
-            case LinkedEntityType.Goal:
-                note.LinkedGoalId = entityId;
-                break;
-            case LinkedEntityType.Task:
-                note.LinkedTaskId = entityId;
-                break;
-            // Metric and Target not supported - columns don't exist in DB
-        }
-    }
-
-    /// <summary>
-    /// Clears all entity links from a note.
-    /// </summary>
-    public void ClearNoteLinks(Note note)
-    {
-        note.LinkedTeamMemberId = null;
-        note.LinkedMeetingId = null;
-        note.LinkedProjectId = null;
-        note.LinkedGoalId = null;
-        note.LinkedTaskId = null;
+            "team_member" => LinkedEntityType.TeamMember,
+            "meeting" => LinkedEntityType.Meeting,
+            "project" => LinkedEntityType.Project,
+            "goal" => LinkedEntityType.Goal,
+            "task" => LinkedEntityType.Task,
+            "metric" => LinkedEntityType.Metric,
+            "target" => LinkedEntityType.Target,
+            _ => LinkedEntityType.None
+        };
     }
 
     #endregion

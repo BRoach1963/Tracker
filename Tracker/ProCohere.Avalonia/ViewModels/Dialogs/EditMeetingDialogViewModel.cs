@@ -661,8 +661,10 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     [RelayCommand]
     private void ToggleNoteTag(object? parameter)
     {
-        if (parameter is not Tuple<DialogMeetingNote, NoteTag> tuple) return;
-        var (note, tag) = tuple;
+        // TupleConverter returns Tuple<object?, object?> so we need to unbox the items
+        if (parameter is not Tuple<object?, object?> tuple) return;
+        if (tuple.Item1 is not DialogMeetingNote note) return;
+        if (tuple.Item2 is not NoteTag tag) return;
         
         var existingTag = note.Tags.FirstOrDefault(t => t.Id == tag.Id);
         if (existingTag != null)
@@ -753,9 +755,48 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     
     private bool CanSave() => !IsSaving && !string.IsNullOrWhiteSpace(Title) && ScheduledDateTime.HasValue;
     
-    [RelayCommand]
-    private void Cancel()
+    /// <summary>
+    /// Returns true if the user has entered any data in the form that would be lost on cancel.
+    /// Used for confirmation when closing during creation.
+    /// </summary>
+    public bool HasUnsavedChanges
     {
+        get
+        {
+            // For editing existing meetings, changes are less critical (data exists)
+            // Focus on creation flows
+            if (IsEditing) return false;
+            
+            // Check if any meaningful data has been entered
+            return !string.IsNullOrWhiteSpace(Title) ||
+                   !string.IsNullOrWhiteSpace(Location) ||
+                   !string.IsNullOrWhiteSpace(VideoLink) ||
+                   PrepItems.Count > 0 ||
+                   AgendaItems.Count > 0 ||
+                   MeetingNotes.Count > 0 ||
+                   SelectedAttendee != null ||
+                   SelectableAttendees.Any(a => a.IsSelected);
+        }
+    }
+    
+    [RelayCommand]
+    private async Task CancelAsync()
+    {
+        // Show confirmation if there's unsaved data during creation
+        if (HasUnsavedChanges && _dialogService != null)
+        {
+            var confirmed = await _dialogService.ShowConfirmationAsync(
+                "Discard Changes?",
+                "You have unsaved changes. Are you sure you want to close without saving?",
+                "Discard",
+                "Keep Editing");
+            
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+        
         Result = null;
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }

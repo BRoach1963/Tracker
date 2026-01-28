@@ -314,7 +314,7 @@
                 <ScrollViewer IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Tasks}}"
                               HorizontalScrollBarVisibility="Disabled" 
                               VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="0">
+                    <StackPanel Spacing="0" Margin="0,0,12,0">
                         
                         <!-- Task List Header -->
                         <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -415,7 +415,7 @@
                 <ScrollViewer IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeTab.Goals}}"
                               HorizontalScrollBarVisibility="Disabled" 
                               VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="12">
+                    <StackPanel Spacing="12" Margin="0,0,12,0">
                         
                         <!-- Goals Header -->
                         <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,4">
@@ -517,7 +517,7 @@
                     <ScrollViewer Grid.Row="1"
                                   HorizontalScrollBarVisibility="Disabled" 
                                   VerticalScrollBarVisibility="Auto">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="12" Margin="0,0,12,0">
                             
                             <!-- Received Feedback (shows FROM/sender) -->
                             <ItemsControl ItemsSource="{Binding ReceivedFeedback}"
@@ -713,7 +713,7 @@
                         <!-- ===== LIST VIEW ===== -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       IsVisible="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.List}}">
-                            <StackPanel Spacing="16">
+                            <StackPanel Spacing="16" Margin="0,0,12,0">
                                 <ItemsControl ItemsSource="{Binding GroupedMeetings}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -1020,24 +1020,18 @@
                                     <TextBlock Text="No description provided." FontSize="12" FontStyle="Italic"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                </StackPanel>
                                     
-                                    <!-- Actions - consistent with other flyouts -->
-                                    <StackPanel Margin="0,24,0,0" Spacing="8">
-                                        <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                                <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
-                                                          Width="14" Height="14"/>
-                                                <TextBlock Text="Edit Task"/>
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                                <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
-                                                          Width="14" Height="14" Foreground="#DC2626"/>
-                                                <TextBlock Text="Delete Task" Foreground="#DC2626"/>
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
+                                <!-- Actions - outside SelectedTask DataContext to access ViewModel commands -->
+                                <StackPanel Margin="0,24,0,0" Spacing="8">
+                                    <Button Classes="secondary-button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Command="{Binding EditTaskCommand}" CommandParameter="{Binding SelectedTask}">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                      Width="14" Height="14"/>
+                                            <TextBlock Text="Edit Task"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </StackPanel>
                         

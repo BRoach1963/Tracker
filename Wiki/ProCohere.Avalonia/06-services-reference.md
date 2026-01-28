@@ -26,6 +26,7 @@ Services follow the **Singleton pattern** and wrap Supabase client operations:
 | `TeamService` | TeamService.cs | ~285 | Team members, hierarchy |
 | `MeetingService` | MeetingService.cs | ~626 | Meeting CRUD, attendees |
 | `NotesService` | NotesService.cs | ~705 | Note CRUD, search, linking |
+| `ProjectService` | ProjectService.cs | ~430 | Project CRUD, members, links |
 | `MeetingAgendaItemService` | MeetingAgendaItemService.cs | - | Agenda items CRUD |
 | `MeetingPrepItemService` | MeetingPrepItemService.cs | - | Prep items CRUD |
 | `MeetingNoteService` | MeetingNoteService.cs | - | Meeting notes CRUD |
@@ -38,6 +39,14 @@ Services follow the **Singleton pattern** and wrap Supabase client operations:
 | `WindowsCredentialService` | WindowsCredentialService.cs | ~160 | DPAPI session storage |
 | `DialogService` | DialogService.cs | ~90 | Internal dialog service for EditMeetingDialog |
 | `IDialogService` | IDialogService.cs | ~111 | Interface for internal dialog operations |
+| `NotificationService` | NotificationService.cs | ~300 | Toast notifications (in-app & native) |
+| `ReminderDataService` | ReminderDataService.cs | ~652 | Reminder CRUD operations |
+| `ReminderSchedulerService` | ReminderSchedulerService.cs | ~420 | Background reminder scheduler |
+| `ToastActivationHandler` | ToastActivationHandler.cs | ~180 | Native toast button handlers (static) |
+| `ConfirmationService` | ConfirmationService.cs | - | Confirmation dialogs |
+| `SystemTrayService` | SystemTrayService.cs | - | System tray icon management |
+
+> **Note:** For detailed Notifications & Reminders documentation, see [13-notifications-reminders-reference](13-notifications-reminders-reference.md).
 
 ---
 
@@ -420,6 +429,65 @@ public static readonly string[] ValidAttendeeRoles =
 | `DeleteNoteAsync(noteId)` | Task\<bool\> | Soft delete |
 | `LinkNoteToEntityAsync(noteId, entityType, entityId)` | Task\<bool\> | Create link |
 | `UnlinkNoteFromEntityAsync(noteId, entityType, entityId)` | Task\<bool\> | Remove link |
+
+---
+
+## ProjectService
+
+**Purpose**: Project CRUD with members and entity links via RPCs.
+
+### Key Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `GetAllProjectsAsync()` | Task\<List\<Project\>\> | All visible projects |
+| `GetProjectByIdAsync(id)` | Task\<Project?\> | Single project with members/links |
+| `CreateProjectAsync(name, description, status, dueDate)` | Task\<Project?\> | Create via RPC |
+| `UpdateProjectAsync(id, name, description, status, dueDate)` | Task\<bool\> | Update via RPC |
+| `DeleteProjectAsync(id)` | Task\<bool\> | Soft delete via RPC |
+| `AddProjectMemberAsync(projectId, teamMemberId, role)` | Task\<bool\> | Add member via RPC |
+| `RemoveProjectMemberAsync(projectMemberId)` | Task\<bool\> | Remove member via RPC |
+| `AddProjectLinkAsync(projectId, entityType, entityId, titleSnapshot)` | Task\<bool\> | Link entity via RPC |
+| `RemoveProjectLinkAsync(projectLinkId)` | Task\<bool\> | Unlink entity via RPC |
+
+### RPC Functions Used
+
+| RPC | Purpose |
+|-----|---------|
+| `rpc_create_project` | Create with proper RLS context |
+| `rpc_update_project` | Update with ownership check |
+| `rpc_delete_project` | Soft delete |
+| `rpc_add_project_member` | Add membership |
+| `rpc_remove_project_member` | Remove membership |
+| `rpc_add_project_link` | Create polymorphic link |
+| `rpc_remove_project_link` | Remove link |
+
+### Example Usage
+
+```csharp
+// Create a project
+var project = await ProjectService.Instance.CreateProjectAsync(
+    "Q1 Initiatives",
+    "Key projects for Q1",
+    ProjectStatus.Active,
+    new DateTime(2026, 3, 31)
+);
+
+// Add a member
+await ProjectService.Instance.AddProjectMemberAsync(
+    project.Id,
+    teamMemberId,
+    ProjectMemberRole.Lead
+);
+
+// Link a goal
+await ProjectService.Instance.AddProjectLinkAsync(
+    project.Id,
+    ProjectLinkEntityType.Goal,
+    goalId,
+    "Increase customer retention"
+);
+```
 
 ---
 

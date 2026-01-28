@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
 using static Supabase.Postgrest.Constants;
 
+// Reminder integration - Phase 5
+
 namespace ProCohere.Avalonia.Services;
 
 /// <summary>
@@ -93,6 +95,46 @@ public class GoalsService : IGoalsService
         {
             LastError = ex.Message;
             Log($"GetMyGoals ERROR: {ex.Message}");
+            return new List<GoalDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Gets active goals not linked to any project.
+    /// Useful for linking existing free goals to a new project.
+    /// </summary>
+    public async Task<List<GoalDetail>> GetLinkableGoalsAsync(CancellationToken ct = default)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        var teamMember = AuthService.Instance.CurrentTeamMember;
+
+        if (client == null || teamMember == null)
+        {
+            LastError = "Not authenticated";
+            return new List<GoalDetail>();
+        }
+
+        try
+        {
+            Log("Loading linkable goals (unlinked, active)");
+
+            var result = await client.From<GoalDetail>()
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Filter("owner_id", Operator.Equals, teamMember.Id.ToString())
+                .Filter("status", Operator.Equals, "active")
+                .Filter("project_id", Operator.Is, "null")
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            var goals = result.Models ?? new List<GoalDetail>();
+            Log($"Linkable goals returned: {goals.Count}");
+            return goals;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetLinkableGoals ERROR: {ex.Message}");
             return new List<GoalDetail>();
         }
     }
@@ -380,6 +422,9 @@ public class GoalsService : IGoalsService
             if (created != null)
             {
                 Log($"Goal created: {created.Id}");
+                
+                // Create reminder for the goal if enabled
+                await CreateGoalReminderIfEnabledAsync(created);
             }
             return created;
         }
@@ -388,6 +433,58 @@ public class GoalsService : IGoalsService
             LastError = ex.Message;
             Log($"CreateGoal ERROR: {ex.Message}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a minimal goal with just a title.
+    /// Used for title-only bootstrapping during project creation.
+    /// </summary>
+    public async Task<GoalDetail?> CreateMinimalGoalAsync(string title, Guid? projectId = null, CancellationToken ct = default)
+    {
+        var goal = new GoalDetail
+        {
+            Title = title,
+            ProjectId = projectId,
+            GoalType = GoalType.Execution,
+            Status = "active"
+        };
+
+        return await CreateGoalAsync(goal, ct);
+    }
+
+    /// <summary>
+    /// Gets all goals linked to a specific project.
+    /// </summary>
+    public async Task<List<GoalDetail>> GetGoalsByProjectAsync(Guid projectId, CancellationToken ct = default)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<GoalDetail>();
+        }
+
+        try
+        {
+            Log($"Loading goals for project: {projectId}");
+            
+            var result = await client.From<GoalDetail>()
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Filter("project_id", Operator.Equals, projectId.ToString())
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            var goals = result.Models ?? new List<GoalDetail>();
+            Log($"Goals for project returned: {goals.Count}");
+            return goals;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetGoalsByProject ERROR: {ex.Message}");
+            return new List<GoalDetail>();
         }
     }
 
@@ -461,6 +558,9 @@ public class GoalsService : IGoalsService
             var result = await client.From<GoalDetail>()
                 .Filter("id", Operator.Equals, goalId.ToString())
                 .Update(goal);
+            
+            // Cancel any pending reminders for this goal
+            await CancelGoalRemindersAsync(goalId);
 
             Log($"Goal deleted: {goalId}");
             return true;
@@ -469,6 +569,50 @@ public class GoalsService : IGoalsService
         {
             LastError = ex.Message;
             Log($"DeleteGoal ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Links an existing goal to a project by setting its project_id.
+    /// </summary>
+    public async Task<bool> LinkGoalToProjectAsync(Guid goalId, Guid projectId, CancellationToken ct = default)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Linking goal {goalId} to project {projectId}");
+
+            // Get the goal first
+            var goal = await GetGoalByIdAsync(goalId, ct);
+            if (goal == null)
+            {
+                LastError = "Goal not found";
+                return false;
+            }
+
+            // Update project_id
+            goal.ProjectId = projectId;
+            goal.UpdatedAt = DateTime.UtcNow;
+
+            await client.From<GoalDetail>()
+                .Filter("id", Operator.Equals, goalId.ToString())
+                .Update(goal);
+
+            Log($"Goal {goalId} linked to project {projectId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"LinkGoalToProject ERROR: {ex.Message}");
             return false;
         }
     }
@@ -760,6 +904,103 @@ public class GoalsService : IGoalsService
             LastError = ex.Message;
             Log($"GetGoalsForMetric ERROR: {ex.Message}");
             return new List<GoalDetail>();
+        }
+    }
+
+    #endregion
+
+    #region Reminder Integration
+
+    /// <summary>
+    /// Creates a reminder for the goal if reminders are enabled in settings.
+    /// </summary>
+    private async Task CreateGoalReminderIfEnabledAsync(GoalDetail? goal)
+    {
+        if (goal == null || goal.DueDate == null) return;
+        
+        try
+        {
+            var settings = ReminderSchedulerService.Instance.Settings;
+            if (!settings.EnableReminders || !settings.ShowGoalReminders)
+            {
+                Log("Goal reminders disabled in settings");
+                return;
+            }
+            
+            // Check if reminder already exists
+            var exists = await ReminderDataService.Instance.ReminderExistsAsync(
+                "goal", goal.Id, ReminderType.Goal);
+            
+            if (exists)
+            {
+                Log($"Reminder already exists for goal {goal.Id}");
+                return;
+            }
+            
+            var reminder = await ReminderDataService.Instance.CreateGoalReminderAsync(
+                goal, settings.GoalReminderDays);
+            
+            if (reminder != null)
+            {
+                Log($"Created reminder for goal {goal.Id}: remind at {reminder.RemindAt:u}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the goal operation if reminder creation fails
+            Log($"Failed to create goal reminder: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cancels any pending reminders for a goal.
+    /// </summary>
+    private async Task CancelGoalRemindersAsync(Guid goalId)
+    {
+        try
+        {
+            var cancelled = await ReminderDataService.Instance.CancelRemindersForEntityAsync("goal", goalId);
+            if (cancelled > 0)
+            {
+                Log($"Cancelled {cancelled} reminder(s) for deleted goal {goalId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the delete operation if reminder cancellation fails
+            Log($"Failed to cancel goal reminders: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates the reminder for a goal if the due date changed.
+    /// Cancels existing reminder and creates a new one with updated time.
+    /// </summary>
+    public async Task UpdateGoalReminderAsync(GoalDetail goal)
+    {
+        try
+        {
+            var settings = ReminderSchedulerService.Instance.Settings;
+            if (!settings.EnableReminders || !settings.ShowGoalReminders)
+            {
+                return;
+            }
+            
+            // Cancel existing reminder
+            await ReminderDataService.Instance.CancelRemindersForEntityAsync("goal", goal.Id);
+            
+            // Create new reminder with updated time (if goal still has a due date)
+            if (goal.DueDate != null)
+            {
+                await ReminderDataService.Instance.CreateGoalReminderAsync(
+                    goal, settings.GoalReminderDays);
+            }
+            
+            Log($"Updated reminder for goal {goal.Id}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Failed to update goal reminder: {ex.Message}");
         }
     }
 

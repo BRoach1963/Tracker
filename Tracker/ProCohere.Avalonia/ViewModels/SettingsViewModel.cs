@@ -182,6 +182,64 @@ public partial class SettingsViewModel : ViewModelBase
 
     #endregion
 
+    #region Observable Properties - Reminder Settings
+
+    /// <summary>
+    /// Master on/off switch for all reminders.
+    /// </summary>
+    [ObservableProperty]
+    private bool _enableReminders = true;
+
+    /// <summary>
+    /// Show reminders for upcoming meetings.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showMeetingReminders = true;
+
+    /// <summary>
+    /// Minutes before a meeting to show the reminder.
+    /// </summary>
+    [ObservableProperty]
+    private int _meetingReminderMinutes = 15;
+
+    /// <summary>
+    /// Show reminders for task deadlines.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showTaskReminders = true;
+
+    /// <summary>
+    /// Days before a task deadline to show the reminder.
+    /// </summary>
+    [ObservableProperty]
+    private int _taskReminderDays = 1;
+
+    /// <summary>
+    /// Show reminders for goal deadlines.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showGoalReminders = true;
+
+    /// <summary>
+    /// Days before a goal deadline to show the reminder.
+    /// </summary>
+    [ObservableProperty]
+    private int _goalReminderDays = 7;
+
+    /// <summary>
+    /// Default snooze duration in minutes.
+    /// </summary>
+    [ObservableProperty]
+    private int _snoozeDurationMinutes = 15;
+
+    /// <summary>
+    /// Play a sound with notifications.
+    /// </summary>
+    [ObservableProperty]
+    private bool _playReminderSound = true;
+
+    #endregion
+
     #region Events
 
     /// <summary>
@@ -305,6 +363,18 @@ public partial class SettingsViewModel : ViewModelBase
         // Check if auto-login is enabled (has stored session)
         StaySignedIn = new WindowsCredentialService().HasStoredSession();
         
+        // Load reminder settings from scheduler
+        var reminderSettings = ReminderSchedulerService.Instance.Settings;
+        EnableReminders = reminderSettings.EnableReminders;
+        ShowMeetingReminders = reminderSettings.ShowMeetingReminders;
+        MeetingReminderMinutes = reminderSettings.MeetingReminderMinutes;
+        ShowTaskReminders = reminderSettings.ShowTaskReminders;
+        TaskReminderDays = reminderSettings.TaskReminderDays;
+        ShowGoalReminders = reminderSettings.ShowGoalReminders;
+        GoalReminderDays = reminderSettings.GoalReminderDays;
+        SnoozeDurationMinutes = reminderSettings.DefaultSnoozeDurationMinutes;
+        PlayReminderSound = reminderSettings.PlaySound;
+        
         // Get version
         var assembly = System.Reflection.Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version;
@@ -338,6 +408,73 @@ public partial class SettingsViewModel : ViewModelBase
             credentialService.ClearSession();
         }
         // Note: Credentials are stored on next login if checkbox is checked
+    }
+
+    #endregion
+
+    #region Reminder Settings Changes
+
+    partial void OnEnableRemindersChanged(bool value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnShowMeetingRemindersChanged(bool value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnMeetingReminderMinutesChanged(int value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnShowTaskRemindersChanged(bool value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnTaskReminderDaysChanged(int value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnShowGoalRemindersChanged(bool value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnGoalReminderDaysChanged(int value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnSnoozeDurationMinutesChanged(int value)
+    {
+        SaveReminderSettings();
+    }
+
+    partial void OnPlayReminderSoundChanged(bool value)
+    {
+        SaveReminderSettings();
+    }
+
+    private void SaveReminderSettings()
+    {
+        var settings = new Models.ReminderSettings
+        {
+            EnableReminders = EnableReminders,
+            ShowMeetingReminders = ShowMeetingReminders,
+            MeetingReminderMinutes = MeetingReminderMinutes,
+            ShowTaskReminders = ShowTaskReminders,
+            TaskReminderDays = TaskReminderDays,
+            ShowGoalReminders = ShowGoalReminders,
+            GoalReminderDays = GoalReminderDays,
+            DefaultSnoozeDurationMinutes = SnoozeDurationMinutes,
+            PlaySound = PlayReminderSound
+        };
+
+        ReminderSchedulerService.Instance.ReloadSettings(settings);
     }
 
     #endregion

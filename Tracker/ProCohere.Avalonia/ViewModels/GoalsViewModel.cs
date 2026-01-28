@@ -241,6 +241,141 @@ public partial class GoalsViewModel : ViewModelBase
         SelectedGoal = null;
     }
 
+    #endregion
+
+    #region Project Linking
+    
+    /// <summary>
+    /// Event raised when the project selector popover should be shown for linking.
+    /// </summary>
+    public event EventHandler? ProjectSelectorRequested;
+    
+    /// <summary>
+    /// Whether the project selector popover is open.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProjectSelectorOpen;
+    
+    /// <summary>
+    /// Requests the View to show the project selector popover.
+    /// </summary>
+    [RelayCommand]
+    private void ShowProjectSelector()
+    {
+        IsProjectSelectorOpen = true;
+        ProjectSelectorRequested?.Invoke(this, EventArgs.Empty);
+    }
+    
+    /// <summary>
+    /// Hides the project selector popover.
+    /// </summary>
+    public void HideProjectSelector()
+    {
+        IsProjectSelectorOpen = false;
+    }
+    
+    /// <summary>
+    /// Links the selected goal to a project.
+    /// Called by the View when a project is selected in the popover.
+    /// </summary>
+    public async Task LinkGoalToProjectAsync(Guid projectId, string projectTitle)
+    {
+        if (SelectedGoal == null) return;
+        
+        try
+        {
+            IsLoading = true;
+            
+            // If already linked to a different project, remove old link first
+            if (SelectedGoal.ProjectId.HasValue && SelectedGoal.ProjectId != projectId)
+            {
+                await ProjectService.Instance.RemoveProjectLinkAsync(
+                    SelectedGoal.ProjectId.Value,
+                    "goal",
+                    SelectedGoal.Id);
+            }
+            
+            // Add new link
+            var link = await ProjectService.Instance.AddProjectLinkAsync(
+                projectId,
+                "goal",
+                SelectedGoal.Id,
+                SelectedGoal.Title);
+            
+            if (link != null)
+            {
+                // Update local state
+                SelectedGoal.ProjectId = projectId;
+                SelectedGoal.ProjectTitle = projectTitle;
+                
+                // Notify UI
+                OnPropertyChanged(nameof(SelectedGoal));
+                
+                NotificationService.Instance.ShowSuccess(
+                    "Goal Linked", 
+                    $"'{SelectedGoal.Title}' linked to '{projectTitle}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Link Failed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            IsProjectSelectorOpen = false;
+        }
+    }
+    
+    /// <summary>
+    /// Unlinks the selected goal from its project.
+    /// </summary>
+    [RelayCommand]
+    private async Task UnlinkGoalFromProject()
+    {
+        if (SelectedGoal?.ProjectId == null) return;
+        
+        try
+        {
+            IsLoading = true;
+            
+            var success = await ProjectService.Instance.RemoveProjectLinkAsync(
+                SelectedGoal.ProjectId.Value,
+                "goal",
+                SelectedGoal.Id);
+            
+            if (success)
+            {
+                var projectTitle = SelectedGoal.ProjectTitle;
+                
+                // Update local state
+                SelectedGoal.ProjectId = null;
+                SelectedGoal.ProjectTitle = null;
+                
+                // Notify UI
+                OnPropertyChanged(nameof(SelectedGoal));
+                
+                NotificationService.Instance.ShowInfo(
+                    "Goal Unlinked", 
+                    $"Removed from '{projectTitle}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Unlink Failed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    #endregion
+
+    #region Create/Edit Goal
+
     [RelayCommand]
     private void CreateNewGoal()
     {

@@ -25,6 +25,9 @@ public partial class App : Application
         
         // Set DataContext for tray icon bindings
         DataContext = TrayViewModel;
+        
+        // Initialize toast activation handler (must be early, before any toasts)
+        ToastActivationHandler.Initialize();
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -87,7 +90,7 @@ public partial class App : Application
             }
             
             // Show confirmation dialog warning about notifications being silenced
-            var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            var confirmed = await ConfirmationService.Instance.ShowExitConfirmationAsync(
                 "Exit ProCohere?",
                 "If you exit the app, notifications and reminders will be silenced until you open the app again.\n\nAre you sure you want to exit?",
                 "Exit",
@@ -95,6 +98,9 @@ public partial class App : Application
             
             if (!confirmed)
                 return;
+            
+            // Stop the reminder scheduler
+            ReminderSchedulerService.Instance.Stop();
             
             // Close all toasts
             NotificationService.Instance.CloseAllToasts();
@@ -139,13 +145,41 @@ public partial class App : Application
     {
         try
         {
-            // Try auto-login with stored credentials
-            var autoLoginSuccess = await AuthService.Instance.TryAutoLoginAsync();
+            System.Diagnostics.Debug.WriteLine("[App] Starting InitializeAndNavigateAsync...");
+            
+            // Try auto-login with stored credentials (with 10 second timeout)
+            System.Diagnostics.Debug.WriteLine("[App] Calling TryAutoLoginAsync...");
+            bool autoLoginSuccess;
+            try
+            {
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var loginTask = AuthService.Instance.TryAutoLoginAsync();
+                var completedTask = await Task.WhenAny(loginTask, Task.Delay(10000, cts.Token));
+                
+                if (completedTask == loginTask)
+                {
+                    autoLoginSuccess = await loginTask;
+                    cts.Cancel(); // Cancel the delay task
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[App] TryAutoLoginAsync timed out after 10 seconds");
+                    autoLoginSuccess = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[App] TryAutoLoginAsync failed: {ex.Message}");
+                autoLoginSuccess = false;
+            }
+            System.Diagnostics.Debug.WriteLine($"[App] TryAutoLoginAsync returned: {autoLoginSuccess}");
 
             if (autoLoginSuccess)
             {
                 // Get the full user session (includes access check, team member, and role)
+                System.Diagnostics.Debug.WriteLine("[App] Calling GetUserSessionAsync...");
                 var session = await AuthService.Instance.GetUserSessionAsync("procohere");
+                System.Diagnostics.Debug.WriteLine($"[App] GetUserSessionAsync returned, HasAccess: {session.HasAccess}");
                 
                 if (!session.HasAccess)
                 {
@@ -157,6 +191,7 @@ public partial class App : Application
                 }
                 
                 // Auto-login succeeded and has product access - go to main window
+                System.Diagnostics.Debug.WriteLine("[App] Creating MainWindow...");
                 var mainWindow = new MainWindow
                 {
                     DataContext = new MainWindowViewModel()
@@ -166,8 +201,12 @@ public partial class App : Application
                 // Initialize confirmation service with main window
                 ConfirmationService.Instance.Initialize(mainWindow);
                 
+                // Start the reminder scheduler
+                ReminderSchedulerService.Instance.Start();
+                
                 mainWindow.Show();
                 splashWindow.Close();
+                System.Diagnostics.Debug.WriteLine("[App] MainWindow shown, splash closed");
                 
                 // Show welcome toast
                 NotificationService.Instance.ShowSuccess("Welcome Back", "You have been signed in successfully.");
@@ -175,13 +214,15 @@ public partial class App : Application
             else
             {
                 // No stored credentials or auto-login failed - show login window
+                System.Diagnostics.Debug.WriteLine("[App] No auto-login, showing login window...");
                 ShowLoginWindow(desktop, splashWindow);
             }
         }
         catch (Exception ex)
         {
             // Log error and fall back to login screen
-            System.Diagnostics.Debug.WriteLine($"Auto-login failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[App] Auto-login failed with exception: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[App] Stack trace: {ex.StackTrace}");
             ShowLoginWindow(desktop, splashWindow);
         }
     }
@@ -210,6 +251,9 @@ public partial class App : Application
             
             // Initialize confirmation service with main window
             ConfirmationService.Instance.Initialize(mainWindow);
+            
+            // Start the reminder scheduler
+            ReminderSchedulerService.Instance.Start();
             
             mainWindow.Show();
             loginWindow.Close();

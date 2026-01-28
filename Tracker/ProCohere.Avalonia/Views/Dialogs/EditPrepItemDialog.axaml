@@ -12,17 +12,33 @@
         MinWidth="400" MinHeight="450"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
-        Background="{DynamicResource BrushBackground}">
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
     
-    <Grid RowDefinitions="Auto,*,Auto">
-        
-        <!-- Header -->
-        <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" Padding="20,16">
-            <StackPanel>
-                <TextBlock Text="Edit Prep Item" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                <TextBlock Text="Configure your preparation for this meeting" FontSize="12" Foreground="#FFFFFFAA"/>
-            </StackPanel>
-        </Border>
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Prep/checklist icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4V14Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Edit Prep Item" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Configure your preparation for this meeting" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         
         <!-- Content -->
         <ScrollViewer Grid.Row="1" 
@@ -196,17 +212,52 @@
                 </StackPanel>
                 
             </StackPanel>
-        </ScrollViewer>
-        
-        <!-- Footer -->
-        <Border Grid.Row="2" Background="{DynamicResource BrushSurface}" 
-                BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,1,0,0"
-                Padding="20,12">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <Button Content="Cancel" Command="{Binding CancelCommand}"/>
-                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Command="{Binding SaveCommand}"/>
-            </Grid>
-        </Border>
-        
-    </Grid>
+            </ScrollViewer>
+            
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Cancel" 
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="BorderBrush" Value="White"/>
+                            </Style>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Save Changes" 
+                            Command="{Binding SaveCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+                            </Style>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+        </Grid>
+    </Border>
 </Window>

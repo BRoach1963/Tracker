@@ -14,19 +14,30 @@
         CanResize="False"
         ShowInTaskbar="False"
         SystemDecorations="BorderOnly"
-        ExtendClientAreaToDecorationsHint="True"
-        Background="{DynamicResource SystemChromeMediumLowColor}">
-
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Header -->
-        <Border Grid.Row="0" 
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="20,16">
-            <TextBlock Text="{Binding DialogTitle}"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-        </Border>
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Analytics/chart icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DialogTitle}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Configure your measurement" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         
         <!-- Content -->
         <ScrollViewer Grid.Row="1" 
@@ -194,27 +205,66 @@
             </StackPanel>
         </ScrollViewer>
         
-        <!-- Footer -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="20,12">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                <Button Grid.Column="0"
-                        Content="Delete"
-                        Foreground="#E74C3C"
-                        IsVisible="{Binding IsDeleteVisible}"
-                        Command="{Binding DeleteCommand}" />
-                <Button Grid.Column="2"
-                        Content="Cancel"
-                        MinWidth="80"
-                        Margin="0,0,8,0"
-                        Command="{Binding CancelCommand}" />
-                <Button Grid.Column="3"
-                        Content="{Binding SaveButtonText}"
-                        Classes="accent"
-                        MinWidth="100"
-                        Command="{Binding SaveCommand}" />
-            </Grid>
-        </Border>
-    </Grid>
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Button Grid.Column="0"
+                            Content="Delete"
+                            Background="Transparent"
+                            Foreground="#E74C3C"
+                            BorderBrush="#E74C3C"
+                            BorderThickness="1"
+                            IsVisible="{Binding IsDeleteVisible}"
+                            Command="{Binding DeleteCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="#E74C3C"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            MinWidth="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="3"
+                            Content="{Binding SaveButtonText}"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            BorderThickness="1"
+                            MinWidth="100"
+                            Command="{Binding SaveCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

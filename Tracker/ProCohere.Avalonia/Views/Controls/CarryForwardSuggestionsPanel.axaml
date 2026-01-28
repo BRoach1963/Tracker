@@ -115,12 +115,14 @@
                                                 Padding="10,4"
                                                 Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).AddToMeetingCommand}"
                                                 CommandParameter="{Binding}" />
-                                        <Button Content="Skip This Time"
+                                        <Button Classes="cancel-btn"
+                                                Content="Skip This Time"
                                                 FontSize="11"
                                                 Padding="10,4"
                                                 Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).SkipCommand}"
                                                 CommandParameter="{Binding}" />
-                                        <Button Content="Mark Resolved"
+                                        <Button Classes="cancel-btn"
+                                                Content="Mark Resolved"
                                                 FontSize="11"
                                                 Padding="10,4"
                                                 Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).MarkResolvedCommand}"

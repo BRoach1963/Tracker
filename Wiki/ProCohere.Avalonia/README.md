@@ -20,6 +20,9 @@ ProCohere.Avalonia is the **Avalonia UI desktop application** - the user-facing 
 | 08 | [views-reference](08-views-reference.md) | All Views, dialogs, and controls |
 | 09 | [converters-reference](09-converters-reference.md) | Value converters for XAML bindings |
 | 10 | [theming-reference](10-theming-reference.md) | Light/Dark themes, color system |
+| 11 | [timezone-and-localization](11-timezone-and-localization.md) | Timezone handling, UTC storage |
+| 12 | [authentication-and-licensing](12-authentication-and-licensing.md) | Auth details, license checking |
+| 13 | [notifications-reminders-reference](13-notifications-reminders-reference.md) | Toast system, reminders, scheduling |
 
 ---
 
@@ -44,6 +47,10 @@ ProCohere.Avalonia is the **Avalonia UI desktop application** - the user-facing 
 1. [10-theming-reference](10-theming-reference.md) - Theme system
 2. [09-converters-reference](09-converters-reference.md) - Value converters
 3. [08-views-reference](08-views-reference.md) - View structure
+
+### Notifications & Reminders
+1. [13-notifications-reminders-reference](13-notifications-reminders-reference.md) - Complete guide
+2. [06-services-reference](06-services-reference.md) - Service patterns
 
 ---
 

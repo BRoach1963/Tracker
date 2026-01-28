@@ -13,129 +13,182 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="Full"
-        ExtendClientAreaToDecorationsHint="False">
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
 
-    <Window.Styles>
-        <Style Selector="Window">
-            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
-        </Style>
-    </Window.Styles>
-
-    <Grid RowDefinitions="Auto,*,Auto" Margin="0">
-        <!-- Header -->
-        <Border Grid.Row="0" 
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="24,16">
-            <TextBlock x:Name="DialogTitle"
-                       Text="{Binding DialogTitleText}"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-        </Border>
-        
-        <!-- Form Content -->
-        <ScrollViewer Grid.Row="1" Padding="24,16">
-            <StackPanel Spacing="16">
-                <!-- Task Title -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Title *" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBox x:Name="TitleTextBox"
-                             Text="{Binding Title}"
-                             Watermark="What needs to be done?"
-                             FontSize="14"/>
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource BrushPrimary}"
+                    Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Task icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M19,3H5C3.89,3 3,3.89 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.89 20.1,3 19,3M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8L10,17Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DialogTitleText}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Create and track your work"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
                 </StackPanel>
-                
-                <!-- Description -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Description" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBox x:Name="DescriptionTextBox"
-                             Text="{Binding Description}"
-                             Watermark="Add more details (optional)"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             MinHeight="80"
-                             MaxHeight="120"/>
-                </StackPanel>
-                
-                <!-- Priority and Due Date Row -->
-                <Grid ColumnDefinitions="*,*">
-                    <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
-                        <TextBlock Text="Priority" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <ComboBox x:Name="PriorityComboBox" 
+            </Border>
+            
+            <!-- Form Content -->
+            <ScrollViewer Grid.Row="1" Padding="24,16">
+                <StackPanel Spacing="16">
+                    <!-- Task Title -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Title *" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox x:Name="TitleTextBox"
+                                 Text="{Binding Title}"
+                                 Watermark="What needs to be done?"
+                                 FontSize="14"/>
+                    </StackPanel>
+                    
+                    <!-- Description -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Description" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox x:Name="DescriptionTextBox"
+                                 Text="{Binding Description}"
+                                 Watermark="Add more details (optional)"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="80"
+                                 MaxHeight="120"/>
+                    </StackPanel>
+                    
+                    <!-- Priority and Due Date Row -->
+                    <Grid ColumnDefinitions="*,*">
+                        <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
+                            <TextBlock Text="Priority" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <ComboBox x:Name="PriorityComboBox" 
+                                      HorizontalAlignment="Stretch"
+                                      SelectedIndex="{Binding PriorityIndex}"
+                                      PlaceholderText="Select priority">
+                                <ComboBoxItem Content="High" Tag="high"/>
+                                <ComboBoxItem Content="Medium" Tag="medium"/>
+                                <ComboBoxItem Content="Low" Tag="low"/>
+                            </ComboBox>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
+                            <TextBlock Text="Due Date" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <CalendarDatePicker x:Name="DueDatePicker" 
+                                                SelectedDate="{Binding DueDate}"
+                                                HorizontalAlignment="Stretch"
+                                                Watermark="Select date"
+                                                IsTodayHighlighted="True"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- Status (only in edit mode) -->
+                    <StackPanel x:Name="StatusSection" Spacing="6" IsVisible="{Binding IsEditMode}">
+                        <TextBlock Text="Status" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox x:Name="StatusComboBox" 
                                   HorizontalAlignment="Stretch"
-                                  SelectedIndex="{Binding PriorityIndex}"
-                                  PlaceholderText="Select priority">
-                            <ComboBoxItem Content="High" Tag="high"/>
-                            <ComboBoxItem Content="Medium" Tag="medium"/>
-                            <ComboBoxItem Content="Low" Tag="low"/>
+                                  SelectedIndex="{Binding StatusIndex}">
+                            <ComboBoxItem Content="Not Started" Tag="not_started"/>
+                            <ComboBoxItem Content="In Progress" Tag="in_progress"/>
+                            <ComboBoxItem Content="Completed" Tag="completed"/>
+                            <ComboBoxItem Content="Blocked" Tag="blocked"/>
                         </ComboBox>
                     </StackPanel>
                     
-                    <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
-                        <TextBlock Text="Due Date" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <DatePicker x:Name="DueDatePicker" 
-                                    SelectedDate="{Binding DueDate}"
-                                    HorizontalAlignment="Stretch"/>
+                    <!-- Assignee -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Assignee" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox x:Name="AssigneeComboBox" 
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding TeamMembers}"
+                                  SelectedItem="{Binding SelectedAssignee}"
+                                  PlaceholderText="Assign to someone">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:TeamMemberDetail">
+                                    <TextBlock Text="{Binding FullName}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                     </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+            
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource BrushSecondary}"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Button Grid.Column="0"
+                            Content="Delete"
+                            Background="Transparent"
+                            Foreground="{DynamicResource BrushError}"
+                            BorderBrush="{DynamicResource BrushError}"
+                            BorderThickness="1"
+                            IsVisible="{Binding IsEditMode}"
+                            Command="{Binding DeleteCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushError}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    
+                    <Button Grid.Column="2"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Padding="16,8"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    
+                    <Button Grid.Column="3"
+                            Content="{Binding SaveButtonText}"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Padding="16,8"
+                            Command="{Binding SaveCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
                 </Grid>
-                
-                <!-- Status (only in edit mode) -->
-                <StackPanel x:Name="StatusSection" Spacing="6" IsVisible="{Binding IsEditMode}">
-                    <TextBlock Text="Status" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="StatusComboBox" 
-                              HorizontalAlignment="Stretch"
-                              SelectedIndex="{Binding StatusIndex}">
-                        <ComboBoxItem Content="Not Started" Tag="not_started"/>
-                        <ComboBoxItem Content="In Progress" Tag="in_progress"/>
-                        <ComboBoxItem Content="Completed" Tag="completed"/>
-                        <ComboBoxItem Content="Blocked" Tag="blocked"/>
-                    </ComboBox>
-                </StackPanel>
-                
-                <!-- Assignee -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Assignee" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <ComboBox x:Name="AssigneeComboBox" 
-                              HorizontalAlignment="Stretch"
-                              ItemsSource="{Binding TeamMembers}"
-                              SelectedItem="{Binding SelectedAssignee}"
-                              PlaceholderText="Assign to someone">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="models:TeamMemberDetail">
-                                <TextBlock Text="{Binding FullName}"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
-        
-        <!-- Footer -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="24,12">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                <Button x:Name="DeleteButton"
-                        Grid.Column="0"
-                        Content="Delete"
-                        Foreground="#E74C3C"
-                        IsVisible="{Binding IsEditMode}"
-                        Command="{Binding DeleteCommand}" />
-                <Button Grid.Column="2"
-                        x:Name="CancelButton" 
-                        Content="Cancel" 
-                        Classes="secondary-button"
-                        Padding="16,8"
-                        Margin="0,0,8,0"
-                        Command="{Binding CancelCommand}"/>
-                <Button Grid.Column="3"
-                        x:Name="CreateButton" 
-                        Content="{Binding SaveButtonText}" 
-                        Classes="primary-button"
-                        Padding="16,8"
-                        Command="{Binding SaveCommand}"/>
-            </Grid>
-        </Border>
-    </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

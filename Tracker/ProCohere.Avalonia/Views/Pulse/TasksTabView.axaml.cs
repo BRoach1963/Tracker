@@ -2,11 +2,13 @@ using System;
 using System.Globalization;
 using System.IO;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Media;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Views.Controls;
 using ProCohere.Avalonia.Views.Dialogs;
 
 namespace ProCohere.Avalonia.Views.Pulse;
@@ -14,11 +16,24 @@ namespace ProCohere.Avalonia.Views.Pulse;
 public partial class TasksTabView : UserControl
 {
     private TasksViewModel? _viewModel;
+    private Popup? _projectSelectorPopup;
+    private ProjectSelectorPopover? _projectSelectorPopover;
 
     public TasksTabView()
     {
         InitializeComponent();
         Log("[TasksTabView] Constructor called");
+        
+        // Create the project selector popup
+        _projectSelectorPopover = new ProjectSelectorPopover();
+        _projectSelectorPopover.ProjectSelected += OnProjectSelected;
+        
+        _projectSelectorPopup = new Popup
+        {
+            Child = _projectSelectorPopover,
+            Placement = PlacementMode.Pointer,
+            IsLightDismissEnabled = true
+        };
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -31,6 +46,7 @@ public partial class TasksTabView : UserControl
         if (_viewModel != null)
         {
             _viewModel.AddTaskDialogRequested -= OnAddTaskDialogRequested;
+            _viewModel.ProjectSelectorRequested -= OnProjectSelectorRequested;
             Log("[TasksTabView] Unsubscribed from old ViewModel");
         }
 
@@ -39,7 +55,30 @@ public partial class TasksTabView : UserControl
         if (_viewModel != null)
         {
             _viewModel.AddTaskDialogRequested += OnAddTaskDialogRequested;
+            _viewModel.ProjectSelectorRequested += OnProjectSelectorRequested;
             Log($"[TasksTabView] Subscribed to new ViewModel - FilteredTasks.Count={_viewModel.FilteredTasks.Count}");
+        }
+    }
+
+    private void OnProjectSelectorRequested(object? sender, EventArgs e)
+    {
+        Log("[TasksTabView] ProjectSelectorRequested");
+        if (_projectSelectorPopup != null)
+        {
+            _projectSelectorPopup.PlacementTarget = this;
+            _projectSelectorPopup.IsOpen = true;
+        }
+    }
+    
+    private async void OnProjectSelected(object? sender, Project project)
+    {
+        Log($"[TasksTabView] ProjectSelected: {project.Name}");
+        _projectSelectorPopup?.Close();
+        _viewModel?.HideProjectSelector();
+        
+        if (_viewModel != null)
+        {
+            await _viewModel.LinkTaskToProjectAsync(project.Id, project.Name);
         }
     }
 

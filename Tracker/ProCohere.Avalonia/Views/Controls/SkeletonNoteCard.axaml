@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ProCohere.Avalonia.Views.Controls.SkeletonNoteCard">
+    
+    <UserControl.Styles>
+        <!-- Shimmer animation style -->
+        <Style Selector="Border.skeleton">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Opacity" Value="0.7"/>
+        </Style>
+        
+        <!-- Shimmer animation - pulse effect -->
+        <Style Selector="Border.skeleton-animated">
+            <Style.Animations>
+                <Animation Duration="0:0:1.5" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0.4"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0.7"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.4"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+    </UserControl.Styles>
+    
+    <!-- Skeleton card matching NoteCard dimensions -->
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Width="280"
+            Height="160"
+            Padding="16"
+            Margin="0,0,16,16">
+        
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header skeleton: Category badge + Date -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Category badge skeleton -->
+                <Border Grid.Column="0" 
+                        Classes="skeleton skeleton-animated"
+                        Width="80" Height="22"
+                        HorizontalAlignment="Left"/>
+                
+                <!-- Date skeleton -->
+                <Border Grid.Column="1" 
+                        Classes="skeleton skeleton-animated"
+                        Width="50" Height="14"/>
+            </Grid>
+            
+            <!-- Content skeleton: Title + Preview lines -->
+            <StackPanel Grid.Row="1" Spacing="8">
+                <!-- Title skeleton -->
+                <Border Classes="skeleton skeleton-animated"
+                        Height="18" Width="180"
+                        HorizontalAlignment="Left"/>
+                
+                <!-- Preview line 1 -->
+                <Border Classes="skeleton skeleton-animated"
+                        Height="14" 
+                        HorizontalAlignment="Stretch"/>
+                
+                <!-- Preview line 2 -->
+                <Border Classes="skeleton skeleton-animated"
+                        Height="14" Width="200"
+                        HorizontalAlignment="Left"/>
+                
+                <!-- Preview line 3 (shorter) -->
+                <Border Classes="skeleton skeleton-animated"
+                        Height="14" Width="140"
+                        HorizontalAlignment="Left"/>
+            </StackPanel>
+            
+            <!-- Footer skeleton: Emoji + pin icon -->
+            <Grid Grid.Row="2" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Emoji skeleton -->
+                <Border Grid.Column="0" 
+                        Classes="skeleton skeleton-animated"
+                        Width="24" Height="24"
+                        CornerRadius="12"
+                        HorizontalAlignment="Left"/>
+                
+                <!-- Pin icon skeleton -->
+                <Border Grid.Column="1" 
+                        Classes="skeleton skeleton-animated"
+                        Width="20" Height="20"
+                        CornerRadius="10"/>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

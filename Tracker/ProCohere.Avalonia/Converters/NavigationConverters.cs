@@ -742,3 +742,73 @@ public class TagSelectedBorderConverter : IMultiValueConverter
         return isSelected ? new Thickness(0) : new Thickness(1);
     }
 }
+
+/// <summary>
+/// Compares a string value to a parameter string for equality.
+/// Used for category chip selection in note editor.
+/// </summary>
+public class StringEqualConverter : IValueConverter
+{
+    public static readonly StringEqualConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is null && parameter is null)
+            return true;
+        if (value is string str && parameter is string param)
+            return string.Equals(str, param, StringComparison.OrdinalIgnoreCase);
+        return false;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        // When checked, return the parameter as the new value
+        if (value is true && parameter is string param)
+            return param;
+        // When unchecked, return null to clear the category
+        return null;
+    }
+}
+
+/// <summary>
+/// Returns true if the Guid is NOT empty.
+/// Used to show/hide elements for existing vs new entities.
+/// </summary>
+public class GuidIsNotEmptyConverter : IValueConverter
+{
+    public static readonly GuidIsNotEmptyConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is Guid guid)
+            return guid != Guid.Empty;
+        return false;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Inverts a boolean value.
+/// </summary>
+public class InverseBoolConverter : IValueConverter
+{
+    public static readonly InverseBoolConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool b)
+            return !b;
+        return false;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool b)
+            return !b;
+        return true;
+    }
+}

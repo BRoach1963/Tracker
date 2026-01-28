@@ -277,12 +277,38 @@ public class AuthService
         }
         catch (GotrueException ex)
         {
+            LogAuthError("SignIn GotrueException", ex);
             return (false, GetFriendlyAuthError(ex));
         }
         catch (Exception ex)
         {
-            return (false, $"Connection error: {ex.Message}");
+            LogAuthError("SignIn Exception", ex);
+            return (false, $"Connection error: {ex.GetType().Name}: {ex.Message}");
         }
+    }
+    
+    /// <summary>
+    /// Logs auth errors to a file for debugging.
+    /// </summary>
+    private static void LogAuthError(string context, Exception ex)
+    {
+        try
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var logDir = Path.Combine(appData, "ProCohere");
+            if (!Directory.Exists(logDir))
+                Directory.CreateDirectory(logDir);
+            
+            var logPath = Path.Combine(logDir, "auth_errors.log");
+            var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {context}\n" +
+                        $"  Type: {ex.GetType().FullName}\n" +
+                        $"  Message: {ex.Message}\n" +
+                        $"  Stack: {ex.StackTrace}\n" +
+                        $"  Inner: {ex.InnerException?.Message}\n\n";
+            File.AppendAllText(logPath, entry);
+            System.Diagnostics.Debug.WriteLine($"AUTH ERROR: {ex.GetType().Name}: {ex.Message}");
+        }
+        catch { /* ignore logging errors */ }
     }
 
     public async Task<(bool Success, string? Error)> SignUpAsync(string email, string password, string? displayName = null)

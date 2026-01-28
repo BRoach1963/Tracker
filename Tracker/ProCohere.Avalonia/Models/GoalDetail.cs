@@ -166,6 +166,27 @@ public class GoalDetail : BaseModel
 
     #endregion
 
+    #region Project Link
+    
+    /// <summary>
+    /// ID of the linked project (populated from project_links table).
+    /// Not a DB column - set by service when fetching goals.
+    /// </summary>
+    public Guid? ProjectId { get; set; }
+    
+    /// <summary>
+    /// Title of the linked project (for display).
+    /// Not a DB column - set by service when fetching goals.
+    /// </summary>
+    public string? ProjectTitle { get; set; }
+    
+    /// <summary>
+    /// Whether this goal is linked to a project.
+    /// </summary>
+    public bool HasProject => ProjectId.HasValue;
+    
+    #endregion
+
     #region Source Tracking
 
     /// <summary>

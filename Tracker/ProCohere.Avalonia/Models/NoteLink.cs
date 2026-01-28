@@ -28,7 +28,8 @@ public class NoteLink : BaseModel
     #region Entity Reference
 
     /// <summary>
-    /// The type of entity being linked (e.g., "meeting", "team_member", "goal", "task", "metric", "target").
+    /// The type of entity being linked. Uses note_link_entity_type enum in database.
+    /// Valid values: meeting, team_member, goal, task, metric, target, project
     /// </summary>
     [Column("entity_type")]
     public string EntityType { get; set; } = string.Empty;
@@ -46,12 +47,29 @@ public class NoteLink : BaseModel
     [Column("entity_title_snapshot")]
     public string? EntityTitleSnapshot { get; set; }
 
+    /// <summary>
+    /// Semantic relationship type (e.g., "mentioned", "action_item", "reference").
+    /// Optional - used for AI context and filtering.
+    /// </summary>
+    [Column("relationship_type")]
+    public string? RelationshipType { get; set; }
+
+    /// <summary>
+    /// Sort order for UI display. Lower values appear first.
+    /// </summary>
+    [Column("sort_order")]
+    public short SortOrder { get; set; }
+
     #endregion
 
     #region Audit
 
-    [Column("created_by")]
-    public Guid CreatedBy { get; set; }
+    /// <summary>
+    /// The team member who created this link.
+    /// References team_members.id (not auth.users.id).
+    /// </summary>
+    [Column("created_by_team_member_id")]
+    public Guid CreatedByTeamMemberId { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
@@ -74,6 +92,7 @@ public class NoteLink : BaseModel
 
 /// <summary>
 /// Constants for entity types used in note_links.
+/// These must match the note_link_entity_type enum in the database.
 /// </summary>
 public static class NoteLinkEntityTypes
 {
@@ -85,3 +104,23 @@ public static class NoteLinkEntityTypes
     public const string Target = "target";
     public const string Project = "project";
 }
+
+/// <summary>
+/// Constants for relationship types used in note_links.
+/// These are semantic descriptors for how the entity relates to the note.
+/// </summary>
+public static class NoteLinkRelationshipTypes
+{
+    /// <summary>Entity was mentioned in the note content.</summary>
+    public const string Mentioned = "mentioned";
+    
+    /// <summary>Note contains an action item for this entity.</summary>
+    public const string ActionItem = "action_item";
+    
+    /// <summary>Note references this entity for context.</summary>
+    public const string Reference = "reference";
+    
+    /// <summary>Note is a follow-up from this entity (e.g., meeting follow-up).</summary>
+    public const string FollowUp = "follow_up";
+}
+

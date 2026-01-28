@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:views="using:ProCohere.Avalonia.Views"
              xmlns:pulse="using:ProCohere.Avalonia.Views.Pulse"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ProCohere.Avalonia.Views.PulseView"
@@ -50,15 +51,11 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
-            <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Pulse"
-                           FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource BrushTextPrimary}"/>
-                <TextBlock Text="Goals, metrics, and tasks that drive your work"
-                           FontSize="13" 
-                           Foreground="{DynamicResource BrushTextSecondary}"/>
-            </StackPanel>
+            <TextBlock Grid.Column="0" 
+                       Text="Goals, metrics, and tasks that drive your work"
+                       FontSize="13" 
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       VerticalAlignment="Center"/>
         </Grid>
         
         <!-- Row 1: Tab Bar -->

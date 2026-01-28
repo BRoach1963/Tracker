@@ -64,6 +64,11 @@
             <converters:GoalHealthToDisplayConverter x:Key="GoalHealthToDisplayConverter"/>
             <converters:GoalHealthToBackgroundConverter x:Key="GoalHealthToBackgroundConverter"/>
             <converters:GoalHealthToPromptConverter x:Key="GoalHealthToPromptConverter"/>
+            <converters:StringEqualConverter x:Key="StringEqualConverter"/>
+            <converters:GuidIsNotEmptyConverter x:Key="GuidIsNotEmptyConverter"/>
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+            <converters:CategoryToColorConverter x:Key="CategoryToColorConverter"/>
+            <converters:CategoryToAccentConverter x:Key="CategoryToAccentConverter"/>
         </ResourceDictionary>
     </Application.Resources>
   
@@ -276,6 +281,143 @@
         </Style>
         <Style Selector="Button.menu-item.danger:pointerover">
             <Setter Property="Background" Value="#FEE2E2"/>
+        </Style>
+        
+        <!-- ============================================ -->
+        <!-- STANDARD BUTTON CLASSES                     -->
+        <!-- ============================================ -->
+        
+        <!-- Accent/Affirmative Button (Save, OK, Yes, Confirm, etc.) -->
+        <!-- Gold background, white text. Hover: white bg, gold text/border -->
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.accent TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.accent:pointerover">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        <Style Selector="Button.accent:pointerover TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        <Style Selector="Button.accent:pressed">
+            <Setter Property="Background" Value="{DynamicResource BrushHighlightSoft}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlightPressed}"/>
+        </Style>
+        <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushHighlightSoft}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource BrushHighlightPressed}"/>
+        </Style>
+        <Style Selector="Button.accent:pressed TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlightPressed}"/>
+        </Style>
+        <Style Selector="Button.accent:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+        <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        
+        <!-- Cancel/Negative Button (Cancel, No, Close, etc.) -->
+        <!-- Gray background, white text. Hover: white bg, gray text -->
+        <Style Selector="Button.cancel-btn">
+            <Setter Property="Background" Value="#5A6A7A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#5A6A7A"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.cancel-btn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#5A6A7A"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.cancel-btn TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:pointerover">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#5A6A7A"/>
+            <Setter Property="BorderBrush" Value="#5A6A7A"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="TextElement.Foreground" Value="#5A6A7A"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:pointerover TextBlock">
+            <Setter Property="Foreground" Value="#5A6A7A"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:pressed">
+            <Setter Property="Background" Value="#E8EAED"/>
+            <Setter Property="Foreground" Value="#3A4A5A"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#E8EAED"/>
+            <Setter Property="TextElement.Foreground" Value="#3A4A5A"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:pressed TextBlock">
+            <Setter Property="Foreground" Value="#3A4A5A"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+        <Style Selector="Button.cancel-btn:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#5A6A7A"/>
+        </Style>
+        
+        <!-- Destructive Button (Delete, Remove, etc.) -->
+        <!-- Red outline, red text; fills red on hover -->
+        <Style Selector="Button.destructive">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushError}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushError}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.destructive /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource BrushError}"/>
+        </Style>
+        <Style Selector="Button.destructive TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushError}"/>
+        </Style>
+        <Style Selector="Button.destructive:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushError}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.destructive:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushError}"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.destructive:pointerover TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.destructive:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#9A1B12"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.destructive:pressed TextBlock">
+            <Setter Property="Foreground" Value="White"/>
         </Style>
     </Application.Styles>
 </Application>

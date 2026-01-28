@@ -60,35 +60,32 @@ public class Note : BaseModel
     #region Entity Links
 
     /// <summary>
-    /// Link to a team member (e.g., note about a direct report).
+    /// Entity links loaded from note_links table.
+    /// Not mapped to database - populated by service layer.
     /// </summary>
-    [Column("linked_team_member_id")]
-    public Guid? LinkedTeamMemberId { get; set; }
+    public List<NoteLink> Links { get; set; } = new();
 
+    #endregion
+
+    #region Project Link
+    
     /// <summary>
-    /// Link to a meeting.
+    /// ID of the linked project (populated from project_links table).
+    /// Not a DB column - set by service when fetching notes.
     /// </summary>
-    [Column("linked_meeting_id")]
-    public Guid? LinkedMeetingId { get; set; }
-
+    public Guid? ProjectId { get; set; }
+    
     /// <summary>
-    /// Link to a project.
+    /// Title of the linked project (for display).
+    /// Not a DB column - set by service when fetching notes.
     /// </summary>
-    [Column("linked_project_id")]
-    public Guid? LinkedProjectId { get; set; }
-
+    public string? ProjectTitle { get; set; }
+    
     /// <summary>
-    /// Link to a goal.
+    /// Whether this note is linked to a project.
     /// </summary>
-    [Column("linked_goal_id")]
-    public Guid? LinkedGoalId { get; set; }
-
-    /// <summary>
-    /// Link to a task.
-    /// </summary>
-    [Column("linked_task_id")]
-    public Guid? LinkedTaskId { get; set; }
-
+    public bool HasProject => ProjectId.HasValue;
+    
     #endregion
 
     #region Status Flags
@@ -169,20 +166,12 @@ public class Note : BaseModel
     /// <summary>
     /// Whether this note has any entity links.
     /// </summary>
-    public bool HasLinks => LinkedTeamMemberId.HasValue ||
-                           LinkedMeetingId.HasValue ||
-                           LinkedProjectId.HasValue ||
-                           LinkedGoalId.HasValue ||
-                           LinkedTaskId.HasValue;
+    public bool HasLinks => Links.Count > 0;
 
     /// <summary>
     /// Count of linked entities.
     /// </summary>
-    public int LinkCount => (LinkedTeamMemberId.HasValue ? 1 : 0) +
-                           (LinkedMeetingId.HasValue ? 1 : 0) +
-                           (LinkedProjectId.HasValue ? 1 : 0) +
-                           (LinkedGoalId.HasValue ? 1 : 0) +
-                           (LinkedTaskId.HasValue ? 1 : 0);
+    public int LinkCount => Links.Count;
 
     /// <summary>
     /// Display title - uses title if set, otherwise first 50 chars of content.
@@ -202,6 +191,39 @@ public class Note : BaseModel
     /// Display name for the author (populated by service layer).
     /// </summary>
     public string? AuthorName { get; set; }
+
+    /// <summary>
+    /// Human-friendly timestamp like "2h ago", "Yesterday", "Jan 15".
+    /// </summary>
+    public string DisplayTimestamp
+    {
+        get
+        {
+            var now = DateTime.UtcNow;
+            var diff = now - CreatedAt;
+
+            if (diff.TotalMinutes < 1)
+                return "Just now";
+            if (diff.TotalMinutes < 60)
+                return $"{(int)diff.TotalMinutes}m ago";
+            if (diff.TotalHours < 24)
+                return $"{(int)diff.TotalHours}h ago";
+            if (diff.TotalDays < 2)
+                return "Yesterday";
+            if (diff.TotalDays < 7)
+                return $"{(int)diff.TotalDays}d ago";
+            if (CreatedAt.Year == now.Year)
+                return CreatedAt.ToString("MMM d");
+            return CreatedAt.ToString("MMM d, yyyy");
+        }
+    }
+
+    /// <summary>
+    /// Extended content preview for tooltip (first 500 chars).
+    /// </summary>
+    public string ContentPreviewExtended => Content.Length > 500
+        ? Content[..500] + "..."
+        : Content;
 
     #endregion
 }

@@ -29,6 +29,9 @@ All models inherit from `Supabase.Postgrest.Models.BaseModel`.
 | `TaskDetail` | TaskDetail.cs | `tasks` | Task with provenance |
 | `Note` | Note.cs | `notes` | Note with entity links |
 | `FeedbackDetail` | FeedbackDetail.cs | `feedback` | Feedback entry |
+| `Project` | Project.cs | `projects` | Project container with members/links |
+| `ProjectMember` | Project.cs | `project_members` | Project membership |
+| `ProjectLink` | Project.cs | `project_links` | Polymorphic entity links |
 
 ### Supporting Models
 
@@ -1054,11 +1057,155 @@ public GoalHealth Health
 
 ---
 
-## Invariants
+## Project
 
-1. **All IDs are GUIDs** - never int
-2. **Soft delete only** - `is_deleted`, `deleted_at`, `deleted_by`
-3. **Audit columns** - `created_at`, `updated_at` on all tables
-4. **Organization scoped** - all data has `organization_id`
-5. **RLS enforced** - models only return permitted data
+**Table**: `procohere.projects`
+
+Project is a lightweight container for organizing work with members and linked entities.
+
+```csharp
+[Table("projects")]
+public class Project : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("owner_team_member_id")]
+    public Guid OwnerTeamMemberId { get; set; }
+
+    [Column("name")]
+    public string Name { get; set; }
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("status")]
+    public string Status { get; set; }  // active|paused|completed
+
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
+
+    // Soft delete
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+    
+    // ... timestamps, navigation properties
+    
+    // Populated from RPCs
+    public List<ProjectMember>? Members { get; set; }
+    public List<ProjectLink>? Links { get; set; }
+    public TeamMemberDetail? Owner { get; set; }
+}
+```
+
+### Status Constants
+
+```csharp
+public static class ProjectStatus
+{
+    public const string Active = "active";
+    public const string Paused = "paused";
+    public const string Completed = "completed";
+}
+```
+
+---
+
+## ProjectMember
+
+**Table**: `procohere.project_members`
+
+Defines who can see and collaborate on a project.
+
+```csharp
+[Table("project_members")]
+public class ProjectMember : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("project_id")]
+    public Guid ProjectId { get; set; }
+
+    [Column("team_member_id")]
+    public Guid TeamMemberId { get; set; }
+
+    [Column("role")]
+    public string Role { get; set; }  // member|lead|viewer
+    
+    // Navigation
+    public TeamMemberDetail? TeamMember { get; set; }
+}
+```
+
+### Role Constants
+
+```csharp
+public static class ProjectMemberRole
+{
+    public const string Member = "member";
+    public const string Lead = "lead";
+    public const string Viewer = "viewer";
+}
+```
+
+---
+
+## ProjectLink
+
+**Table**: `procohere.project_links`
+
+Polymorphic links from project to any entity type.
+
+```csharp
+[Table("project_links")]
+public class ProjectLink : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("project_id")]
+    public Guid ProjectId { get; set; }
+
+    [Column("entity_type")]
+    public string EntityType { get; set; }  // goal|metric|task|meeting|...
+
+    [Column("entity_id")]
+    public Guid EntityId { get; set; }
+
+    [Column("entity_title_snapshot")]
+    public string? EntityTitleSnapshot { get; set; }
+    
+    // Computed property for UI icon
+    public string EntityTypeIcon => EntityType switch
+    {
+        "goal" => "\uE735",      // Star
+        "metric" => "\uE9D9",    // Chart
+        "task" => "\uE73E",      // Checkbox
+        "meeting" => "\uE787",   // Calendar
+        // ... etc
+    };
+}
+```
+
+### Entity Type Constants
+
+```csharp
+public static class ProjectLinkEntityType
+{
+    public const string Goal = "goal";
+    public const string Metric = "metric";
+    public const string Target = "target";
+    public const string Task = "task";
+    public const string Meeting = "meeting";
+    public const string Feedback = "feedback";
+    public const string Note = "note";
+    public const string ChronicleEntry = "chronicle_entry";
+}
+```
+
+---
 

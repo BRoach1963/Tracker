@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
 using static Supabase.Postgrest.Constants;
 
+// Reminder integration - Phase 5
+
 namespace ProCohere.Avalonia.Services;
 
 /// <summary>
@@ -119,6 +121,93 @@ public class TaskService
         {
             LastError = ex.Message;
             Log($"GetTasks ERROR: {ex.Message}");
+            return new List<TaskDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Gets incomplete tasks that are not linked to any project.
+    /// Useful for linking existing free tasks to a new project.
+    /// </summary>
+    public async Task<List<TaskDetail>> GetLinkableTasksAsync()
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<TaskDetail>();
+        }
+
+        try
+        {
+            Log("Loading linkable tasks (unlinked, incomplete)");
+            
+            var result = await client.From<TaskDetail>()
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Filter("status", Operator.NotEqual, "completed")
+                .Filter("project_id", Operator.Is, "null")
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            Log($"Linkable tasks returned: {result.Models?.Count ?? 0}");
+            return result.Models ?? new List<TaskDetail>();
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetLinkableTasks ERROR: {ex.Message}");
+            return new List<TaskDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Creates a minimal task with just a title.
+    /// Used for title-only bootstrapping during project creation.
+    /// </summary>
+    public async Task<TaskDetail?> CreateMinimalTaskAsync(string title, Guid? projectId = null)
+    {
+        return await CreateTaskAsync(
+            title: title,
+            description: null,
+            priority: "medium",
+            dueDate: null,
+            assignedTo: null,
+            sourceType: projectId.HasValue ? "project" : null,
+            sourceId: projectId
+        );
+    }
+
+    /// <summary>
+    /// Gets all tasks linked to a specific project.
+    /// </summary>
+    public async Task<List<TaskDetail>> GetTasksByProjectAsync(Guid projectId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<TaskDetail>();
+        }
+
+        try
+        {
+            Log($"Loading tasks for project: {projectId}");
+            
+            var result = await client.From<TaskDetail>()
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Filter("project_id", Operator.Equals, projectId.ToString())
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            Log($"Tasks for project returned: {result.Models?.Count ?? 0}");
+            return result.Models ?? new List<TaskDetail>();
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetTasksByProject ERROR: {ex.Message}");
             return new List<TaskDetail>();
         }
     }
@@ -349,6 +438,9 @@ public class TaskService
             if (created != null)
             {
                 Log($"Task created: {created.Id}");
+                
+                // Create reminder for the task if enabled
+                await CreateTaskReminderIfEnabledAsync(created);
             }
 
             return created;
@@ -546,6 +638,13 @@ public class TaskService
                 .Update(task);
 
             var success = result.Models?.Count > 0;
+            
+            if (success)
+            {
+                // Cancel any pending reminders for this task
+                await CancelTaskRemindersAsync(taskId);
+            }
+            
             Log($"Task deleted: {success}");
             return success;
         }
@@ -556,4 +655,145 @@ public class TaskService
             return false;
         }
     }
+
+    /// <summary>
+    /// Links an existing task to a project by setting its project_id.
+    /// </summary>
+    public async Task<bool> LinkTaskToProjectAsync(Guid taskId, Guid projectId)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return false;
+        }
+
+        try
+        {
+            Log($"Linking task {taskId} to project {projectId}");
+
+            // Get the task first
+            var task = await GetTaskAsync(taskId);
+            if (task == null)
+            {
+                LastError = "Task not found";
+                return false;
+            }
+
+            // Update project_id
+            task.ProjectId = projectId;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await client.From<TaskDetail>()
+                .Filter("id", Operator.Equals, taskId.ToString())
+                .Update(task);
+
+            Log($"Task {taskId} linked to project {projectId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"LinkTaskToProject ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    #region Reminder Integration
+
+    /// <summary>
+    /// Creates a reminder for the task if reminders are enabled in settings.
+    /// </summary>
+    private async Task CreateTaskReminderIfEnabledAsync(TaskDetail? task)
+    {
+        if (task == null || task.DueDate == null) return;
+        
+        try
+        {
+            var settings = ReminderSchedulerService.Instance.Settings;
+            if (!settings.EnableReminders || !settings.ShowTaskReminders)
+            {
+                Log("Task reminders disabled in settings");
+                return;
+            }
+            
+            // Check if reminder already exists
+            var exists = await ReminderDataService.Instance.ReminderExistsAsync(
+                "task", task.Id, ReminderType.Task);
+            
+            if (exists)
+            {
+                Log($"Reminder already exists for task {task.Id}");
+                return;
+            }
+            
+            var reminder = await ReminderDataService.Instance.CreateTaskReminderAsync(
+                task, settings.TaskReminderDays);
+            
+            if (reminder != null)
+            {
+                Log($"Created reminder for task {task.Id}: remind at {reminder.RemindAt:u}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the task operation if reminder creation fails
+            Log($"Failed to create task reminder: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cancels any pending reminders for a task.
+    /// </summary>
+    private async Task CancelTaskRemindersAsync(Guid taskId)
+    {
+        try
+        {
+            var cancelled = await ReminderDataService.Instance.CancelRemindersForEntityAsync("task", taskId);
+            if (cancelled > 0)
+            {
+                Log($"Cancelled {cancelled} reminder(s) for deleted task {taskId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the delete operation if reminder cancellation fails
+            Log($"Failed to cancel task reminders: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates the reminder for a task if the due date changed.
+    /// Cancels existing reminder and creates a new one with updated time.
+    /// </summary>
+    public async Task UpdateTaskReminderAsync(TaskDetail task)
+    {
+        try
+        {
+            var settings = ReminderSchedulerService.Instance.Settings;
+            if (!settings.EnableReminders || !settings.ShowTaskReminders)
+            {
+                return;
+            }
+            
+            // Cancel existing reminder
+            await ReminderDataService.Instance.CancelRemindersForEntityAsync("task", task.Id);
+            
+            // Create new reminder with updated time (if task still has a due date)
+            if (task.DueDate != null)
+            {
+                await ReminderDataService.Instance.CreateTaskReminderAsync(
+                    task, settings.TaskReminderDays);
+            }
+            
+            Log($"Updated reminder for task {task.Id}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Failed to update task reminder: {ex.Message}");
+        }
+    }
+
+    #endregion
 }

@@ -1,8 +1,28 @@
-# Notes Domain Tables
+# Chronicle Notes Domain
 
 ## Overview
 
-The Notes domain handles freeform content capture with optional entity linking. Notes can be linked to entities (team members, meetings, projects, goals, tasks) via individual FK columns on the `notes` table.
+The Chronicle tab provides a **personal journal** for capturing freeform notes with optional entity linking. Notes can be linked to multiple entities (team members, meetings, projects, goals, tasks, metrics, targets) via the `note_links` table using a polymorphic pattern.
+
+### Design Philosophy
+
+Chronicle Notes is designed as a **lightweight, personal capture tool** - not a full-featured notes application. The goal is quick capture with minimal friction, not advanced note management.
+
+---
+
+## Non-Goals (Intentional Limitations)
+
+The following features are **explicitly out of scope** for Chronicle Notes:
+
+| Feature | Reason |
+|---------|--------|
+| **Nested folders/hierarchy** | Adds complexity; use tags/search instead |
+| **Full-text search with ranking** | Basic search is sufficient for personal journal |
+| **Collaborative editing** | Notes are personal; use meetings for collaboration |
+| **Version history** | Overkill for quick capture; not a document system |
+| **Rich attachments** | Keep notes lightweight; link to external files |
+| **Reminder/notification triggers** | Use Tasks or Meetings for reminders |
+| **Export to external formats** | Can be added later if needed |
 
 ---
 
@@ -10,7 +30,7 @@ The Notes domain handles freeform content capture with optional entity linking. 
 
 ### `public.notes`
 
-Main notes table for freeform content. **Already exists in production.**
+Main notes table for freeform content. **Exists in production.**
 
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
@@ -22,18 +42,13 @@ Main notes table for freeform content. **Already exists in production.**
 | `content_format` | varchar | NO | 'plain' | Format: 'plain', 'markdown', 'html' |
 | `category` | varchar | YES | | Optional category label |
 | `tags` | jsonb | YES | | Array of tag strings |
-| `linked_team_member_id` | uuid | YES | | FK to team_members (note about someone) |
-| `linked_meeting_id` | uuid | YES | | FK to meetings |
-| `linked_project_id` | uuid | YES | | FK to projects |
-| `linked_goal_id` | uuid | YES | | FK to goals |
-| `linked_task_id` | uuid | YES | | FK to tasks |
 | `is_private` | boolean | NO | true | Only visible to creator |
 | `is_pinned` | boolean | NO | false | Pin to top of list |
 | `pinned_at` | timestamptz | YES | | When pinned |
 | `is_archived` | boolean | NO | false | Archived flag |
 | `archived_at` | timestamptz | YES | | When archived |
-| `ai_summary` | text | YES | | AI-generated summary |
-| `ai_suggested_actions` | jsonb | YES | | AI-suggested actions |
+| `ai_summary` | text | YES | | AI-generated summary (future) |
+| `ai_suggested_actions` | jsonb | YES | | AI-suggested actions (future) |
 | `is_deleted` | boolean | NO | false | Soft delete flag |
 | `deleted_at` | timestamptz | YES | | When deleted |
 | `deleted_by` | uuid | YES | | FK to users who deleted |
@@ -44,21 +59,58 @@ Main notes table for freeform content. **Already exists in production.**
 | `sync_modified_at` | timestamptz | YES | now() | Sync timestamp |
 | `sync_status` | enum | YES | 'synced' | Sync status |
 
+> **Note:** The `notes` table does NOT have individual FK columns for linked entities. All entity linking is done via the `note_links` table.
+
 **Foreign Keys:**
 - `organization_id` → `public.organizations(id)`
 - `author_team_member_id` → `public.team_members(id)`
-- `linked_team_member_id` → `public.team_members(id)`
-- `linked_meeting_id` → `public.meetings(id)`
-- `linked_project_id` → `public.projects(id)`
-- `linked_goal_id` → `public.goals(id)`
-- `linked_task_id` → `public.tasks(id)`
 - `deleted_by` → `public.users(id)`
+
+---
+
+### `procohere.note_links`
+
+Polymorphic junction table for note-entity relationships. **Exists in production.**
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | uuid | NO | gen_random_uuid() | Primary key |
+| `organization_id` | uuid | NO | | FK to organizations |
+| `note_id` | uuid | NO | | FK to notes |
+| `entity_type` | note_link_entity_type | NO | | ENUM: meeting, team_member, goal, task, metric, target, project |
+| `entity_id` | uuid | NO | | ID of the linked entity |
+| `entity_title_snapshot` | varchar | YES | | Title at time of linking (for display without fetch) |
+| `relationship_type` | text | YES | | Semantic type: mentioned, action_item, reference, follow_up |
+| `sort_order` | smallint | YES | 0 | UI ordering (lower = first) |
+| `created_by_team_member_id` | uuid | NO | | FK to team_members (not auth.users) |
+| `created_at` | timestamptz | NO | now() | Creation timestamp |
+| `is_deleted` | boolean | NO | false | Soft delete flag |
+| `deleted_at` | timestamptz | YES | | When deleted |
+| `deleted_by` | uuid | YES | | FK to team_members who deleted |
+
+**Key Design Decisions:**
+- `entity_type` is an ENUM, not TEXT + CHECK (extensible without ALTER TABLE locks)
+- `created_by_team_member_id` references `team_members`, not `auth.users` (identity model alignment)
+- `relationship_type` enables semantic meaning (AI context, filtering)
+- `sort_order` enables stable UI ordering
+
+**Indexes:**
+- `ix_note_links_note` - Index on `note_id` for loading links by note
+- `ix_note_links_entity` - Composite index on `(entity_type, entity_id)` for reverse lookups
+- `ux_note_links_unique_active` - Unique constraint on `(note_id, entity_type, entity_id)` where `is_deleted = false`
+- `ix_note_links_purge` - Index for purge operations on deleted records
+- `ix_note_links_sort` - Index on `(note_id, sort_order)` for ordered queries
+- `ix_note_links_relationship` - Index for relationship_type filtering
+
+**RLS Policies:**
+- `note_links_select` - Organization-scoped, see own links or links on shared notes
+- `note_links_write` - Can only modify own links
 
 ---
 
 ### `public.note_templates`
 
-Templates for commonly used note structures. **Already exists in production.**
+Templates for commonly used note structures. **Exists in production.**
 
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
@@ -76,15 +128,11 @@ Templates for commonly used note structures. **Already exists in production.**
 | `is_deleted` | boolean | NO | false | Soft delete flag |
 | `deleted_at` | timestamptz | YES | | When deleted |
 
-**Foreign Keys:**
-- `organization_id` → `public.organizations(id)`
-- `created_by_user_id` → `public.users(id)`
-
 ---
 
 ## C# Models
 
-### Note.cs (ProCohere.Avalonia)
+### Note.cs
 
 Located at: `Tracker/ProCohere.Avalonia/Models/Note.cs`
 
@@ -93,7 +141,6 @@ Located at: `Tracker/ProCohere.Avalonia/Models/Note.cs`
 public class Note : BaseModel
 {
     #region Identity
-
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
@@ -102,11 +149,9 @@ public class Note : BaseModel
 
     [Column("author_team_member_id")]
     public Guid AuthorTeamMemberId { get; set; }
-
     #endregion
 
     #region Content
-
     [Column("title")]
     public string? Title { get; set; }
 
@@ -121,30 +166,17 @@ public class Note : BaseModel
 
     [Column("tags")]
     public List<string>? Tags { get; set; }
-
     #endregion
 
     #region Entity Links
-
-    [Column("linked_team_member_id")]
-    public Guid? LinkedTeamMemberId { get; set; }
-
-    [Column("linked_meeting_id")]
-    public Guid? LinkedMeetingId { get; set; }
-
-    [Column("linked_project_id")]
-    public Guid? LinkedProjectId { get; set; }
-
-    [Column("linked_goal_id")]
-    public Guid? LinkedGoalId { get; set; }
-
-    [Column("linked_task_id")]
-    public Guid? LinkedTaskId { get; set; }
-
+    /// <summary>
+    /// Entity links loaded from note_links table.
+    /// Not mapped to database - populated by service layer.
+    /// </summary>
+    public List<NoteLink> Links { get; set; } = new();
     #endregion
 
     #region Status Flags
-
     [Column("is_private")]
     public bool IsPrivate { get; set; } = true;
 
@@ -159,140 +191,224 @@ public class Note : BaseModel
 
     [Column("archived_at")]
     public DateTime? ArchivedAt { get; set; }
-
     #endregion
 
-    #region AI Fields
+    // ... AI, Soft Delete, Timestamps, Sync fields omitted for brevity
 
-    [Column("ai_summary")]
-    public string? AiSummary { get; set; }
-
-    [Column("ai_suggested_actions")]
-    public List<string>? AiSuggestedActions { get; set; }
-
-    #endregion
-
-    #region Soft Delete
-
-    [Column("is_deleted")]
-    public bool IsDeleted { get; set; }
-
-    [Column("deleted_at")]
-    public DateTime? DeletedAt { get; set; }
-
-    [Column("deleted_by")]
-    public Guid? DeletedBy { get; set; }
-
-    #endregion
-
-    #region Timestamps
-
-    [Column("created_at")]
-    public DateTime CreatedAt { get; set; }
-
-    [Column("updated_at")]
-    public DateTime UpdatedAt { get; set; }
-
-    #endregion
-
-    #region Sync Fields
-
-    [Column("sync_id")]
-    public Guid? SyncId { get; set; }
-
-    [Column("sync_version")]
-    public int SyncVersion { get; set; } = 1;
-
-    [Column("sync_modified_at")]
-    public DateTime? SyncModifiedAt { get; set; }
-
-    [Column("sync_status")]
-    public string SyncStatus { get; set; } = "synced";
-
+    #region Computed Properties (not mapped to DB)
+    public bool HasTags => Tags != null && Tags.Count > 0;
+    public bool HasLinks => Links.Count > 0;
+    public int LinkCount => Links.Count;
+    public string DisplayTitle => string.IsNullOrWhiteSpace(Title)
+        ? (Content.Length > 50 ? Content[..50] + "..." : Content)
+        : Title;
+    public string DisplayTimestamp { get; } // Human-friendly like "2h ago"
     #endregion
 }
 ```
 
-### LinkedEntityType.cs
+### NoteLink.cs
 
-Enum for valid entity link types:
+Located at: `Tracker/ProCohere.Avalonia/Models/NoteLink.cs`
 
 ```csharp
-public enum LinkedEntityType
+[Table("note_links")]
+public class NoteLink : BaseModel
 {
-    None = 0,
-    TeamMember,  // linked_team_member_id
-    Meeting,     // linked_meeting_id
-    Project,     // linked_project_id
-    Goal,        // linked_goal_id
-    Task,        // linked_task_id
-    // Note: Metric and Target are NOT supported - no columns in DB
+    [PrimaryKey("id", false)]
+    public Guid Id { get; set; }
+
+    [Column("organization_id")]
+    public Guid OrganizationId { get; set; }
+
+    [Column("note_id")]
+    public Guid NoteId { get; set; }
+
+    [Column("entity_type")]
+    public string EntityType { get; set; } = string.Empty;
+
+    [Column("entity_id")]
+    public Guid EntityId { get; set; }
+
+    [Column("entity_title_snapshot")]
+    public string? EntityTitleSnapshot { get; set; }
+
+    [Column("relationship_type")]
+    public string? RelationshipType { get; set; }
+
+    [Column("sort_order")]
+    public short SortOrder { get; set; }
+
+    [Column("created_by_team_member_id")]
+    public Guid CreatedByTeamMemberId { get; set; }
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    // Soft delete fields...
+}
+
+public static class NoteLinkEntityTypes
+{
+    public const string Meeting = "meeting";
+    public const string TeamMember = "team_member";
+    public const string Goal = "goal";
+    public const string Task = "task";
+    public const string Metric = "metric";
+    public const string Target = "target";
+    public const string Project = "project";
+}
+
+public static class NoteLinkRelationshipTypes
+{
+    public const string Mentioned = "mentioned";
+    public const string ActionItem = "action_item";
+    public const string Reference = "reference";
+    public const string FollowUp = "follow_up";
 }
 ```
 
 ---
 
-## Service Methods
+## Service Layer
 
 ### NotesService.cs
 
 Located at: `Tracker/ProCohere.Avalonia/Services/NotesService.cs`
 
-**Key Methods:**
+**Core CRUD:**
 - `GetAllNotesAsync()` - Gets all non-deleted notes, ordered by pinned then created_at
 - `GetNoteByIdAsync(Guid noteId)` - Get single note by ID
-- `GetNotesForEntityAsync(LinkedEntityType, Guid entityId)` - Get notes linked to an entity
-- `GetPinnedNotesAsync()` - Get pinned notes only
-- `SearchNotesAsync(string query)` - Search by title or content
 - `CreateNoteAsync(Note note)` - Create new note
 - `UpdateNoteAsync(Note note)` - Update existing note
-- `TogglePinnedAsync(Guid noteId)` - Toggle pin status
 - `DeleteNoteAsync(Guid noteId)` - Soft delete
+
+**Note Links:**
+- `GetLinksForNoteAsync(Guid noteId)` - Get all links for a specific note
+- `GetLinksForNotesAsync(IEnumerable<Guid> noteIds)` - Batch load links for multiple notes
+- `PopulateLinksAsync(IEnumerable<Note> notes)` - Populate Links collection on notes
+- `AddNoteLinkAsync(Guid noteId, string entityType, Guid entityId, string? entityTitle)` - Create link
+- `RemoveNoteLinkAsync(Guid linkId)` - Soft delete a link
+- `GetNotesForEntityViaLinksAsync(string entityType, Guid entityId)` - Get notes linked to an entity
+
+**Search & Filter:**
+- `GetPinnedNotesAsync()` - Get pinned notes only
+- `SearchNotesAsync(string query)` - Search by title or content
+
+**Helpers:**
+- `GetLinkedEntities(Note note)` - Convert Links to display info list
 
 ---
 
 ## Supported Entity Links
 
-The following entity types can be linked to notes via FK columns:
+| Entity Type | Constant | Status |
+|-------------|----------|--------|
+| Team Member | `team_member` | ✅ Supported |
+| Meeting | `meeting` | ✅ Supported |
+| Project | `project` | ✅ Supported |
+| Goal | `goal` | ✅ Supported |
+| Task | `task` | ✅ Supported |
+| Metric | `metric` | ✅ Supported |
+| Target | `target` | ✅ Supported |
 
-| Entity Type | Column Name | DB Status |
-|-------------|-------------|-----------|
-| TeamMember | `linked_team_member_id` | ✅ Exists |
-| Meeting | `linked_meeting_id` | ✅ Exists |
-| Project | `linked_project_id` | ✅ Exists |
-| Goal | `linked_goal_id` | ✅ Exists |
-| Task | `linked_task_id` | ✅ Exists |
-| Metric | N/A | ❌ No column |
-| Target | N/A | ❌ No column |
+> **Design:** A single note can have **multiple links** to different entities. The UI currently shows a simple "Linked" indicator; future enhancement could display individual link badges.
 
-> **Note:** Metric and Target link columns do NOT exist in the database. The `LinkedEntityType` enum throws `NotSupportedException` for these types.
+---
+
+## ViewModel Integration
+
+### ChronicleViewModel.cs
+
+The Chronicle tab ViewModel manages note editing with a **staging pattern** for links:
+
+```csharp
+// Staging lists for link changes (not saved until note is saved)
+private readonly List<(string EntityType, Guid EntityId, string EntityTitle)> _pendingLinks = new();
+private readonly List<NoteLink> _linksToRemove = new();
+
+// Combined view of existing + pending links
+public IEnumerable<(string Type, Guid Id, string Title)> EditingNoteLinks { get; }
+public bool EditingNoteHasLink => EditingNoteLinks.Any();
+
+// Link management
+public void AddEntityLink(string entityType, Guid entityId, string entityTitle);
+public void RemoveEntityLink(string entityType, Guid entityId);
+public void ClearAllEntityLinks();
+
+// Called after note save to persist link changes
+private async Task SaveLinkChangesAsync(Guid noteId);
+```
+
+**Workflow:**
+1. User edits note, adds/removes links (staged in memory)
+2. User clicks Save
+3. `SaveNoteAsync()` saves the note
+4. `SaveLinkChangesAsync()` persists link additions and removals
+5. Staging lists are cleared
+
+---
+
+## UI Components
+
+### NoteCard.axaml
+
+Displays a note in the grid with:
+- Title and content preview
+- Pin indicator
+- Link indicator (shows when `HasLinks` is true)
+- Relative timestamp
+
+### NoteEditorFlyout.axaml
+
+Editor flyout with:
+- Title and content fields
+- "Add Link" button (opens EntityPickerDialog)
+- Link indicator showing when links exist
+- Privacy toggle (Private/Shared)
+- Pin toggle
 
 ---
 
 ## Features Status
 
-| Feature | DB Status | Model Status | Service Status |
-|---------|-----------|--------------|----------------|
-| Basic CRUD | ✅ Exists | ✅ Mapped | ✅ Implemented |
-| Entity Links (5 types) | ✅ Exists | ✅ Mapped | ✅ Implemented |
-| Pin/Unpin | ✅ Exists | ✅ Mapped | ✅ Implemented |
-| Archive | ✅ Exists | ✅ Mapped | ⏳ Not yet used |
-| Category | ✅ Exists | ✅ Mapped | ⏳ Not yet used |
-| Tags | ✅ Exists | ✅ Mapped | ⏳ Not yet used |
-| AI Summary | ✅ Exists | ✅ Mapped | ⏳ Not yet used |
-| AI Actions | ✅ Exists | ✅ Mapped | ⏳ Not yet used |
-| Sync columns | ✅ Exists | ✅ Mapped | ⏳ Not yet used |
+| Feature | DB | Model | Service | UI |
+|---------|----|----|---------|-----|
+| Basic CRUD | ✅ | ✅ | ✅ | ✅ |
+| Multi-Entity Links | ✅ | ✅ | ✅ | ✅ |
+| Pin/Unpin | ✅ | ✅ | ✅ | ✅ |
+| Privacy Toggle | ✅ | ✅ | ✅ | ✅ |
+| Search | ✅ | ✅ | ✅ | ⏳ Planned |
+| Archive | ✅ | ✅ | ⏳ | ⏳ Planned |
+| Categories | ✅ | ✅ | ⏳ | ⏳ Planned |
+| Tags | ✅ | ✅ | ⏳ | ⏳ Planned |
+| AI Summary | ✅ | ✅ | ⏳ | ⏳ Future |
+| Templates | ✅ | ⏳ | ⏳ | ⏳ Future |
 
 ---
 
-## Important Notes
+## Guardrails & Constraints
 
-1. **Author Column:** The author is stored in `author_team_member_id` (NOT `created_by`). This links to `team_members` not `users`.
+1. **Author is Immutable:** `author_team_member_id` is set at creation and never changes.
 
-2. **Privacy Default:** Notes default to `is_private = true`. Public notes visible to organization members.
+2. **Privacy Default:** Notes default to `is_private = true`. Shared notes are visible to organization members.
 
-3. **Single Link Per Type:** Each FK column allows one link per entity type. A note can link to at most 5 entities (one of each type).
+3. **Title is Optional:** Notes can be created without a title; `DisplayTitle` falls back to content preview.
 
-4. **No Metric/Target Links:** Despite the enum having Metric and Target values for UI purposes, the database has no corresponding columns. Attempts to use these will throw exceptions.
+4. **Links are Soft Deleted:** Removing a link sets `is_deleted = true`, preserving history.
 
-5. **Content Format:** Supports 'plain', 'markdown', 'html'. UI should render accordingly.
+5. **Single Link Per Entity:** The unique constraint prevents duplicate links to the same entity.
+
+6. **Title Snapshot:** `entity_title_snapshot` captures the entity's title at link time for display without fetching.
+
+---
+
+## Important Implementation Notes
+
+1. **No FK Columns on Notes:** Entity linking is exclusively via `note_links` table. The `notes` table has NO `linked_*_id` columns.
+
+2. **Links Not Auto-Loaded:** The `Links` collection must be populated explicitly via `PopulateLinksAsync()` after loading notes.
+
+3. **Staged Link Changes:** Link additions/removals are staged in memory and only persisted when the note is saved.
+
+4. **EntityPickerDialog:** Used to select entities for linking. Supports filtering by entity type.

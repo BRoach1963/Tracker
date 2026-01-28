@@ -16,7 +16,8 @@
         WindowStartupLocation="CenterScreen"
         CanResize="True"
         ShowInTaskbar="True"
-        Background="#F8FAFC">
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
 
     <Window.Styles>
         <!-- Section Header Style -->
@@ -97,35 +98,45 @@
             <Setter Property="Background" Value="#F1F5F9"/>
         </Style>
     </Window.Styles>
-
-    <Grid RowDefinitions="Auto,*,Auto">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
         
-        <!-- Header (Draggable) -->
-        <Border Grid.Row="0" 
-                Background="White"
-                BorderBrush="#E2E8F0"
-                BorderThickness="0,0,0,1"
-                Padding="20,16"
-                PointerPressed="Header_PointerPressed">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Spacing="2">
-                    <TextBlock Text="Edit Profile"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="#1E293B" />
-                    <TextBlock Text="Update your personal information"
-                               FontSize="12"
-                               Foreground="#94A3B8" />
-                </StackPanel>
-                <Button Grid.Column="1"
-                        Content="✕"
-                        Classes="secondary"
-                        Padding="8,4"
-                        FontSize="16"
-                        Command="{Binding CancelCommand}"
-                        ToolTip.Tip="Close" />
-            </Grid>
-        </Border>
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16"
+                    PointerPressed="Header_PointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- Person icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            Margin="0,0,12,0" VerticalAlignment="Center">
+                        <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Edit Profile"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Update your personal information"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC" />
+                    </StackPanel>
+                    <Button Grid.Column="2"
+                            Content="✕"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            FontSize="16"
+                            Command="{Binding CancelCommand}"
+                            ToolTip.Tip="Close" />
+                </Grid>
+            </Border>
         
         <!-- Content -->
         <ScrollViewer Grid.Row="1" 
@@ -297,41 +308,64 @@
             </StackPanel>
         </ScrollViewer>
         
-        <!-- Footer -->
-        <Border Grid.Row="2"
-                Background="White"
-                BorderBrush="#E2E8F0"
-                BorderThickness="0,1,0,0"
-                Padding="20,12">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <!-- Status message -->
-                <TextBlock Text="{Binding StatusText}"
-                           Grid.Column="0"
-                           FontSize="12"
-                           VerticalAlignment="Center"
-                           TextWrapping="Wrap"
-                           MaxWidth="220">
-                    <TextBlock.Styles>
-                        <Style Selector="TextBlock">
-                            <Setter Property="Foreground" Value="{Binding StatusColor}" />
-                        </Style>
-                    </TextBlock.Styles>
-                </TextBlock>
-                
-                <Button Grid.Column="1"
-                        Content="Cancel"
-                        Classes="secondary"
-                        MinWidth="80"
-                        Margin="0,0,8,0"
-                        Command="{Binding CancelCommand}" />
-                <Button Grid.Column="2"
-                        x:Name="SaveButton"
-                        Content="Save Changes"
-                        Classes="primary"
-                        MinWidth="120"
-                        Command="{Binding SaveCommand}"
-                        IsEnabled="{Binding !IsSaving}" />
-            </Grid>
-        </Border>
-    </Grid>
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <!-- Status message -->
+                    <TextBlock Text="{Binding StatusText}"
+                               Grid.Column="0"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="220">
+                        <TextBlock.Styles>
+                            <Style Selector="TextBlock">
+                                <Setter Property="Foreground" Value="{Binding StatusColor}" />
+                            </Style>
+                        </TextBlock.Styles>
+                    </TextBlock>
+                    
+                    <Button Grid.Column="1"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            MinWidth="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="2"
+                            x:Name="SaveButton"
+                            Content="Save Changes"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            BorderThickness="1"
+                            MinWidth="120"
+                            Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding !IsSaving}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

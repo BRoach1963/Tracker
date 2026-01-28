@@ -13,8 +13,7 @@
         CanResize="False"
         ShowInTaskbar="False"
         SystemDecorations="BorderOnly"
-        ExtendClientAreaToDecorationsHint="True"
-        Background="{DynamicResource SystemChromeMediumLowColor}">
+        Background="Transparent">
 
     <Window.Styles>
         <Style Selector="Border.template-card">
@@ -60,23 +59,31 @@
             <Setter Property="Padding" Value="6,2" />
         </Style>
     </Window.Styles>
-
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Header -->
-        <Border Grid.Row="0" 
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="20,16">
-            <StackPanel Spacing="4">
-                <TextBlock Text="Apply Meeting Template"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <TextBlock x:Name="MeetingTitleText"
-                           Text="{Binding MeetingTitleText}"
-                           FontSize="13"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            </StackPanel>
-        </Border>
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Template icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V5H19V19H5V5H7V7M12,9L7,14H10V18H14V14H17L12,9Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Apply Meeting Template" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock x:Name="MeetingTitleText"
+                                   Text="{Binding MeetingTitleText}"
+                                   FontSize="12" Foreground="#FFFFFFCC" TextTrimming="CharacterEllipsis" MaxWidth="400"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         
         <!-- Content -->
         <Grid Grid.Row="1" Margin="20,12">
@@ -197,33 +204,59 @@
             </StackPanel>
         </Grid>
         
-        <!-- Footer -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="20,12">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <StackPanel Grid.Column="0" 
-                            Orientation="Horizontal"
-                            Spacing="8"
-                            VerticalAlignment="Center">
-                    <TextBlock x:Name="SelectedTemplateText"
-                               Text="{Binding SelectedTemplateText, TargetNullValue='No template selected'}"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
-                <Button Grid.Column="1"
-                        Content="Cancel"
-                        MinWidth="80"
-                        Margin="0,0,8,0"
-                        Command="{Binding CancelCommand}" />
-                <Button Grid.Column="2"
-                        x:Name="ApplyButton"
-                        Content="{Binding ApplyButtonText}"
-                        Classes="accent"
-                        MinWidth="120"
-                        IsEnabled="{Binding IsApplyEnabled}"
-                        Command="{Binding ApplyCommand}" />
-            </Grid>
-        </Border>
-    </Grid>
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <StackPanel Grid.Column="0" 
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <TextBlock x:Name="SelectedTemplateText"
+                                   Text="{Binding SelectedTemplateText, TargetNullValue='No template selected'}"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            MinWidth="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="2"
+                            x:Name="ApplyButton"
+                            Content="{Binding ApplyButtonText}"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            BorderThickness="1"
+                            MinWidth="120"
+                            IsEnabled="{Binding IsApplyEnabled}"
+                            Command="{Binding ApplyCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

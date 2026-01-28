@@ -196,6 +196,59 @@
                             </Border>
                         </StackPanel>
                         
+                        <!-- Project Section -->
+                        <StackPanel Margin="0,0,0,24">
+                            <TextBlock Text="Project" 
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       Margin="0,0,0,8"/>
+                            
+                            <!-- Not linked state -->
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        IsVisible="{Binding !SelectedTask.HasProject}">
+                                <TextBlock Text="Not linked"
+                                           Foreground="{StaticResource BrushTextTertiary}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"/>
+                                <Button Classes="button-secondary"
+                                        Command="{Binding ShowProjectSelectorCommand}"
+                                        Padding="8,4">
+                                    <TextBlock Text="Add to project" FontSize="12"/>
+                                </Button>
+                            </StackPanel>
+                            
+                            <!-- Linked state -->
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        IsVisible="{Binding SelectedTask.HasProject}">
+                                <Border Background="{StaticResource BrushCardBackground}"
+                                        CornerRadius="6" Padding="10,6"
+                                        BorderBrush="{StaticResource BrushBorder}"
+                                        BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <PathIcon Data="{StaticResource icon_folder}"
+                                                  Width="14" Height="14"
+                                                  Foreground="{StaticResource BrushHighlight}"/>
+                                        <TextBlock Text="{Binding SelectedTask.ProjectTitle}"
+                                                   Foreground="{StaticResource BrushTextPrimary}"
+                                                   FontSize="13"
+                                                   FontWeight="Medium"/>
+                                    </StackPanel>
+                                </Border>
+                                <Button Classes="button-secondary"
+                                        Command="{Binding ShowProjectSelectorCommand}"
+                                        Padding="6,4"
+                                        ToolTip.Tip="Change project">
+                                    <TextBlock Text="Change" FontSize="11"/>
+                                </Button>
+                                <Button Classes="button-secondary"
+                                        Command="{Binding UnlinkTaskFromProjectCommand}"
+                                        Padding="6,4"
+                                        ToolTip.Tip="Remove from project">
+                                    <TextBlock Text="Remove" FontSize="11"/>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                        
                         <!-- Action Buttons -->
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
                             <Button Classes="button-secondary"

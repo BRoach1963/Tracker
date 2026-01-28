@@ -4,6 +4,7 @@ using ProCohere.Avalonia.Models.Dialogs;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels.Dialogs;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace ProCohere.Avalonia.Views.Dialogs;
@@ -22,6 +23,7 @@ namespace ProCohere.Avalonia.Views.Dialogs;
 public partial class EditMeetingDialog : Window
 {
     private readonly EditMeetingDialogViewModel _viewModel;
+    private bool _forceClose;
 
     public EditMeetingDialog()
     {
@@ -33,8 +35,41 @@ public partial class EditMeetingDialog : Window
         // Provide dialog service to ViewModel (View's responsibility - it has the Window)
         _viewModel.SetDialogService(new DialogService(this));
         
-        // Close window when ViewModel requests it
-        _viewModel.CloseRequested += (_, _) => Close();
+        // Close window when ViewModel requests it (this is the "approved" close path)
+        _viewModel.CloseRequested += (_, _) =>
+        {
+            _forceClose = true;
+            Close();
+        };
+    }
+    
+    /// <summary>
+    /// Handle window closing to show confirmation if there are unsaved changes.
+    /// </summary>
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        // If already approved to close (via Cancel command), let it close
+        if (_forceClose)
+        {
+            base.OnClosing(e);
+            return;
+        }
+        
+        // Check if there are unsaved changes
+        if (_viewModel.HasUnsavedChanges)
+        {
+            e.Cancel = true;
+            
+            // Execute the Cancel command which will show confirmation
+            if (_viewModel.CancelCommand.CanExecute(null))
+            {
+                await _viewModel.CancelCommand.ExecuteAsync(null);
+            }
+        }
+        else
+        {
+            base.OnClosing(e);
+        }
     }
 
     #region Public Properties

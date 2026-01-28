@@ -14,48 +14,51 @@
         CanResize="False"
         ShowInTaskbar="False"
         SystemDecorations="BorderOnly"
-        ExtendClientAreaToDecorationsHint="True"
-        Background="{DynamicResource SystemChromeMediumLowColor}">
-
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Header with Avatar and Name -->
-        <Border Grid.Row="0" 
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="20,16">
-            <Grid ColumnDefinitions="Auto,*">
-                <!-- Avatar -->
-                <Border Grid.Column="0" Width="64" Height="64" CornerRadius="32" ClipToBounds="True" Margin="0,0,16,0">
-                    <Panel>
-                        <!-- Initials fallback -->
-                        <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
-                                CornerRadius="32"
-                                IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
-                            <TextBlock Text="{Binding Initials}"
-                                       FontSize="22"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Border>
-                        <!-- Avatar Image -->
-                        <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
-                               Stretch="UniformToFill" Width="64" Height="64"
-                               IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                    </Panel>
-                </Border>
-                
-                <!-- Name and Email -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                    <TextBlock Text="{Binding FullName}"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Text="{Binding Email}"
-                               FontSize="13"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
-            </Grid>
-        </Border>
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with avatar) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <Grid ColumnDefinitions="Auto,*">
+                    <!-- Avatar -->
+                    <Border Grid.Column="0" Width="56" Height="56" CornerRadius="28" ClipToBounds="True" Margin="0,0,16,0"
+                            Background="{DynamicResource BrushSecondary}">
+                        <Panel>
+                            <!-- Initials fallback -->
+                            <Border Background="{DynamicResource BrushSecondary}"
+                                    CornerRadius="28"
+                                    IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                <TextBlock Text="{Binding Initials}"
+                                           FontSize="20"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <!-- Avatar Image -->
+                            <Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}"
+                                   Stretch="UniformToFill" Width="56" Height="56"
+                                   IsVisible="{Binding AvatarUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        </Panel>
+                    </Border>
+                    
+                    <!-- Name and Email -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding FullName}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="{Binding Email}"
+                                   FontSize="13"
+                                   Foreground="#FFFFFFCC" />
+                    </StackPanel>
+                </Grid>
+            </Border>
         
         <!-- Content -->
         <ScrollViewer Grid.Row="1" 
@@ -162,7 +165,10 @@
                     <!-- Hire Date -->
                     <StackPanel Spacing="4">
                         <TextBlock Text="Hire Date" FontSize="12" />
-                        <DatePicker x:Name="HireDatePicker" />
+                        <CalendarDatePicker x:Name="HireDatePicker"
+                                            HorizontalAlignment="Stretch"
+                                            Watermark="Select date"
+                                            IsTodayHighlighted="True"/>
                     </StackPanel>
                     
                     <!-- Active Status -->
@@ -241,26 +247,65 @@
             </StackPanel>
         </ScrollViewer>
         
-        <!-- Footer -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Padding="20,12">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                <Button Grid.Column="0"
-                        Content="Deactivate"
-                        Foreground="#E74C3C"
-                        Command="{Binding DeactivateCommand}" />
-                <Button Grid.Column="2"
-                        Content="Cancel"
-                        MinWidth="80"
-                        Margin="0,0,8,0"
-                        Command="{Binding CancelCommand}" />
-                <Button Grid.Column="3"
-                        Content="Save Changes"
-                        Classes="accent"
-                        MinWidth="100"
-                        Command="{Binding SaveCommand}" />
-            </Grid>
-        </Border>
-    </Grid>
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Button Grid.Column="0"
+                            Content="Deactivate"
+                            Background="Transparent"
+                            Foreground="#E74C3C"
+                            BorderBrush="#E74C3C"
+                            BorderThickness="1"
+                            Command="{Binding DeactivateCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="#E74C3C"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            MinWidth="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="3"
+                            Content="Save Changes"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            BorderThickness="1"
+                            MinWidth="100"
+                            Command="{Binding SaveCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

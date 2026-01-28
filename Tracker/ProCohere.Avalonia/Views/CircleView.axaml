@@ -309,24 +309,18 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,*">
         
-        <!-- Row 0: Header -->
+        <!-- Row 0: Header (subtitle only - page title in MainWindow header) -->
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
-            <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Circle"
-                           FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource BrushTextPrimary}"/>
-                <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextSecondary}">
-                    <Run Text="Your team of"/>
-                    <Run Text="{Binding TotalMemberCount}" FontWeight="SemiBold"/>
-                    <Run Text="people"/>
-                </TextBlock>
-            </StackPanel>
+            <TextBlock Grid.Column="0" FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center">
+                <Run Text="Your team of"/>
+                <Run Text="{Binding TotalMemberCount}" FontWeight="SemiBold"/>
+                <Run Text="people"/>
+            </TextBlock>
             
             <!-- Add Member Button -->
             <Button Grid.Column="1" Command="{Binding AddTeamMemberCommand}" Classes="action-button">

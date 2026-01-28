@@ -9,12 +9,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static Supabase.Postgrest.Constants;
 
 namespace ProCohere.Avalonia.ViewModels.Dialogs;
 
 /// <summary>
 /// ViewModel for the Entity Picker dialog.
-/// Handles loading, filtering, and selection of entities (tasks, goals, metrics, projects).
+/// Handles loading, filtering, and selection of entities (tasks, goals, metrics, projects, persons, meetings).
 /// </summary>
 public partial class EntityPickerDialogViewModel : ObservableObject
 {
@@ -233,9 +234,54 @@ public partial class EntityPickerDialogViewModel : ObservableObject
                 }
             }
 
+            // Load people (team members)
+            if (_allowedTypes == null || _allowedTypes.Contains("person"))
+            {
+                var members = await TeamService.Instance.GetVisibleTeamMembersAsync();
+                foreach (var member in members.Where(m => !m.IsDeleted))
+                {
+                    _allItems.Add(new EntityPickerItem
+                    {
+                        Id = member.Id,
+                        EntityType = "person",
+                        Title = member.FullName,
+                        Subtitle = member.JobTitle ?? "Team Member",
+                        StatusText = member.Email ?? string.Empty
+                    });
+                }
+            }
+
+            // Load meetings
+            if (_allowedTypes == null || _allowedTypes.Contains("meeting"))
+            {
+                var client = AuthService.Instance.GetProCohereClient();
+                if (client != null)
+                {
+                    var meetingsResult = await client.From<Models.MeetingDetail>()
+                        .Filter("is_deleted", Operator.Equals, "false")
+                        .Order("scheduled_at", Ordering.Descending)
+                        .Limit(50)
+                        .Get();
+                    
+                    var meetings = meetingsResult.Models ?? new List<Models.MeetingDetail>();
+                    foreach (var meeting in meetings)
+                    {
+                        var scheduledText = meeting.ScheduledAt?.ToString("MMM d, yyyy h:mm tt") ?? "Unscheduled";
+                        _allItems.Add(new EntityPickerItem
+                        {
+                            Id = meeting.Id,
+                            EntityType = "meeting",
+                            Title = meeting.Title ?? "Untitled Meeting",
+                            Subtitle = scheduledText,
+                            StatusText = meeting.MeetingType?.Replace("_", " ") ?? string.Empty
+                        });
+                    }
+                }
+            }
+
             // TODO: Add ProjectService when available
 
-            ApplyFilters();
+            ApplyFilters();;
         }
         catch (Exception ex)
         {

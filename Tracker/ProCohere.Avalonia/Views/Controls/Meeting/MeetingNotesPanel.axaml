@@ -93,7 +93,7 @@
                                         <Button Content="Save" Classes="accent" Padding="12,4"
                                                 Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).SaveNoteEditCommand}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="Cancel" Padding="12,4"
+                                        <Button Content="Cancel" Classes="cancel-btn" Padding="12,4"
                                                 Command="{Binding $parent[ItemsControl].((vm:EditMeetingDialogViewModel)DataContext).CancelNoteEditCommand}"
                                                 CommandParameter="{Binding}"/>
                                     </StackPanel>

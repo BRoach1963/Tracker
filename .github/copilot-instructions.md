@@ -3,6 +3,9 @@
 ## ⚠️ CRITICAL RULES - NEVER BREAK THESE
 
 1. **NEVER VIOLATE MVVM** (unless there is absolutely no other option)
+   - **1a. Before implementing any UI feature with state, answer: What state exists?** List every collection, flag, property, and selection involved.
+   - **1b. Before implementing any UI feature with state, answer: Who owns each piece of state?** Must be ViewModel, NEVER View. If state lives in a control, it's wrong.
+   - **1c. Before implementing any UI feature with state, answer: How does data flow?** Data flows ViewModel → View via binding. Commands flow View → ViewModel. NEVER pull state from View to ViewModel.
 2. **NEVER TAKE SHORTCUTS** - Always fix things the right way, not the easy way
 3. **NO BACKWARDS COMPATIBILITY** - This is a pre-release product with NO clients. NEVER add backwards-compatible aliases, wrapper properties, or legacy mappings. Just fix things directly. This rule applies until explicitly told otherwise.
 

@@ -36,13 +36,13 @@ public partial class TeamMemberDetailsDialog : Window
         // Bind HireDate manually since DatePicker doesn't support two-way binding well
         if (_viewModel.HireDate.HasValue)
         {
-            HireDatePicker.SelectedDate = new DateTimeOffset(_viewModel.HireDate.Value);
+            HireDatePicker.SelectedDate = _viewModel.HireDate.Value;
         }
         HireDatePicker.SelectedDateChanged += (s, e) =>
         {
             if (_viewModel != null)
             {
-                _viewModel.HireDate = HireDatePicker.SelectedDate?.DateTime;
+                _viewModel.HireDate = HireDatePicker.SelectedDate;
             }
         };
     }

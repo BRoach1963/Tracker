@@ -13,8 +13,8 @@
         WindowStartupLocation="CenterOwner"
         CanResize="True"
         ShowInTaskbar="False"
-        SystemDecorations="Full"
-        Background="{DynamicResource BrushSurface}">
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
 
     <Window.Styles>
         <!-- Filter Tab Button Style -->
@@ -58,32 +58,35 @@
             <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
         </Style>
     </Window.Styles>
-
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
         
-        <!-- Header with ProCohere navy blue background -->
-        <Border Grid.Row="0" 
-                Background="{DynamicResource BrushSecondary}"
-                Padding="20,16">
-            <Grid ColumnDefinitions="Auto,*">
-                <!-- Link icon with green background -->
-                <Border Width="36" Height="36" CornerRadius="8" 
-                        Background="{DynamicResource BrushPrimary}" 
-                        Margin="0,0,12,0" VerticalAlignment="Center">
-                    <PathIcon Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" 
-                              Width="18" Height="18" Foreground="White"/>
-                </Border>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="Link to Existing Item"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="White" />
-                    <TextBlock Text="Search for a task, goal, metric, or project to discuss"
-                               FontSize="12"
-                               Foreground="#FFFFFFCC"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <Grid ColumnDefinitions="Auto,*">
+                    <!-- Link icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            Margin="0,0,12,0" VerticalAlignment="Center">
+                        <PathIcon Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Link to Existing Item"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Search for items to link (tasks, goals, people, meetings)"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
         
         <!-- Search and Filter -->
         <Border Grid.Row="1" 
@@ -122,6 +125,16 @@
                     <Border x:Name="ProjectFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="project">
                         <TextBlock Text="Projects" FontSize="12" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </Border>
+                    <Border x:Name="PersonFilterBorder" Classes="filter-tab"
+                            PointerPressed="FilterBorder_PointerPressed" Tag="person">
+                        <TextBlock Text="People" FontSize="12" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </Border>
+                    <Border x:Name="MeetingFilterBorder" Classes="filter-tab"
+                            PointerPressed="FilterBorder_PointerPressed" Tag="meeting">
+                        <TextBlock Text="Meetings" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                 </StackPanel>
@@ -230,49 +243,54 @@
                 <TextBlock Grid.Column="0"
                            Text="{Binding SelectionHint}"
                            FontSize="12"
-                           Foreground="#FFFFFFAA"
+                           Foreground="#FFFFFFCC"
                            VerticalAlignment="Center"/>
                            
-                <!-- Cancel button - Border with white outline -->
-                <Border Grid.Column="1" 
-                        Background="{DynamicResource BrushSecondary}" 
-                        CornerRadius="4"
-                        Margin="0,0,8,0"
-                        Padding="16,8"
-                        Cursor="Hand"
+                <!-- Cancel button -->
+                <Button Grid.Column="1" 
+                        Content="Cancel"
+                        Background="Transparent" 
+                        Foreground="White"
                         BorderThickness="1"
                         BorderBrush="White"
-                        x:Name="CancelBorder"
-                        PointerPressed="CancelBorder_PointerPressed">
-                    <TextBlock Text="Cancel"
-                               Foreground="White"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
-                </Border>
+                        Margin="0,0,8,0"
+                        Padding="16,8"
+                        x:Name="CancelButton"
+                        Command="{Binding CancelCommand}">
+                    <Button.Styles>
+                        <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Style>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
                 
-                <!-- Link button - Green primary button -->
-                <Border Grid.Column="2"
-                        x:Name="LinkBorder"
-                        Background="{DynamicResource BrushPrimary}"
-                        CornerRadius="4"
+                <!-- Link button -->
+                <Button Grid.Column="2"
+                        x:Name="LinkButton"
+                        Content="Link"
+                        Foreground="{DynamicResource BrushPrimary}"
+                        FontWeight="SemiBold"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource BrushPrimary}"
                         Padding="20,8"
-                        Cursor="Hand"
-                        PointerPressed="LinkBorder_PointerPressed">
-                    <Border.Styles>
-                        <Style Selector="Border#LinkBorder">
-                            <Setter Property="Opacity" Value="0.5"/>
+                        IsEnabled="{Binding CanLink}"
+                        Command="{Binding SelectCommand}">
+                    <Button.Styles>
+                        <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="White"/>
                         </Style>
-                        <Style Selector="Border#LinkBorder.can-link">
-                            <Setter Property="Opacity" Value="1.0"/>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                            <Setter Property="TextBlock.Foreground" Value="White"/>
                         </Style>
-                    </Border.Styles>
-                    <TextBlock Text="Link"
-                               Foreground="White"
-                               FontWeight="SemiBold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
-                </Border>
+                    </Button.Styles>
+                </Button>
             </Grid>
         </Border>
-    </Grid>
+        </Grid>
+    </Border>
 </Window>

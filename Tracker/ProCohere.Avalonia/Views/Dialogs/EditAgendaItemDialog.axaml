@@ -12,17 +12,33 @@
         MinWidth="400" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
-        Background="{DynamicResource BrushBackground}">
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
     
-    <Grid RowDefinitions="Auto,*,Auto">
-        
-        <!-- Header -->
-        <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" Padding="20,16">
-            <StackPanel>
-                <TextBlock Text="Edit Agenda Item" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                <TextBlock Text="Add context, talking points, and configure visibility" FontSize="12" Foreground="#FFFFFFAA"/>
-            </StackPanel>
-        </Border>
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Agenda icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Edit Agenda Item" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Add context, talking points, and configure visibility" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
@@ -124,7 +140,7 @@
                                      KeyDown="NewTalkingPointTextBox_KeyDown"/>
                             <Button Grid.Column="1" Content="Add" Classes="accent" Margin="8,0,0,0"
                                     Command="{Binding ConfirmAddCommand}"/>
-                            <Button Grid.Column="2" Content="Cancel" Margin="4,0,0,0"
+                            <Button Grid.Column="2" Content="Cancel" Classes="cancel-btn" Margin="4,0,0,0"
                                     Command="{Binding CancelAddCommand}"/>
                         </Grid>
                     </Border>
@@ -192,16 +208,21 @@
                 </StackPanel>
                 
             </StackPanel>
-        </ScrollViewer>
-        <!-- Footer -->
-        <Border Grid.Row="2" Background="{DynamicResource BrushSurface}" 
-                BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,1,0,0"
-                Padding="20,12">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <Button Content="Cancel" Command="{Binding CancelCommand}"/>
-                <Button Grid.Column="2" Content="Save Changes" Classes="accent" Command="{Binding SaveCommand}"/>
-            </Grid>
-        </Border>
-        
-    </Grid>
+            </ScrollViewer>
+            
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Cancel" 
+                            Classes="cancel-btn"
+                            Command="{Binding CancelCommand}"/>
+                    <Button Content="Save Changes" 
+                            Classes="accent"
+                            Command="{Binding SaveCommand}"/>
+                </StackPanel>
+            </Border>
+            
+        </Grid>
+    </Border>
 </Window>

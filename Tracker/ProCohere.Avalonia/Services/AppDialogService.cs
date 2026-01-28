@@ -250,11 +250,118 @@ public static class AppDialogService
 
     #endregion
 
-    #region Task Dialogs (Future)
+    #region Task Dialogs
 
-    // TODO: Implement when task dialogs are needed
-    // public static Task<TaskDialogResult> ShowCreateTaskAsync(Window parentWindow, MeetingDetail? relatedMeeting = null);
-    // public static Task<TaskDialogResult> ShowEditTaskAsync(Window parentWindow, TaskDetail task);
+    /// <summary>
+    /// Shows the create task dialog.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <returns>Result containing the created task or cancellation info</returns>
+    public static async Task<TaskDialogResult> ShowCreateTaskAsync(Window parentWindow)
+    {
+        try
+        {
+            var dialog = new AddTaskDialog();
+            
+            // Load team members for assignee selection (include self for assigning tasks to yourself)
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers);
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            if (dialog.Result == null)
+            {
+                return TaskDialogResult.Cancelled();
+            }
+            
+            if (dialog.Result.IsDeleted)
+            {
+                // Shouldn't happen for create, but handle it
+                return TaskDialogResult.Cancelled();
+            }
+            
+            // Create the task in the database
+            var created = await TaskService.Instance.CreateTaskAsync(
+                dialog.Result.Title,
+                dialog.Result.Description,
+                dialog.Result.Priority,
+                dialog.Result.DueDate,
+                dialog.Result.AssigneeId);
+            
+            if (created != null)
+            {
+                return TaskDialogResult.Created(created);
+            }
+            
+            return TaskDialogResult.Failed(TaskService.Instance.LastError ?? "Failed to create task");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing create task dialog: {ex.Message}");
+            return TaskDialogResult.Failed(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Shows the edit task dialog for an existing task.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="task">The task to edit</param>
+    /// <returns>Result containing the updated/deleted task or cancellation info</returns>
+    public static async Task<TaskDialogResult> ShowEditTaskAsync(Window parentWindow, TaskDetail task)
+    {
+        try
+        {
+            var dialog = new AddTaskDialog();
+            
+            // Load team members for assignee selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers);
+            
+            // Load existing task data
+            dialog.LoadTask(task);
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            if (dialog.Result == null)
+            {
+                return TaskDialogResult.Cancelled();
+            }
+            
+            if (dialog.Result.IsDeleted && dialog.Result.Id.HasValue)
+            {
+                // Delete the task
+                var deleted = await TaskService.Instance.DeleteTaskAsync(dialog.Result.Id.Value);
+                if (deleted)
+                {
+                    return TaskDialogResult.Deleted(dialog.Result.Id.Value);
+                }
+                return TaskDialogResult.Failed(TaskService.Instance.LastError ?? "Failed to delete task");
+            }
+            
+            // Update the task with the modified values
+            task.Title = dialog.Result.Title;
+            task.Description = dialog.Result.Description;
+            task.Priority = dialog.Result.Priority;
+            task.Status = dialog.Result.Status;
+            task.DueDate = dialog.Result.DueDate;
+            task.OwnerTeamMemberId = dialog.Result.AssigneeId;
+            
+            var updated = await TaskService.Instance.UpdateTaskAsync(task);
+            
+            if (updated != null)
+            {
+                return TaskDialogResult.Updated(updated);
+            }
+            
+            return TaskDialogResult.Failed(TaskService.Instance.LastError ?? "Failed to update task");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing edit task dialog: {ex.Message}");
+            return TaskDialogResult.Failed(ex.Message);
+        }
+    }
 
     #endregion
 }
@@ -331,6 +438,81 @@ public class MeetingDialogResult
     };
     
     public static MeetingDialogResult Failed(string error) => new()
+    {
+        Error = error
+    };
+}
+
+/// <summary>
+/// Result from a task dialog operation.
+/// </summary>
+public class TaskDialogResult
+{
+    /// <summary>
+    /// The task that was created or updated (null if cancelled/deleted).
+    /// </summary>
+    public TaskDetail? Task { get; init; }
+    
+    /// <summary>
+    /// The ID of the task that was deleted (null if not deleted).
+    /// </summary>
+    public Guid? DeletedTaskId { get; init; }
+    
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? Error { get; init; }
+    
+    /// <summary>
+    /// True if the user cancelled the dialog.
+    /// </summary>
+    public bool WasCancelled { get; init; }
+    
+    /// <summary>
+    /// True if a task was created (not edited).
+    /// </summary>
+    public bool WasCreated { get; init; }
+    
+    /// <summary>
+    /// True if a task was updated (not created).
+    /// </summary>
+    public bool WasUpdated { get; init; }
+    
+    /// <summary>
+    /// True if a task was deleted.
+    /// </summary>
+    public bool WasDeleted => DeletedTaskId.HasValue;
+    
+    /// <summary>
+    /// True if the operation was successful (created, updated, or deleted).
+    /// </summary>
+    public bool Success => WasCreated || WasUpdated || WasDeleted;
+
+    // Factory methods for clean result creation
+    
+    public static TaskDialogResult Created(TaskDetail task) => new()
+    {
+        Task = task,
+        WasCreated = true
+    };
+    
+    public static TaskDialogResult Updated(TaskDetail task) => new()
+    {
+        Task = task,
+        WasUpdated = true
+    };
+    
+    public static TaskDialogResult Deleted(Guid taskId) => new()
+    {
+        DeletedTaskId = taskId
+    };
+    
+    public static TaskDialogResult Cancelled() => new()
+    {
+        WasCancelled = true
+    };
+    
+    public static TaskDialogResult Failed(string error) => new()
     {
         Error = error
     };

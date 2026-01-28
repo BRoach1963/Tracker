@@ -199,6 +199,9 @@ public class DashboardService
             }
         }
 
+        // Enrich tasks with project links (for Briefing display)
+        await EnrichTasksWithProjectLinksAsync(client, data.Tasks);
+
         if (errors.Count > 0)
         {
             LastError = string.Join("; ", errors);
@@ -391,6 +394,76 @@ public class DashboardService
             Log($"ATTENDEES ERROR: {ex.Message}");
             Log($"ATTENDEES STACK: {ex.StackTrace}");
             return new List<MeetingAttendee>();
+        }
+    }
+
+    /// <summary>
+    /// Enriches tasks with their project link information (for Briefing display).
+    /// Loads all project links for tasks in bulk for efficiency.
+    /// </summary>
+    private async Task EnrichTasksWithProjectLinksAsync(Supabase.Client client, List<TaskDetail> tasks)
+    {
+        if (tasks == null || !tasks.Any()) return;
+        
+        try
+        {
+            Log($"Loading project links for {tasks.Count} tasks...");
+            
+            // Get all task IDs
+            var taskIds = tasks.Select(t => t.Id).ToList();
+            
+            // Load all project links for tasks in bulk
+            var links = await client.From<ProjectLink>()
+                .Filter("entity_type", Supabase.Postgrest.Constants.Operator.Equals, "task")
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Get();
+            
+            if (links.Models == null || !links.Models.Any())
+            {
+                Log("No project links found");
+                return;
+            }
+            
+            // Filter to only links for our tasks
+            var taskLinkDict = links.Models
+                .Where(l => taskIds.Contains(l.EntityId))
+                .GroupBy(l => l.EntityId)
+                .ToDictionary(g => g.Key, g => g.First()); // Take first link per task (single-project linking)
+            
+            Log($"Found {taskLinkDict.Count} tasks with project links");
+            
+            if (!taskLinkDict.Any()) return;
+            
+            // Get unique project IDs
+            var projectIds = taskLinkDict.Values.Select(l => l.ProjectId).Distinct().ToList();
+            
+            // Load project names in bulk
+            var projects = await client.From<Project>()
+                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
+                .Get();
+            
+            var projectDict = projects.Models?
+                .Where(p => projectIds.Contains(p.Id))
+                .ToDictionary(p => p.Id, p => p.Name) ?? new Dictionary<Guid, string>();
+            
+            // Enrich tasks with project info
+            foreach (var task in tasks)
+            {
+                if (taskLinkDict.TryGetValue(task.Id, out var link))
+                {
+                    task.ProjectId = link.ProjectId;
+                    task.ProjectTitle = projectDict.TryGetValue(link.ProjectId, out var name) 
+                        ? name 
+                        : link.EntityTitleSnapshot; // Fallback to snapshot
+                }
+            }
+            
+            Log($"Enriched {taskLinkDict.Count} tasks with project info");
+        }
+        catch (Exception ex)
+        {
+            Log($"PROJECT LINKS ERROR: {ex.Message}");
+            // Non-fatal - tasks will just not show project labels
         }
     }
 

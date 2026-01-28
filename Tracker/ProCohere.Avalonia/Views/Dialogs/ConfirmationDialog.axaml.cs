@@ -21,7 +21,9 @@ public partial class ConfirmationDialog : Window
         /// <summary>Warning confirmation (warning icon, caution styling)</summary>
         Warning,
         /// <summary>Destructive confirmation (delete icon, danger styling)</summary>
-        Destructive
+        Destructive,
+        /// <summary>Exit confirmation (exit/door icon, warning styling)</summary>
+        Exit
     }
     
     /// <summary>
@@ -33,6 +35,7 @@ public partial class ConfirmationDialog : Window
     private readonly TextBlock _titleText;
     private readonly TextBlock _messageText;
     private readonly Button _confirmButton;
+    private readonly TextBlock _confirmButtonText;
     
     public ConfirmationDialog()
     {
@@ -42,6 +45,7 @@ public partial class ConfirmationDialog : Window
         _titleText = this.FindControl<TextBlock>("TitleText")!;
         _messageText = this.FindControl<TextBlock>("MessageText")!;
         _confirmButton = this.FindControl<Button>("ConfirmButton")!;
+        _confirmButtonText = this.FindControl<TextBlock>("ConfirmButtonText")!;
     }
     
     public ConfirmationDialog(
@@ -53,10 +57,14 @@ public partial class ConfirmationDialog : Window
     {
         _titleText.Text = title;
         _messageText.Text = message;
-        _confirmButton.Content = confirmText;
+        _confirmButtonText.Text = confirmText;
         
         var cancelButton = this.FindControl<Button>("CancelButton")!;
-        cancelButton.Content = cancelText;
+        var cancelButtonTextBlock = cancelButton.Content as TextBlock;
+        if (cancelButtonTextBlock != null)
+            cancelButtonTextBlock.Text = cancelText;
+        else
+            cancelButton.Content = cancelText;
         
         ApplyConfirmationType(type);
     }
@@ -67,19 +75,21 @@ public partial class ConfirmationDialog : Window
         {
             case ConfirmationType.Warning:
                 _dialogIcon.Data = (StreamGeometry?)this.FindResource("WarningIcon");
-                _dialogIcon.Foreground = (IBrush?)Application.Current?.FindResource("BrushWarning");
                 break;
                 
             case ConfirmationType.Destructive:
                 _dialogIcon.Data = (StreamGeometry?)this.FindResource("DeleteIcon");
-                _dialogIcon.Foreground = (IBrush?)Application.Current?.FindResource("BrushError");
                 _confirmButton.Classes.Remove("primary");
                 _confirmButton.Classes.Add("danger");
                 break;
                 
+            case ConfirmationType.Exit:
+                _dialogIcon.Data = (StreamGeometry?)this.FindResource("ExitIcon");
+                break;
+                
             case ConfirmationType.Default:
             default:
-                // Keep default styling (question icon, warning color)
+                // Keep default styling (question icon)
                 break;
         }
     }

@@ -641,11 +641,29 @@ public partial class MeViewModel : ViewModelBase
         await LoadDataAsync();
     }
 
+    /// <summary>
+    /// Create a new task - opens the add task dialog.
+    /// </summary>
     [RelayCommand]
     private void CreateTask()
     {
-        Log("[MeViewModel] CreateTask command - TODO: implement");
-        // TODO: Open task creation dialog
+        Log("[MeViewModel] CreateTask command - opening dialog");
+        CreateTaskDialogRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Edit an existing task - opens the edit task dialog with the task loaded.
+    /// </summary>
+    [RelayCommand]
+    private void EditTask(TaskDetail? task)
+    {
+        if (task == null)
+        {
+            Log("[MeViewModel] EditTask command - no task provided");
+            return;
+        }
+        Log($"[MeViewModel] EditTask command - opening dialog for: {task.Title}");
+        EditTaskDialogRequested?.Invoke(this, task);
     }
 
     [RelayCommand]
@@ -888,6 +906,16 @@ public partial class MeViewModel : ViewModelBase
     /// </summary>
     public event EventHandler<MeetingDetail>? EditMeetingDialogRequested;
 
+    /// <summary>
+    /// Event to request showing the Create Task dialog.
+    /// </summary>
+    public event EventHandler? CreateTaskDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Edit Task dialog with an existing task.
+    /// </summary>
+    public event EventHandler<TaskDetail>? EditTaskDialogRequested;
+
     #endregion
 
     /// <summary>
@@ -953,6 +981,49 @@ public partial class MeViewModel : ViewModelBase
         RefreshMeetingsView();
         OnPropertyChanged(nameof(UpcomingMeetings));
         OnPropertyChanged(nameof(UpcomingMeetingCount));
+    }
+
+    /// <summary>
+    /// Called when a task is saved (created or updated) from the dialog.
+    /// </summary>
+    public void OnTaskSaved(TaskDetail task)
+    {
+        Log($"[MeViewModel] Task saved: {task.Title}");
+        
+        // Add to collection if new
+        var existing = MyTasks.FirstOrDefault(t => t.Id == task.Id);
+        if (existing == null)
+        {
+            MyTasks.Add(task);
+            Log("[MeViewModel] Added new task to collection");
+        }
+        else
+        {
+            // Update existing (replace in collection)
+            var index = MyTasks.IndexOf(existing);
+            MyTasks[index] = task;
+            Log("[MeViewModel] Updated existing task in collection");
+        }
+
+        // Notify property changes for task counts
+        OnPropertyChanged(nameof(MyTasks));
+    }
+
+    /// <summary>
+    /// Called when a task is deleted from the dialog.
+    /// </summary>
+    public void OnTaskDeleted(Guid taskId)
+    {
+        Log($"[MeViewModel] Task deleted: {taskId}");
+        
+        var existing = MyTasks.FirstOrDefault(t => t.Id == taskId);
+        if (existing != null)
+        {
+            MyTasks.Remove(existing);
+        }
+
+        // Notify property changes for task counts
+        OnPropertyChanged(nameof(MyTasks));
     }
 
     // ==================== Calendar Commands ====================

@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
 using static Supabase.Postgrest.Constants;
 
+// Reminder integration - Phase 5
+
 namespace ProCohere.Avalonia.Services;
 
 /// <summary>
@@ -246,7 +248,12 @@ public class MeetingService
             }
 
             // Reload meeting with attendees
-            return await GetMeetingAsync(createdMeeting.Id);
+            var reloadedMeeting = await GetMeetingAsync(createdMeeting.Id);
+            
+            // Create reminder for the meeting if enabled
+            await CreateMeetingReminderIfEnabledAsync(reloadedMeeting);
+            
+            return reloadedMeeting;
         }
         catch (Exception ex)
         {
@@ -338,6 +345,9 @@ public class MeetingService
                 LastError = rpcResult.Content;
                 return false;
             }
+            
+            // Cancel any pending reminders for this meeting
+            await CancelMeetingRemindersAsync(meetingId);
 
             Log($"Meeting deleted: {meetingId}");
             return true;
@@ -671,6 +681,100 @@ public class MeetingService
                 attendee.Email = member.Email ?? string.Empty;
                 attendee.AvatarUrl = member.UserAvatarUrl;
             }
+        }
+    }
+
+    #endregion
+
+    #region Reminder Integration
+
+    /// <summary>
+    /// Creates a reminder for the meeting if reminders are enabled in settings.
+    /// </summary>
+    private async Task CreateMeetingReminderIfEnabledAsync(MeetingDetail? meeting)
+    {
+        if (meeting == null) return;
+        
+        try
+        {
+            var settings = ReminderSchedulerService.Instance.Settings;
+            if (!settings.EnableReminders || !settings.ShowMeetingReminders)
+            {
+                Log("Meeting reminders disabled in settings");
+                return;
+            }
+            
+            // Check if reminder already exists
+            var exists = await ReminderDataService.Instance.ReminderExistsAsync(
+                "meeting", meeting.Id, ReminderType.Meeting);
+            
+            if (exists)
+            {
+                Log($"Reminder already exists for meeting {meeting.Id}");
+                return;
+            }
+            
+            var reminder = await ReminderDataService.Instance.CreateMeetingReminderAsync(
+                meeting, settings.MeetingReminderMinutes);
+            
+            if (reminder != null)
+            {
+                Log($"Created reminder for meeting {meeting.Id}: remind at {reminder.RemindAt:u}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the meeting operation if reminder creation fails
+            Log($"Failed to create meeting reminder: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cancels any pending reminders for a meeting.
+    /// </summary>
+    private async Task CancelMeetingRemindersAsync(Guid meetingId)
+    {
+        try
+        {
+            var cancelled = await ReminderDataService.Instance.CancelRemindersForEntityAsync("meeting", meetingId);
+            if (cancelled > 0)
+            {
+                Log($"Cancelled {cancelled} reminder(s) for deleted meeting {meetingId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the delete operation if reminder cancellation fails
+            Log($"Failed to cancel meeting reminders: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates the reminder for a meeting if the schedule changed.
+    /// Cancels existing reminder and creates a new one with updated time.
+    /// </summary>
+    public async Task UpdateMeetingReminderAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            var settings = ReminderSchedulerService.Instance.Settings;
+            if (!settings.EnableReminders || !settings.ShowMeetingReminders)
+            {
+                return;
+            }
+            
+            // Cancel existing reminder
+            await ReminderDataService.Instance.CancelRemindersForEntityAsync("meeting", meeting.Id);
+            
+            // Create new reminder with updated time
+            await ReminderDataService.Instance.CreateMeetingReminderAsync(
+                meeting, settings.MeetingReminderMinutes);
+            
+            Log($"Updated reminder for meeting {meeting.Id}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Failed to update meeting reminder: {ex.Message}");
         }
     }
 

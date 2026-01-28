@@ -3,75 +3,126 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="320"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="380"
         x:Class="ProCohere.Avalonia.Views.Dialogs.UpdateMetricValueDialog"
         x:DataType="vm:UpdateMetricValueDialogViewModel"
         Title="Update Metric Value"
         Width="420"
-        Height="340"
+        Height="400"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="Full"
-        ExtendClientAreaToDecorationsHint="False">
-
-    <Window.Styles>
-        <Style Selector="Window">
-            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
-        </Style>
-    </Window.Styles>
-
-    <Grid RowDefinitions="*,Auto" Margin="24">
-        <!-- Form Content -->
-        <StackPanel Grid.Row="0" Spacing="16">
-            <!-- Current Value Display -->
-            <Border Background="{DynamicResource BrushSurfaceHover}" 
-                    CornerRadius="8" 
-                    Padding="12"
-                    IsVisible="{Binding ShowCurrentValue}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Current:" FontSize="13" Opacity="0.7" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding CurrentValue}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Trending/chart icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Update Metric Value" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Record a new measurement" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
             
-            <!-- New Value -->
-            <StackPanel Spacing="6">
-                <TextBlock Text="New Value" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <TextBox x:Name="NewValueTextBox"
-                         Text="{Binding NewValue}"
-                         Watermark="Enter value..."
-                         FontSize="14"/>
-            </StackPanel>
+            <!-- Form Content -->
+            <ScrollViewer Grid.Row="1" 
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16" Margin="20">
+                    <!-- Current Value Display -->
+                    <Border Background="{DynamicResource BrushSurfaceHover}" 
+                            CornerRadius="8" 
+                            Padding="12"
+                            IsVisible="{Binding ShowCurrentValue}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Current:" FontSize="13" Opacity="0.7" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding CurrentValue}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
             
-            <!-- What Changed Note -->
-            <StackPanel Spacing="6">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <TextBlock Text="What Changed?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBlock Text="(required)" 
-                               FontSize="12" 
-                               Opacity="0.5"
-                               IsVisible="{Binding IsManualMetric}"/>
+                    <!-- New Value -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="New Value" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox x:Name="NewValueTextBox"
+                                 Text="{Binding NewValue}"
+                                 Watermark="Enter value..."
+                                 FontSize="14"/>
+                    </StackPanel>
+            
+                    <!-- What Changed Note -->
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="What Changed?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="(required)" 
+                                       FontSize="12" 
+                                       Opacity="0.5"
+                                       IsVisible="{Binding IsManualMetric}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding WhatChanged}"
+                                 Watermark="Describe what caused this change..."
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="80"
+                                 MaxHeight="100"/>
+                    </StackPanel>
                 </StackPanel>
-                <TextBox Text="{Binding WhatChanged}"
-                         Watermark="Describe what caused this change..."
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="80"
-                         MaxHeight="100"/>
-            </StackPanel>
-        </StackPanel>
+            </ScrollViewer>
         
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
-            <Button Content="Cancel" 
-                    Classes="secondary-button"
-                    Padding="16,8"
-                    Command="{Binding CancelCommand}"/>
-            <Button Content="Update" 
-                    Classes="primary-button"
-                    Padding="16,8"
-                    Command="{Binding UpdateCommand}"/>
-        </StackPanel>
-    </Grid>
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Cancel" 
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Padding="16,8"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Update" 
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Padding="16,8"
+                            Command="{Binding UpdateCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

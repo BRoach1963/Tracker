@@ -299,6 +299,18 @@ public partial class BriefingViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<MeetingDetail> UpcomingMeetings { get; } = new();
 
+    /// <summary>
+    /// Project signals (passive awareness indicators).
+    /// Shows projects needing attention: due soon, overdue tasks, stale, etc.
+    /// These inform awareness - clicking navigates to Projects tab.
+    /// </summary>
+    public ObservableCollection<ProjectSignal> ProjectSignals { get; } = new();
+
+    /// <summary>
+    /// Whether there are any project signals to display.
+    /// </summary>
+    public bool HasProjectSignals => ProjectSignals.Count > 0;
+
     #endregion
 
     #region Weekly Load Sparkline
@@ -601,6 +613,9 @@ public partial class BriefingViewModel : ViewModelBase
 
             Log($"[BriefingViewModel] Collections updated: {TeamMembers.Count} members, {UpcomingTasks.Count} tasks, {Goals.Count} goals");
 
+            // Load project signals (passive awareness indicators)
+            await LoadProjectSignalsAsync();
+
             // Check for errors
             if (!string.IsNullOrEmpty(DashboardService.Instance.LastError))
             {
@@ -672,6 +687,130 @@ public partial class BriefingViewModel : ViewModelBase
         
         return 3; // Everything else
     }
+    
+    /// <summary>
+    /// Computes project signals based on current project data.
+    /// Signals are passive awareness indicators - they inform, not prescribe.
+    /// </summary>
+    private async Task LoadProjectSignalsAsync()
+    {
+        try
+        {
+            Log("[BriefingViewModel] Loading project signals...");
+            
+            // Get projects the current user is involved with
+            var teamMember = AuthService.Instance.CurrentTeamMember;
+            if (teamMember == null)
+            {
+                Log("[BriefingViewModel] No current team member, skipping project signals");
+                return;
+            }
+            
+            var projects = await ProjectService.Instance.GetProjectsForTeamMemberAsync(teamMember.Id);
+            var signals = new List<ProjectSignal>();
+            var today = DateTime.Today;
+            
+            foreach (var project in projects.Where(p => p.Status != ProjectStatus.Completed && !p.IsDeleted))
+            {
+                // Check for due soon (within 7 days)
+                if (project.DueDate.HasValue)
+                {
+                    var daysUntilDue = (project.DueDate.Value.Date - today).Days;
+                    if (daysUntilDue < 0)
+                    {
+                        // Overdue project
+                        signals.Add(new ProjectSignal
+                        {
+                            ProjectId = project.Id,
+                            ProjectName = project.Name ?? "Untitled",
+                            SignalType = ProjectSignalType.DueSoon,
+                            Summary = $"Overdue by {Math.Abs(daysUntilDue)} day{(Math.Abs(daysUntilDue) == 1 ? "" : "s")}",
+                            Priority = 100 + Math.Abs(daysUntilDue) // Higher priority the more overdue
+                        });
+                    }
+                    else if (daysUntilDue <= 7)
+                    {
+                        signals.Add(new ProjectSignal
+                        {
+                            ProjectId = project.Id,
+                            ProjectName = project.Name ?? "Untitled",
+                            SignalType = ProjectSignalType.DueSoon,
+                            Summary = daysUntilDue == 0 ? "Due today" : $"Due in {daysUntilDue} day{(daysUntilDue == 1 ? "" : "s")}",
+                            Priority = 50 + (7 - daysUntilDue) // Higher priority the sooner
+                        });
+                    }
+                }
+                
+                // Check for overdue tasks
+                var projectTasks = await TaskService.Instance.GetTasksByProjectAsync(project.Id);
+                var overdueTasks = projectTasks.Count(t => 
+                    t.DueDate.HasValue && 
+                    t.DueDate.Value.Date < today && 
+                    t.Status != "completed");
+                
+                if (overdueTasks > 0)
+                {
+                    signals.Add(new ProjectSignal
+                    {
+                        ProjectId = project.Id,
+                        ProjectName = project.Name ?? "Untitled",
+                        SignalType = ProjectSignalType.OverdueTasks,
+                        Summary = $"{overdueTasks} overdue task{(overdueTasks == 1 ? "" : "s")}",
+                        Priority = 80 + overdueTasks
+                    });
+                }
+                
+                // Check for goals needing attention
+                var projectGoals = await GoalsService.Instance.GetGoalsByProjectAsync(project.Id);
+                var needsAttention = projectGoals.Count(g => 
+                    g.Status == "at_risk" || 
+                    g.Status == "needs_attention" || 
+                    g.Status == "blocked");
+                
+                if (needsAttention > 0)
+                {
+                    signals.Add(new ProjectSignal
+                    {
+                        ProjectId = project.Id,
+                        ProjectName = project.Name ?? "Untitled",
+                        SignalType = ProjectSignalType.GoalsNeedAttention,
+                        Summary = $"{needsAttention} goal{(needsAttention == 1 ? "" : "s")} need{(needsAttention == 1 ? "s" : "")} attention",
+                        Priority = 60 + needsAttention
+                    });
+                }
+                
+                // Check for stale projects (no activity in 14+ days)
+                var lastActivity = project.UpdatedAt;
+                var daysSinceActivity = (today - lastActivity.Date).Days;
+                if (daysSinceActivity >= 14)
+                {
+                    signals.Add(new ProjectSignal
+                    {
+                        ProjectId = project.Id,
+                        ProjectName = project.Name ?? "Untitled",
+                        SignalType = ProjectSignalType.Stale,
+                        Summary = $"No activity for {daysSinceActivity} days",
+                        Priority = 20
+                    });
+                }
+            }
+            
+            // Sort by priority (descending) and limit to top signals
+            ProjectSignals.Clear();
+            foreach (var signal in signals.OrderByDescending(s => s.Priority).Take(5))
+            {
+                ProjectSignals.Add(signal);
+            }
+            
+            OnPropertyChanged(nameof(HasProjectSignals));
+            Log($"[BriefingViewModel] Loaded {ProjectSignals.Count} project signals");
+        }
+        catch (Exception ex)
+        {
+            Log($"[BriefingViewModel] Error loading project signals: {ex.Message}");
+            // Don't fail briefing for signal errors
+        }
+    }
 
     #region Dialog Events
 
@@ -714,6 +853,24 @@ public partial class BriefingViewModel : ViewModelBase
             UpcomingMeetings[index] = meeting;
             Log($"[BriefingViewModel] Updated existing meeting in collection");
         }
+    }
+    
+    /// <summary>
+    /// Event raised when user clicks a project signal.
+    /// The shell should navigate to Projects tab.
+    /// </summary>
+    public event EventHandler<Guid>? NavigateToProjectRequested;
+    
+    /// <summary>
+    /// Command to handle clicking on a project signal.
+    /// Navigates to the Projects tab (no flyout - just navigation).
+    /// </summary>
+    [RelayCommand]
+    private void NavigateToProject(ProjectSignal signal)
+    {
+        if (signal == null) return;
+        Log($"[BriefingViewModel] Project signal clicked: {signal.ProjectName} ({signal.SignalType})");
+        NavigateToProjectRequested?.Invoke(this, signal.ProjectId);
     }
 
     #endregion

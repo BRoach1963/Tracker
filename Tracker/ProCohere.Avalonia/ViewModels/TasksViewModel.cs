@@ -182,6 +182,137 @@ public partial class TasksViewModel : ViewModelBase
 
     #endregion
 
+    #region Project Linking
+    
+    /// <summary>
+    /// Event raised when the project selector popover should be shown for linking.
+    /// </summary>
+    public event EventHandler? ProjectSelectorRequested;
+    
+    /// <summary>
+    /// Whether the project selector popover is open.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProjectSelectorOpen;
+    
+    /// <summary>
+    /// Requests the View to show the project selector popover.
+    /// </summary>
+    [RelayCommand]
+    private void ShowProjectSelector()
+    {
+        IsProjectSelectorOpen = true;
+        ProjectSelectorRequested?.Invoke(this, EventArgs.Empty);
+    }
+    
+    /// <summary>
+    /// Hides the project selector popover.
+    /// </summary>
+    public void HideProjectSelector()
+    {
+        IsProjectSelectorOpen = false;
+    }
+    
+    /// <summary>
+    /// Links the selected task to a project.
+    /// Called by the View when a project is selected in the popover.
+    /// </summary>
+    public async Task LinkTaskToProjectAsync(Guid projectId, string projectTitle)
+    {
+        if (SelectedTask == null) return;
+        
+        try
+        {
+            IsLoading = true;
+            
+            // If already linked to a different project, remove old link first
+            if (SelectedTask.ProjectId.HasValue && SelectedTask.ProjectId != projectId)
+            {
+                await ProjectService.Instance.RemoveProjectLinkAsync(
+                    SelectedTask.ProjectId.Value,
+                    "task",
+                    SelectedTask.Id);
+            }
+            
+            // Add new link
+            var link = await ProjectService.Instance.AddProjectLinkAsync(
+                projectId,
+                "task",
+                SelectedTask.Id,
+                SelectedTask.Title);
+            
+            if (link != null)
+            {
+                // Update local state
+                SelectedTask.ProjectId = projectId;
+                SelectedTask.ProjectTitle = projectTitle;
+                
+                // Notify UI
+                OnPropertyChanged(nameof(SelectedTask));
+                
+                NotificationService.Instance.ShowSuccess(
+                    "Task Linked", 
+                    $"'{SelectedTask.Title}' linked to '{projectTitle}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Link Failed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            IsProjectSelectorOpen = false;
+        }
+    }
+    
+    /// <summary>
+    /// Unlinks the selected task from its project.
+    /// </summary>
+    [RelayCommand]
+    private async Task UnlinkTaskFromProject()
+    {
+        if (SelectedTask?.ProjectId == null) return;
+        
+        try
+        {
+            IsLoading = true;
+            
+            var success = await ProjectService.Instance.RemoveProjectLinkAsync(
+                SelectedTask.ProjectId.Value,
+                "task",
+                SelectedTask.Id);
+            
+            if (success)
+            {
+                var projectTitle = SelectedTask.ProjectTitle;
+                
+                // Update local state
+                SelectedTask.ProjectId = null;
+                SelectedTask.ProjectTitle = null;
+                
+                // Notify UI
+                OnPropertyChanged(nameof(SelectedTask));
+                
+                NotificationService.Instance.ShowInfo(
+                    "Task Unlinked", 
+                    $"Removed from '{projectTitle}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Unlink Failed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    #endregion
+
     #region New Task
 
     /// <summary>

@@ -378,6 +378,138 @@ public partial class MetricsViewModel : ViewModelBase
 
     #endregion
 
+    #region Project Linking
+    
+    /// <summary>
+    /// Event raised when the project selector popover should be shown for linking.
+    /// </summary>
+    public event EventHandler? ProjectSelectorRequested;
+    
+    /// <summary>
+    /// Whether the project selector popover is open.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProjectSelectorOpen;
+    
+    /// <summary>
+    /// Requests the View to show the project selector popover.
+    /// </summary>
+    [RelayCommand]
+    private void ShowProjectSelector()
+    {
+        IsProjectSelectorOpen = true;
+        ProjectSelectorRequested?.Invoke(this, EventArgs.Empty);
+    }
+    
+    /// <summary>
+    /// Hides the project selector popover.
+    /// </summary>
+    [RelayCommand]
+    private void HideProjectSelector()
+    {
+        IsProjectSelectorOpen = false;
+    }
+    
+    /// <summary>
+    /// Links the selected metric to a project.
+    /// Called by the View when a project is selected in the popover.
+    /// </summary>
+    public async Task LinkMetricToProjectAsync(Guid projectId, string projectTitle)
+    {
+        if (SelectedMetric == null) return;
+        
+        try
+        {
+            IsLoading = true;
+            
+            // If already linked to a different project, remove old link first
+            if (SelectedMetric.ProjectId.HasValue && SelectedMetric.ProjectId != projectId)
+            {
+                await ProjectService.Instance.RemoveProjectLinkAsync(
+                    SelectedMetric.ProjectId.Value,
+                    "metric",
+                    SelectedMetric.Id);
+            }
+            
+            // Add new link
+            var link = await ProjectService.Instance.AddProjectLinkAsync(
+                projectId,
+                "metric",
+                SelectedMetric.Id,
+                SelectedMetric.Name);
+            
+            if (link != null)
+            {
+                // Update local state
+                SelectedMetric.ProjectId = projectId;
+                SelectedMetric.ProjectTitle = projectTitle;
+                
+                // Notify UI
+                OnPropertyChanged(nameof(SelectedMetric));
+                
+                NotificationService.Instance.ShowSuccess(
+                    "Metric Linked", 
+                    $"'{SelectedMetric.Name}' linked to '{projectTitle}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Link Failed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            IsProjectSelectorOpen = false;
+        }
+    }
+    
+    /// <summary>
+    /// Unlinks the selected metric from its project.
+    /// </summary>
+    [RelayCommand]
+    private async Task UnlinkMetricFromProject()
+    {
+        if (SelectedMetric?.ProjectId == null) return;
+        
+        try
+        {
+            IsLoading = true;
+            
+            var success = await ProjectService.Instance.RemoveProjectLinkAsync(
+                SelectedMetric.ProjectId.Value,
+                "metric",
+                SelectedMetric.Id);
+            
+            if (success)
+            {
+                var projectTitle = SelectedMetric.ProjectTitle;
+                
+                // Update local state
+                SelectedMetric.ProjectId = null;
+                SelectedMetric.ProjectTitle = null;
+                
+                // Notify UI
+                OnPropertyChanged(nameof(SelectedMetric));
+                
+                NotificationService.Instance.ShowInfo(
+                    "Metric Unlinked", 
+                    $"Removed from '{projectTitle}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            NotificationService.Instance.ShowError("Unlink Failed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    #endregion
+
     #region CRUD Commands
 
     [RelayCommand]

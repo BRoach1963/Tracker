@@ -191,6 +191,47 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     
+                    <!-- Project Section -->
+                    <TextBlock Text="PROJECT" Classes="detail-section-header"/>
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12"
+                            IsVisible="{Binding !HasProject}">
+                        <!-- Not linked state -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Not linked"
+                                       Foreground="{DynamicResource BrushTextTertiary}"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"/>
+                            <Button Classes="secondary-button" Padding="8,4"
+                                    Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).ShowProjectSelectorCommand}">
+                                <TextBlock Text="Add to project" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12"
+                            IsVisible="{Binding HasProject}">
+                        <!-- Linked state -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"
+                                      Width="14" Height="14" 
+                                      Foreground="{DynamicResource BrushHighlight}"/>
+                            <TextBlock Text="{Binding ProjectTitle}"
+                                       FontSize="11" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       VerticalAlignment="Center"
+                                       MaxWidth="140" TextTrimming="CharacterEllipsis"/>
+                            <Button Classes="secondary-button" Padding="6,2"
+                                    Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).ShowProjectSelectorCommand}"
+                                    ToolTip.Tip="Change project">
+                                <TextBlock Text="Change" FontSize="10"/>
+                            </Button>
+                            <Button Classes="secondary-button" Padding="6,2"
+                                    Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).UnlinkNoteFromProjectCommand}"
+                                    ToolTip.Tip="Remove from project">
+                                <TextBlock Text="Remove" FontSize="10"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    
                     <!-- Metadata Section -->
                     <TextBlock Text="DETAILS" Classes="detail-section-header"/>
                     <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12">
@@ -225,12 +266,22 @@
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Visibility" FontSize="11" 
                                        Foreground="{DynamicResource BrushTextTertiary}" Margin="0,6,0,0"/>
                             <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="0,6,0,0">
-                                <PathIcon Data="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyIconConverter}}"
+                                <!-- Private indicator -->
+                                <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
                                           Width="10" Height="10" 
-                                          Foreground="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyColorConverter}}"/>
-                                <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyTextConverter}}" 
-                                           FontSize="11" FontWeight="Medium"
-                                           Foreground="{Binding IsPrivate, Converter={StaticResource BoolToPrivacyColorConverter}}"/>
+                                          Foreground="{DynamicResource BrushWarning}"
+                                          IsVisible="{Binding IsPrivate}"/>
+                                <TextBlock Text="Private" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushWarning}"
+                                           IsVisible="{Binding IsPrivate}"/>
+                                <!-- Team/Shared indicator -->
+                                <PathIcon Data="M12,5A3.5,3.5 0 0,0 8.5,8.5A3.5,3.5 0 0,0 12,12A3.5,3.5 0 0,0 15.5,8.5A3.5,3.5 0 0,0 12,5M12,2A6.5,6.5 0 0,1 18.5,8.5A6.5,6.5 0 0,1 12,15A6.5,6.5 0 0,1 5.5,8.5A6.5,6.5 0 0,1 12,2M12,17C8.13,17 1,18.94 1,22.83V24H23V22.83C23,18.94 15.87,17 12,17Z"
+                                          Width="10" Height="10" 
+                                          Foreground="{DynamicResource BrushSuccess}"
+                                          IsVisible="{Binding !IsPrivate}"/>
+                                <TextBlock Text="Team" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushSuccess}"
+                                           IsVisible="{Binding !IsPrivate}"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -251,7 +302,8 @@
                                     CommandParameter="{Binding}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" Width="12" Height="12"/>
-                                    <TextBlock Text="{Binding IsPinned, Converter={StaticResource BoolToPinTextConverter}}" FontSize="12"/>
+                                    <TextBlock Text="Unpin" FontSize="12" IsVisible="{Binding IsPinned}"/>
+                                    <TextBlock Text="Pin" FontSize="12" IsVisible="{Binding !IsPinned}"/>
                                 </StackPanel>
                             </Button>
                             <Button Grid.Column="1" Classes="secondary-button" HorizontalAlignment="Stretch" Margin="4,0,0,0"
@@ -263,6 +315,17 @@
                                 </StackPanel>
                             </Button>
                         </Grid>
+                        
+                        <!-- Export placeholder - disabled for future implementation -->
+                        <Button Classes="secondary-button" HorizontalAlignment="Stretch"
+                                IsEnabled="False"
+                                ToolTip.Tip="Export functionality coming soon">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M14,18V16H6V18H14M14,14V12H6V14H14M13,9V3.5L18.5,9H13Z" Width="12" Height="12"/>
+                                <TextBlock Text="Export" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                        
                         <Button Classes="secondary-button" HorizontalAlignment="Stretch"
                                 Command="{Binding $parent[UserControl;1].((vm:ChronicleViewModel)DataContext).DeleteNoteCommand}"
                                 CommandParameter="{Binding}">
@@ -298,9 +361,9 @@
                                 </StackPanel>
                             </Grid>
                             
-                            <!-- Updated entry (if different from created) -->
+                            <!-- Updated entry (shown when UpdatedAt has value) -->
                             <Grid ColumnDefinitions="Auto,*" DataContext="{Binding SelectedNote}"
-                                  IsVisible="{Binding UpdatedAt, Converter={StaticResource DateDifferentFromCreatedConverter}}">
+                                  IsVisible="{Binding UpdatedAt, Converter={x:Static ObjectConverters.IsNotNull}}">
                                 <Border Width="8" Height="8" CornerRadius="4" 
                                         Background="{DynamicResource BrushHighlight}" 
                                         VerticalAlignment="Top" Margin="0,4,12,0"/>

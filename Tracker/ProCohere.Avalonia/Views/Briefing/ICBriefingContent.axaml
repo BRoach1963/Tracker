@@ -33,7 +33,7 @@
          - If no → wrong
     -->
 
-    <Grid RowDefinitions="Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
 
         <!-- Row 0: Sparkline (WEEK VIEW ONLY) -->
         <Border Grid.Row="0" 
@@ -91,20 +91,21 @@
         <!-- Row 1: My Tasks (DOMINANT - full width, this is why IC opens Briefing) -->
         <Border Grid.Row="1" 
                 Background="{DynamicResource BrushSurface}" 
-                CornerRadius="10" 
-                Padding="16"
+                CornerRadius="10"
                 Margin="0,0,0,12" 
                 BorderBrush="{DynamicResource BrushBorder}" 
-                BorderThickness="1">
+                BorderThickness="1"
+                ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" 
-                           Text="My Tasks" 
-                           FontSize="15" 
-                           FontWeight="SemiBold" 
-                           Foreground="{DynamicResource BrushTextPrimary}" 
-                           Margin="0,0,0,12"/>
+                <!-- Header Banner -->
+                <Border Grid.Row="0" Background="{DynamicResource BrushSecondarySubtle}" Padding="16,10" CornerRadius="10,10,0,0" Margin="-1,-1,-1,0">
+                    <TextBlock Text="My Tasks" 
+                               FontSize="15" 
+                               FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextOnPrimary}"/>
+                </Border>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="16,12,16,16">
                     <StackPanel>
                         <ItemsControl ItemsSource="{Binding SortedUpcomingTasks}">
                             <ItemsControl.ItemTemplate>
@@ -130,9 +131,21 @@
                                                            FontWeight="Medium"
                                                            Foreground="{DynamicResource BrushTextPrimary}" 
                                                            TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding DueDateText}" 
-                                                           FontSize="12" 
-                                                           Foreground="{Binding DueDateBrush}"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding DueDateText}" 
+                                                               FontSize="12" 
+                                                               Foreground="{Binding DueDateBrush}"/>
+                                                    <!-- Project label (quiet, non-interactive) -->
+                                                    <TextBlock Text="•" FontSize="12" 
+                                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                                               IsVisible="{Binding HasProject}"/>
+                                                    <TextBlock Text="{Binding ProjectTitle}" 
+                                                               FontSize="12" 
+                                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               MaxWidth="150"
+                                                               IsVisible="{Binding HasProject}"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -158,21 +171,22 @@
         <!-- Row 2: My Meetings (SECONDARY - stacked below tasks, not side-by-side) -->
         <Border Grid.Row="2" 
                 Background="{DynamicResource BrushSurface}" 
-                CornerRadius="10" 
-                Padding="16,14"
+                CornerRadius="10"
                 Margin="0,0,0,12" 
                 BorderBrush="{DynamicResource BrushBorder}" 
                 BorderThickness="1"
-                MaxHeight="200">
+                MaxHeight="200"
+                ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" 
-                           Text="My Meetings" 
-                           FontSize="14" 
-                           FontWeight="SemiBold" 
-                           Foreground="{DynamicResource BrushTextPrimary}" 
-                           Margin="0,0,0,10"/>
+                <!-- Header Banner -->
+                <Border Grid.Row="0" Background="{DynamicResource BrushSecondarySubtle}" Padding="16,10" CornerRadius="10,10,0,0" Margin="-1,-1,-1,0">
+                    <TextBlock Text="My Meetings" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               Foreground="{DynamicResource BrushTextOnPrimary}"/>
+                </Border>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="16,10,16,14">
                     <StackPanel>
                         <ItemsControl ItemsSource="{Binding UpcomingMeetings}">
                             <ItemsControl.ItemTemplate>
@@ -219,12 +233,75 @@
             </Grid>
         </Border>
 
-        <!-- Row 3: Quick Actions (Task, Note, Meeting - in that order) -->
+        <!-- Row 3: Project Signals (Passive awareness - click navigates to Projects) -->
         <Border Grid.Row="3" 
                 Background="{DynamicResource BrushSurface}" 
+                CornerRadius="10" 
+                Padding="16,14"
+                Margin="0,0,0,12" 
+                BorderBrush="{DynamicResource BrushBorder}" 
+                BorderThickness="1"
+                IsVisible="{Binding HasProjectSignals}">
+            <Grid RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0" 
+                           Text="Project Signals" 
+                           FontSize="13" 
+                           FontWeight="Medium" 
+                           Foreground="{DynamicResource BrushTextSecondary}" 
+                           Margin="0,0,0,8"/>
+                
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding ProjectSignals}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:ProjectSignal">
+                            <Button Classes="ghost"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    Command="{Binding $parent[UserControl].((vm:BriefingViewModel)DataContext).NavigateToProjectCommand}"
+                                    CommandParameter="{Binding}"
+                                    Padding="10,8" 
+                                    Margin="0,0,0,4"
+                                    CornerRadius="6">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <!-- Signal Icon -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding IconGlyph}"
+                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                               FontSize="14"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <!-- Project Name + Summary -->
+                                    <StackPanel Grid.Column="1" Spacing="1">
+                                        <TextBlock Text="{Binding ProjectName}" 
+                                                   FontSize="13" 
+                                                   FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" 
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Summary}" 
+                                                   FontSize="11" 
+                                                   Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    </StackPanel>
+                                    <!-- Navigate arrow -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="&#xE76C;"
+                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                               FontSize="12"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <!-- Row 4: Quick Actions (Task, Note, Meeting - in that order) -->
+        <Border Grid.Row="4" 
+                Background="{DynamicResource BrushPrimarySubtle}" 
                 CornerRadius="8" 
                 Padding="12,10"
-                BorderBrush="{DynamicResource BrushBorder}" 
+                BorderBrush="{DynamicResource BrushPrimarySoft}" 
                 BorderThickness="1">
             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
                 <Button Command="{Binding AddTaskCommand}" 

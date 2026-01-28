@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="350"
+             x:Class="ProCohere.Avalonia.Views.Controls.TeamMemberSelectorPopover"
+             x:DataType="controls:TeamMemberSelectorPopover">
+    
+    <UserControl.Styles>
+        <!-- Team member item style -->
+        <Style Selector="Button.member-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.member-item:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Button.member-item /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button.member-item:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Width="300"
+            MaxHeight="350">
+        <Grid RowDefinitions="Auto,*">
+            <!-- Search Input -->
+            <Border Grid.Row="0" 
+                    Padding="12"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0,0,0,1">
+                <TextBox x:Name="SearchBox"
+                         Watermark="Search team members..."
+                         Text="{Binding SearchText, Mode=TwoWay}"
+                         FontSize="13"/>
+            </Border>
+            
+            <!-- Team Member List -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          MaxHeight="280">
+                <StackPanel>
+                    <!-- Loading indicator -->
+                    <TextBlock Text="Loading..."
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               FontSize="13"
+                               Margin="12"
+                               IsVisible="{Binding IsLoading}"/>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Text="No team members found"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               FontSize="13"
+                               FontStyle="Italic"
+                               Margin="12"
+                               IsVisible="{Binding ShowEmptyState}"/>
+                    
+                    <!-- Team member items -->
+                    <ItemsControl ItemsSource="{Binding FilteredMembers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <Button Classes="member-item"
+                                        Command="{Binding $parent[UserControl].((controls:TeamMemberSelectorPopover)DataContext).SelectMemberCommand, FallbackValue={x:Null}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <!-- Avatar placeholder -->
+                                        <Border Grid.Column="0"
+                                                Width="32" Height="32"
+                                                CornerRadius="16"
+                                                Background="{DynamicResource BrushPrimary}"
+                                                Margin="0,0,10,0">
+                                            <TextBlock Text="{Binding Initials}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="White"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding FullName}"
+                                                       FontSize="13"
+                                                       FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding JobTitle}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       IsVisible="{Binding JobTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

@@ -3,23 +3,19 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
         x:Class="ProCohere.Avalonia.Views.Dialogs.RecordOutcomeDialog"
         x:DataType="vm:RecordOutcomeDialogViewModel"
         Title="Record Outcome"
         Width="500"
-        Height="380"
+        Height="450"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
-        SystemDecorations="Full"
-        ExtendClientAreaToDecorationsHint="False">
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
 
     <Window.Styles>
-        <Style Selector="Window">
-            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
-        </Style>
-        
         <!-- Outcome type button -->
         <Style Selector="RadioButton.outcome-type">
             <Setter Property="Background" Value="Transparent"/>
@@ -39,93 +35,140 @@
         </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Lightbulb/outcome icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Record Outcome" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{Binding AgendaItemTitle}" FontSize="12" Foreground="#FFFFFFCC" TextTrimming="CharacterEllipsis" MaxWidth="350"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         
-        <!-- Header with agenda item context -->
-        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
-            <TextBlock Text="Recording outcome for:" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
-            <TextBlock Text="{Binding AgendaItemTitle}" 
-                       FontSize="14" 
-                       FontWeight="SemiBold"
-                       TextWrapping="Wrap"/>
-        </StackPanel>
+            <!-- Form Content -->
+            <ScrollViewer Grid.Row="1" 
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16" Margin="20">
+            
+                    <!-- Outcome Type Selection -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Outcome Type" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <WrapPanel Orientation="Horizontal">
+                            <RadioButton Classes="outcome-type" 
+                                         GroupName="OutcomeType"
+                                         Margin="0,0,8,8"
+                                         IsChecked="{Binding IsDecisionSelected}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10Z" 
+                                              Width="14" Height="14" Foreground="#F59E0B"/>
+                                    <TextBlock Text="Decision" FontSize="12"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Classes="outcome-type" 
+                                         GroupName="OutcomeType"
+                                         Margin="0,0,8,8"
+                                         IsChecked="{Binding IsFeedbackSelected}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
+                                              Width="14" Height="14" Foreground="#E91E63"/>
+                                    <TextBlock Text="Feedback" FontSize="12"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Classes="outcome-type" 
+                                         GroupName="OutcomeType"
+                                         Margin="0,0,8,8"
+                                         IsChecked="{Binding IsNotesSelected}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,13H7V11H13V13M17,17H7V15H17V17Z" 
+                                              Width="14" Height="14" Foreground="#607D8B"/>
+                                    <TextBlock Text="Notes" FontSize="12"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </WrapPanel>
+                    </StackPanel>
+            
+                    <!-- Content -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding ContentLabel}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox x:Name="ContentTextBox"
+                                 Text="{Binding Content}"
+                                 Watermark="{Binding ContentWatermark}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="100"
+                                 MaxHeight="150"/>
+                    </StackPanel>
+            
+                    <!-- Visibility -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Who can see this?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox HorizontalAlignment="Stretch"
+                                  SelectedIndex="{Binding SelectedVisibilityIndex}">
+                            <ComboBoxItem Content="Private (only me)"/>
+                            <ComboBoxItem Content="Meeting Attendees"/>
+                            <ComboBoxItem Content="My Team"/>
+                            <ComboBoxItem Content="Organization"/>
+                        </ComboBox>
+                    </StackPanel>
+            
+                </StackPanel>
+            </ScrollViewer>
         
-        <!-- Form Content -->
-        <StackPanel Grid.Row="1" Spacing="16">
-            
-            <!-- Outcome Type Selection -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="Outcome Type" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <WrapPanel Orientation="Horizontal">
-                    <RadioButton Classes="outcome-type" 
-                                 GroupName="OutcomeType"
-                                 Margin="0,0,8,8"
-                                 IsChecked="{Binding IsDecisionSelected}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10Z" 
-                                      Width="14" Height="14" Foreground="#F59E0B"/>
-                            <TextBlock Text="Decision" FontSize="12"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton Classes="outcome-type" 
-                                 GroupName="OutcomeType"
-                                 Margin="0,0,8,8"
-                                 IsChecked="{Binding IsFeedbackSelected}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
-                                      Width="14" Height="14" Foreground="#E91E63"/>
-                            <TextBlock Text="Feedback" FontSize="12"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton Classes="outcome-type" 
-                                 GroupName="OutcomeType"
-                                 Margin="0,0,8,8"
-                                 IsChecked="{Binding IsNotesSelected}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,13H7V11H13V13M17,17H7V15H17V17Z" 
-                                      Width="14" Height="14" Foreground="#607D8B"/>
-                            <TextBlock Text="Notes" FontSize="12"/>
-                        </StackPanel>
-                    </RadioButton>
-                </WrapPanel>
-            </StackPanel>
-            
-            <!-- Content -->
-            <StackPanel Spacing="6">
-                <TextBlock Text="{Binding ContentLabel}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <TextBox x:Name="ContentTextBox"
-                         Text="{Binding Content}"
-                         Watermark="{Binding ContentWatermark}"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="100"
-                         MaxHeight="150"/>
-            </StackPanel>
-            
-            <!-- Visibility -->
-            <StackPanel Spacing="6">
-                <TextBlock Text="Who can see this?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                <ComboBox HorizontalAlignment="Stretch"
-                          SelectedIndex="{Binding SelectedVisibilityIndex}">
-                    <ComboBoxItem Content="Private (only me)"/>
-                    <ComboBoxItem Content="Meeting Attendees"/>
-                    <ComboBoxItem Content="My Team"/>
-                    <ComboBoxItem Content="Organization"/>
-                </ComboBox>
-            </StackPanel>
-            
-        </StackPanel>
-        
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
-            <Button Content="Cancel" 
-                    Classes="secondary-button"
-                    Padding="16,8"
-                    Command="{Binding CancelCommand}"/>
-            <Button Content="Save Outcome" 
-                    Classes="primary-button"
-                    Padding="16,8"
-                    Command="{Binding SaveCommand}"/>
-        </StackPanel>
-    </Grid>
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Cancel" 
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Padding="16,8"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Save Outcome" 
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Padding="16,8"
+                            Command="{Binding SaveCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

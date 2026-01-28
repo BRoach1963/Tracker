@@ -34,6 +34,8 @@ public partial class MeView : UserControl
         // Subscribe to dialog events
         _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
         _viewModel.EditMeetingDialogRequested += OnEditMeetingDialogRequested;
+        _viewModel.CreateTaskDialogRequested += OnCreateTaskDialogRequested;
+        _viewModel.EditTaskDialogRequested += OnEditTaskDialogRequested;
         
         // Initial population after control is loaded
         Loaded += MeView_Loaded;
@@ -92,6 +94,54 @@ public partial class MeView : UserControl
         else if (result.Error != null)
         {
             Debug.WriteLine($"[MeView] Edit meeting error: {result.Error}");
+        }
+    }
+
+    /// <summary>
+    /// Show the create task dialog.
+    /// </summary>
+    private async void OnCreateTaskDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowCreateTaskAsync(window);
+        
+        if (result.WasDeleted && result.DeletedTaskId.HasValue)
+        {
+            _viewModel.OnTaskDeleted(result.DeletedTaskId.Value);
+        }
+        else if (result.Success && result.Task != null)
+        {
+            _viewModel.OnTaskSaved(result.Task);
+        }
+        else if (result.Error != null)
+        {
+            Debug.WriteLine($"[MeView] Create task error: {result.Error}");
+        }
+    }
+
+    /// <summary>
+    /// Show the edit task dialog for an existing task.
+    /// </summary>
+    private async void OnEditTaskDialogRequested(object? sender, TaskDetail task)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowEditTaskAsync(window, task);
+        
+        if (result.WasDeleted && result.DeletedTaskId.HasValue)
+        {
+            _viewModel.OnTaskDeleted(result.DeletedTaskId.Value);
+        }
+        else if (result.Success && result.Task != null)
+        {
+            _viewModel.OnTaskSaved(result.Task);
+        }
+        else if (result.Error != null)
+        {
+            Debug.WriteLine($"[MeView] Edit task error: {result.Error}");
         }
     }
 

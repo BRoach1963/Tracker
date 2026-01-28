@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="350"
+             x:Class="ProCohere.Avalonia.Views.Controls.ProjectSelectorPopover"
+             x:DataType="controls:ProjectSelectorPopover">
+    
+    <UserControl.Styles>
+        <!-- Project item style -->
+        <Style Selector="Button.project-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.project-item:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Button.project-item /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button.project-item:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        
+        <!-- Status badge styles -->
+        <Style Selector="Border.status-badge">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+        </Style>
+        <Style Selector="Border.status-badge.active">
+            <Setter Property="Background" Value="{DynamicResource BrushSuccessSoft}"/>
+        </Style>
+        <Style Selector="Border.status-badge.paused">
+            <Setter Property="Background" Value="{DynamicResource BrushWarningSoft}"/>
+        </Style>
+        <Style Selector="Border.status-badge.completed">
+            <Setter Property="Background" Value="{DynamicResource BrushInfoSoft}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Width="300"
+            MaxHeight="350">
+        <Grid RowDefinitions="Auto,*">
+            <!-- Search Input -->
+            <Border Grid.Row="0" 
+                    Padding="12"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0,0,0,1">
+                <TextBox x:Name="SearchBox"
+                         Watermark="Search projects..."
+                         Text="{Binding SearchText, Mode=TwoWay}"
+                         FontSize="13"/>
+            </Border>
+            
+            <!-- Project List -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          MaxHeight="280">
+                <StackPanel>
+                    <!-- Loading indicator -->
+                    <TextBlock Text="Loading..."
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               FontSize="13"
+                               Margin="12"
+                               IsVisible="{Binding IsLoading}"/>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Text="No projects found"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               FontSize="13"
+                               FontStyle="Italic"
+                               Margin="12"
+                               IsVisible="{Binding ShowEmptyState}"/>
+                    
+                    <!-- Project items -->
+                    <ItemsControl ItemsSource="{Binding FilteredProjects}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:Project">
+                                <Button Classes="project-item"
+                                        Command="{Binding $parent[UserControl].((controls:ProjectSelectorPopover)DataContext).SelectProjectCommand, FallbackValue={x:Null}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="2">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" 
+                                                Classes="status-badge"
+                                                Classes.active="{Binding IsActive}"
+                                                Classes.paused="{Binding IsPaused}"
+                                                Classes.completed="{Binding IsCompleted}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StatusDisplay}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        </Border>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

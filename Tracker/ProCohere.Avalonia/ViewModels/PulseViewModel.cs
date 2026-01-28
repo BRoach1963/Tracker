@@ -23,7 +23,8 @@ public partial class PulseViewModel : ViewModelBase
         {
             0 => "New Goal",
             1 => "New Metric",
-            2 => "New Task",
+            2 => "New Project",
+            3 => "New Task",
             _ => "New"
         });
 
@@ -119,7 +120,7 @@ public partial class PulseViewModel : ViewModelBase
 
     public PulseViewModel()
     {
-        // Initialize child ViewModels
+        // Initialize child ViewModels (Projects removed - now top-level nav)
         GoalsViewModel = new GoalsViewModel();
         MetricsViewModel = new MetricsViewModel();
         TasksViewModel = new TasksViewModel();

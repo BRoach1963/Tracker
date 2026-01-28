@@ -1,0 +1,135 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditProjectDialog"
+        Title="Project"
+        Width="500"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="Transparent">
+
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header (green) -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource BrushPrimary}"
+                    Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M10 4H4C2.89 4 2 4.89 2 6V18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V8C22 6.89 21.11 6 20 6H12L10 4Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="DialogTitle"
+                                   Text="New Project"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Organize your work"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            
+            <!-- Form Content -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,20">
+                <StackPanel Spacing="20">
+                    
+                    <!-- Project Name -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Project Name *" 
+                                   FontSize="13" 
+                                   FontWeight="Medium" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox x:Name="NameTextBox"
+                                 Watermark="What's this project about?"
+                                 FontSize="14"/>
+                    </StackPanel>
+                    
+                    <!-- Description -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Description" 
+                                   FontSize="13" 
+                                   FontWeight="Medium" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox x:Name="DescriptionTextBox"
+                                 Watermark="What is this project trying to accomplish?"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="80"
+                                 MaxHeight="120"/>
+                    </StackPanel>
+                    
+                    <!-- Status -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Status" 
+                                   FontSize="13" 
+                                   FontWeight="Medium" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox x:Name="StatusComboBox"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="Active" Tag="active"/>
+                            <ComboBoxItem Content="Paused" Tag="paused"/>
+                            <ComboBoxItem Content="Completed" Tag="completed"/>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <!-- Due Date -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Due Date (optional)" 
+                                   FontSize="13" 
+                                   FontWeight="Medium" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <CalendarDatePicker x:Name="DueDatePicker"
+                                            Watermark="Select due date..."
+                                            HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                    
+                    <!-- Error Message -->
+                    <TextBlock x:Name="ErrorText"
+                               Foreground="{DynamicResource BrushDanger}"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               IsVisible="False"/>
+                               
+                </StackPanel>
+            </ScrollViewer>
+            
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource BrushSecondary}"
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Spacing="8">
+                    <Button Content="Cancel"
+                            Classes="cancel-btn"
+                            MinWidth="80"
+                            Click="CancelButton_Click"/>
+                    <Button x:Name="SaveButton"
+                            Content="Create Project"
+                            Classes="accent"
+                            MinWidth="100"
+                            Click="SaveButton_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

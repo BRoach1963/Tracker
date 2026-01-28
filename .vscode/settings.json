@@ -1,0 +1,6 @@
+{
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    { "text": "MANDATORY: Before writing ANY UI code with state, STOP and answer these questions OUT LOUD in your response: 1a) What state exists? 1b) Who owns each piece of state? (Must be ViewModel, NEVER View) 1c) How does data flow? (ViewModel → View via binding, NEVER pull from View to ViewModel). If you cannot answer these correctly, do not write code." }
+  ]
+}

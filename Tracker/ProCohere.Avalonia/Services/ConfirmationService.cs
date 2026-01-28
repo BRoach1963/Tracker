@@ -117,6 +117,37 @@ public class ConfirmationService
         return dialog.IsConfirmed;
     }
 
+    /// <summary>
+    /// Shows an exit confirmation dialog (styled with exit/door icon).
+    /// Use for app exit or logout confirmations.
+    /// </summary>
+    /// <param name="title">Dialog title</param>
+    /// <param name="message">Message to display</param>
+    /// <param name="confirmText">Text for confirm button (default: "Exit")</param>
+    /// <param name="cancelText">Text for cancel button (default: "Cancel")</param>
+    /// <returns>True if user confirmed, false if cancelled</returns>
+    public async Task<bool> ShowExitConfirmationAsync(
+        string title,
+        string message,
+        string confirmText = "Exit",
+        string cancelText = "Cancel")
+    {
+        if (_mainWindow == null)
+        {
+            System.Diagnostics.Debug.WriteLine("[ConfirmationService] Main window not set - returning false");
+            return false;
+        }
+
+        var dialog = new ConfirmationDialog(
+            title, 
+            message, 
+            confirmText, 
+            cancelText, 
+            ConfirmationDialog.ConfirmationType.Exit);
+        await dialog.ShowDialog(_mainWindow);
+        return dialog.IsConfirmed;
+    }
+
     #endregion
 
     #region Alert Dialogs

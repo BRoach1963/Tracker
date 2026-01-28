@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Models.Dialogs;
+using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels.Dialogs;
 using System.Collections.Generic;
 
@@ -12,6 +13,7 @@ namespace ProCohere.Avalonia.Views.Dialogs;
 public partial class EditMetricDialog : Window
 {
     private EditMetricDialogViewModel? _viewModel;
+    private bool _forceClose;
     
     /// <summary>
     /// The result of the dialog (null if cancelled).
@@ -25,7 +27,41 @@ public partial class EditMetricDialog : Window
         _viewModel = new EditMetricDialogViewModel();
         DataContext = _viewModel;
         
-        _viewModel.CloseRequested += () => Close();
+        // Provide dialog service for confirmations
+        _viewModel.SetDialogService(new DialogService(this));
+        
+        // Close window when ViewModel requests it (approved close path)
+        _viewModel.CloseRequested += () =>
+        {
+            _forceClose = true;
+            Close();
+        };
+    }
+    
+    /// <summary>
+    /// Handle window closing to show confirmation if there are unsaved changes.
+    /// </summary>
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        if (_forceClose)
+        {
+            base.OnClosing(e);
+            return;
+        }
+        
+        if (_viewModel?.HasUnsavedChanges == true)
+        {
+            e.Cancel = true;
+            
+            if (_viewModel.CancelCommand.CanExecute(null))
+            {
+                await _viewModel.CancelCommand.ExecuteAsync(null);
+            }
+        }
+        else
+        {
+            base.OnClosing(e);
+        }
     }
     
     /// <summary>

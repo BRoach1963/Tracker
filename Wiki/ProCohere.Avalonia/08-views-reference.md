@@ -29,7 +29,9 @@ App
     ├── PulseView
     │   ├── GoalsTabView
     │   ├── MetricsTabView
+    │   ├── ProjectsView
     │   └── TasksTabView
+    ├── ChronicleView
     └── SettingsView
 ```
 
@@ -194,6 +196,30 @@ Metric management within Pulse.
 - Update value dialog
 
 ViewModel: `MetricsViewModel`
+
+### ProjectsView
+**File**: `Views/ProjectsView.axaml`
+
+Project management within Pulse.
+
+**Layout**:
+- **Header**: Title ("Projects") + stats (total, active, completed counts)
+- **Filter tabs**: All | Active | Paused | Completed
+- **Project cards**: Clickable cards in a virtualized list
+- **Detail flyout**: Slide-in panel for project details
+- **Editor flyout**: Modal dialog for create/edit
+
+**Visual Elements**:
+- Status badges (blue=active, amber=paused, green=completed)
+- Member count indicator
+- Due date display
+- Description preview (truncated)
+
+**Code-behind responsibilities**:
+- Handle card press → open detail
+- Handle editor overlay click → close editor
+
+ViewModel: `ProjectsViewModel`
 
 ### TasksTabView
 **File**: `Views/Pulse/TasksTabView.axaml`

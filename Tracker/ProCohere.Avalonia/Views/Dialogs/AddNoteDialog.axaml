@@ -6,32 +6,101 @@
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
     
-    <StackPanel Margin="20" Spacing="16">
-        <!-- Title -->
-        <StackPanel Spacing="4">
-            <TextBlock Text="Title (optional)" FontSize="12" />
-            <TextBox x:Name="TitleTextBox"
-                     Watermark="Enter a title..." />
-        </StackPanel>
-        
-        <!-- Content -->
-        <StackPanel Spacing="4">
-            <TextBlock Text="Note" FontSize="12" />
-            <TextBox x:Name="ContentTextBox"
-                     Watermark="Enter your note..."
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     Height="120" />
-        </StackPanel>
-        
-        <!-- Buttons -->
-        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
-            <Button Grid.Column="1" Content="Cancel" Margin="0,0,8,0"
-                    Click="CancelButton_Click" />
-            <Button Grid.Column="2" Content="Save" Classes="accent"
-                    Click="SaveButton_Click" />
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource BrushPrimary}"
+                    Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Note icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M14,10H19.5L14,4.5V10M5,3H15L21,9V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3M5,5V19H19V12H12V5H5Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Add Note"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Capture your thoughts"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            
+            <!-- Content -->
+            <StackPanel Grid.Row="1" Margin="20,16" Spacing="16">
+                <!-- Title -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Title (optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="TitleTextBox"
+                             Watermark="Enter a title..." />
+                </StackPanel>
+                
+                <!-- Content -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Note" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="ContentTextBox"
+                             Watermark="Enter your note..."
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="120" />
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource BrushSecondary}"
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Padding="16,8"
+                            Click="CancelButton_Click">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Save"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Padding="16,8"
+                            Click="SaveButton_Click">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </Border>
         </Grid>
-    </StackPanel>
+    </Border>
 </Window>

@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+             x:Class="ProCohere.Avalonia.Views.Controls.WorkItemStagingControl"
+             x:DataType="controls:WorkItemStagingControl">
+    
+    <UserControl.Styles>
+        <!-- Staged item chip style -->
+        <Style Selector="Border.staged-chip">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        
+        <!-- Linkable item row style -->
+        <Style Selector="Border.linkable-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.linkable-item:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <StackPanel Spacing="12">
+        <!-- Create New Section -->
+        <StackPanel Spacing="6">
+            <TextBlock Text="Create new"
+                       FontSize="11"
+                       FontWeight="Medium"
+                       Foreground="{DynamicResource BrushTextTertiary}"/>
+            
+            <!-- New item input -->
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0"
+                         x:Name="NewItemInput"
+                         Watermark="{Binding NewItemPlaceholder, RelativeSource={RelativeSource AncestorType=controls:WorkItemStagingControl}}"
+                         FontSize="13"
+                         KeyDown="OnNewItemKeyDown"/>
+                <Button Grid.Column="1"
+                        Classes="ghost"
+                        Margin="4,0,0,0"
+                        Click="OnAddNewItemClick"
+                        ToolTip.Tip="Add item">
+                    <TextBlock Text="&#xE710;"
+                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                               FontSize="14"/>
+                </Button>
+            </Grid>
+            
+            <!-- Staged new items -->
+            <ItemsControl ItemsSource="{Binding NewItemTitles, RelativeSource={RelativeSource AncestorType=controls:WorkItemStagingControl}}"
+                          IsVisible="{Binding NewItemTitles.Count, RelativeSource={RelativeSource AncestorType=controls:WorkItemStagingControl}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Border Classes="staged-chip">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           VerticalAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Classes="ghost"
+                                        Padding="2"
+                                        Click="OnRemoveNewItemClick"
+                                        Tag="{Binding}"
+                                        ToolTip.Tip="Remove">
+                                    <TextBlock Text="&#xE711;"
+                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+        
+        <!-- Divider -->
+        <Border Height="1" 
+                Background="{DynamicResource BrushBorder}"
+                Margin="0,4"/>
+        
+        <!-- Link Existing Section -->
+        <StackPanel Spacing="6">
+            <TextBlock Text="Or link existing"
+                       FontSize="11"
+                       FontWeight="Medium"
+                       Foreground="{DynamicResource BrushTextTertiary}"/>
+            
+            <!-- Search -->
+            <TextBox x:Name="SearchInput"
+                     Watermark="{Binding SearchPlaceholder, RelativeSource={RelativeSource AncestorType=controls:WorkItemStagingControl}}"
+                     FontSize="13"
+                     TextChanged="OnSearchTextChanged"/>
+            
+            <!-- Available items list -->
+            <ScrollViewer MaxHeight="150"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Empty state -->
+                    <TextBlock Text="No items available"
+                               FontSize="12"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource BrushTextTertiary}"
+                               Margin="4"
+                               IsVisible="{Binding !FilteredItems.Count, RelativeSource={RelativeSource AncestorType=controls:WorkItemStagingControl}}"/>
+                    
+                    <!-- Items -->
+                    <ItemsControl ItemsSource="{Binding FilteredItems, RelativeSource={RelativeSource AncestorType=controls:WorkItemStagingControl}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="controls:LinkableItem">
+                                <Border Classes="linkable-item"
+                                        PointerPressed="OnLinkableItemClick"
+                                        Tag="{Binding}">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <CheckBox Grid.Column="0"
+                                                  IsChecked="{Binding IsSelected}"
+                                                  Margin="0,0,8,0"
+                                                  IsHitTestVisible="False"/>
+                                        <StackPanel Grid.Column="1" Spacing="1">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding Subtitle}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"
+                                                       IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

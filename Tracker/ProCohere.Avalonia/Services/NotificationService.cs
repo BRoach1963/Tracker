@@ -172,6 +172,86 @@ public class NotificationService
         }
     }
 
+    /// <summary>
+    /// Sends a native Windows toast notification with Dismiss and Snooze action buttons.
+    /// Used for reminder notifications when the app is minimized to tray.
+    /// </summary>
+    /// <param name="title">The toast title.</param>
+    /// <param name="message">The toast message.</param>
+    /// <param name="reminderId">The reminder ID for action handling.</param>
+    /// <param name="snoozeMinutes">The snooze duration in minutes.</param>
+    public void SendReminderToast(string title, string message, Guid reminderId, int snoozeMinutes = 10)
+    {
+        System.Diagnostics.Debug.WriteLine($"[NotificationService] SendReminderToast called: '{title}' reminderId={reminderId}");
+        
+        // Only supported on Windows
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            System.Diagnostics.Debug.WriteLine("[NotificationService] Not Windows, skipping native reminder toast");
+            return;
+        }
+
+        try
+        {
+            // Build toast with action buttons
+            var builder = new ToastContentBuilder()
+                .AddText(title)
+                .AddText(message)
+                // Add arguments that identify this as a reminder toast
+                .AddArgument("action", "reminderActivated")
+                .AddArgument("reminderId", reminderId.ToString())
+                // Add Snooze button
+                .AddButton(new ToastButton()
+                    .SetContent($"Snooze {snoozeMinutes}m")
+                    .AddArgument("action", "snooze")
+                    .AddArgument("reminderId", reminderId.ToString())
+                    .AddArgument("snoozeMinutes", snoozeMinutes.ToString())
+                    .SetBackgroundActivation())
+                // Add Dismiss button
+                .AddButton(new ToastButton()
+                    .SetContent("Dismiss")
+                    .AddArgument("action", "dismiss")
+                    .AddArgument("reminderId", reminderId.ToString())
+                    .SetBackgroundActivation());
+            
+            // Show the toast with expiration
+            builder.Show(toast =>
+            {
+                toast.ExpirationTime = DateTime.Now.AddMinutes(30);
+                toast.Tag = reminderId.ToString();
+                toast.Group = "reminders";
+            });
+            
+            System.Diagnostics.Debug.WriteLine("[NotificationService] Reminder toast with actions shown successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NotificationService] Reminder toast failed: {ex.Message}");
+            // Fall back to simple toast
+            SendNativeToast(title, message);
+        }
+    }
+
+    /// <summary>
+    /// Removes a specific reminder toast from the notification center.
+    /// </summary>
+    /// <param name="reminderId">The reminder ID to remove.</param>
+    public void RemoveReminderToast(Guid reminderId)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
+        try
+        {
+            ToastNotificationManagerCompat.History.Remove(reminderId.ToString(), "reminders");
+            System.Diagnostics.Debug.WriteLine($"[NotificationService] Removed reminder toast: {reminderId}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NotificationService] Failed to remove toast: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region Public Methods - Cleanup

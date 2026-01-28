@@ -2,11 +2,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Models.Dialogs;
+using ProCohere.Avalonia.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ProCohere.Avalonia.ViewModels.Dialogs;
 
@@ -16,6 +18,7 @@ namespace ProCohere.Avalonia.ViewModels.Dialogs;
 public partial class AddTaskDialogViewModel : ObservableObject
 {
     private TaskDetail? _existingTask;
+    private IDialogService? _dialogService;
     
     /// <summary>
     /// Result of the dialog - the task data if saved, null if cancelled.
@@ -74,6 +77,31 @@ public partial class AddTaskDialogViewModel : ObservableObject
     }
     
     /// <summary>
+    /// Sets the dialog service for showing confirmations.
+    /// </summary>
+    public void SetDialogService(IDialogService dialogService)
+    {
+        _dialogService = dialogService;
+    }
+    
+    /// <summary>
+    /// Returns true if the user has entered any data that would be lost on cancel.
+    /// </summary>
+    public bool HasUnsavedChanges
+    {
+        get
+        {
+            // For editing, less critical since data exists
+            if (IsEditMode) return false;
+            
+            return !string.IsNullOrWhiteSpace(Title) ||
+                   !string.IsNullOrWhiteSpace(Description) ||
+                   PriorityIndex >= 0 ||
+                   SelectedAssignee != null;
+        }
+    }
+    
+    /// <summary>
     /// Sets the list of team members for the assignee dropdown.
     /// </summary>
     public void SetTeamMembers(IEnumerable<TeamMemberDetail> members)
@@ -129,8 +157,23 @@ public partial class AddTaskDialogViewModel : ObservableObject
     }
     
     [RelayCommand]
-    private void Cancel()
+    private async Task CancelAsync()
     {
+        // Show confirmation if there's unsaved data during creation
+        if (HasUnsavedChanges && _dialogService != null)
+        {
+            var confirmed = await _dialogService.ShowConfirmationAsync(
+                "Discard Changes?",
+                "You have unsaved changes. Are you sure you want to close without saving?",
+                "Discard",
+                "Keep Editing");
+            
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+        
         Result = null;
         CloseRequested?.Invoke();
     }

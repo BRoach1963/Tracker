@@ -296,17 +296,19 @@
                                         <TextBlock Text="Birthday" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
-                                        <DatePicker SelectedDate="{Binding BirthdayOffset, Mode=TwoWay}"
-                                                    HorizontalAlignment="Stretch"
-                                                    FontSize="14" />
+                                        <CalendarDatePicker SelectedDate="{Binding BirthdayOffset, Mode=TwoWay}"
+                                                            HorizontalAlignment="Stretch"
+                                                            Watermark="Select date"
+                                                            IsTodayHighlighted="True"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Spacing="4">
                                         <TextBlock Text="Hire Date" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
-                                        <DatePicker SelectedDate="{Binding HireDateOffset, Mode=TwoWay}"
-                                                    HorizontalAlignment="Stretch"
-                                                    FontSize="14" />
+                                        <CalendarDatePicker SelectedDate="{Binding HireDateOffset, Mode=TwoWay}"
+                                                            HorizontalAlignment="Stretch"
+                                                            Watermark="Select date"
+                                                            IsTodayHighlighted="True"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -418,6 +420,188 @@
                                       OffContent=""
                                       VerticalAlignment="Center" />
                     </Grid>
+                </StackPanel>
+            </Border>
+            
+            <!-- Notifications & Reminders Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Notifications &amp; Reminders"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E3A5A" />
+                    
+                    <!-- Master Toggle -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Enable Reminders"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="#2E3A5A" />
+                            <TextBlock Text="Receive notifications for meetings, tasks, and goals"
+                                       FontSize="13"
+                                       Foreground="#64748B" />
+                        </StackPanel>
+                        
+                        <ToggleSwitch Grid.Column="1"
+                                      IsChecked="{Binding EnableReminders}"
+                                      OnContent=""
+                                      OffContent=""
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                    
+                    <!-- Subsettings (only visible when enabled) -->
+                    <StackPanel Spacing="16" IsVisible="{Binding EnableReminders}">
+                        <Separator Background="#E2E8F0" Margin="0,4" />
+                        
+                        <!-- Meeting Reminders -->
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0,0,0">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Meeting Reminders"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="#2E3A5A" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Remind"
+                                               FontSize="13"
+                                               Foreground="#64748B" />
+                                    <NumericUpDown Value="{Binding MeetingReminderMinutes}"
+                                                   Minimum="5"
+                                                   Maximum="120"
+                                                   Increment="5"
+                                                   Width="70"
+                                                   FontSize="12"
+                                                   IsVisible="{Binding ShowMeetingReminders}"
+                                                   VerticalAlignment="Center" />
+                                    <TextBlock Text="minutes before"
+                                               FontSize="13"
+                                               Foreground="#64748B"
+                                               IsVisible="{Binding ShowMeetingReminders}" />
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <ToggleSwitch Grid.Column="2"
+                                          IsChecked="{Binding ShowMeetingReminders}"
+                                          OnContent=""
+                                          OffContent=""
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                        
+                        <!-- Task Reminders -->
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0,0,0">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Task Reminders"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="#2E3A5A" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Remind"
+                                               FontSize="13"
+                                               Foreground="#64748B" />
+                                    <NumericUpDown Value="{Binding TaskReminderDays}"
+                                                   Minimum="1"
+                                                   Maximum="14"
+                                                   Increment="1"
+                                                   Width="70"
+                                                   FontSize="12"
+                                                   IsVisible="{Binding ShowTaskReminders}"
+                                                   VerticalAlignment="Center" />
+                                    <TextBlock Text="days before deadline"
+                                               FontSize="13"
+                                               Foreground="#64748B"
+                                               IsVisible="{Binding ShowTaskReminders}" />
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <ToggleSwitch Grid.Column="2"
+                                          IsChecked="{Binding ShowTaskReminders}"
+                                          OnContent=""
+                                          OffContent=""
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                        
+                        <!-- Goal Reminders -->
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0,0,0">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Goal Reminders"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="#2E3A5A" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Remind"
+                                               FontSize="13"
+                                               Foreground="#64748B" />
+                                    <NumericUpDown Value="{Binding GoalReminderDays}"
+                                                   Minimum="1"
+                                                   Maximum="30"
+                                                   Increment="1"
+                                                   Width="70"
+                                                   FontSize="12"
+                                                   IsVisible="{Binding ShowGoalReminders}"
+                                                   VerticalAlignment="Center" />
+                                    <TextBlock Text="days before deadline"
+                                               FontSize="13"
+                                               Foreground="#64748B"
+                                               IsVisible="{Binding ShowGoalReminders}" />
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <ToggleSwitch Grid.Column="2"
+                                          IsChecked="{Binding ShowGoalReminders}"
+                                          OnContent=""
+                                          OffContent=""
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                        
+                        <Separator Background="#E2E8F0" Margin="0,4" />
+                        
+                        <!-- Snooze Duration -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,0">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Default Snooze"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="#2E3A5A" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Snooze for"
+                                               FontSize="13"
+                                               Foreground="#64748B" />
+                                    <NumericUpDown Value="{Binding SnoozeDurationMinutes}"
+                                                   Minimum="5"
+                                                   Maximum="60"
+                                                   Increment="5"
+                                                   Width="70"
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center" />
+                                    <TextBlock Text="minutes"
+                                               FontSize="13"
+                                               Foreground="#64748B" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Sound Toggle -->
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Play Sound"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="#2E3A5A" />
+                                <TextBlock Text="Play a sound when reminders appear"
+                                           FontSize="13"
+                                           Foreground="#64748B" />
+                            </StackPanel>
+                            
+                            <ToggleSwitch Grid.Column="1"
+                                          IsChecked="{Binding PlayReminderSound}"
+                                          OnContent=""
+                                          OffContent=""
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
                 </StackPanel>
             </Border>
             

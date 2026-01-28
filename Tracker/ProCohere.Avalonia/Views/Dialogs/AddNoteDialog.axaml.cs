@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using ProCohere.Avalonia.Services;
 
 namespace ProCohere.Avalonia.Views.Dialogs;
 
@@ -17,10 +18,19 @@ public class AddNoteResult
 /// </summary>
 public partial class AddNoteDialog : Window
 {
+    private bool _forceClose;
+    
     public AddNoteDialog()
     {
         InitializeComponent();
     }
+    
+    /// <summary>
+    /// Returns true if the user has entered any data that would be lost on cancel.
+    /// </summary>
+    private bool HasUnsavedChanges =>
+        !string.IsNullOrWhiteSpace(TitleTextBox.Text) ||
+        !string.IsNullOrWhiteSpace(ContentTextBox.Text);
     
     private void SaveButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -37,11 +47,61 @@ public partial class AddNoteDialog : Window
             Content = content
         };
         
+        _forceClose = true;
         Close(result);
     }
     
-    private void CancelButton_Click(object? sender, RoutedEventArgs e)
+    private async void CancelButton_Click(object? sender, RoutedEventArgs e)
     {
+        // Show confirmation if there's unsaved data
+        if (HasUnsavedChanges)
+        {
+            var confirmed = await ConfirmationService.Instance.ShowConfirmationAsync(
+                "Discard Changes?",
+                "You have unsaved changes. Are you sure you want to close without saving?",
+                "Discard",
+                "Keep Editing");
+            
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+        
+        _forceClose = true;
         Close(null);
+    }
+    
+    /// <summary>
+    /// Handle window closing to show confirmation if there are unsaved changes.
+    /// </summary>
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        if (_forceClose)
+        {
+            base.OnClosing(e);
+            return;
+        }
+        
+        if (HasUnsavedChanges)
+        {
+            e.Cancel = true;
+            
+            var confirmed = await ConfirmationService.Instance.ShowConfirmationAsync(
+                "Discard Changes?",
+                "You have unsaved changes. Are you sure you want to close without saving?",
+                "Discard",
+                "Keep Editing");
+            
+            if (confirmed)
+            {
+                _forceClose = true;
+                Close(null);
+            }
+        }
+        else
+        {
+            base.OnClosing(e);
+        }
     }
 }

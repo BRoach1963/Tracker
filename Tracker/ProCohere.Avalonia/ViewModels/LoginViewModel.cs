@@ -81,6 +81,24 @@ public partial class LoginViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            // Log full exception to file for debugging
+            try
+            {
+                var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var logDir = System.IO.Path.Combine(appData, "ProCohere");
+                if (!System.IO.Directory.Exists(logDir))
+                    System.IO.Directory.CreateDirectory(logDir);
+                
+                var logPath = System.IO.Path.Combine(logDir, "login_errors.log");
+                var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Login Exception\n" +
+                            $"  Type: {ex.GetType().FullName}\n" +
+                            $"  Message: {ex.Message}\n" +
+                            $"  Stack: {ex.StackTrace}\n" +
+                            $"  Inner: {ex.InnerException?.GetType().Name}: {ex.InnerException?.Message}\n\n";
+                System.IO.File.AppendAllText(logPath, entry);
+            }
+            catch { /* ignore */ }
+            
             SetError($"Connection error: {ex.Message}");
         }
         finally

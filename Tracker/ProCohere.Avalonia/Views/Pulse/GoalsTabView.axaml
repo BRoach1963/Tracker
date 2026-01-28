@@ -380,6 +380,48 @@
                                 <TextBlock Text="{Binding OwnerName}" FontSize="13"
                                            Foreground="{DynamicResource BrushTextPrimary}"/>
                             </StackPanel>
+                            
+                            <!-- Project -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Project" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                
+                                <!-- Not linked state -->
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            IsVisible="{Binding !HasProject}">
+                                    <TextBlock Text="Not linked"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                    <Button Classes="ghost" Padding="8,4"
+                                            Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).ShowProjectSelectorCommand}">
+                                        <TextBlock Text="Add to project" FontSize="11"/>
+                                    </Button>
+                                </StackPanel>
+                                
+                                <!-- Linked state -->
+                                <StackPanel Spacing="4"
+                                            IsVisible="{Binding HasProject}">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                            CornerRadius="6" Padding="10,6"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1">
+                                        <TextBlock Text="{Binding ProjectTitle}"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                   FontSize="13"/>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Classes="ghost" Padding="6,2"
+                                                Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).ShowProjectSelectorCommand}">
+                                            <TextBlock Text="Change" FontSize="11"/>
+                                        </Button>
+                                        <Button Classes="ghost" Padding="6,2"
+                                                Command="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).UnlinkGoalFromProjectCommand}">
+                                            <TextBlock Text="Remove" FontSize="11"/>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>

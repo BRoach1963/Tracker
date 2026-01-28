@@ -287,11 +287,20 @@ public partial class TeamMemberDetailsDialogViewModel : ObservableObject
             var note = new Note
             {
                 Title = title,
-                Content = content,
-                LinkedTeamMemberId = TeamMemberId
+                Content = content
             };
 
-            await NotesService.Instance.CreateNoteAsync(note);
+            var createdNote = await NotesService.Instance.CreateNoteAsync(note);
+            
+            // Add link to team member via note_links table
+            if (createdNote != null)
+            {
+                await NotesService.Instance.AddNoteLinkAsync(
+                    createdNote.Id,
+                    NoteLinkEntityTypes.TeamMember,
+                    TeamMemberId,
+                    $"Team Member Note");
+            }
             await LoadNotesAsync();
         }
         catch (Exception ex)

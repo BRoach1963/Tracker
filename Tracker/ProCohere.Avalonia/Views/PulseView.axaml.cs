@@ -19,7 +19,7 @@ public partial class PulseView : UserControl
         
         Log("[PulseView] Constructor - ViewModel created");
         
-        // Set child DataContexts
+        // Set child DataContexts (Projects removed - now top-level nav)
         GoalsTab.DataContext = _viewModel.GoalsViewModel;
         MetricsTab.DataContext = _viewModel.MetricsViewModel;
         TasksTab.DataContext = _viewModel.TasksViewModel;

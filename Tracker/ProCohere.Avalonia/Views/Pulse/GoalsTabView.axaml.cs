@@ -3,16 +3,22 @@ using System.Globalization;
 using System.IO;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Media;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Views.Controls;
 
 namespace ProCohere.Avalonia.Views.Pulse;
 
 public partial class GoalsTabView : UserControl
 {
+    private GoalsViewModel? _viewModel;
+    private Popup? _projectSelectorPopup;
+    private ProjectSelectorPopover? _projectSelectorPopover;
+    
     /// <summary>
     /// Converter: GoalHealth -> foreground color
     /// </summary>
@@ -43,6 +49,61 @@ public partial class GoalsTabView : UserControl
     {
         InitializeComponent();
         Log("[GoalsTabView] Initialized");
+        
+        // Create the project selector popup
+        _projectSelectorPopover = new ProjectSelectorPopover();
+        _projectSelectorPopover.ProjectSelected += OnProjectSelected;
+        
+        _projectSelectorPopup = new Popup
+        {
+            Child = _projectSelectorPopover,
+            Placement = PlacementMode.Pointer,
+            IsLightDismissEnabled = true
+        };
+    }
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        
+        Log($"[GoalsTabView] OnDataContextChanged - NewContext type: {DataContext?.GetType().Name ?? "NULL"}");
+
+        // Unsubscribe from old view model
+        if (_viewModel != null)
+        {
+            _viewModel.ProjectSelectorRequested -= OnProjectSelectorRequested;
+            Log("[GoalsTabView] Unsubscribed from old ViewModel");
+        }
+
+        // Subscribe to new view model
+        _viewModel = DataContext as GoalsViewModel;
+        if (_viewModel != null)
+        {
+            _viewModel.ProjectSelectorRequested += OnProjectSelectorRequested;
+            Log($"[GoalsTabView] Subscribed to new ViewModel");
+        }
+    }
+
+    private void OnProjectSelectorRequested(object? sender, EventArgs e)
+    {
+        Log("[GoalsTabView] ProjectSelectorRequested");
+        if (_projectSelectorPopup != null)
+        {
+            _projectSelectorPopup.PlacementTarget = this;
+            _projectSelectorPopup.IsOpen = true;
+        }
+    }
+    
+    private async void OnProjectSelected(object? sender, Project project)
+    {
+        Log($"[GoalsTabView] ProjectSelected: {project.Name}");
+        _projectSelectorPopup?.Close();
+        _viewModel?.HideProjectSelector();
+        
+        if (_viewModel != null)
+        {
+            await _viewModel.LinkGoalToProjectAsync(project.Id, project.Name);
+        }
     }
 
     private void ScopeMyGoals_Tapped(object? sender, TappedEventArgs e)

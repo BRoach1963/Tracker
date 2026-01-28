@@ -40,9 +40,10 @@ Located in `ViewModels/ViewModelBase.cs`.
 | `BriefingViewModel` | BriefingViewModel.cs | ~685 | Daily summary, Manager/IC views |
 | `MeViewModel` | MeViewModel.cs | ~1207 | Personal hub (tasks, goals, meetings) |
 | `CircleViewModel` | CircleViewModel.cs | ~1847 | Team management (managers only) |
-| `PulseViewModel` | PulseViewModel.cs | ~209 | Goals/Metrics/Tasks coordinator |
+| `PulseViewModel` | PulseViewModel.cs | ~220 | Goals/Metrics/Projects/Tasks coordinator |
 | `GoalsViewModel` | GoalsViewModel.cs | ~558 | Goal CRUD, narrative-first philosophy |
 | `MetricsViewModel` | MetricsViewModel.cs | ~682 | Metric CRUD, signals-not-targets |
+| `ProjectsViewModel` | ProjectsViewModel.cs | ~486 | Project CRUD, filtering, members/links |
 | `TasksViewModel` | TasksViewModel.cs | ~471 | Task CRUD, filtering |
 | `ChronicleViewModel` | ChronicleViewModel.cs | ~637 | Notes management |
 | `SettingsViewModel` | SettingsViewModel.cs | ~551 | Profile editing, theme, logout |
@@ -382,6 +383,71 @@ public ObservableCollection<MetricDetail> Metrics { get; }
 | `SetScopeCommand` | Filter by scope |
 | `SetLifecycleFilterCommand` | Filter by lifecycle |
 | `RecordValueCommand` | Add new data point |
+
+---
+
+## ProjectsViewModel
+
+**Purpose**: Project management within Pulse.
+
+### Filters
+```csharp
+// Status filter: All, Active, Paused, Completed
+[ObservableProperty] string StatusFilter;  // "all", "active", "paused", "completed"
+```
+
+### Key Properties
+
+```csharp
+// Collections
+public ObservableCollection<Project> Projects { get; }
+
+// Computed stats
+public int TotalCount => Projects.Count;
+public int ActiveCount => Projects.Count(p => p.Status == "active");
+public int CompletedCount => Projects.Count(p => p.Status == "completed");
+
+// Selection
+[ObservableProperty] Project? SelectedProject;
+[ObservableProperty] bool IsDetailFlyoutOpen;
+
+// Editor state
+[ObservableProperty] bool IsEditorFlyoutOpen;
+[ObservableProperty] bool IsNewProject;
+[ObservableProperty] string EditorName;
+[ObservableProperty] string EditorDescription;
+[ObservableProperty] string EditorStatus;
+[ObservableProperty] DateTime? EditorDueDate;
+
+// State
+[ObservableProperty] bool IsLoading;
+[ObservableProperty] string? ErrorMessage;
+```
+
+### Key Commands
+
+| Command | Action |
+|---------|--------|
+| `LoadProjectsCommand` | Refresh from ProjectService |
+| `SetStatusFilterCommand` | Apply status filter |
+| `SelectProjectCommand` | Select and open detail |
+| `CloseDetailCommand` | Close detail flyout |
+| `ShowCreateDialogCommand` | Open editor for new project |
+| `EditProjectCommand` | Open editor for existing |
+| `SaveProjectCommand` | Create or update |
+| `CancelEditCommand` | Close editor |
+| `DeleteProjectCommand` | Soft delete |
+
+### Status Options (for ComboBox)
+
+```csharp
+public static readonly List<StatusOption> StatusOptions = new()
+{
+    new StatusOption("Active", ProjectStatus.Active),
+    new StatusOption("Paused", ProjectStatus.Paused),
+    new StatusOption("Completed", ProjectStatus.Completed)
+};
+```
 
 ---
 

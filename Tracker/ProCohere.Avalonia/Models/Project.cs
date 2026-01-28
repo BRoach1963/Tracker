@@ -6,7 +6,17 @@ using Supabase.Postgrest.Models;
 namespace ProCohere.Avalonia.Models;
 
 /// <summary>
-/// Project model - maps to the projects table in Supabase procohere schema.
+/// Project status enum values matching procohere.project_status.
+/// </summary>
+public static class ProjectStatus
+{
+    public const string Active = "active";
+    public const string Paused = "paused";
+    public const string Completed = "completed";
+}
+
+/// <summary>
+/// Project model - maps to the procohere.projects table in Supabase.
 /// Projects group related work items and team members together.
 /// </summary>
 [Table("projects")]
@@ -30,8 +40,8 @@ public class Project : BaseModel
 
     #region Content
 
-    [Column("title")]
-    public string Title { get; set; } = string.Empty;
+    [Column("name")]
+    public string Name { get; set; } = string.Empty;
 
     [Column("description")]
     public string? Description { get; set; }
@@ -41,26 +51,13 @@ public class Project : BaseModel
     #region Status & Dates
 
     /// <summary>
-    /// Project status: 'planning', 'active', 'on_hold', 'completed', 'cancelled'.
+    /// Project status: 'active', 'paused', 'completed'.
     /// </summary>
     [Column("status")]
-    public string Status { get; set; } = "planning";
+    public string Status { get; set; } = ProjectStatus.Active;
 
-    [Column("start_date")]
-    public DateTime? StartDate { get; set; }
-
-    [Column("target_date")]
-    public DateTime? TargetDate { get; set; }
-
-    #endregion
-
-    #region Archive
-
-    [Column("is_archived")]
-    public bool IsArchived { get; set; }
-
-    [Column("archived_at")]
-    public DateTime? ArchivedAt { get; set; }
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
 
     #endregion
 
@@ -103,30 +100,65 @@ public class Project : BaseModel
 
     #region Computed Properties
 
-    public bool IsPlanning => Status == "planning";
-    public bool IsActive => Status == "active";
-    public bool IsOnHold => Status == "on_hold";
-    public bool IsCompleted => Status == "completed";
-    public bool IsCancelled => Status == "cancelled";
+    public bool IsActive => Status == ProjectStatus.Active;
+    public bool IsPaused => Status == ProjectStatus.Paused;
+    public bool IsCompleted => Status == ProjectStatus.Completed;
 
     public string StatusDisplay => Status switch
     {
-        "planning" => "Planning",
-        "active" => "Active",
-        "on_hold" => "On Hold",
-        "completed" => "Completed",
-        "cancelled" => "Cancelled",
+        ProjectStatus.Active => "Active",
+        ProjectStatus.Paused => "Paused",
+        ProjectStatus.Completed => "Completed",
         _ => Status
     };
 
     public int MemberCount => Members.Count;
     public int LinkCount => Links.Count;
 
+    /// <summary>
+    /// True if project is past due date and not completed.
+    /// </summary>
+    public bool IsOverdue => DueDate.HasValue && DueDate.Value.Date < DateTime.Today && !IsCompleted;
+
+    #endregion
+
+    #region Owner Info (populated by service)
+
+    /// <summary>
+    /// Display name of the owner (populated by service layer).
+    /// </summary>
+    public string? OwnerDisplayName { get; set; }
+    
+    /// <summary>
+    /// Owner's initials for avatar display (populated by service layer).
+    /// </summary>
+    public string? OwnerInitials { get; set; }
+    
+    /// <summary>
+    /// True if the owner is inactive/deleted (orphaned project).
+    /// </summary>
+    public bool IsOrphaned { get; set; }
+    
+    /// <summary>
+    /// Whether this project has a valid owner with a display name.
+    /// </summary>
+    public bool HasOwner => !string.IsNullOrEmpty(OwnerDisplayName) && !IsOrphaned;
+
     #endregion
 }
 
 /// <summary>
-/// Project member model - maps to project_members table.
+/// Project member role values matching procohere.project_member_role.
+/// </summary>
+public static class ProjectMemberRole
+{
+    public const string Member = "member";
+    public const string Lead = "lead";
+    public const string Viewer = "viewer";
+}
+
+/// <summary>
+/// Project member model - maps to procohere.project_members table.
 /// Associates team members with projects.
 /// </summary>
 [Table("project_members")]
@@ -151,10 +183,10 @@ public class ProjectMember : BaseModel
     #region Role
 
     /// <summary>
-    /// Role on project: 'owner', 'lead', 'member', 'contributor', 'viewer'.
+    /// Role on project: 'member', 'lead', 'viewer'.
     /// </summary>
     [Column("role")]
-    public string Role { get; set; } = "member";
+    public string Role { get; set; } = ProjectMemberRole.Member;
 
     #endregion
 
@@ -176,23 +208,31 @@ public class ProjectMember : BaseModel
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
+    #endregion
+
+    #region Navigation (not mapped)
+
+    /// <summary>
+    /// The team member details (populated by service).
+    /// </summary>
+    public TeamMemberDetail? TeamMember { get; set; }
+
     #endregion
 
     #region Computed Properties
 
-    public bool IsOwner => Role == "owner";
-    public bool IsLead => Role == "lead";
-    public bool IsMember => Role == "member";
-    public bool IsContributor => Role == "contributor";
-    public bool IsViewer => Role == "viewer";
+    public bool IsLead => Role == ProjectMemberRole.Lead;
+    public bool IsMember => Role == ProjectMemberRole.Member;
+    public bool IsViewer => Role == ProjectMemberRole.Viewer;
 
     public string RoleDisplay => Role switch
     {
-        "owner" => "Owner",
-        "lead" => "Lead",
-        "member" => "Member",
-        "contributor" => "Contributor",
-        "viewer" => "Viewer",
+        ProjectMemberRole.Lead => "Lead",
+        ProjectMemberRole.Member => "Member",
+        ProjectMemberRole.Viewer => "Viewer",
         _ => Role
     };
 
@@ -200,8 +240,23 @@ public class ProjectMember : BaseModel
 }
 
 /// <summary>
-/// Project link model - maps to project_links table.
-/// Links projects to related entities (goals, tasks, metrics, meetings).
+/// Project link entity type values matching procohere.project_link_entity_type.
+/// </summary>
+public static class ProjectLinkEntityType
+{
+    public const string ChronicleNote = "chronicle_note";
+    public const string Goal = "goal";
+    public const string Metric = "metric";
+    public const string Meeting = "meeting";
+    public const string Contact = "contact";
+    public const string Company = "company";
+    public const string Reminder = "reminder";
+    public const string Task = "task";
+}
+
+/// <summary>
+/// Project link model - maps to procohere.project_links table.
+/// Links projects to related entities (goals, tasks, metrics, meetings, etc.).
 /// </summary>
 [Table("project_links")]
 public class ProjectLink : BaseModel
@@ -222,7 +277,7 @@ public class ProjectLink : BaseModel
     #region Linked Entity
 
     /// <summary>
-    /// Entity type: 'goal', 'task', 'metric', 'meeting'.
+    /// Entity type: 'chronicle_note', 'goal', 'metric', 'meeting', 'contact', 'company', 'reminder', 'task'.
     /// </summary>
     [Column("entity_type")]
     public string EntityType { get; set; } = string.Empty;
@@ -263,22 +318,49 @@ public class ProjectLink : BaseModel
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 
+    [Column("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+
     #endregion
 
     #region Computed Properties
 
-    public bool IsGoalLink => EntityType == "goal";
-    public bool IsTaskLink => EntityType == "task";
-    public bool IsMetricLink => EntityType == "metric";
-    public bool IsMeetingLink => EntityType == "meeting";
+    public bool IsChronicleNoteLink => EntityType == ProjectLinkEntityType.ChronicleNote;
+    public bool IsGoalLink => EntityType == ProjectLinkEntityType.Goal;
+    public bool IsMetricLink => EntityType == ProjectLinkEntityType.Metric;
+    public bool IsMeetingLink => EntityType == ProjectLinkEntityType.Meeting;
+    public bool IsContactLink => EntityType == ProjectLinkEntityType.Contact;
+    public bool IsCompanyLink => EntityType == ProjectLinkEntityType.Company;
+    public bool IsReminderLink => EntityType == ProjectLinkEntityType.Reminder;
+    public bool IsTaskLink => EntityType == ProjectLinkEntityType.Task;
 
     public string EntityTypeDisplay => EntityType switch
     {
-        "goal" => "Goal",
-        "task" => "Task",
-        "metric" => "Metric",
-        "meeting" => "Meeting",
+        ProjectLinkEntityType.ChronicleNote => "Chronicle Note",
+        ProjectLinkEntityType.Goal => "Goal",
+        ProjectLinkEntityType.Metric => "Metric",
+        ProjectLinkEntityType.Meeting => "Meeting",
+        ProjectLinkEntityType.Contact => "Contact",
+        ProjectLinkEntityType.Company => "Company",
+        ProjectLinkEntityType.Reminder => "Reminder",
+        ProjectLinkEntityType.Task => "Task",
         _ => EntityType
+    };
+
+    /// <summary>
+    /// Icon for the entity type (using Segoe Fluent Icons).
+    /// </summary>
+    public string EntityTypeIcon => EntityType switch
+    {
+        ProjectLinkEntityType.ChronicleNote => "\uE70B",  // Edit
+        ProjectLinkEntityType.Goal => "\uE8FB",           // Target
+        ProjectLinkEntityType.Metric => "\uE9D9",         // Chart
+        ProjectLinkEntityType.Meeting => "\uE787",        // Calendar
+        ProjectLinkEntityType.Contact => "\uE77B",        // Contact
+        ProjectLinkEntityType.Company => "\uE731",        // Building
+        ProjectLinkEntityType.Reminder => "\uEA8F",       // Alarm
+        ProjectLinkEntityType.Task => "\uE73A",           // Checkbox
+        _ => "\uE71B"                                      // Link
     };
 
     #endregion

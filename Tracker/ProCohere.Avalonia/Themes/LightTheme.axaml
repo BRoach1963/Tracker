@@ -9,11 +9,13 @@
   <Color x:Key="ColorPrimaryHover">#FF32533D</Color>
   <Color x:Key="ColorPrimaryPressed">#FF284333</Color>
   <Color x:Key="ColorPrimarySoft">#FFE7EFEA</Color>
+  <Color x:Key="ColorPrimarySubtle">#FFDCEAE2</Color>
 
   <Color x:Key="ColorSecondary">#FF2E3A5A</Color>
   <Color x:Key="ColorSecondaryHover">#FF26304A</Color>
   <Color x:Key="ColorSecondaryPressed">#FF1E263A</Color>
   <Color x:Key="ColorSecondarySoft">#FFE7EAF1</Color>
+  <Color x:Key="ColorSecondarySubtle">#FF4A5A7A</Color>
 
   <Color x:Key="ColorHighlight">#FFD0AF5F</Color>
   <Color x:Key="ColorHighlightHover">#FFC29F4A</Color>
@@ -48,11 +50,13 @@
   <SolidColorBrush x:Key="BrushPrimaryHover" Color="{StaticResource ColorPrimaryHover}" />
   <SolidColorBrush x:Key="BrushPrimaryPressed" Color="{StaticResource ColorPrimaryPressed}" />
   <SolidColorBrush x:Key="BrushPrimarySoft" Color="{StaticResource ColorPrimarySoft}" />
+  <SolidColorBrush x:Key="BrushPrimarySubtle" Color="{StaticResource ColorPrimarySubtle}" />
 
   <SolidColorBrush x:Key="BrushSecondary" Color="{StaticResource ColorSecondary}" />
   <SolidColorBrush x:Key="BrushSecondaryHover" Color="{StaticResource ColorSecondaryHover}" />
   <SolidColorBrush x:Key="BrushSecondaryPressed" Color="{StaticResource ColorSecondaryPressed}" />
   <SolidColorBrush x:Key="BrushSecondarySoft" Color="{StaticResource ColorSecondarySoft}" />
+  <SolidColorBrush x:Key="BrushSecondarySubtle" Color="{StaticResource ColorSecondarySubtle}" />
 
   <SolidColorBrush x:Key="BrushHighlight" Color="{StaticResource ColorHighlight}" />
   <SolidColorBrush x:Key="BrushHighlightHover" Color="{StaticResource ColorHighlightHover}" />
