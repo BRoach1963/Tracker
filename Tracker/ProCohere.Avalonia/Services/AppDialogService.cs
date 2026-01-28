@@ -364,6 +364,155 @@ public static class AppDialogService
     }
 
     #endregion
+    
+    #region Metric Dialogs
+    
+    /// <summary>
+    /// Shows the create metric dialog.
+    /// </summary>
+    /// <returns>The created metric, or null if cancelled</returns>
+    public static async Task<MetricDetail?> ShowCreateMetricAsync()
+    {
+        try
+        {
+            var window = GetMainWindow();
+            if (window == null) return null;
+            
+            var dialog = new EditMetricDialog();
+            
+            // Load team members for owner selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers);
+            
+            await dialog.ShowDialog(window);
+            
+            // Result is null if cancelled
+            if (dialog.Result == null)
+            {
+                return null;
+            }
+            
+            // Create a MetricDetail from the dialog result
+            var newMetric = new MetricDetail
+            {
+                Id = Guid.Empty, // Will be assigned by service
+                Name = dialog.Result.Name,
+                Description = dialog.Result.Description,
+                CurrentValue = dialog.Result.CurrentValue,
+                TargetValue = dialog.Result.TargetValue,
+                Unit = dialog.Result.Unit,
+                TargetDirection = dialog.Result.TargetDirection,
+                Frequency = dialog.Result.Frequency,
+                OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId
+            };
+            
+            // Create the metric in the database
+            var created = await MetricsService.Instance.CreateMetricAsync(newMetric);
+            return created;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing create metric dialog: {ex.Message}");
+            return null;
+        }
+    }
+    
+    /// <summary>
+    /// Shows the edit metric dialog for an existing metric.
+    /// </summary>
+    /// <param name="metric">The metric to edit</param>
+    /// <returns>The updated metric, or null if cancelled</returns>
+    public static async Task<MetricDetail?> ShowEditMetricAsync(MetricDetail metric)
+    {
+        try
+        {
+            var window = GetMainWindow();
+            if (window == null) return null;
+            
+            var dialog = new EditMetricDialog();
+            
+            // Load team members for owner selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers);
+            
+            // Load existing metric data
+            dialog.LoadMetric(metric);
+            
+            await dialog.ShowDialog(window);
+            
+            // Result is null if cancelled
+            if (dialog.Result == null)
+            {
+                return null;
+            }
+            
+            if (dialog.Result.IsDeleted)
+            {
+                // Handle deletion
+                await MetricsService.Instance.DeleteMetricAsync(metric.Id);
+                return null;
+            }
+            
+            // Update the metric from dialog values
+            metric.Name = dialog.Result.Name;
+            metric.Description = dialog.Result.Description;
+            metric.CurrentValue = dialog.Result.CurrentValue;
+            metric.TargetValue = dialog.Result.TargetValue;
+            metric.Unit = dialog.Result.Unit;
+            metric.TargetDirection = dialog.Result.TargetDirection;
+            metric.Frequency = dialog.Result.Frequency;
+            metric.OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId;
+            
+            // Update the metric in the database
+            var updated = await MetricsService.Instance.UpdateMetricAsync(metric);
+            return updated;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing edit metric dialog: {ex.Message}");
+            return null;
+        }
+    }
+    
+    /// <summary>
+    /// Shows the update metric value dialog.
+    /// </summary>
+    /// <param name="metric">The metric to update</param>
+    /// <returns>Result containing the new value and notes, or null if cancelled</returns>
+    public static async Task<Models.Dialogs.UpdateMetricValueResult?> ShowUpdateMetricValueAsync(MetricDetail metric)
+    {
+        try
+        {
+            var window = GetMainWindow();
+            if (window == null) return null;
+            
+            var dialog = new UpdateMetricValueDialog();
+            dialog.Initialize(
+                metric.CurrentValue?.ToString(), 
+                metric.SourceEnum == MetricSource.Manual);
+            
+            await dialog.ShowDialog(window);
+            
+            return dialog.Result;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing update metric value dialog: {ex.Message}");
+            return null;
+        }
+    }
+    
+    /// <summary>
+    /// Gets the main application window.
+    /// </summary>
+    private static Window? GetMainWindow()
+    {
+        return global::Avalonia.Application.Current?.ApplicationLifetime is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+    }
+    
+    #endregion
 }
 
 #region Result Types

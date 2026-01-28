@@ -21,6 +21,25 @@ namespace ProCohere.Avalonia.ViewModels;
 /// </summary>
 public partial class MetricsViewModel : ViewModelBase
 {
+    #region Dialog Events
+    
+    /// <summary>
+    /// Raised when the create metric dialog should be shown.
+    /// </summary>
+    public event EventHandler? CreateMetricDialogRequested;
+    
+    /// <summary>
+    /// Raised when the edit metric dialog should be shown.
+    /// </summary>
+    public event EventHandler<MetricDetail>? EditMetricDialogRequested;
+    
+    /// <summary>
+    /// Raised when the update value dialog should be shown.
+    /// </summary>
+    public event EventHandler<MetricDetail>? UpdateValueDialogRequested;
+    
+    #endregion
+    
     #region Loading State
 
     [ObservableProperty]
@@ -515,15 +534,8 @@ public partial class MetricsViewModel : ViewModelBase
     [RelayCommand]
     private void CreateNewMetric()
     {
-        EditingMetric = new MetricDetail
-        {
-            Id = Guid.Empty,
-            Name = string.Empty,
-            Description = string.Empty
-            // Note: Lifecycle, Source, Scope don't exist in DB schema
-        };
-        IsEditorFlyoutOpen = true;
-        IsDetailFlyoutOpen = false;
+        // Fire event to show dialog (View handles via AppDialogService)
+        CreateMetricDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -531,9 +543,8 @@ public partial class MetricsViewModel : ViewModelBase
     {
         if (metric == null) return;
         
-        EditingMetric = metric;
-        IsEditorFlyoutOpen = true;
-        IsDetailFlyoutOpen = false;
+        // Fire event to show dialog (View handles via AppDialogService)
+        EditMetricDialogRequested?.Invoke(this, metric);
     }
 
     [RelayCommand]
@@ -625,9 +636,8 @@ public partial class MetricsViewModel : ViewModelBase
     {
         if (SelectedMetric == null) return;
 
-        NewValueText = SelectedMetric.CurrentValue?.ToString() ?? string.Empty;
-        WhatChangedNote = string.Empty;
-        IsValueUpdateDialogOpen = true;
+        // Fire event to show dialog (View handles via AppDialogService)
+        UpdateValueDialogRequested?.Invoke(this, SelectedMetric);
     }
 
     [RelayCommand]
@@ -820,6 +830,23 @@ public partial class MetricsViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+        }
+    }
+    
+    /// <summary>
+    /// Called by View after a metric is created or edited via dialog.
+    /// Refreshes the metrics list.
+    /// </summary>
+    public async Task OnMetricSavedAsync(MetricDetail? metric)
+    {
+        if (metric == null) return;
+        
+        await LoadMetricsAsync();
+        
+        // If it was the selected metric being edited, update it
+        if (SelectedMetric?.Id == metric.Id)
+        {
+            SelectedMetric = metric;
         }
     }
 
