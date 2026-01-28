@@ -358,8 +358,8 @@ public partial class BriefingViewModel : ViewModelBase
     [RelayCommand]
     private void AddTask()
     {
-        // TODO: Navigate to add task view or show dialog
-        System.Diagnostics.Debug.WriteLine("Add Task clicked");
+        Log("[BriefingViewModel] AddTask command - requesting dialog");
+        CreateTaskDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -815,6 +815,12 @@ public partial class BriefingViewModel : ViewModelBase
     #region Dialog Events
 
     /// <summary>
+    /// Event raised when the user wants to create a new task.
+    /// The View subscribes to this and shows the dialog using AppDialogService.
+    /// </summary>
+    public event EventHandler? CreateTaskDialogRequested;
+
+    /// <summary>
     /// Event raised when the user wants to create a new meeting.
     /// The View subscribes to this and shows the dialog using AppDialogService.
     /// </summary>
@@ -852,6 +858,47 @@ public partial class BriefingViewModel : ViewModelBase
             var index = UpcomingMeetings.IndexOf(existing);
             UpcomingMeetings[index] = meeting;
             Log($"[BriefingViewModel] Updated existing meeting in collection");
+        }
+    }
+    
+    /// <summary>
+    /// Called by the View when a task is saved from the dialog.
+    /// </summary>
+    public void OnTaskSaved(TaskDetail task)
+    {
+        Log($"[BriefingViewModel] Task saved: {task.Title}");
+        
+        // Add to the tasks collection if it's due today/this week
+        var existing = UpcomingTasks.FirstOrDefault(t => t.Id == task.Id);
+        if (existing == null)
+        {
+            // Check if it belongs in the current view
+            if (task.DueDate.HasValue)
+            {
+                var dueDate = task.DueDate.Value.Date;
+                var today = DateTime.Now.Date;
+                var endOfWeek = today.AddDays(7);
+                
+                if ((IsTodayScope && dueDate == today) || 
+                    (IsWeekScope && dueDate >= today && dueDate < endOfWeek))
+                {
+                    UpcomingTasks.Add(task);
+                    Log($"[BriefingViewModel] Added new task to collection");
+                }
+            }
+            else
+            {
+                // Tasks without due date go in the backlog/general list
+                UpcomingTasks.Add(task);
+                Log($"[BriefingViewModel] Added new task (no due date) to collection");
+            }
+        }
+        else
+        {
+            // Update existing task in place
+            var index = UpcomingTasks.IndexOf(existing);
+            UpcomingTasks[index] = task;
+            Log($"[BriefingViewModel] Updated existing task in collection");
         }
     }
     

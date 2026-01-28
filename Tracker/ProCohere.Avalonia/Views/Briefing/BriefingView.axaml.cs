@@ -16,7 +16,21 @@ public partial class BriefingView : UserControl
         DataContext = _viewModel;
         
         // Subscribe to dialog events
+        _viewModel.CreateTaskDialogRequested += OnCreateTaskDialogRequested;
         _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+    }
+
+    private async void OnCreateTaskDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var result = await AppDialogService.ShowCreateTaskAsync(window);
+        
+        if (result.Success && result.Task != null)
+        {
+            _viewModel.OnTaskSaved(result.Task);
+        }
     }
 
     private async void OnCreateMeetingDialogRequested(object? sender, EventArgs e)
