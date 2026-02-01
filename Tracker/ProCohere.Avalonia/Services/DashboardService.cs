@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
 using Supabase.Postgrest.Attributes;
@@ -471,6 +472,7 @@ public class DashboardService
     /// Gets the daily load (tasks + meetings) for the next 7 days.
     /// Used for the Briefing sparkline visualization.
     /// This is scoped to the current user's own obligations (not team).
+    /// Uses batch RPC for meetings to eliminate N+1 attendee checks.
     /// </summary>
     public async Task<List<Models.DailyLoad>> GetWeeklyLoadAsync()
     {
@@ -507,9 +509,10 @@ public class DashboardService
 
         try
         {
-            // Get tasks due in the next 7 days assigned to this user
             var endDate = today.AddDays(7);
-            var tasksResult = await client.From<TaskForLoad>()
+            
+            // Get tasks due in the next 7 days assigned to this user
+            var tasksTask = client.From<TaskForLoad>()
                 .Filter("organization_id", Supabase.Postgrest.Constants.Operator.Equals, organizationId.ToString())
                 .Filter("assigned_to", Supabase.Postgrest.Constants.Operator.Equals, teamMemberId.ToString())
                 .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
@@ -518,6 +521,18 @@ public class DashboardService
                 .Filter("due_date", Supabase.Postgrest.Constants.Operator.LessThan, endDate.ToString("yyyy-MM-dd"))
                 .Get();
 
+            // Get meetings using batch RPC (replaces N+1 attendee checks)
+            var meetingsTask = client.Rpc("get_weekly_meeting_load", new
+            {
+                p_team_member_id = teamMemberId,
+                p_start_date = today.ToString("yyyy-MM-dd"),
+                p_end_date = endDate.ToString("yyyy-MM-dd")
+            });
+
+            // Run both in parallel
+            await Task.WhenAll(tasksTask, meetingsTask);
+
+            var tasksResult = tasksTask.Result;
             Log($"Tasks for load: {tasksResult.Models?.Count ?? 0}");
 
             if (tasksResult.Models != null)
@@ -535,31 +550,24 @@ public class DashboardService
                 }
             }
 
-            // Get meetings in the next 7 days where this user is an attendee
-            var meetingsResult = await client.From<MeetingForLoad>()
-                .Filter("organization_id", Supabase.Postgrest.Constants.Operator.Equals, organizationId.ToString())
-                .Filter("is_deleted", Supabase.Postgrest.Constants.Operator.Equals, "false")
-                .Filter("scheduled_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, today.ToString("yyyy-MM-dd"))
-                .Filter("scheduled_at", Supabase.Postgrest.Constants.Operator.LessThan, endDate.ToString("yyyy-MM-dd"))
-                .Get();
-
-            Log($"Meetings for load (all): {meetingsResult.Models?.Count ?? 0}");
-
-            // Now filter meetings where this user is an attendee
-            if (meetingsResult.Models != null)
+            // Process meeting load from batch RPC
+            var meetingsRpcResult = meetingsTask.Result;
+            if (meetingsRpcResult?.Content != null)
             {
-                foreach (var meeting in meetingsResult.Models)
+                Log($"Meetings RPC response length: {meetingsRpcResult.Content.Length}");
+                var meetingLoads = JsonSerializer.Deserialize<List<WeeklyMeetingLoadResult>>(
+                    meetingsRpcResult.Content,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                ) ?? new List<WeeklyMeetingLoadResult>();
+
+                Log($"Meetings for load (batch): {meetingLoads.Sum(m => m.MeetingCount)} across {meetingLoads.Count} days");
+
+                foreach (var meetingLoad in meetingLoads)
                 {
-                    // Check if this user is an attendee
-                    var isAttendee = await CheckIfMeetingAttendeeAsync(client, meeting.Id, teamMemberId, organizationId);
-                    
-                    if (isAttendee && meeting.ScheduledAt.HasValue)
+                    var meetingDay = meetingLoad.MeetingDate.Date;
+                    if (dayLoads.ContainsKey(meetingDay))
                     {
-                        var meetingDay = meeting.ScheduledAt.Value.Date;
-                        if (dayLoads.ContainsKey(meetingDay))
-                        {
-                            dayLoads[meetingDay].Meetings++;
-                        }
+                        dayLoads[meetingDay].Meetings = meetingLoad.MeetingCount;
                     }
                 }
             }
@@ -576,6 +584,11 @@ public class DashboardService
         return loads;
     }
 
+    /// <summary>
+    /// Legacy method - kept for compatibility but no longer used.
+    /// The batch RPC replaces N+1 attendee checks.
+    /// </summary>
+    [Obsolete("Use get_weekly_meeting_load RPC instead")]
     private async Task<bool> CheckIfMeetingAttendeeAsync(Supabase.Client client, Guid meetingId, Guid teamMemberId, Guid organizationId)
     {
         try

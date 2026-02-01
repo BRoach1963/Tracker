@@ -920,4 +920,60 @@ public class ProjectService
     }
 
     #endregion
+
+    #region Batch Operations
+
+    /// <summary>
+    /// Gets project signals (overdue tasks, goals needing attention) for multiple projects in one call.
+    /// Uses procohere.get_project_signals_batch RPC to replace N+1 queries.
+    /// </summary>
+    /// <param name="projectIds">Project IDs to get signals for. Pass null for all visible projects.</param>
+    /// <returns>List of signal results with project_id, overdue_task_count, goals_needing_attention.</returns>
+    public async Task<List<ProjectSignalsBatchResult>> GetProjectSignalsBatchAsync(
+        IEnumerable<Guid>? projectIds = null)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<ProjectSignalsBatchResult>();
+        }
+
+        try
+        {
+            var idsArray = projectIds?.ToArray();
+            Log($"Getting project signals batch for {idsArray?.Length ?? 0} projects (null = all)");
+
+            var rpcResult = await client.Rpc("get_project_signals_batch", new
+            {
+                p_project_ids = idsArray
+            });
+
+            if (rpcResult?.Content == null)
+            {
+                Log("RPC returned no content");
+                return new List<ProjectSignalsBatchResult>();
+            }
+
+            Log($"RPC response length: {rpcResult.Content.Length}");
+
+            var results = JsonSerializer.Deserialize<List<ProjectSignalsBatchResult>>(
+                rpcResult.Content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? new List<ProjectSignalsBatchResult>();
+
+            Log($"Project signals batch returned: {results.Count} results");
+            return results;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetProjectSignalsBatch ERROR: {ex.Message}");
+            return new List<ProjectSignalsBatchResult>();
+        }
+    }
+
+    #endregion
 }

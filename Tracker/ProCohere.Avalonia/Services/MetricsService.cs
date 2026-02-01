@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -78,20 +79,23 @@ public class MetricsService : IMetricsService
         {
             Log("Loading all metrics");
 
-            var result = await client.From<MetricDetail>()
+            // Load metrics and trends in parallel using batch RPC
+            var metricsTask = client.From<MetricDetail>()
                 .Filter("is_deleted", Operator.Equals, "false")
                 .Order("name", Ordering.Ascending)
                 .Get();
 
-            var metrics = result.Models ?? new List<MetricDetail>();
-            
-            // Calculate trends for each metric
-            foreach (var metric in metrics)
-            {
-                metric.Trend = await CalculateTrendAsync(metric.Id, ct);
-            }
+            var trendsTask = GetMetricsTrendBatchAsync(null, ct);
 
-            Log($"All metrics returned: {metrics.Count}");
+            await Task.WhenAll(metricsTask, trendsTask);
+
+            var metrics = metricsTask.Result.Models ?? new List<MetricDetail>();
+            var trends = trendsTask.Result;
+
+            // Apply trends from batch result
+            ApplyTrendBatchResults(metrics, trends);
+
+            Log($"All metrics returned: {metrics.Count} (with batch trends)");
             return metrics;
         }
         catch (Exception ex)
@@ -207,12 +211,15 @@ public class MetricsService : IMetricsService
 
             var metrics = result.Models ?? new List<MetricDetail>();
             
-            foreach (var metric in metrics)
+            // Use batch RPC for trends if we have metrics
+            if (metrics.Count > 0)
             {
-                metric.Trend = await CalculateTrendAsync(metric.Id, ct);
+                var metricIds = metrics.Select(m => m.Id);
+                var trends = await GetMetricsTrendBatchAsync(metricIds, ct);
+                ApplyTrendBatchResults(metrics, trends);
             }
 
-            Log($"Search '{query}' returned: {metrics.Count} metrics");
+            Log($"Search '{query}' returned: {metrics.Count} metrics (with batch trends)");
             return metrics;
         }
         catch (Exception ex)
@@ -671,6 +678,91 @@ public class MetricsService : IMetricsService
         {
             Log($"CalculateTrend ERROR: {ex.Message}");
             return MetricTrend.Unknown;
+        }
+    }
+
+    #endregion
+
+    #region Batch Operations
+
+    /// <summary>
+    /// Gets metrics with their computed trends in a single batch RPC call.
+    /// Uses procohere.get_metrics_with_trend_batch to replace N+1 trend queries.
+    /// </summary>
+    /// <param name="metricIds">Metric IDs to get trends for. Pass null for all visible metrics.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>List of results with metric_id, current_value, and trend.</returns>
+    public async Task<List<MetricTrendBatchResult>> GetMetricsTrendBatchAsync(
+        IEnumerable<Guid>? metricIds = null,
+        CancellationToken ct = default)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<MetricTrendBatchResult>();
+        }
+
+        try
+        {
+            var idsArray = metricIds?.ToArray();
+            Log($"Getting metrics trend batch for {idsArray?.Length ?? 0} metrics (null = all)");
+
+            var rpcResult = await client.Rpc("get_metrics_with_trend_batch", new
+            {
+                p_metric_ids = idsArray
+            });
+
+            ct.ThrowIfCancellationRequested();
+
+            if (rpcResult?.Content == null)
+            {
+                Log("RPC returned no content");
+                return new List<MetricTrendBatchResult>();
+            }
+
+            Log($"RPC response length: {rpcResult.Content.Length}");
+
+            var results = JsonSerializer.Deserialize<List<MetricTrendBatchResult>>(
+                rpcResult.Content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? new List<MetricTrendBatchResult>();
+
+            Log($"Metrics trend batch returned: {results.Count} results");
+            return results;
+        }
+        catch (OperationCanceledException)
+        {
+            Log("GetMetricsTrendBatch cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetMetricsTrendBatch ERROR: {ex.Message}");
+            return new List<MetricTrendBatchResult>();
+        }
+    }
+
+    /// <summary>
+    /// Applies batch trend results to a list of metrics in memory.
+    /// </summary>
+    public void ApplyTrendBatchResults(List<MetricDetail> metrics, List<MetricTrendBatchResult> trendResults)
+    {
+        var trendLookup = trendResults.ToDictionary(r => r.MetricId);
+        
+        foreach (var metric in metrics)
+        {
+            if (trendLookup.TryGetValue(metric.Id, out var result))
+            {
+                metric.Trend = result.Trend;
+            }
+            else
+            {
+                metric.Trend = MetricTrend.Unknown;
+            }
         }
     }
 

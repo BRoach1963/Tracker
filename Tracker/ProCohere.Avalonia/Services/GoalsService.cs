@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -850,6 +851,70 @@ public class GoalsService : IGoalsService
             LastError = ex.Message;
             Log($"GetAssociatedMetrics ERROR: {ex.Message}");
             return new List<MetricDetail>();
+        }
+    }
+
+    /// <summary>
+    /// Gets derived health for multiple goals in a single batch RPC call.
+    /// Uses procohere.get_goal_health_batch_v2 which computes health from linked metrics
+    /// using latest metric values, targets, and trend analysis (last 3 values).
+    /// </summary>
+    /// <param name="goalIds">Goal IDs to compute health for. Pass null or empty to get all goals.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>List of health results with goal_id, linked_metrics_count, and derived_health.</returns>
+    public async Task<List<GoalHealthBatchResult>> GetGoalHealthBatchAsync(
+        IEnumerable<Guid>? goalIds = null, 
+        CancellationToken ct = default)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<GoalHealthBatchResult>();
+        }
+
+        try
+        {
+            var idsArray = goalIds?.ToArray();
+            Log($"Getting goal health batch for {idsArray?.Length ?? 0} goals (null = all)");
+
+            // Call the RPC with goal IDs array (null = all visible goals)
+            var rpcResult = await client.Rpc("get_goal_health_batch_v2", new
+            {
+                p_goal_ids = idsArray
+            });
+
+            ct.ThrowIfCancellationRequested();
+
+            if (rpcResult?.Content == null)
+            {
+                Log("RPC returned no content");
+                return new List<GoalHealthBatchResult>();
+            }
+
+            Log($"RPC response length: {rpcResult.Content.Length}");
+
+            // Deserialize the JSON array response
+            var results = JsonSerializer.Deserialize<List<GoalHealthBatchResult>>(
+                rpcResult.Content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? new List<GoalHealthBatchResult>();
+
+            Log($"Goal health batch returned: {results.Count} results");
+            return results;
+        }
+        catch (OperationCanceledException)
+        {
+            Log("GetGoalHealthBatch cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetGoalHealthBatch ERROR: {ex.Message}");
+            return new List<GoalHealthBatchResult>();
         }
     }
 
