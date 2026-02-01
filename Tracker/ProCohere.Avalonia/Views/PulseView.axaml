@@ -3,110 +3,609 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
-             xmlns:views="using:ProCohere.Avalonia.Views"
-             xmlns:pulse="using:ProCohere.Avalonia.Views.Pulse"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.PulseView"
              x:DataType="vm:PulseViewModel">
     
+    <!-- 
+    ============================================================================
+    PULSE VIEW - Synthesis Hub
+    ============================================================================
+    
+    Pulse answers three questions:
+    1. What needs attention? (Attention Required - max 5)
+    2. What changed? (What Changed - awareness without alarm)
+    3. What story is emerging? (Recent Discussions + Actions Taken)
+    
+    Structure:
+    - Tagline (context/purpose)
+    - Quick Access strip (muted utility, not primary navigation)
+    - Four sections in single column with per-section loading/empty states
+    
+    MVVM: All state owned by PulseViewModel. Navigation via events.
+    ============================================================================
+    -->
+    
     <UserControl.Styles>
-        <!-- Tab Button Style (same as Circle) -->
-        <Style Selector="Button.tab-button">
+        <!-- Quick Access Button Style (muted, utility feel) -->
+        <Style Selector="Button.quick-access">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
-            <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="BorderThickness" Value="0,0,0,2"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
         </Style>
-        <Style Selector="Button.tab-button /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent"/>
-        </Style>
-        <Style Selector="Button.tab-button:pointerover">
+        <Style Selector="Button.quick-access:pointerover">
             <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
             <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
         </Style>
-        <Style Selector="Button.tab-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
-        </Style>
-        <Style Selector="Button.tab-button.selected">
-            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+        
+        <!-- Section Header Style -->
+        <Style Selector="TextBlock.section-header">
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
-        <Style Selector="Button.tab-button.selected /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent"/>
+        
+        <!-- Section Container Style -->
+        <Style Selector="Border.section-container">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+        
+        <!-- Signal Card Style -->
+        <Style Selector="Border.signal-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style Selector="Border.signal-card:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <!-- Severity indicator styles -->
+        <Style Selector="Ellipse.severity-critical">
+            <Setter Property="Fill" Value="#E53935"/>
+        </Style>
+        <Style Selector="Ellipse.severity-warning">
+            <Setter Property="Fill" Value="#FB8C00"/>
+        </Style>
+        <Style Selector="Ellipse.severity-info">
+            <Setter Property="Fill" Value="#43A047"/>
+        </Style>
+        
+        <!-- Empty state text -->
+        <Style Selector="TextBlock.empty-state">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextTertiary}"/>
+            <Setter Property="FontStyle" Value="Italic"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,8,0,8"/>
+        </Style>
+        
+        <!-- Loading indicator -->
+        <Style Selector="TextBlock.loading">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,8,0,8"/>
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*">
-        
-        <!-- Row 0: Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+    <Grid ColumnDefinitions="*,Auto">
+        <!-- Main Content -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24">
             
-            <TextBlock Grid.Column="0" 
-                       Text="Goals, metrics, and tasks that drive your work"
-                       FontSize="13" 
+            <!-- ================================================================
+                 TAGLINE - Sets context for what Pulse is
+                 ================================================================ -->
+            <TextBlock Text="What matters and what changed"
+                       FontSize="14" 
                        Foreground="{DynamicResource BrushTextSecondary}"
-                       VerticalAlignment="Center"/>
-        </Grid>
-        
-        <!-- Row 1: Tab Bar -->
-        <Border Grid.Row="1" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1" Margin="0,0,0,16">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding IsSubTabGoals}"
-                        Command="{Binding SetSubTabCommand}"
-                        CommandParameter="0">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Goals"/>
-                    </StackPanel>
-                </Button>
-                
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding IsSubTabMetrics}"
-                        Command="{Binding SetSubTabCommand}"
-                        CommandParameter="1">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Metrics"/>
-                    </StackPanel>
-                </Button>
-                
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding IsSubTabTasks}"
-                        Command="{Binding SetSubTabCommand}"
-                        CommandParameter="2">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9,13V19H7V13H9M15,15V19H13V15H15M11,11V19H9V11H11M13,13V19H11V13H13" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Tasks"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-        </Border>
-        
-        <!-- Row 2: Content Area - Visibility controlled from code-behind -->
-        <Grid Grid.Row="2" x:Name="TabContentArea">
-            <!-- Goals Tab Content - DataContext set in code-behind to prevent inheritance errors -->
-            <pulse:GoalsTabView x:Name="GoalsTab" DataContext="{x:Null}"/>
+                       Margin="0,0,0,20"/>
             
-            <!-- Metrics Tab Content -->
-            <pulse:MetricsTabView x:Name="MetricsTab" DataContext="{x:Null}"/>
+            <!-- ================================================================
+                 QUICK ACCESS STRIP - Muted utility bar
+                 ================================================================ -->
+            <Border Background="{DynamicResource BrushSurfaceAlt}" 
+                    CornerRadius="6" 
+                    Padding="12" 
+                    Margin="0,0,0,24"
+                    Opacity="0.9">
+                <Grid ColumnDefinitions="*,Auto,*">
+                    <UniformGrid Grid.Column="1" Columns="3" HorizontalAlignment="Center">
+                        <Button Classes="quick-access" 
+                                Command="{Binding NavigateToGoalsCommand}"
+                                Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
+                                          Width="14" Height="14"/>
+                                <TextBlock Text="Goals"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="quick-access" 
+                                Command="{Binding NavigateToMetricsCommand}"
+                                Margin="4,0,4,0">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                                          Width="14" Height="14"/>
+                                <TextBlock Text="Metrics"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="quick-access" 
+                                Command="{Binding NavigateToTasksCommand}"
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9,13V19H7V13H9M15,15V19H13V15H15M11,11V19H9V11H11M13,13V19H11V13H13" 
+                                          Width="14" Height="14"/>
+                                <TextBlock Text="Tasks"/>
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+                </Grid>
+            </Border>
             
-            <!-- Tasks Tab Content -->
-            <pulse:TasksTabView x:Name="TasksTab" DataContext="{x:Null}"/>
+            <!-- ================================================================
+                 GLOBAL EMPTY STATE - When no signals at all
+                 ================================================================ -->
+            <Border IsVisible="{Binding ShowEmptyState}"
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    CornerRadius="8"
+                    Padding="40"
+                    HorizontalAlignment="Center"
+                    Margin="0,20,0,0">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"
+                              Width="48" Height="48"
+                              Foreground="{DynamicResource BrushTextTertiary}"/>
+                    <TextBlock Text="All clear!"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="No signals require your attention right now."
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================
+                 SECTION 1: ATTENTION REQUIRED
+                 Critical signals requiring immediate intervention (max 5)
+                 ================================================================ -->
+            <Border Classes="section-container" 
+                    IsVisible="{Binding !ShowEmptyState}">
+                <StackPanel>
+                    <TextBlock Classes="section-header">
+                        <Run Text="⚠️ "/>
+                        <Run Text="Attention Required"/>
+                    </TextBlock>
+                    
+                    <!-- Loading state -->
+                    <TextBlock Classes="loading" 
+                               Text="Loading..."
+                               IsVisible="{Binding IsLoadingAttention}"/>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Classes="empty-state" 
+                               Text="Nothing needs immediate attention"
+                               IsVisible="{Binding ShowAttentionEmpty}"/>
+                    
+                    <!-- Signal cards -->
+                    <ItemsControl ItemsSource="{Binding AttentionRequired}"
+                                  IsVisible="{Binding HasAttentionItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PulseSignal">
+                                <Button Background="Transparent" 
+                                        BorderThickness="0" 
+                                        Padding="0"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((vm:PulseViewModel)DataContext).SelectSignalCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Border Classes="signal-card" BorderBrush="#E53935">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Ellipse Grid.Column="0" Width="8" Height="8" 
+                                                     Classes="severity-critical"
+                                                     VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <Border Background="{DynamicResource BrushPrimaryLight}" 
+                                                            CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="{Binding SourceBadge}" 
+                                                                   FontSize="11" 
+                                                                   Foreground="{DynamicResource BrushPrimary}"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding SourceName}" 
+                                                               FontWeight="Medium"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Summary}" 
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding RecommendedAction}" 
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource BrushPrimary}"
+                                                           IsVisible="{Binding RecommendedAction, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </StackPanel>
+                                            <PathIcon Grid.Column="2" 
+                                                      Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Grid>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================
+                 SECTION 2: WHAT CHANGED
+                 Awareness without alarm - recent updates and trends
+                 ================================================================ -->
+            <Border Classes="section-container" 
+                    IsVisible="{Binding !ShowEmptyState}">
+                <StackPanel>
+                    <TextBlock Classes="section-header">
+                        <Run Text="📊 "/>
+                        <Run Text="What Changed"/>
+                    </TextBlock>
+                    
+                    <!-- Loading state -->
+                    <TextBlock Classes="loading" 
+                               Text="Loading..."
+                               IsVisible="{Binding IsLoadingChanges}"/>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Classes="empty-state" 
+                               Text="No recent changes to report"
+                               IsVisible="{Binding ShowChangesEmpty}"/>
+                    
+                    <!-- Signal cards -->
+                    <ItemsControl ItemsSource="{Binding WhatChanged}"
+                                  IsVisible="{Binding HasChangeItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PulseSignal">
+                                <Button Background="Transparent" 
+                                        BorderThickness="0" 
+                                        Padding="0"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((vm:PulseViewModel)DataContext).SelectSignalCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Border Classes="signal-card">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Ellipse Grid.Column="0" Width="8" Height="8" 
+                                                     Classes="severity-info"
+                                                     VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <Border Background="{DynamicResource BrushSurface}" 
+                                                            CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="{Binding SourceBadge}" 
+                                                                   FontSize="11"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Summary}" 
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <PathIcon Grid.Column="2" 
+                                                      Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Grid>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================
+                 SECTION 3: RECENT DISCUSSIONS
+                 Narrative continuity from meetings
+                 ================================================================ -->
+            <Border Classes="section-container" 
+                    IsVisible="{Binding !ShowEmptyState}">
+                <StackPanel>
+                    <TextBlock Classes="section-header">
+                        <Run Text="💬 "/>
+                        <Run Text="Recent Discussions"/>
+                    </TextBlock>
+                    
+                    <!-- Loading state -->
+                    <TextBlock Classes="loading" 
+                               Text="Loading..."
+                               IsVisible="{Binding IsLoadingDiscussions}"/>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Classes="empty-state" 
+                               Text="No recent meeting discussions"
+                               IsVisible="{Binding ShowDiscussionsEmpty}"/>
+                    
+                    <!-- Signal cards -->
+                    <ItemsControl ItemsSource="{Binding RecentDiscussions}"
+                                  IsVisible="{Binding HasDiscussionItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PulseSignal">
+                                <Button Background="Transparent" 
+                                        BorderThickness="0" 
+                                        Padding="0"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((vm:PulseViewModel)DataContext).SelectSignalCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Border Classes="signal-card">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" 
+                                                      Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource BrushTextSecondary}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <TextBlock Grid.Column="1" 
+                                                       Text="{Binding Summary}" 
+                                                       TextWrapping="Wrap"
+                                                       VerticalAlignment="Center"/>
+                                            <PathIcon Grid.Column="2" 
+                                                      Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </Grid>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================
+                 SECTION 4: ACTIONS TAKEN
+                 Completed actions that reinforce follow-through
+                 ================================================================ -->
+            <Border Classes="section-container" 
+                    IsVisible="{Binding !ShowEmptyState}">
+                <StackPanel>
+                    <TextBlock Classes="section-header">
+                        <Run Text="✅ "/>
+                        <Run Text="Actions Taken"/>
+                    </TextBlock>
+                    
+                    <!-- Loading state -->
+                    <TextBlock Classes="loading" 
+                               Text="Loading..."
+                               IsVisible="{Binding IsLoadingActions}"/>
+                    
+                    <!-- Empty state -->
+                    <TextBlock Classes="empty-state" 
+                               Text="No completed actions to show"
+                               IsVisible="{Binding ShowActionsEmpty}"/>
+                    
+                    <!-- Signal cards (non-clickable for completed items) -->
+                    <ItemsControl ItemsSource="{Binding ActionsTaken}"
+                                  IsVisible="{Binding HasActionItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PulseSignal">
+                                <Border Classes="signal-card">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <PathIcon Grid.Column="0" 
+                                                  Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                                  Width="16" Height="16"
+                                                  Foreground="#43A047"
+                                                  VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Summary}" 
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================
+                 FOOTER - Last refresh time
+                 ================================================================ -->
+            <TextBlock Text="{Binding LastRefreshed, StringFormat='Last updated: {0:h:mm tt}'}"
+                       FontSize="11"
+                       Foreground="{DynamicResource BrushTextTertiary}"
+                       HorizontalAlignment="Right"
+                       Margin="0,8,0,0"
+                       IsVisible="{Binding HasAnySignals}"/>
+            
+        </StackPanel>
+    </ScrollViewer>
+    
+    <!-- ================================================================
+         DETAIL FLYOUT PANEL - Shows when a signal is clicked
+         ================================================================ -->
+    <Border Grid.Column="1" 
+            Width="400"
+            Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1,0,0,0"
+            IsVisible="{Binding IsGoalFlyoutOpen}">
+        <Grid RowDefinitions="Auto,*">
+            <!-- Header with close button - Navy blue style matching EntityDetailFlyout -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Background="{DynamicResource BrushSecondary}">
+                <TextBlock Text="Goal" FontWeight="SemiBold" FontSize="14" 
+                           Foreground="White" VerticalAlignment="Center" Margin="16,12"/>
+                <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseFlyoutCommand}" 
+                        Padding="8" Margin="0,0,8,0">
+                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                              Width="14" Height="14" Foreground="White"/>
+                </Button>
+            </Grid>
+            <!-- Goal detail content (inline) -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16" Spacing="16" DataContext="{Binding SelectedGoal}">
+                    <!-- Goal Type & Lifecycle Badges -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border CornerRadius="4" Padding="8,4" Background="{DynamicResource BrushPrimarySoft}">
+                            <TextBlock Text="{Binding GoalTypeDisplay}" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushPrimary}"/>
+                        </Border>
+                        <Border CornerRadius="4" Padding="8,4" Background="#334155">
+                            <TextBlock Text="{Binding LifecycleDisplay}" FontSize="11" FontWeight="Medium"
+                                       Foreground="#94A3B8"/>
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Title -->
+                    <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap"/>
+                    
+                    <!-- Health -->
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Health" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{Binding HealthDisplay}" FontSize="16" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Owner -->
+                    <StackPanel Spacing="4" IsVisible="{Binding OwnerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="Owner" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{Binding OwnerName}"/>
+                    </StackPanel>
+                    
+                    <!-- Time Period -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Time Period" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="From:" FontSize="12" Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <TextBlock Text="{Binding StartDate, StringFormat='MMM d, yyyy', TargetNullValue='-'}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="To:" FontSize="12" Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <TextBlock Text="{Binding DueDate, StringFormat='MMM d, yyyy', TargetNullValue='-'}"/>
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <!-- Description -->
+                    <StackPanel Spacing="4" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="Description" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
-        
+    </Border>
+    
+    <Border Grid.Column="1" 
+            Width="400"
+            Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1,0,0,0"
+            IsVisible="{Binding IsMetricFlyoutOpen}">
+        <Grid RowDefinitions="Auto,*">
+            <!-- Header with close button - Navy blue style matching EntityDetailFlyout -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Background="{DynamicResource BrushSecondary}">
+                <TextBlock Text="Metric" FontWeight="SemiBold" FontSize="14" 
+                           Foreground="White" VerticalAlignment="Center" Margin="16,12"/>
+                <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseFlyoutCommand}" 
+                        Padding="8" Margin="0,0,8,0">
+                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                              Width="14" Height="14" Foreground="White"/>
+                </Button>
+            </Grid>
+            <!-- Metric detail content (inline) -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16" Spacing="16" DataContext="{Binding SelectedMetric}">
+                    <!-- Metric Name -->
+                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    
+                    <!-- Trend Display -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding TrendDisplay}" FontSize="48" FontWeight="Bold"/>
+                    </StackPanel>
+                    
+                    <!-- Current Value -->
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12"
+                            IsVisible="{Binding CurrentValue, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Current Value" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding CurrentValue, StringFormat={}{0:N2}}" FontSize="20" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding Unit}" FontSize="14" VerticalAlignment="Bottom" 
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Target Value -->
+                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12"
+                            IsVisible="{Binding TargetValue, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Target Value" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding TargetValue, StringFormat={}{0:N2}}" FontSize="16"/>
+                                <TextBlock Text="{Binding Unit}" FontSize="12" VerticalAlignment="Bottom" 
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Description -->
+                    <StackPanel Spacing="4" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="Description" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    
+                    <!-- Steward -->
+                    <StackPanel Spacing="4" IsVisible="{Binding StewardName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="Steward" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{Binding StewardName}"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+    
+    <Border Grid.Column="1" 
+            Width="400"
+            Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1,0,0,0"
+            IsVisible="{Binding IsTaskFlyoutOpen}">
+        <Grid RowDefinitions="Auto,*">
+            <!-- Header with close button - Navy blue style matching EntityDetailFlyout -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Background="{DynamicResource BrushSecondary}">
+                <TextBlock Text="Task" FontWeight="SemiBold" FontSize="14" 
+                           Foreground="White" VerticalAlignment="Center" Margin="16,12"/>
+                <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseFlyoutCommand}" 
+                        Padding="8" Margin="0,0,8,0">
+                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                              Width="14" Height="14" Foreground="White"/>
+                </Button>
+            </Grid>
+            <!-- Task detail content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <controls:TaskDetailFlyout DataContext="{Binding SelectedTask}"/>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+    
     </Grid>
 </UserControl>

@@ -1,79 +1,63 @@
 using System;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using Avalonia.Controls;
 using ProCohere.Avalonia.ViewModels;
 
 namespace ProCohere.Avalonia.Views;
 
+/// <summary>
+/// Code-behind for PulseView - the synthesis feed with quick access strip.
+/// 
+/// MVVM: 
+/// - ViewModel is provided by MainWindowViewModel, not created here.
+/// - Navigation is handled by ViewModel events (SignalNavigationRequested).
+/// - View only handles data loading trigger on DataContext change.
+/// </summary>
 public partial class PulseView : UserControl
 {
     private PulseViewModel? _viewModel;
+    private bool _isInitialized;
 
     public PulseView()
     {
         InitializeComponent();
-        
-        _viewModel = new PulseViewModel();
-        DataContext = _viewModel;
-        
-        Log("[PulseView] Constructor - ViewModel created");
-        
-        // Set child DataContexts (Projects removed - now top-level nav)
-        GoalsTab.DataContext = _viewModel.GoalsViewModel;
-        MetricsTab.DataContext = _viewModel.MetricsViewModel;
-        TasksTab.DataContext = _viewModel.TasksViewModel;
-        
-        Log($"[PulseView] Child DataContexts set - Goals: {_viewModel.GoalsViewModel != null}, Metrics: {_viewModel.MetricsViewModel != null}, Tasks: {_viewModel.TasksViewModel != null}");
-        
-        // Subscribe to property changes to update visibility
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        
-        // Set initial visibility
-        UpdateTabVisibility();
+        DataContextChanged += OnDataContextChanged;
+        Log("[PulseView] Constructor");
     }
-
-    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    
+    private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        Log($"[PulseView] PropertyChanged: {e.PropertyName}");
+        _viewModel = DataContext as PulseViewModel;
         
-        if (e.PropertyName == nameof(PulseViewModel.SelectedSubTab) ||
-            e.PropertyName == nameof(PulseViewModel.IsSubTabGoals) ||
-            e.PropertyName == nameof(PulseViewModel.IsSubTabMetrics) ||
-            e.PropertyName == nameof(PulseViewModel.IsSubTabTasks))
+        // Load data on first initialization
+        if (_viewModel != null && !_isInitialized)
         {
-            UpdateTabVisibility();
+            _isInitialized = true;
+            Log("[PulseView] ViewModel bound, loading data");
+            _ = _viewModel.RefreshDataAsync();
         }
     }
 
-    private void UpdateTabVisibility()
-    {
-        if (_viewModel == null) return;
-        
-        var goalsVisible = _viewModel.IsSubTabGoals;
-        var metricsVisible = _viewModel.IsSubTabMetrics;
-        var tasksVisible = _viewModel.IsSubTabTasks;
-        
-        Log($"[PulseView] UpdateTabVisibility - SelectedSubTab={_viewModel.SelectedSubTab}, Goals={goalsVisible}, Metrics={metricsVisible}, Tasks={tasksVisible}");
-        
-        GoalsTab.IsVisible = goalsVisible;
-        MetricsTab.IsVisible = metricsVisible;
-        TasksTab.IsVisible = tasksVisible;
-        
-        Log($"[PulseView] After update - GoalsTab.IsVisible={GoalsTab.IsVisible}, MetricsTab.IsVisible={MetricsTab.IsVisible}, TasksTab.IsVisible={TasksTab.IsVisible}");
-    }
+    #region Logging
+
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ProCohere", "pulse_view.log");
 
     private static void Log(string message)
     {
-        var logPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ProCohere", "pulse_view.log");
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
+        Debug.WriteLine(line);
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-            File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
+            var dir = Path.GetDirectoryName(_logPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            File.AppendAllText(_logPath, line + Environment.NewLine);
         }
         catch { }
-        System.Diagnostics.Debug.WriteLine(message);
     }
+
+    #endregion
 }
