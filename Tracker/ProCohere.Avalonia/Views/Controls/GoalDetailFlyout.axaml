@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:services="using:ProCohere.Avalonia.Services"
              xmlns:local="using:ProCohere.Avalonia.Converters"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
              mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="600"
@@ -69,22 +70,32 @@
                     <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold"
                                Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                     
-                    <!-- Health Section - Narrative approach, NO progress bars -->
-                    <TextBlock Text="HEALTH" Classes="detail-section-header"/>
-                    <Border CornerRadius="6" Padding="12,8" HorizontalAlignment="Left"
-                            Background="{Binding Health, Converter={StaticResource GoalHealthToBackgroundConverter}}">
-                        <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToDisplayConverter}}" 
-                                   FontSize="13" FontWeight="SemiBold" Foreground="White"/>
-                    </Border>
+                    <!-- Health Section - Derived from linked metric signals per GOALS_SPEC -->
+                    <TextBlock Text="DERIVED HEALTH" Classes="detail-section-header"/>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <!-- Health badge with color -->
+                        <Border CornerRadius="6" Padding="12,8" HorizontalAlignment="Left">
+                            <Border.Background>
+                                <SolidColorBrush Color="{Binding DerivedHealth, Converter={StaticResource GoalDerivedHealthToBackgroundConverter}}"/>
+                            </Border.Background>
+                            <TextBlock Text="{Binding DerivedHealth, Converter={StaticResource GoalDerivedHealthToDisplayConverter}}" 
+                                       FontSize="13" FontWeight="SemiBold" Foreground="White"/>
+                        </Border>
+                        <!-- Metrics count context -->
+                        <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}">
+                            <Run Text="{Binding LinkedMetricsCount}"/>
+                            <Run Text=" metric(s) linked"/>
+                        </TextBlock>
+                    </StackPanel>
                     
-                    <!-- Philosophy reminder - subtle guidance -->
+                    <!-- Reflection prompt - guidance based on derived health -->
                     <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="4" Padding="10,8" Margin="0,12,0,0">
                         <StackPanel Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <PathIcon Data="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="Reflection Prompt" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding Health, Converter={StaticResource GoalHealthToPromptConverter}}" 
+                            <TextBlock Text="{Binding DerivedHealth, Converter={StaticResource GoalDerivedHealthToPromptConverter}}" 
                                        FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
                     </Border>
@@ -130,6 +141,134 @@
                     <TextBlock Text="No description provided." FontSize="12" FontStyle="Italic"
                                Foreground="{DynamicResource BrushTextTertiary}"
                                IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                    
+                    <!-- Linked Metrics Section (Signal-first per CIRCLE_METRICS_SPEC) -->
+                    <TextBlock Text="LINKED METRICS" Classes="detail-section-header"/>
+                    <StackPanel Spacing="6" DataContext="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext)}">
+                        <!-- Linked metrics list -->
+                        <ItemsControl ItemsSource="{Binding GoalLinkedMetrics}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:MetricDetail">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                            <!-- Signal dot + Metric name (clickable to navigate) -->
+                                            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="Transparent" Cursor="Hand"
+                                                    PointerPressed="LinkedMetric_PointerPressed" Tag="{Binding}">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                             Fill="{Binding Trend, Converter={StaticResource MetricTrendToSignalBrushConverter}}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" FontWeight="Medium"
+                                                               Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Trend arrow -->
+                                            <TextBlock Grid.Column="2" Text="{Binding TrendDisplay}" FontSize="14" FontWeight="Bold" Margin="8,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding Trend, Converter={StaticResource MetricTrendToColorConverter}}"/>
+                                            <!-- Unlink button -->
+                                            <Button Grid.Column="3" Classes="icon-button" ToolTip.Tip="Unlink metric"
+                                                    Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).UnlinkMetricCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                                          Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Loading state -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
+                                    IsVisible="{Binding IsLoadingLinkedMetrics}">
+                            <ProgressBar IsIndeterminate="True" Width="60" Height="4"/>
+                            <TextBlock Text="Loading..." FontSize="11" FontStyle="Italic"
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                        </StackPanel>
+                        
+                        <!-- Empty state (only show when not loading) -->
+                        <TextBlock Text="No metrics linked yet" FontSize="11" FontStyle="Italic"
+                                   Foreground="{DynamicResource BrushTextTertiary}" Margin="0,4,0,0">
+                            <TextBlock.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="GoalLinkedMetrics.Count" Converter="{StaticResource EqualToZeroConverter}"/>
+                                    <Binding Path="!IsLoadingLinkedMetrics"/>
+                                </MultiBinding>
+                            </TextBlock.IsVisible>
+                        </TextBlock>
+                        
+                        <!-- Error state -->
+                        <Border Background="#FECACA" CornerRadius="4" Padding="8,6" Margin="0,8,0,0"
+                                IsVisible="{Binding LinkError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{Binding LinkError}" FontSize="11" Foreground="#DC2626" TextWrapping="Wrap"/>
+                        </Border>
+                        
+                        <!-- Link Metric button -->
+                        <Button Classes="secondary-button" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                Command="{Binding OpenMetricPickerCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="10" Height="10"/>
+                                <TextBlock Text="Link Metric" FontSize="11"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    
+                    <!-- Recent Discussions Section (per GOALS_SPEC: Goal drill-in shows recent discussions) -->
+                    <TextBlock Text="RECENT DISCUSSIONS" Classes="detail-section-header" 
+                               DataContext="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext)}"/>
+                    <StackPanel Spacing="6" DataContext="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext)}">
+                        <!-- Loading state -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
+                                    IsVisible="{Binding IsLoadingDiscussions}">
+                            <ProgressBar IsIndeterminate="True" Width="60" Height="4"/>
+                            <TextBlock Text="Loading..." FontSize="11" FontStyle="Italic"
+                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                        </StackPanel>
+                        
+                        <!-- Discussion list -->
+                        <ItemsControl ItemsSource="{Binding GoalRecentDiscussions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="services:GoalDiscussion">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" 
+                                            Padding="10,8" Margin="0,0,0,4" Cursor="Hand">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <!-- Calendar icon -->
+                                            <PathIcon Grid.Column="0" Width="14" Height="14" Margin="0,0,8,0"
+                                                      Foreground="{DynamicResource BrushTextTertiary}"
+                                                      Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1"/>
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <!-- Meeting title / date -->
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding MeetingDateDisplay}" FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                    <TextBlock Text="•" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="{Binding OtherPersonName}" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <!-- Agenda item summary -->
+                                                <TextBlock Text="{Binding AgendaItemsSummary}" FontSize="10"
+                                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Empty state -->
+                        <TextBlock Text="No discussions yet" FontSize="11" FontStyle="Italic"
+                                   Foreground="{DynamicResource BrushTextTertiary}" Margin="0,4,0,0">
+                            <TextBlock.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="GoalRecentDiscussions.Count" Converter="{StaticResource EqualToZeroConverter}"/>
+                                    <Binding Path="!IsLoadingDiscussions"/>
+                                </MultiBinding>
+                            </TextBlock.IsVisible>
+                        </TextBlock>
+                    </StackPanel>
                     
                     <!-- Quick Actions -->
                     <StackPanel Margin="0,24,0,0" Spacing="8">

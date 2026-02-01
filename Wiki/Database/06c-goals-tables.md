@@ -18,6 +18,45 @@ This document covers all tables related to goals and targets (OKRs) in the `proc
 
 ---
 
+## Circle Goal Health: Derived from Metrics
+
+> **IMPORTANT**: In Circle view, goal health is **derived** from linked metric signals, NOT from the legacy `status`, `progress_percent`, or `completed_at` fields.
+
+### How Derived Health Works
+
+1. Goals link to metrics via `goal_metrics` association table
+2. Each metric has a trend/health signal (on track, needs attention, off track)
+3. Goal derived health uses **worst-state logic**:
+   - Any Off Track metric → Goal is Off Track
+   - Any At Risk metric (none Off Track) → Goal is At Risk
+   - All metrics On Track → Goal is On Track
+   - No metrics linked → Unknown
+
+### Model Implementation
+
+```csharp
+// In GoalDetail.cs
+public GoalDerivedHealth DerivedHealth { get; set; } = GoalDerivedHealth.Unknown;
+
+public enum GoalDerivedHealth
+{
+    Unknown,   // No metrics linked
+    OnTrack,   // All metrics on track
+    AtRisk,    // At least one at risk, none off track
+    OffTrack   // At least one off track
+}
+```
+
+### View-Specific Rules
+
+| View | Health Source | Notes |
+|------|---------------|-------|
+| Circle | `DerivedHealth` | Computed from metric signals |
+| Briefing | `DerivedHealth` | Uses derived for goal attention counts |
+| Me | `status` (optional) | Legacy fields allowed for personal workflow |
+
+---
+
 ## procohere.goals
 
 **Purpose**  
@@ -34,12 +73,12 @@ OKR-style goals owned by team members. Supports hierarchy via parent_goal_id.
 | title | text | NO | |
 | description | text | YES | |
 | goal_type | text | NO | 'growth', 'execution', 'operational', 'directional' |
-| status | text | NO | 'not_started', 'on_track', 'at_risk', 'completed', etc. |
+| status | text | NO | ⚠️ LEGACY - 'not_started', 'on_track', 'at_risk', 'completed', etc. |
 | priority | text | YES | 'low', 'medium', 'high' |
 | start_date | date | YES | |
 | due_date | date | YES | |
-| completed_at | timestamptz | YES | |
-| progress_percent | integer | NO | 0-100, default 0 |
+| completed_at | timestamptz | YES | ⚠️ LEGACY - personal workflow only |
+| progress_percent | integer | NO | ⚠️ LEGACY - 0-100, personal workflow only |
 | source_type | text | YES | Origin entity type (e.g., 'meeting') |
 | source_id | uuid | YES | Origin entity ID |
 | is_deleted | boolean | NO | |
@@ -48,12 +87,25 @@ OKR-style goals owned by team members. Supports hierarchy via parent_goal_id.
 | deleted_at | timestamptz | YES | |
 | deleted_by | uuid | YES | |
 
+### Legacy Fields Warning
+
+The following fields are **LEGACY** and should NOT be used in Circle or Briefing views:
+
+| Field | Status | Usage |
+|-------|--------|-------|
+| `status` | ⚠️ Legacy | Personal workflow in Me view only |
+| `progress_percent` | ⚠️ Legacy | Personal workflow in Me view only |
+| `completed_at` | ⚠️ Legacy | Personal workflow in Me view only |
+
+**Circle view must use `DerivedHealth`** computed from linked metric signals via `goal_metrics`.
+
 **Model:** `GoalDetail.cs` ✅ Verified match (after fix)
 
 **Fixes Applied:**
 - `owner_id` changed from `Guid?` to `Guid` (DB is NOT NULL)
 - `progress_percent` changed from `int?` to `int` (DB is NOT NULL)
 - Added `source_type` and `source_id` columns
+- Added `DerivedHealth` computed property
 
 **RLS:** Organization isolation.
 

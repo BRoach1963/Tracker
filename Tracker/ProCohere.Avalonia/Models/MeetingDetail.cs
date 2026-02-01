@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Windows.Input;
 using Avalonia.Media;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -82,10 +83,18 @@ public class TalkingPoint : System.ComponentModel.INotifyPropertyChanged
 
 /// <summary>
 /// Meeting model - maps to procohere.meetings table in Supabase.
+/// Implements IDetailEntity for use in EntityDetailFlyout.
 /// </summary>
 [Table("meetings")]
-public class MeetingDetail : BaseModel
+public class MeetingDetail : BaseModel, System.ComponentModel.INotifyPropertyChanged, IDetailEntity
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    
+    protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+    }
+
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
 
@@ -782,6 +791,73 @@ public class MeetingDetail : BaseModel
     public string? CadenceDisplay => null; // Currently meetings don't track cadence
 
     #endregion
+
+    #region IDetailEntity Commands (wired up by parent ViewModel)
+
+    /// <summary>
+    /// Command to close the detail flyout. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? CloseCommand { get; set; }
+
+    /// <summary>
+    /// Command to edit this meeting. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? EditCommand { get; set; }
+
+    /// <summary>
+    /// Command to delete this meeting. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? DeleteCommand { get; set; }
+
+    #endregion
+
+    #region Tab State (for EntityDetailFlyout)
+
+    private MeetingDetailTab _meetingDetailTab = MeetingDetailTab.Overview;
+
+    /// <summary>
+    /// Current tab in the meeting detail flyout.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public MeetingDetailTab MeetingDetailTab
+    {
+        get => _meetingDetailTab;
+        set
+        {
+            if (_meetingDetailTab != value)
+            {
+                _meetingDetailTab = value;
+                OnPropertyChanged(nameof(MeetingDetailTab));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Command to set the meeting detail tab. Wired by ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? SetMeetingDetailTabCommand { get; set; }
+
+    #endregion
+}
+
+/// <summary>
+/// Tabs available in the Meeting detail flyout.
+/// </summary>
+public enum MeetingDetailTab
+{
+    Overview,
+    Agenda,
+    Attendees,
+    Notes
 }
 
 /// <summary>

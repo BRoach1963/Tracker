@@ -492,7 +492,22 @@
 
                 <!-- PULSE -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}">
-                    <views:PulseView />
+                    <views:PulseView DataContext="{Binding PulseViewModel}" />
+                </Grid>
+
+                <!-- GOALS - Standalone browse/manage page -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Goals}}">
+                    <views:GoalsView x:Name="GoalsView" DataContext="{Binding GoalsViewModel}" />
+                </Grid>
+
+                <!-- METRICS - Standalone browse/manage page -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Metrics}}">
+                    <views:MetricsView x:Name="MetricsView" DataContext="{Binding MetricsViewModel}" />
+                </Grid>
+
+                <!-- TASKS - Standalone browse/manage page -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Tasks}}">
+                    <views:TasksView x:Name="TasksView" DataContext="{Binding TasksViewModel}" />
                 </Grid>
 
                 <!-- CHRONICLE -->

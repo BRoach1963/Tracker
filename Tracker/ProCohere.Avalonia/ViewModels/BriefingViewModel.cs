@@ -365,8 +365,8 @@ public partial class BriefingViewModel : ViewModelBase
     [RelayCommand]
     private void AddGoal()
     {
-        // TODO: Navigate to add goal view or show dialog
-        System.Diagnostics.Debug.WriteLine("Add Goal clicked");
+        Log("[BriefingViewModel] AddGoal command - requesting dialog");
+        CreateGoalDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -379,8 +379,8 @@ public partial class BriefingViewModel : ViewModelBase
     [RelayCommand]
     private void AddNote()
     {
-        // TODO: Navigate to add note view or show dialog
-        System.Diagnostics.Debug.WriteLine("Add Note clicked");
+        Log("[BriefingViewModel] AddNote command - requesting dialog");
+        CreateNoteDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     #endregion
@@ -568,14 +568,13 @@ public partial class BriefingViewModel : ViewModelBase
             MeetingsToday = data.Meetings.Count(m => m.ScheduledAt?.Date == today);
             
             // Goal counts - Active and those needing attention
-            var activeGoals = data.Goals.Where(g => g.Status != "completed").ToList();
+            // Per GOALS_SPEC: Use DerivedHealth (computed from linked metrics) not legacy Status
+            var activeGoals = data.Goals.Where(g => g.Lifecycle == GoalLifecycle.Active).ToList();
             ActiveGoalsCount = activeGoals.Count;
-            // Goals needing attention: at_risk, needs_review, stalled, or no recent activity
+            // Goals needing attention based on DerivedHealth (AtRisk or OffTrack)
             GoalsNeedingAttention = activeGoals.Count(g => 
-                g.Status == "at_risk" || 
-                g.Status == "needs_review" || 
-                g.Status == "stalled" ||
-                g.Status == "blocked");
+                g.DerivedHealth == GoalDerivedHealth.AtRisk || 
+                g.DerivedHealth == GoalDerivedHealth.OffTrack);
             
             // Open/Completed for IC distribution bar
             OpenItemsCount = allTasks.Count;
@@ -597,9 +596,11 @@ public partial class BriefingViewModel : ViewModelBase
             }
 
             // Update goals collection - prioritize those needing attention
+            // Per GOALS_SPEC: Sort by DerivedHealth (OffTrack first, then AtRisk)
             Goals.Clear();
             var goalsToShow = activeGoals
-                .OrderByDescending(g => g.Status == "at_risk" || g.Status == "needs_review" || g.Status == "blocked")
+                .OrderByDescending(g => g.DerivedHealth == GoalDerivedHealth.OffTrack)
+                .ThenByDescending(g => g.DerivedHealth == GoalDerivedHealth.AtRisk)
                 .ThenBy(g => g.Title)
                 .Take(5);
             foreach (var goal in goalsToShow)
@@ -707,10 +708,26 @@ public partial class BriefingViewModel : ViewModelBase
             }
             
             var projects = await ProjectService.Instance.GetProjectsForTeamMemberAsync(teamMember.Id);
+            var activeProjects = projects.Where(p => p.Status != ProjectStatus.Completed && !p.IsDeleted).ToList();
+            
+            if (activeProjects.Count == 0)
+            {
+                Log("[BriefingViewModel] No active projects, skipping project signals");
+                return;
+            }
+            
             var signals = new List<ProjectSignal>();
             var today = DateTime.Today;
             
-            foreach (var project in projects.Where(p => p.Status != ProjectStatus.Completed && !p.IsDeleted))
+            // Build project lookup for name resolution
+            var projectLookup = activeProjects.ToDictionary(p => p.Id);
+            
+            // Get batch signals for all projects in ONE RPC call (replaces 2N queries)
+            var projectIds = activeProjects.Select(p => p.Id).ToList();
+            var batchSignals = await ProjectService.Instance.GetProjectSignalsBatchAsync(projectIds);
+            var signalLookup = batchSignals.ToDictionary(s => s.ProjectId);
+            
+            foreach (var project in activeProjects)
             {
                 // Check for due soon (within 7 days)
                 if (project.DueDate.HasValue)
@@ -741,42 +758,32 @@ public partial class BriefingViewModel : ViewModelBase
                     }
                 }
                 
-                // Check for overdue tasks
-                var projectTasks = await TaskService.Instance.GetTasksByProjectAsync(project.Id);
-                var overdueTasks = projectTasks.Count(t => 
-                    t.DueDate.HasValue && 
-                    t.DueDate.Value.Date < today && 
-                    t.Status != "completed");
-                
-                if (overdueTasks > 0)
+                // Check for overdue tasks and goals needing attention from batch result
+                if (signalLookup.TryGetValue(project.Id, out var batchResult))
                 {
-                    signals.Add(new ProjectSignal
+                    if (batchResult.OverdueTaskCount > 0)
                     {
-                        ProjectId = project.Id,
-                        ProjectName = project.Name ?? "Untitled",
-                        SignalType = ProjectSignalType.OverdueTasks,
-                        Summary = $"{overdueTasks} overdue task{(overdueTasks == 1 ? "" : "s")}",
-                        Priority = 80 + overdueTasks
-                    });
-                }
-                
-                // Check for goals needing attention
-                var projectGoals = await GoalsService.Instance.GetGoalsByProjectAsync(project.Id);
-                var needsAttention = projectGoals.Count(g => 
-                    g.Status == "at_risk" || 
-                    g.Status == "needs_attention" || 
-                    g.Status == "blocked");
-                
-                if (needsAttention > 0)
-                {
-                    signals.Add(new ProjectSignal
+                        signals.Add(new ProjectSignal
+                        {
+                            ProjectId = project.Id,
+                            ProjectName = project.Name ?? "Untitled",
+                            SignalType = ProjectSignalType.OverdueTasks,
+                            Summary = $"{batchResult.OverdueTaskCount} overdue task{(batchResult.OverdueTaskCount == 1 ? "" : "s")}",
+                            Priority = 80 + batchResult.OverdueTaskCount
+                        });
+                    }
+                    
+                    if (batchResult.GoalsNeedingAttention > 0)
                     {
-                        ProjectId = project.Id,
-                        ProjectName = project.Name ?? "Untitled",
-                        SignalType = ProjectSignalType.GoalsNeedAttention,
-                        Summary = $"{needsAttention} goal{(needsAttention == 1 ? "" : "s")} need{(needsAttention == 1 ? "s" : "")} attention",
-                        Priority = 60 + needsAttention
-                    });
+                        signals.Add(new ProjectSignal
+                        {
+                            ProjectId = project.Id,
+                            ProjectName = project.Name ?? "Untitled",
+                            SignalType = ProjectSignalType.GoalsNeedAttention,
+                            Summary = $"{batchResult.GoalsNeedingAttention} goal{(batchResult.GoalsNeedingAttention == 1 ? "" : "s")} need{(batchResult.GoalsNeedingAttention == 1 ? "s" : "")} attention",
+                            Priority = 60 + batchResult.GoalsNeedingAttention
+                        });
+                    }
                 }
                 
                 // Check for stale projects (no activity in 14+ days)
@@ -825,6 +832,18 @@ public partial class BriefingViewModel : ViewModelBase
     /// The View subscribes to this and shows the dialog using AppDialogService.
     /// </summary>
     public event EventHandler? CreateMeetingDialogRequested;
+
+    /// <summary>
+    /// Event raised when the user wants to create a new goal.
+    /// The View subscribes to this and shows the dialog using AppDialogService.
+    /// </summary>
+    public event EventHandler? CreateGoalDialogRequested;
+
+    /// <summary>
+    /// Event raised when the user wants to create a new note.
+    /// The View subscribes to this and shows the dialog using AppDialogService.
+    /// </summary>
+    public event EventHandler? CreateNoteDialogRequested;
 
     /// <summary>
     /// Called by the View when a meeting is saved from the dialog.

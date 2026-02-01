@@ -360,6 +360,15 @@ public partial class ChronicleViewModel : ViewModelBase
     private void SelectNote(Note? note)
     {
         Log($"Selecting note: {note?.Id}");
+        
+        if (note != null)
+        {
+            // Wire up IDetailEntity commands - ViewModel owns commands, entity references them
+            note.CloseCommand = CloseNoteDetailCommand;
+            note.EditCommand = new RelayCommand(() => EditNote(note));
+            note.DeleteCommand = new AsyncRelayCommand(() => DeleteNoteAsync(note));
+        }
+        
         SelectedNote = note;
         IsNoteDetailOpen = note != null;
         IsNoteEditorOpen = false;

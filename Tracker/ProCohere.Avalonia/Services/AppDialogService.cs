@@ -242,11 +242,124 @@ public static class AppDialogService
 
     #endregion
 
-    #region Goal Dialogs (Future)
+    #region Goal Dialogs
 
-    // TODO: Implement when goal dialogs are needed
-    // public static Task<GoalDialogResult> ShowCreateGoalAsync(Window parentWindow, TeamMemberDetail? owner = null);
-    // public static Task<GoalDialogResult> ShowEditGoalAsync(Window parentWindow, GoalDetail goal);
+    /// <summary>
+    /// Shows the create goal dialog.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <returns>Result containing the created goal or cancellation info</returns>
+    public static async Task<GoalDialogResult> ShowCreateGoalAsync(Window parentWindow)
+    {
+        try
+        {
+            var dialog = new EditGoalDialog();
+            
+            // Load team members for owner selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers);
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            if (dialog.Result == null)
+            {
+                return GoalDialogResult.Cancelled();
+            }
+            
+            if (dialog.Result.IsDeleted)
+            {
+                return GoalDialogResult.Cancelled();
+            }
+            
+            // Create goal detail object
+            var goalToCreate = new GoalDetail
+            {
+                Title = dialog.Result.Title ?? string.Empty,
+                Description = dialog.Result.Description,
+                GoalTypeValue = dialog.Result.GoalType,
+                StartDate = dialog.Result.StartDate,
+                DueDate = dialog.Result.DueDate,
+                OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId ?? Guid.Empty,
+                Status = dialog.Result.Status ?? "active"
+            };
+            
+            // Create goal in database
+            var savedGoal = await GoalsService.Instance.CreateGoalAsync(goalToCreate);
+            
+            if (savedGoal != null)
+            {
+                return GoalDialogResult.Created(savedGoal);
+            }
+            
+            return GoalDialogResult.Failed("Failed to create goal");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing create goal dialog: {ex.Message}");
+            return GoalDialogResult.Failed(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Shows the edit goal dialog for an existing goal.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="goal">The goal to edit</param>
+    /// <returns>Result containing the updated/deleted goal or cancellation info</returns>
+    public static async Task<GoalDialogResult> ShowEditGoalAsync(Window parentWindow, GoalDetail goal)
+    {
+        try
+        {
+            var dialog = new EditGoalDialog();
+            
+            // Load team members for owner selection
+            var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            dialog.SetTeamMembers(teamMembers);
+            
+            // Load the existing goal
+            dialog.LoadGoal(goal);
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            if (dialog.Result == null)
+            {
+                return GoalDialogResult.Cancelled();
+            }
+            
+            if (dialog.Result.IsDeleted && dialog.Result.Id.HasValue)
+            {
+                // Delete goal
+                await GoalsService.Instance.DeleteGoalAsync(dialog.Result.Id.Value);
+                return GoalDialogResult.Deleted(dialog.Result.Id.Value);
+            }
+            
+            if (dialog.Result.Id.HasValue)
+            {
+                // Update existing goal by modifying the passed object
+                goal.Title = dialog.Result.Title;
+                goal.Description = dialog.Result.Description;
+                goal.GoalTypeValue = dialog.Result.GoalType;
+                goal.StartDate = dialog.Result.StartDate;
+                goal.DueDate = dialog.Result.DueDate;
+                goal.OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId ?? goal.OwnerTeamMemberId;
+                goal.Status = dialog.Result.Status ?? goal.Status;
+                
+                var updatedGoal = await GoalsService.Instance.UpdateGoalAsync(goal);
+                
+                if (updatedGoal != null)
+                {
+                    return GoalDialogResult.Updated(updatedGoal);
+                }
+            }
+            
+            return GoalDialogResult.Failed("Failed to update goal");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing edit goal dialog: {ex.Message}");
+            return GoalDialogResult.Failed(ex.Message);
+        }
+    }
 
     #endregion
 
@@ -340,10 +453,10 @@ public static class AppDialogService
             }
             
             // Update the task with the modified values
-            task.Title = dialog.Result.Title;
+            task.Title = dialog.Result.Title ?? task.Title;
             task.Description = dialog.Result.Description;
             task.Priority = dialog.Result.Priority;
-            task.Status = dialog.Result.Status;
+            task.Status = dialog.Result.Status ?? task.Status;
             task.DueDate = dialog.Result.DueDate;
             task.OwnerTeamMemberId = dialog.Result.AssigneeId;
             
@@ -662,6 +775,81 @@ public class TaskDialogResult
     };
     
     public static TaskDialogResult Failed(string error) => new()
+    {
+        Error = error
+    };
+}
+
+/// <summary>
+/// Result from a goal dialog operation.
+/// </summary>
+public class GoalDialogResult
+{
+    /// <summary>
+    /// The goal that was created or updated (null if cancelled/deleted).
+    /// </summary>
+    public GoalDetail? Goal { get; init; }
+    
+    /// <summary>
+    /// The ID of the goal that was deleted (null if not deleted).
+    /// </summary>
+    public Guid? DeletedGoalId { get; init; }
+    
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? Error { get; init; }
+    
+    /// <summary>
+    /// True if the user cancelled the dialog.
+    /// </summary>
+    public bool WasCancelled { get; init; }
+    
+    /// <summary>
+    /// True if a goal was created (not edited).
+    /// </summary>
+    public bool WasCreated { get; init; }
+    
+    /// <summary>
+    /// True if a goal was updated (not created).
+    /// </summary>
+    public bool WasUpdated { get; init; }
+    
+    /// <summary>
+    /// True if a goal was deleted.
+    /// </summary>
+    public bool WasDeleted => DeletedGoalId.HasValue;
+    
+    /// <summary>
+    /// True if the operation was successful (created, updated, or deleted).
+    /// </summary>
+    public bool Success => WasCreated || WasUpdated || WasDeleted;
+
+    // Factory methods for clean result creation
+    
+    public static GoalDialogResult Created(GoalDetail goal) => new()
+    {
+        Goal = goal,
+        WasCreated = true
+    };
+    
+    public static GoalDialogResult Updated(GoalDetail goal) => new()
+    {
+        Goal = goal,
+        WasUpdated = true
+    };
+    
+    public static GoalDialogResult Deleted(Guid goalId) => new()
+    {
+        DeletedGoalId = goalId
+    };
+    
+    public static GoalDialogResult Cancelled() => new()
+    {
+        WasCancelled = true
+    };
+    
+    public static GoalDialogResult Failed(string error) => new()
     {
         Error = error
     };

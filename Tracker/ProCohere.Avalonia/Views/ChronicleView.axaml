@@ -447,14 +447,11 @@
             </Grid>
             
             <!-- Detail flyout panel (right side) - shown when viewing a note -->
-            <Border Grid.Column="1" 
-                    Classes="detail-panel"
-                    Classes.open="{Binding IsNoteDetailOpen}"
-                    Width="320"
-                    Margin="16,0,0,0"
-                    IsVisible="{Binding IsNoteDetailOpen}">
-                <controls:NoteDetailFlyout DataContext="{Binding}"/>
-            </Border>
+            <controls:EntityDetailFlyout Grid.Column="1"
+                                         Width="320"
+                                         Margin="16,0,0,0"
+                                         FlyoutContent="{Binding SelectedNote}"
+                                         IsOpen="{Binding IsNoteDetailOpen}"/>
             
             <!-- Editor flyout panel (right side) - shown when creating/editing a note -->
             <Border Grid.Column="1" 

@@ -59,32 +59,51 @@
                            LineHeight="22"/>
             </Border>
             
-            <!-- Buttons -->
+            <!-- Buttons (same blue background as other dialog footers) -->
             <Border Grid.Row="2"
-                    Background="{DynamicResource BrushSurfaceAlt}"
-                    Padding="24,16"
-                    BorderBrush="{DynamicResource BrushBorder}"
-                    BorderThickness="0,1,0,0">
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            Spacing="12">
-                    <Button x:Name="CancelButton"
-                            MinWidth="100"
-                            Padding="16,10"
-                            HorizontalContentAlignment="Center"
-                            Click="CancelButton_Click"
-                            Classes="secondary">
-                        <TextBlock Text="Cancel" HorizontalAlignment="Center"/>
+                    Background="{DynamicResource BrushSecondary}"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Button Grid.Column="1"
+                            x:Name="CancelButton"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Padding="16,8"
+                            Margin="0,0,8,0"
+                            Click="CancelButton_Click">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
                     </Button>
-                    <Button x:Name="ConfirmButton"
-                            MinWidth="100"
-                            Padding="16,10"
-                            HorizontalContentAlignment="Center"
-                            Click="ConfirmButton_Click"
-                            Classes="primary">
-                        <TextBlock x:Name="ConfirmButtonText" Text="Confirm" HorizontalAlignment="Center"/>
+                    <Button Grid.Column="2"
+                            x:Name="ConfirmButton"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Padding="16,8"
+                            Click="ConfirmButton_Click">
+                        <TextBlock x:Name="ConfirmButtonText" Text="Confirm"/>
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
                     </Button>
-                </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </Border>

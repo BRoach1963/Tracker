@@ -8,7 +8,9 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Dispatcher = global::Avalonia.Threading.Dispatcher;
 
 namespace ProCohere.Avalonia.ViewModels;
 
@@ -54,6 +56,9 @@ public partial class CircleViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isLoading;
+
+    [ObservableProperty]
+    private string _loadingStatus = "Loading...";
 
     [ObservableProperty]
     private bool _hasError;
@@ -225,9 +230,11 @@ public partial class CircleViewModel : ViewModelBase
 
     private void ApplyFilters()
     {
-        FilteredTeamMembers.Clear();
+        // Skip if data is being updated to avoid concurrent modification
+        if (_isUpdatingData) return;
         
-        var filtered = _allTeamMembers.AsEnumerable();
+        // Build filtered list first, then update collection on UI thread
+        var filtered = _allTeamMembers.ToList().AsEnumerable();
         
         // Apply manager filter first (show manager + their direct reports)
         if (FilterByManager != null)
@@ -273,7 +280,12 @@ public partial class CircleViewModel : ViewModelBase
             filtered = filtered.OrderBy(m => m.FullName);
         }
         
-        foreach (var member in filtered)
+        // Materialize the list before updating the collection
+        var finalList = filtered.ToList();
+        
+        // Update collection - clear and add in one batch to minimize UI updates
+        FilteredTeamMembers.Clear();
+        foreach (var member in finalList)
         {
             FilteredTeamMembers.Add(member);
         }
@@ -380,7 +392,8 @@ public partial class CircleViewModel : ViewModelBase
 
     #region Data Collections
 
-    private readonly ObservableCollection<TeamMemberDetail> _allTeamMembers = new();
+    private readonly List<TeamMemberDetail> _allTeamMembers = new();
+    private bool _isUpdatingData;
 
     /// <summary>
     /// Filtered team members displayed in the list.
@@ -412,34 +425,6 @@ public partial class CircleViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isDetailPanelOpen;
 
-    [ObservableProperty]
-    private MemberDetailTab _memberDetailTab = MemberDetailTab.Overview;
-
-    /// <summary>
-    /// Goals owned by the selected team member.
-    /// </summary>
-    public ObservableCollection<GoalDetail> MemberGoals { get; } = new();
-
-    /// <summary>
-    /// Meetings involving the selected team member.
-    /// </summary>
-    public ObservableCollection<MeetingDetail> MemberMeetings { get; } = new();
-
-    /// <summary>
-    /// Feedback for the selected team member.
-    /// </summary>
-    public ObservableCollection<FeedbackDetail> MemberFeedback { get; } = new();
-
-    /// <summary>
-    /// Direct reports of the selected team member (for managers).
-    /// </summary>
-    public ObservableCollection<TeamMemberDetail> MemberDirectReports { get; } = new();
-
-    /// <summary>
-    /// Tasks assigned to the selected team member.
-    /// </summary>
-    public ObservableCollection<TaskDetail> MemberTasks { get; } = new();
-
     /// <summary>
     /// Whether the selected team member is a manager (has direct reports).
     /// </summary>
@@ -451,70 +436,74 @@ public partial class CircleViewModel : ViewModelBase
         if (oldValue != null)
             oldValue.IsSelected = false;
         if (newValue != null)
+        {
             newValue.IsSelected = true;
-        
-        // Reset to Overview tab when member changes
-        MemberDetailTab = MemberDetailTab.Overview;
-        LoadMemberRelatedData();
+            // Reset to Overview tab when member changes
+            newValue.MemberDetailTab = MemberDetailTab.Overview;
+            // Load related data onto the member
+            LoadMemberRelatedData(newValue);
+        }
         
         // Notify that SelectedMemberIsManager may have changed
         OnPropertyChanged(nameof(SelectedMemberIsManager));
     }
 
-    private void LoadMemberRelatedData()
+    private void LoadMemberRelatedData(TeamMemberDetail member)
     {
-        MemberGoals.Clear();
-        MemberMeetings.Clear();
-        MemberFeedback.Clear();
-        MemberDirectReports.Clear();
-        MemberTasks.Clear();
-
-        if (SelectedTeamMember == null) return;
+        member.MemberGoals.Clear();
+        member.MemberMeetings.Clear();
+        member.MemberFeedback.Clear();
+        member.MemberDirectReports.Clear();
+        member.MemberTasks.Clear();
 
         // Load tasks asynchronously
-        _ = LoadMemberTasksAsync();
+        _ = LoadMemberTasksAsync(member);
+
+        // Snapshot collections to avoid enumeration modification errors
+        var teamMembers = _allTeamMembers.ToList();
+        var goals = _allGoals.ToList();
+        var meetings = Meetings.ToList();
+        var feedback = _allFeedback.ToList();
 
         // Get direct reports for this member (if they're a manager)
-        foreach (var report in _allTeamMembers.Where(m => m.ManagerTeamMemberId == SelectedTeamMember.Id))
+        foreach (var report in teamMembers.Where(m => m.ManagerTeamMemberId == member.Id))
         {
-            MemberDirectReports.Add(report);
+            member.MemberDirectReports.Add(report);
         }
 
         // Filter goals owned by this member
-        foreach (var goal in _allGoals.Where(g => g.OwnerTeamMemberId == SelectedTeamMember.Id))
+        foreach (var goal in goals.Where(g => g.OwnerTeamMemberId == member.Id))
         {
-            MemberGoals.Add(goal);
+            member.MemberGoals.Add(goal);
         }
 
         // Filter meetings with this member (by linked team member or attendee name match)
-        foreach (var meeting in Meetings.Where(m => 
-            m.TeamMemberId == SelectedTeamMember.Id ||
-            m.Attendees?.Any(a => a.Name == SelectedTeamMember.FullName || a.Email == SelectedTeamMember.Email) == true))
+        foreach (var meeting in meetings.Where(m => 
+            m.TeamMemberId == member.Id ||
+            m.Attendees?.Any(a => a.Name == member.FullName || a.Email == member.Email) == true))
         {
-            MemberMeetings.Add(meeting);
+            member.MemberMeetings.Add(meeting);
         }
 
         // Filter feedback for this member
-        foreach (var fb in _allFeedback.Where(f => f.TeamMemberId == SelectedTeamMember.Id))
+        foreach (var fb in feedback.Where(f => f.TeamMemberId == member.Id))
         {
-            MemberFeedback.Add(fb);
+            member.MemberFeedback.Add(fb);
         }
     }
 
     /// <summary>
-    /// Loads tasks for the selected team member asynchronously.
+    /// Loads tasks for the specified team member asynchronously.
     /// </summary>
-    private async System.Threading.Tasks.Task LoadMemberTasksAsync()
+    private async System.Threading.Tasks.Task LoadMemberTasksAsync(TeamMemberDetail member)
     {
-        if (SelectedTeamMember == null) return;
-
         try
         {
-            var tasks = await TaskService.Instance.GetTasksByAssigneeAsync(SelectedTeamMember.Id, includeCompleted: false);
-            MemberTasks.Clear();
+            var tasks = await TaskService.Instance.GetTasksByAssigneeAsync(member.Id, includeCompleted: false);
+            member.MemberTasks.Clear();
             foreach (var task in tasks)
             {
-                MemberTasks.Add(task);
+                member.MemberTasks.Add(task);
             }
         }
         catch (Exception ex)
@@ -526,7 +515,8 @@ public partial class CircleViewModel : ViewModelBase
     [RelayCommand]
     private void SetMemberDetailTab(MemberDetailTab tab)
     {
-        MemberDetailTab = tab;
+        if (SelectedTeamMember != null)
+            SelectedTeamMember.MemberDetailTab = tab;
     }
 
     /// <summary>
@@ -551,6 +541,13 @@ public partial class CircleViewModel : ViewModelBase
         }
         else
         {
+            // Wire IDetailEntity commands before setting selection
+            member.CloseCommand = CloseDetailPanelCommand;
+            member.EditCommand = new RelayCommand(() => EditTeamMember(member));
+            // Team members are deactivated via the edit dialog, not deleted directly
+            member.DeleteCommand = null;
+            member.SetMemberDetailTabCommand = new RelayCommand<MemberDetailTab>(tab => member.MemberDetailTab = tab);
+            
             SelectedTeamMember = member;
             IsDetailPanelOpen = true;
         }
@@ -604,21 +601,6 @@ public partial class CircleViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isMeetingDetailOpen;
 
-    [ObservableProperty]
-    private MeetingDetailTab _meetingDetailTab = MeetingDetailTab.Overview;
-
-    partial void OnSelectedMeetingChanged(MeetingDetail? value)
-    {
-        // Reset to Overview tab when meeting changes
-        MeetingDetailTab = MeetingDetailTab.Overview;
-    }
-
-    [RelayCommand]
-    private void SetMeetingDetailTab(MeetingDetailTab tab)
-    {
-        MeetingDetailTab = tab;
-    }
-
     /// <summary>
     /// Meetings filtered for the current view (based on date range).
     /// </summary>
@@ -659,10 +641,12 @@ public partial class CircleViewModel : ViewModelBase
 
     /// <summary>
     /// Meetings for the selected day in day view.
+    /// Returns a snapshot to prevent collection modified errors during enumeration.
     /// </summary>
     public IEnumerable<MeetingDetail> DayMeetings => Meetings
         .Where(m => m.LocalDate == CurrentDate.Date)
-        .OrderBy(m => m.ScheduledAt);
+        .OrderBy(m => m.ScheduledAt)
+        .ToList();
 
     [RelayCommand]
     private void SetMeetingsViewMode(MeetingsViewMode mode)
@@ -725,6 +709,15 @@ public partial class CircleViewModel : ViewModelBase
         }
         else
         {
+            // Wire up IDetailEntity commands before setting the meeting
+            meeting.CloseCommand = CloseMeetingDetailCommand;
+            meeting.EditCommand = new RelayCommand(() => EditMeeting(meeting));
+            meeting.DeleteCommand = new AsyncRelayCommand(() => DeleteMeetingAsync(meeting));
+            meeting.SetMeetingDetailTabCommand = new RelayCommand<MeetingDetailTab>(tab => meeting.MeetingDetailTab = tab);
+            
+            // Reset to Overview tab when switching meetings
+            meeting.MeetingDetailTab = MeetingDetailTab.Overview;
+            
             SelectedMeeting = meeting;
             IsMeetingDetailOpen = true;
         }
@@ -735,6 +728,45 @@ public partial class CircleViewModel : ViewModelBase
     {
         IsMeetingDetailOpen = false;
         SelectedMeeting = null;
+    }
+
+    private void EditMeeting(MeetingDetail meeting)
+    {
+        // TODO: Implement edit meeting dialog
+        Log($"[CircleViewModel] Edit meeting requested: {meeting.Title}");
+    }
+
+    private async Task DeleteMeetingAsync(MeetingDetail meeting)
+    {
+        // Show confirmation dialog
+        var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            "Delete Meeting",
+            $"Are you sure you want to delete '{meeting.Title}'? This action cannot be undone.",
+            "Delete Meeting",
+            "Cancel");
+        
+        if (!confirmed)
+            return;
+        
+        try
+        {
+            var success = await MeetingService.Instance.DeleteMeetingAsync(meeting.Id);
+            if (success)
+            {
+                OnMeetingDeleted(meeting.Id);
+                CloseMeetingDetail();
+                NotificationService.Instance.ShowSuccess("Meeting Deleted", $"'{meeting.Title}' has been removed.");
+            }
+            else
+            {
+                NotificationService.Instance.ShowError("Delete Failed", MeetingService.Instance.LastError ?? "Failed to delete meeting");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"[CircleViewModel] Delete meeting failed: {ex.Message}");
+            NotificationService.Instance.ShowError("Delete Failed", ex.Message);
+        }
     }
 
     /// <summary>
@@ -963,24 +995,27 @@ public partial class CircleViewModel : ViewModelBase
         OnPropertyChanged(nameof(CurrentDateHeader));
         OnPropertyChanged(nameof(DayMeetings));
 
+        // Take a snapshot of Meetings to prevent collection modified errors
+        var meetingsSnapshot = Meetings.ToList();
+        
         // Update filtered meetings based on view
         FilteredMeetings.Clear();
         var meetings = MeetingsViewMode switch
         {
-            MeetingsViewMode.Day => Meetings.Where(m => m.LocalDate == CurrentDate.Date),
-            MeetingsViewMode.Week => Meetings.Where(m => 
+            MeetingsViewMode.Day => meetingsSnapshot.Where(m => m.LocalDate == CurrentDate.Date),
+            MeetingsViewMode.Week => meetingsSnapshot.Where(m => 
             {
                 var weekStart = GetWeekStart(CurrentDate);
                 var weekEnd = weekStart.AddDays(7);
                 var date = m.LocalDate;
                 return date >= weekStart && date < weekEnd;
             }),
-            MeetingsViewMode.Month => Meetings.Where(m => 
+            MeetingsViewMode.Month => meetingsSnapshot.Where(m => 
             {
                 var date = m.ScheduledAtLocal;
                 return date?.Year == CurrentDate.Year && date?.Month == CurrentDate.Month;
             }),
-            _ => Meetings.OrderBy(m => m.ScheduledAt)
+            _ => meetingsSnapshot.OrderBy(m => m.ScheduledAt)
         };
 
         foreach (var m in meetings.OrderBy(m => m.ScheduledAt))
@@ -990,7 +1025,7 @@ public partial class CircleViewModel : ViewModelBase
 
         // Update grouped meetings for list view
         GroupedMeetings.Clear();
-        var grouped = Meetings
+        var grouped = meetingsSnapshot
             .Where(m => m.ScheduledAt >= DateTime.Now.AddDays(-1))
             .OrderBy(m => m.ScheduledAt)
             .GroupBy(m => m.DateGroupDisplay);
@@ -1037,6 +1072,9 @@ public partial class CircleViewModel : ViewModelBase
     {
         CalendarDays.Clear();
         
+        // Take a snapshot to prevent collection modified errors
+        var meetingsSnapshot = Meetings.ToList();
+        
         var firstOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
         var lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
         
@@ -1047,7 +1085,7 @@ public partial class CircleViewModel : ViewModelBase
         for (int i = 0; i < 42; i++)
         {
             var date = calendarStart.AddDays(i);
-            var dayMeetings = Meetings
+            var dayMeetings = meetingsSnapshot
                 .Where(m => m.LocalDate == date.Date)
                 .OrderBy(m => m.ScheduledAt)
                 .Take(3) // Show max 3 in month view
@@ -1060,7 +1098,7 @@ public partial class CircleViewModel : ViewModelBase
                 IsCurrentMonth = date.Month == CurrentDate.Month,
                 IsToday = date.Date == DateTime.Today,
                 Meetings = new ObservableCollection<MeetingDetail>(dayMeetings),
-                HasMoreMeetings = Meetings.Count(m => m.LocalDate == date.Date) > 3
+                HasMoreMeetings = meetingsSnapshot.Count(m => m.LocalDate == date.Date) > 3
             });
         }
     }
@@ -1085,6 +1123,11 @@ public partial class CircleViewModel : ViewModelBase
     /// Pass null for a general meeting creation without pre-selection.
     /// </summary>
     public event EventHandler<TeamMemberDetail?>? CreateMeetingDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Add/Create Goal dialog.
+    /// </summary>
+    public event EventHandler? AddGoalDialogRequested;
 
     #endregion
 
@@ -1135,7 +1178,7 @@ public partial class CircleViewModel : ViewModelBase
     private void AddGoal()
     {
         Debug.WriteLine("Add Goal clicked");
-        // TODO: Open add goal dialog
+        AddGoalDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -1258,10 +1301,42 @@ public partial class CircleViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<TaskDetail> GoalTasks { get; } = new();
 
-    // Goal stats
-    public int OnTrackGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "on_track" or "on-track");
-    public int AtRiskGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "at_risk" or "at-risk");
-    public int OffTrackGoalsCount => _allGoals.Count(g => g.Status?.ToLower() is "off_track" or "off-track");
+    /// <summary>
+    /// Metrics linked to the selected goal.
+    /// Per CIRCLE_METRICS_SPEC: Shows signal (trend arrow), not raw values.
+    /// </summary>
+    public ObservableCollection<MetricDetail> GoalLinkedMetrics { get; } = new();
+
+    /// <summary>
+    /// Recent meetings where this goal was discussed.
+    /// Per GOALS_SPEC: Goal drill-in shows recent discussions.
+    /// </summary>
+    public ObservableCollection<GoalDiscussion> GoalRecentDiscussions { get; } = new();
+
+    /// <summary>
+    /// Whether linked metrics are currently being loaded.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isLoadingLinkedMetrics;
+
+    /// <summary>
+    /// Whether recent discussions are currently being loaded.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isLoadingDiscussions;
+
+    /// <summary>
+    /// Error message for linking operations.
+    /// </summary>
+    [ObservableProperty]
+    private string? _linkError;
+
+    // Goal stats - uses DerivedHealth from linked metrics per GOALS_SPEC
+    // Circle must NOT use legacy goals.status field
+    public int OnTrackGoalsCount => _allGoals.Count(g => g.DerivedHealth == GoalDerivedHealth.OnTrack);
+    public int AtRiskGoalsCount => _allGoals.Count(g => g.DerivedHealth == GoalDerivedHealth.AtRisk);
+    public int OffTrackGoalsCount => _allGoals.Count(g => g.DerivedHealth == GoalDerivedHealth.OffTrack);
+    public int UnknownGoalsCount => _allGoals.Count(g => g.DerivedHealth == GoalDerivedHealth.Unknown);
     public int TotalGoalsCount => _allGoals.Count;
 
     partial void OnGoalFilterChanged(GoalFilter value)
@@ -1276,11 +1351,13 @@ public partial class CircleViewModel : ViewModelBase
     {
         FilteredGoals.Clear();
         
+        // Use DerivedHealth from linked metrics per GOALS_SPEC
+        // Circle must NOT use legacy goals.status field
         var filtered = GoalFilter switch
         {
-            GoalFilter.OnTrack => _allGoals.Where(g => g.Status?.ToLower() is "on_track" or "on-track"),
-            GoalFilter.AtRisk => _allGoals.Where(g => g.Status?.ToLower() is "at_risk" or "at-risk"),
-            GoalFilter.OffTrack => _allGoals.Where(g => g.Status?.ToLower() is "off_track" or "off-track"),
+            GoalFilter.OnTrack => _allGoals.Where(g => g.DerivedHealth == GoalDerivedHealth.OnTrack),
+            GoalFilter.AtRisk => _allGoals.Where(g => g.DerivedHealth == GoalDerivedHealth.AtRisk),
+            GoalFilter.OffTrack => _allGoals.Where(g => g.DerivedHealth == GoalDerivedHealth.OffTrack),
             _ => _allGoals.AsEnumerable()
         };
 
@@ -1294,6 +1371,77 @@ public partial class CircleViewModel : ViewModelBase
     private void SetGoalFilter(GoalFilter filter)
     {
         GoalFilter = filter;
+    }
+
+    /// <summary>
+    /// Computes derived health for all loaded goals using batch RPC.
+    /// Uses procohere.get_goal_health_batch_v2 for single-round-trip health computation.
+    /// Per GOALS_SPEC: Uses worst-state logic across supporting metrics.
+    /// - If any linked metric is Off Track → Goal = Off Track
+    /// - Else if any linked metric is At Risk → Goal = At Risk  
+    /// - Else if all linked metrics are On Track → Goal = On Track
+    /// - Else (no metrics or insufficient data) → Goal = Unknown
+    /// </summary>
+    private async Task ComputeDerivedHealthForGoalsAsync(CancellationToken ct = default)
+    {
+        Log("[CircleViewModel] Computing derived health for goals using batch RPC...");
+        
+        // Take a snapshot to prevent collection modified errors
+        var goalsSnapshot = _allGoals.ToList();
+        
+        if (goalsSnapshot.Count == 0)
+        {
+            Log("[CircleViewModel] No goals to compute health for");
+            return;
+        }
+
+        try
+        {
+            // Collect goal IDs
+            var goalIds = goalsSnapshot.Select(g => g.Id).ToList();
+            Log($"[CircleViewModel] Requesting health for {goalIds.Count} goals");
+
+            // Single batch RPC call - replaces N+1 queries
+            var healthResults = await GoalsService.Instance.GetGoalHealthBatchAsync(goalIds, ct);
+
+            ct.ThrowIfCancellationRequested();
+
+            // Build lookup dictionary for O(1) access
+            var healthLookup = healthResults.ToDictionary(r => r.GoalId);
+
+            // Apply results to goals in memory
+            foreach (var goal in goalsSnapshot)
+            {
+                if (healthLookup.TryGetValue(goal.Id, out var result))
+                {
+                    goal.LinkedMetricsCount = result.LinkedMetricsCount;
+                    goal.DerivedHealth = result.DerivedHealth;
+                }
+                else
+                {
+                    // Fallback: RPC didn't return this goal (shouldn't happen, but be safe)
+                    goal.LinkedMetricsCount = 0;
+                    goal.DerivedHealth = GoalDerivedHealth.Unknown;
+                }
+            }
+
+            Log($"[CircleViewModel] Derived health computed: OnTrack={OnTrackGoalsCount}, AtRisk={AtRiskGoalsCount}, OffTrack={OffTrackGoalsCount}, Unknown={UnknownGoalsCount}");
+        }
+        catch (OperationCanceledException)
+        {
+            Log("[CircleViewModel] Derived health computation cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Log($"[CircleViewModel] Error computing derived health batch: {ex.Message}");
+            // On error, set all goals to Unknown
+            foreach (var goal in goalsSnapshot)
+            {
+                goal.DerivedHealth = GoalDerivedHealth.Unknown;
+                goal.LinkedMetricsCount = 0;
+            }
+        }
     }
 
     [RelayCommand]
@@ -1313,17 +1461,22 @@ public partial class CircleViewModel : ViewModelBase
     {
         GoalTargets.Clear();
         GoalTasks.Clear();
+        GoalLinkedMetrics.Clear();
+        GoalRecentDiscussions.Clear();
 
         if (SelectedGoal == null) return;
 
-        // Load targets and tasks asynchronously
-        _ = LoadGoalTargetsAndTasksAsync();
+        // Load targets, tasks, metrics, and discussions asynchronously
+        _ = LoadGoalRelatedDataAsync();
     }
 
-    private async System.Threading.Tasks.Task LoadGoalTargetsAndTasksAsync()
+    private async System.Threading.Tasks.Task LoadGoalRelatedDataAsync()
     {
         if (SelectedGoal == null) return;
 
+        IsLoadingLinkedMetrics = true;
+        IsLoadingDiscussions = true;
+        
         try
         {
             // Load tasks linked to this goal
@@ -1334,13 +1487,41 @@ public partial class CircleViewModel : ViewModelBase
                 GoalTasks.Add(task);
             }
 
+            // Load metrics linked to this goal
+            var metrics = await GoalsService.Instance.GetAssociatedMetricsAsync(SelectedGoal.Id);
+            GoalLinkedMetrics.Clear();
+            foreach (var metric in metrics)
+            {
+                // Calculate trend for signal display
+                if (metric.Trend == MetricTrend.Unknown)
+                {
+                    metric.Trend = await MetricsService.Instance.CalculateTrendAsync(metric.Id);
+                }
+                GoalLinkedMetrics.Add(metric);
+            }
+            IsLoadingLinkedMetrics = false;
+
+            // Load recent discussions where this goal was discussed
+            // Per GOALS_SPEC: Goal drill-in shows recent discussions
+            var discussions = await MeetingAgendaItemService.Instance
+                .GetRecentDiscussionsForEntityAsync("goal", SelectedGoal.Id, maxResults: 5);
+            GoalRecentDiscussions.Clear();
+            foreach (var discussion in discussions)
+            {
+                GoalRecentDiscussions.Add(discussion);
+            }
+
             // TODO: Load targets when TargetService is implemented
-            // For now, just clear
             GoalTargets.Clear();
         }
         catch (Exception ex)
         {
             Log($"Error loading goal related data: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingLinkedMetrics = false;
+            IsLoadingDiscussions = false;
         }
     }
 
@@ -1362,6 +1543,11 @@ public partial class CircleViewModel : ViewModelBase
         }
         else
         {
+            // Wire up IDetailEntity commands before setting
+            goal.CloseCommand = CloseGoalDetailCommand;
+            goal.EditCommand = EditGoalCommand;
+            goal.DeleteCommand = DeleteGoalCommand;
+            
             SelectedGoal = goal;
             IsGoalDetailOpen = true;
         }
@@ -1419,6 +1605,391 @@ public partial class CircleViewModel : ViewModelBase
         catch (Exception ex)
         {
             Log($"Error creating task from goal: {ex.Message}");
+        }
+    }
+
+    #region Goal-Metric Association
+
+    /// <summary>
+    /// Event raised when the metric picker should be shown for linking.
+    /// </summary>
+    public event EventHandler? LinkMetricToGoalRequested;
+
+    /// <summary>
+    /// Links a metric to the currently selected goal.
+    /// </summary>
+    [RelayCommand]
+    private async System.Threading.Tasks.Task LinkMetricAsync(MetricDetail metric)
+    {
+        if (SelectedGoal == null || metric == null) return;
+
+        LinkError = null;
+        try
+        {
+            var success = await GoalsService.Instance.AssociateMetricAsync(SelectedGoal.Id, metric.Id);
+            if (success)
+            {
+                // Calculate trend for display
+                if (metric.Trend == MetricTrend.Unknown)
+                {
+                    metric.Trend = await MetricsService.Instance.CalculateTrendAsync(metric.Id);
+                }
+                GoalLinkedMetrics.Add(metric);
+                Log($"Linked metric '{metric.Name}' to goal '{SelectedGoal.Title}'");
+            }
+            else
+            {
+                LinkError = GoalsService.Instance.LastError ?? "Failed to link metric";
+                Log($"Failed to link metric: {LinkError}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LinkError = $"Error: {ex.Message}";
+            Log($"Error linking metric: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Unlinks a metric from the currently selected goal.
+    /// </summary>
+    [RelayCommand]
+    private async System.Threading.Tasks.Task UnlinkMetricAsync(MetricDetail metric)
+    {
+        if (SelectedGoal == null || metric == null) return;
+
+        LinkError = null;
+        try
+        {
+            var success = await GoalsService.Instance.RemoveMetricAssociationAsync(SelectedGoal.Id, metric.Id);
+            if (success)
+            {
+                GoalLinkedMetrics.Remove(metric);
+                Log($"Unlinked metric '{metric.Name}' from goal '{SelectedGoal.Title}'");
+            }
+            else
+            {
+                LinkError = GoalsService.Instance.LastError ?? "Failed to unlink metric";
+                Log($"Failed to unlink metric: {LinkError}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LinkError = $"Error: {ex.Message}";
+            Log($"Error unlinking metric: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Opens the metric picker to add a metric to the selected goal.
+    /// </summary>
+    [RelayCommand]
+    private void OpenMetricPicker()
+    {
+        if (SelectedGoal == null) return;
+        LinkMetricToGoalRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Navigates to a specific metric from a linked goal.
+    /// Switches to the Metrics tab and opens the metric detail.
+    /// </summary>
+    [RelayCommand]
+    private void NavigateToMetric(MetricDetail? metric)
+    {
+        if (metric == null) return;
+        
+        // Close goal detail flyout
+        IsGoalDetailOpen = false;
+        
+        // Switch to Metrics tab
+        SelectedTab = CircleTab.Metrics;
+        
+        // Find and select the metric in filtered list
+        var targetMetric = FilteredMetrics.FirstOrDefault(m => m.Id == metric.Id);
+        if (targetMetric == null)
+        {
+            // Metric might be filtered out - reset filter and try again
+            MetricFilter = MetricFilter.All;
+            ApplyMetricFilters();
+            targetMetric = FilteredMetrics.FirstOrDefault(m => m.Id == metric.Id);
+        }
+        
+        if (targetMetric != null)
+        {
+            SelectedMetric = targetMetric;
+            IsMetricDetailOpen = true;
+            Log($"Navigated to metric '{metric.Name}'");
+        }
+        else
+        {
+            Log($"Could not find metric '{metric.Name}' in list");
+        }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Metrics Tab
+
+    [ObservableProperty]
+    private MetricDetail? _selectedMetric;
+
+    [ObservableProperty]
+    private bool _isMetricDetailOpen;
+
+    [ObservableProperty]
+    private MetricFilter _metricFilter = MetricFilter.All;
+
+    /// <summary>
+    /// All metrics visible in Circle view.
+    /// </summary>
+    private readonly ObservableCollection<MetricDetail> _allMetrics = new();
+
+    /// <summary>
+    /// Filtered metrics displayed in the list.
+    /// </summary>
+    public ObservableCollection<MetricDetail> FilteredMetrics { get; } = new();
+
+    /// <summary>
+    /// Goals linked to the currently selected metric.
+    /// </summary>
+    public ObservableCollection<GoalDetail> MetricLinkedGoals { get; } = new();
+
+    /// <summary>
+    /// Whether linked goals are currently being loaded.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isLoadingLinkedGoals;
+
+    // Cached metric stats (updated after collection is populated)
+    [ObservableProperty]
+    private int _totalMetricsCount;
+    
+    [ObservableProperty]
+    private int _onTrackMetricsCount;
+    
+    [ObservableProperty]
+    private int _needsAttentionMetricsCount;
+    
+    [ObservableProperty]
+    private int _offTrackMetricsCount;
+
+    /// <summary>
+    /// Gets the signal state for a metric based on trend and direction.
+    /// Signal-first approach per CIRCLE_METRICS_SPEC.
+    /// </summary>
+    private static SignalState GetSignalState(MetricDetail metric)
+    {
+        // Determine signal based on trend and desired direction
+        var direction = metric.TargetDirection?.ToLower() ?? "neutral";
+        var trend = metric.Trend;
+
+        return (direction, trend) switch
+        {
+            // Higher is better: trending up = good, trending down = bad
+            ("higher_is_better", MetricTrend.TrendingUp) => SignalState.OnTrack,
+            ("higher_is_better", MetricTrend.Stable) => SignalState.NeedsAttention,
+            ("higher_is_better", MetricTrend.TrendingDown) => SignalState.OffTrack,
+            
+            // Lower is better: trending down = good, trending up = bad
+            ("lower_is_better", MetricTrend.TrendingDown) => SignalState.OnTrack,
+            ("lower_is_better", MetricTrend.Stable) => SignalState.NeedsAttention,
+            ("lower_is_better", MetricTrend.TrendingUp) => SignalState.OffTrack,
+            
+            // Neutral or unknown: always needs attention
+            _ => SignalState.NeedsAttention
+        };
+    }
+
+    partial void OnMetricFilterChanged(MetricFilter value)
+    {
+        ApplyMetricFilters();
+        // Close detail panel when filter changes
+        IsMetricDetailOpen = false;
+        SelectedMetric = null;
+    }
+
+    private void ApplyMetricFilters()
+    {
+        FilteredMetrics.Clear();
+        
+        // Use ToList() to force enumeration before iterating (avoids collection modified exception)
+        var filtered = MetricFilter switch
+        {
+            MetricFilter.OnTrack => _allMetrics.Where(m => GetSignalState(m) == SignalState.OnTrack).ToList(),
+            MetricFilter.NeedsAttention => _allMetrics.Where(m => GetSignalState(m) == SignalState.NeedsAttention).ToList(),
+            MetricFilter.OffTrack => _allMetrics.Where(m => GetSignalState(m) == SignalState.OffTrack).ToList(),
+            _ => _allMetrics.ToList()
+        };
+
+        foreach (var metric in filtered)
+        {
+            FilteredMetrics.Add(metric);
+        }
+    }
+
+    [RelayCommand]
+    private void SetMetricFilter(MetricFilter filter)
+    {
+        MetricFilter = filter;
+    }
+
+    partial void OnSelectedMetricChanged(MetricDetail? oldValue, MetricDetail? newValue)
+    {
+        MetricLinkedGoals.Clear();
+        if (newValue != null)
+        {
+            _ = LoadMetricLinkedGoalsAsync();
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadMetricLinkedGoalsAsync()
+    {
+        if (SelectedMetric == null) return;
+
+        IsLoadingLinkedGoals = true;
+        try
+        {
+            var goals = await GoalsService.Instance.GetGoalsForMetricAsync(SelectedMetric.Id);
+            MetricLinkedGoals.Clear();
+            foreach (var goal in goals)
+            {
+                MetricLinkedGoals.Add(goal);
+            }
+            Log($"Loaded {goals.Count} linked goals for metric '{SelectedMetric.Name}'");
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading linked goals for metric: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingLinkedGoals = false;
+        }
+    }
+
+    [RelayCommand]
+    private void SelectMetric(MetricDetail? metric)
+    {
+        if (metric == null)
+        {
+            IsMetricDetailOpen = false;
+            SelectedMetric = null;
+        }
+        else if (SelectedMetric?.Id == metric.Id && IsMetricDetailOpen)
+        {
+            // Toggle off if same metric clicked
+            IsMetricDetailOpen = false;
+            SelectedMetric = null;
+        }
+        else
+        {
+            SelectedMetric = metric;
+            IsMetricDetailOpen = true;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseMetricDetail()
+    {
+        IsMetricDetailOpen = false;
+        SelectedMetric = null;
+    }
+
+    /// <summary>
+    /// Navigates to a specific goal from a linked metric.
+    /// Switches to the Goals tab and opens the goal detail.
+    /// </summary>
+    [RelayCommand]
+    private void NavigateToGoal(GoalDetail? goal)
+    {
+        if (goal == null) return;
+        
+        // Close metric detail flyout
+        IsMetricDetailOpen = false;
+        
+        // Switch to Goals tab
+        SelectedTab = CircleTab.Goals;
+        
+        // Find and select the goal in filtered list
+        var targetGoal = FilteredGoals.FirstOrDefault(g => g.Id == goal.Id);
+        if (targetGoal == null)
+        {
+            // Goal might be filtered out - reset filter and try again
+            GoalFilter = GoalFilter.All;
+            ApplyGoalFilters();
+            targetGoal = FilteredGoals.FirstOrDefault(g => g.Id == goal.Id);
+        }
+        
+        if (targetGoal != null)
+        {
+            SelectedGoal = targetGoal;
+            IsGoalDetailOpen = true;
+            Log($"Navigated to goal '{goal.Title}'");
+        }
+        else
+        {
+            Log($"Could not find goal '{goal.Title}' in list");
+        }
+    }
+
+    /// <summary>
+    /// Gets the last update age for display (e.g., "2d ago", "1w ago").
+    /// </summary>
+    public static string GetLastUpdateAge(MetricDetail metric)
+    {
+        var elapsed = DateTime.UtcNow - metric.UpdatedAt;
+        
+        return elapsed.TotalDays switch
+        {
+            < 1 => "today",
+            < 2 => "1d ago",
+            < 7 => $"{(int)elapsed.TotalDays}d ago",
+            < 14 => "1w ago",
+            < 30 => $"{(int)(elapsed.TotalDays / 7)}w ago",
+            < 60 => "1mo ago",
+            _ => $"{(int)(elapsed.TotalDays / 30)}mo ago"
+        };
+    }
+
+    private async System.Threading.Tasks.Task LoadMetricsAsync()
+    {
+        try
+        {
+            var metrics = await MetricsService.Instance.GetAllMetricsAsync();
+            
+            // Build list first, then populate collection to avoid concurrent modification
+            var metricsToAdd = new List<MetricDetail>();
+            foreach (var metric in metrics.Where(m => !m.IsDeleted))
+            {
+                // Calculate trend if not set
+                if (metric.Trend == MetricTrend.Unknown)
+                {
+                    metric.Trend = await MetricsService.Instance.CalculateTrendAsync(metric.Id);
+                }
+                metricsToAdd.Add(metric);
+            }
+            
+            // Now update collections on UI thread
+            _allMetrics.Clear();
+            foreach (var metric in metricsToAdd)
+            {
+                _allMetrics.Add(metric);
+            }
+
+            // Update cached stat counts (after collection is populated)
+            TotalMetricsCount = _allMetrics.Count;
+            OnTrackMetricsCount = _allMetrics.Count(m => GetSignalState(m) == SignalState.OnTrack);
+            NeedsAttentionMetricsCount = _allMetrics.Count(m => GetSignalState(m) == SignalState.NeedsAttention);
+            OffTrackMetricsCount = _allMetrics.Count(m => GetSignalState(m) == SignalState.OffTrack);
+
+            ApplyMetricFilters();
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading metrics: {ex.Message}");
         }
     }
 
@@ -1540,6 +2111,7 @@ public partial class CircleViewModel : ViewModelBase
         try
         {
             IsLoading = true;
+            LoadingStatus = "Loading team members...";
             HasError = false;
             ErrorMessage = string.Empty;
             Log("[CircleViewModel] LoadDataAsync started");
@@ -1556,6 +2128,7 @@ public partial class CircleViewModel : ViewModelBase
             Log($"[CircleViewModel] Got {visibleMembers.Count} visible team members");
             
             // Also load dashboard data for goals, meetings, feedback
+            LoadingStatus = "Loading dashboard data...";
             var dashboardData = await DashboardService.Instance.LoadDashboardDataAsync();
             Log($"[CircleViewModel] Dashboard loaded");
             
@@ -1581,18 +2154,26 @@ public partial class CircleViewModel : ViewModelBase
             Log($"[CircleViewModel] Hierarchy: Manager={MyManager?.FullName ?? "none"}, DirectReports={DirectReportCount}, Peers={PeerCount}");
             
             // Populate all team members (excluding self for the list)
-            _allTeamMembers.Clear();
-            foreach (var member in visibleMembers.Where(m => m.Relation != "self"))
+            // Set flag to prevent ApplyFilters from running during update
+            _isUpdatingData = true;
+            try
             {
-                _allTeamMembers.Add(member);
+                var membersToAdd = visibleMembers.Where(m => m.Relation != "self").ToList();
+                
+                _allTeamMembers.Clear();
+                _allTeamMembers.AddRange(membersToAdd);
+                
+                // Calculate stats (collection is now stable)
+                TotalMemberCount = _allTeamMembers.Count;
+                ActiveMemberCount = _allTeamMembers.Count(m => m.IsActive);
+                MeetingsOnTrackCount = _allTeamMembers.Count(m => !m.NeedsAttention);
+                MeetingsOverdueCount = _allTeamMembers.Count(m => m.NeedsAttention);
+                MembersWithOpenTasksCount = _allTeamMembers.Count(m => m.OpenTaskCount > 0);
             }
-            
-            // Calculate stats
-            TotalMemberCount = _allTeamMembers.Count;
-            ActiveMemberCount = _allTeamMembers.Count(m => m.IsActive);
-            MeetingsOnTrackCount = _allTeamMembers.Count(m => !m.NeedsAttention);
-            MeetingsOverdueCount = _allTeamMembers.Count(m => m.NeedsAttention);
-            MembersWithOpenTasksCount = _allTeamMembers.Count(m => m.OpenTaskCount > 0);
+            finally
+            {
+                _isUpdatingData = false;
+            }
             
             // Notify stat text properties
             OnPropertyChanged(nameof(TotalMemberCountText));
@@ -1604,6 +2185,7 @@ public partial class CircleViewModel : ViewModelBase
             ApplyFilters();
 
             // Load meetings from dashboard data
+            LoadingStatus = "Loading meetings...";
             Meetings.Clear();
             foreach (var meeting in dashboardData.Meetings)
             {
@@ -1635,6 +2217,7 @@ public partial class CircleViewModel : ViewModelBase
             RefreshMeetingsView();
 
             // Load real goals from database
+            LoadingStatus = "Loading goals...";
             _allGoals.Clear();
             var memberDict = _allTeamMembers.ToDictionary(m => m.Id);
             foreach (var goal in dashboardData.Goals)
@@ -1649,10 +2232,20 @@ public partial class CircleViewModel : ViewModelBase
                 }
                 _allGoals.Add(goal);
             }
+            
+            // NOTE: Derived health computation is deferred to background after main load completes
+            // to avoid blocking the UI with N+1 queries. See end of LoadDataAsync.
+            
             ApplyGoalFilters();
+            OnPropertyChanged(nameof(OnTrackGoalsCount));
+            OnPropertyChanged(nameof(AtRiskGoalsCount));
+            OnPropertyChanged(nameof(OffTrackGoalsCount));
+            OnPropertyChanged(nameof(UnknownGoalsCount));
+            OnPropertyChanged(nameof(TotalGoalsCount));
             Log($"[CircleViewModel] Loaded {_allGoals.Count} goals from database");
             
             // Load real feedback from database
+            LoadingStatus = "Loading feedback...";
             _allFeedback.Clear();
             foreach (var feedback in dashboardData.Feedback)
             {
@@ -1673,16 +2266,55 @@ public partial class CircleViewModel : ViewModelBase
             OnPropertyChanged(nameof(TotalFeedbackCount));
             Log($"[CircleViewModel] Loaded {_allFeedback.Count} feedback from database");
 
-            Log("[CircleViewModel] LoadDataAsync completed");
+            // Load metrics for Circle view
+            LoadingStatus = "Loading metrics...";
+            await LoadMetricsAsync();
+            Log($"[CircleViewModel] Loaded {_allMetrics.Count} metrics from database");
+
+            Log("[CircleViewModel] LoadDataAsync completed - starting background health computation");
+            
+            // Mark main load as complete so UI is responsive
+            IsLoading = false;
+            
+            // Apply goal filters now (they'll show Unknown health initially)
+            ApplyGoalFilters();
+            OnPropertyChanged(nameof(OnTrackGoalsCount));
+            OnPropertyChanged(nameof(AtRiskGoalsCount));
+            OnPropertyChanged(nameof(OffTrackGoalsCount));
+            OnPropertyChanged(nameof(UnknownGoalsCount));
+            OnPropertyChanged(nameof(TotalGoalsCount));
+            
+            // Compute derived health using single batch RPC call.
+            // Still runs in background to keep UI responsive during first paint.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ComputeDerivedHealthForGoalsAsync();
+                    // Update UI on main thread after health is computed
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        ApplyGoalFilters();
+                        OnPropertyChanged(nameof(OnTrackGoalsCount));
+                        OnPropertyChanged(nameof(AtRiskGoalsCount));
+                        OnPropertyChanged(nameof(OffTrackGoalsCount));
+                        OnPropertyChanged(nameof(UnknownGoalsCount));
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log($"[CircleViewModel] Background health computation failed: {ex.Message}");
+                }
+            });
         }
         catch (Exception ex)
         {
             Log($"[CircleViewModel] ERROR: {ex.Message}");
+            Log($"[CircleViewModel] STACK TRACE:\n{ex.StackTrace}");
+            System.Diagnostics.Debug.WriteLine($"[CircleViewModel] ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[CircleViewModel] STACK TRACE:\n{ex.StackTrace}");
             HasError = true;
             ErrorMessage = $"Failed to load data: {ex.Message}";
-        }
-        finally
-        {
             IsLoading = false;
         }
     }
@@ -1695,6 +2327,7 @@ public enum CircleTab
 {
     Team,
     Goals,
+    Metrics,
     Feedback,
     Meetings
 }
@@ -1744,27 +2377,25 @@ public enum FeedbackFilter
 }
 
 /// <summary>
-/// Tabs within the team member detail flyout.
+/// Filter options for metrics (signal-based per CIRCLE_METRICS_SPEC).
 /// </summary>
-public enum MemberDetailTab
+public enum MetricFilter
 {
-    Overview,
-    Goals,
-    Tasks,
-    Meetings,
-    Feedback,
-    Team
+    All,
+    OnTrack,
+    NeedsAttention,
+    OffTrack
 }
 
 /// <summary>
-/// Tabs within the meeting detail flyout.
+/// Signal state for metrics - derived from trend and direction.
+/// This is NOT the raw value - it's the signal for leadership attention.
 /// </summary>
-public enum MeetingDetailTab
+public enum SignalState
 {
-    Overview,
-    Agenda,
-    Attendees,
-    Notes
+    OnTrack,
+    NeedsAttention,
+    OffTrack
 }
 
 /// <summary>

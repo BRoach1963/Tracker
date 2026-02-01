@@ -18,6 +18,8 @@ public partial class BriefingView : UserControl
         // Subscribe to dialog events
         _viewModel.CreateTaskDialogRequested += OnCreateTaskDialogRequested;
         _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+        _viewModel.CreateGoalDialogRequested += OnCreateGoalDialogRequested;
+        _viewModel.CreateNoteDialogRequested += OnCreateNoteDialogRequested;
     }
 
     private async void OnCreateTaskDialogRequested(object? sender, EventArgs e)
@@ -44,5 +46,29 @@ public partial class BriefingView : UserControl
         {
             _viewModel.OnMeetingSaved(result.Meeting);
         }
+    }
+
+    private async void OnCreateGoalDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var result = await AppDialogService.ShowCreateGoalAsync(window);
+        
+        if (result.Success && result.Goal != null)
+        {
+            // Refresh goals list to include the new goal
+            _viewModel.RefreshCommand.Execute(null);
+        }
+    }
+
+    private async void OnCreateNoteDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        // TODO: Implement note creation dialog when available
+        // For now, show a notification that this feature is coming
+        NotificationService.Instance.ShowInfo("Coming Soon", "Note creation will be available soon.");
     }
 }

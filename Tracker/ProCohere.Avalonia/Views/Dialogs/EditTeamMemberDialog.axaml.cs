@@ -19,7 +19,6 @@ namespace ProCohere.Avalonia.Views.Dialogs;
 public partial class EditTeamMemberDialog : Window
 {
     private TeamMemberDetail? _editingMember;
-    private bool _isEditMode;
     private string? _avatarUrl;
     private byte[]? _newAvatarData;
     private readonly ObservableCollection<Note> _notes = new();
@@ -41,7 +40,6 @@ public partial class EditTeamMemberDialog : Window
     /// </summary>
     public void InitForCreate()
     {
-        _isEditMode = false;
         _editingMember = null;
         DialogTitle.Text = "Add Team Member";
         SaveButton.Content = "Add Member";
@@ -57,7 +55,6 @@ public partial class EditTeamMemberDialog : Window
     /// </summary>
     public void InitForEdit(TeamMemberDetail member)
     {
-        _isEditMode = true;
         _editingMember = member;
         DialogTitle.Text = "Edit Team Member";
         SaveButton.Content = "Save Changes";

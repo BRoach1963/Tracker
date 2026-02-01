@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
@@ -272,6 +273,24 @@
             <Setter Property="BorderThickness" Value="2"/>
         </Style>
         
+        <!-- Metric Card Style (compact row, signal-first per CIRCLE_METRICS_SPEC) -->
+        <Style Selector="Border.metric-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.metric-card:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Border.metric-card.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        
         <!-- Progress Bar Style -->
         <Style Selector="ProgressBar.goal-progress">
             <Setter Property="Height" Value="8"/>
@@ -354,6 +373,17 @@
                         <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
                                   Width="16" Height="16"/>
                         <TextBlock Text="Goals"/>
+                    </StackPanel>
+                </Button>
+                
+                <Button Classes="tab-button"
+                        Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Metrics}}"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{x:Static vm:CircleTab.Metrics}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                                  Width="16" Height="16"/>
+                        <TextBlock Text="Metrics"/>
                     </StackPanel>
                 </Button>
                 
@@ -799,13 +829,9 @@
                 </ScrollViewer>
                 
                 <!-- ======= TEAM MEMBER DETAIL FLYOUT ======= -->
-                <Border Grid.Column="1" Width="{Binding IsDetailPanelOpen, Converter={StaticResource BoolToWidthConverter}}"
-                        ClipToBounds="True">
-                    <Border Classes="detail-panel" Classes.open="{Binding IsDetailPanelOpen}" 
-                            Width="320" Margin="8,0,0,0">
-                        <controls:TeamMemberDetailFlyout DataContext="{Binding}"/>
-                    </Border>
-                </Border>
+                <controls:EntityDetailFlyout Grid.Column="1"
+                                             FlyoutContent="{Binding SelectedTeamMember}"
+                                             IsOpen="{Binding IsDetailPanelOpen}"/>
             </Grid>
             
             <!-- =============== GOALS TAB =============== -->
@@ -878,13 +904,14 @@
                                     <Border Classes="goal-card" Margin="0,0,0,12"
                                             Tapped="GoalCard_Tapped" Tag="{Binding}">
                                         <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                                            <!-- Header: Status Badge + Owner -->
+                                            <!-- Header: Derived Health Badge + Owner -->
+                                            <!-- Per GOALS_SPEC: Circle uses DerivedHealth from metric signals, NOT legacy status -->
                                             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
                                                 <Border CornerRadius="6" Padding="8,4">
                                                     <Border.Background>
-                                                        <SolidColorBrush Color="{Binding Status, Converter={StaticResource GoalStatusToBackgroundConverter}}"/>
+                                                        <SolidColorBrush Color="{Binding DerivedHealth, Converter={StaticResource GoalDerivedHealthToBackgroundConverter}}"/>
                                                     </Border.Background>
-                                                    <TextBlock Text="{Binding StatusDisplay}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                                                    <TextBlock Text="{Binding DerivedHealthDisplay}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
                                                 </Border>
                                                 <TextBlock Grid.Column="2" Text="{Binding OwnerName}" FontSize="12"
                                                            Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
@@ -899,14 +926,15 @@
                                                        Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
                                                        MaxLines="2" TextTrimming="CharacterEllipsis" Margin="0,0,0,12"/>
                                             
-                                            <!-- Progress Bar -->
-                                            <Grid Grid.Row="3" ColumnDefinitions="*,Auto">
-                                                <ProgressBar Classes="goal-progress" Value="{Binding ProgressPercent}" Minimum="0" Maximum="100"/>
-                                                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Margin="12,0,0,0"
-                                                           Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center">
-                                                    <Run Text="{Binding ProgressPercent}"/><Run Text="%"/>
+                                            <!-- Metrics Count (replaces progress bar per GOALS_SPEC) -->
+                                            <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="6">
+                                                <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                                                          Width="14" Height="14" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                <TextBlock FontSize="12" Foreground="{DynamicResource BrushTextTertiary}">
+                                                    <Run Text="{Binding LinkedMetricsCount}"/>
+                                                    <Run Text=" metric(s) linked"/>
                                                 </TextBlock>
-                                            </Grid>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -914,12 +942,243 @@
                         </ItemsControl>
                     </ScrollViewer>
                     
-                    <!-- Goal Detail Flyout -->
-                    <Border Grid.Column="1" Width="{Binding IsGoalDetailOpen, Converter={StaticResource BoolToWidthConverter}}"
+                    <!-- Goal Detail Flyout (using new reusable EntityDetailFlyout) -->
+                    <controls:EntityDetailFlyout 
+                        Grid.Column="1"
+                        FlyoutContent="{Binding SelectedGoal}"
+                        IsOpen="{Binding IsGoalDetailOpen}"
+                        FlyoutWidth="320"
+                        Margin="8,0,0,0"/>
+                </Grid>
+            </Grid>
+            
+            <!-- =============== METRICS TAB =============== -->
+            <!-- Signal-first view per CIRCLE_METRICS_SPEC: No raw values, trends over snapshots -->
+            <Grid Grid.Row="1" IsVisible="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Metrics}}"
+                  RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
+                
+                <!-- Header Row: Signal Stats + Actions -->
+                <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,16" ColumnDefinitions="*,Auto">
+                    
+                    <!-- Signal Filters (not raw values) -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                        <!-- All -->
+                        <Border Classes="stat-filter"
+                                Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.All}}"
+                                Tapped="MetricFilter_All_Tapped">
+                            <StackPanel>
+                                <TextBlock Text="ALL METRICS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{Binding TotalMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BrushTextPrimary}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- On Track (signal good) -->
+                        <Border Classes="stat-filter"
+                                Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.OnTrack}}"
+                                Tapped="MetricFilter_OnTrack_Tapped">
+                            <StackPanel>
+                                <TextBlock Text="ON TRACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{Binding OnTrackMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="#10B981"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Needs Attention (signal warning) -->
+                        <Border Classes="stat-filter"
+                                Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.NeedsAttention}}"
+                                Tapped="MetricFilter_NeedsAttention_Tapped">
+                            <StackPanel>
+                                <TextBlock Text="NEEDS ATTENTION" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{Binding NeedsAttentionMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="#F59E0B"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Off Track (signal bad) -->
+                        <Border Classes="stat-filter"
+                                Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.OffTrack}}"
+                                Tapped="MetricFilter_OffTrack_Tapped">
+                            <StackPanel>
+                                <TextBlock Text="OFF TRACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{Binding OffTrackMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="#EF4444"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Metrics List + Detail Panel -->
+                <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="*,Auto" ClipToBounds="True">
+                    
+                    <!-- Metrics List - Signal-first rows -->
+                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding FilteredMetrics}" Margin="0,0,12,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="metric-card" Margin="0,0,0,8"
+                                            Tapped="MetricCard_Tapped" Tag="{Binding}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                                            <!-- Signal Indicator (color dot based on trend+direction) -->
+                                            <Ellipse Grid.Column="0" Width="12" Height="12" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                     Fill="{Binding Trend, Converter={StaticResource MetricTrendToSignalBrushConverter}}"/>
+                                            
+                                            <!-- Metric Name + Owner -->
+                                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding StewardName}" FontSize="12"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Trend Arrow (directional signal, not value) -->
+                                            <TextBlock Grid.Column="2" Text="{Binding TrendDisplay}" FontSize="18" Margin="12,0"
+                                                       VerticalAlignment="Center" FontWeight="Bold"
+                                                       Foreground="{Binding Trend, Converter={StaticResource MetricTrendToColorConverter}}"/>
+                                            
+                                            <!-- Last Update Age -->
+                                            <TextBlock Grid.Column="3" FontSize="12" Margin="8,0"
+                                                       Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"
+                                                       Text="{Binding UpdatedAt, Converter={StaticResource DateTimeToAgeConverter}}"/>
+                                            
+                                            <!-- Expand indicator -->
+                                            <PathIcon Grid.Column="4" Width="14" Height="14" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                      Foreground="{DynamicResource BrushTextTertiary}"
+                                                      Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    
+                    <!-- Metric Detail Flyout (expanded view with value, target, note, micro-trend) -->
+                    <Border Grid.Column="1" Width="{Binding IsMetricDetailOpen, Converter={StaticResource BoolToWidthConverter}}"
                             ClipToBounds="True">
-                        <Border Classes="detail-panel" Classes.open="{Binding IsGoalDetailOpen}" 
+                        <Border Classes="detail-panel" Classes.open="{Binding IsMetricDetailOpen}" 
                                 Width="320" Margin="8,0,0,0">
-                            <controls:GoalDetailFlyout DataContext="{Binding}"/>
+                            <!-- Metric detail content -->
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                                <StackPanel Spacing="16" IsVisible="{Binding SelectedMetric, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <!-- Header with close button -->
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding SelectedMetric.Name}" FontSize="18" FontWeight="Bold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap"/>
+                                        <Button Grid.Column="1" Classes="icon-button" Command="{Binding CloseMetricDetailCommand}">
+                                            <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                                                      Width="16" Height="16"/>
+                                        </Button>
+                                    </Grid>
+                                    
+                                    <!-- Trend Signal (large display) -->
+                                    <Border Background="{DynamicResource BrushSurface}" CornerRadius="8" Padding="16">
+                                        <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding SelectedMetric.TrendDisplay}" FontSize="48" FontWeight="Bold"
+                                                       HorizontalAlignment="Center"
+                                                       Foreground="{Binding SelectedMetric.Trend, Converter={StaticResource MetricTrendToColorConverter}}"/>
+                                            <TextBlock Text="Trend Direction" FontSize="12" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Owner -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="OWNER" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{Binding SelectedMetric.StewardName, TargetNullValue='Unassigned'}" FontSize="14"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Description -->
+                                    <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="DESCRIPTION" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{Binding SelectedMetric.Description}" FontSize="13" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Current Value (shown on expand per CIRCLE_METRICS_SPEC) -->
+                                    <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.CurrentValue, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <TextBlock Text="CURRENT VALUE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{Binding SelectedMetric.CurrentValue}" FontSize="20" FontWeight="Bold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding SelectedMetric.Unit}" FontSize="14" VerticalAlignment="Bottom"
+                                                       Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,2"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    
+                                    <!-- Target (if defined, shown on expand) -->
+                                    <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.TargetValue, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <TextBlock Text="TARGET" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{Binding SelectedMetric.TargetValue}" FontSize="16"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding SelectedMetric.Unit}" FontSize="12" VerticalAlignment="Bottom"
+                                                       Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,1"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    
+                                    <!-- Frequency -->
+                                    <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.Frequency, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="UPDATE FREQUENCY" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{Binding SelectedMetric.Frequency}" FontSize="14"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Last Updated -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="LAST UPDATED" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{Binding SelectedMetric.UpdatedAt, StringFormat='MMM d, yyyy'}" FontSize="14"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Linked Goals Section -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="LINKED GOALS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        
+                                        <!-- Linked goals list -->
+                                        <ItemsControl ItemsSource="{Binding MetricLinkedGoals}" Margin="0,4,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="models:GoalDetail">
+                                                    <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4"
+                                                            Cursor="Hand" Tapped="LinkedGoal_Tapped" Tag="{Binding}">
+                                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                                            <!-- Health indicator dot -->
+                                                            <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                                <Ellipse.Fill>
+                                                                    <SolidColorBrush Color="{Binding Status, Converter={StaticResource GoalStatusToBackgroundConverter}}"/>
+                                                                </Ellipse.Fill>
+                                                            </Ellipse>
+                                                            <!-- Goal title -->
+                                                            <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="12" FontWeight="Medium"
+                                                                       Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                                            <!-- Navigate arrow indicator -->
+                                                            <PathIcon Grid.Column="2" Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                                      Width="10" Height="10" Margin="8,0,0,0"
+                                                                      Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        
+                                        <!-- Loading state -->
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
+                                                    IsVisible="{Binding IsLoadingLinkedGoals}">
+                                            <ProgressBar IsIndeterminate="True" Width="60" Height="4"/>
+                                            <TextBlock Text="Loading..." FontSize="11" FontStyle="Italic"
+                                                       Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Empty state (only show when not loading) -->
+                                        <TextBlock Text="Not linked to any goals" FontSize="11" FontStyle="Italic"
+                                                   Foreground="{DynamicResource BrushTextTertiary}" Margin="0,4,0,0">
+                                            <TextBlock.IsVisible>
+                                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                    <Binding Path="MetricLinkedGoals.Count" Converter="{StaticResource EqualToZeroConverter}"/>
+                                                    <Binding Path="!IsLoadingLinkedGoals"/>
+                                                </MultiBinding>
+                                            </TextBlock.IsVisible>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Border>
                     </Border>
                 </Grid>
@@ -1366,10 +1625,10 @@
                     <!-- ===== MEETING DETAIL FLYOUT ===== -->
                     <Border Grid.Column="1" Width="{Binding IsMeetingDetailOpen, Converter={StaticResource BoolToWidthConverter}}"
                             ClipToBounds="True">
-                        <Border Classes="detail-panel" Classes.open="{Binding IsMeetingDetailOpen}" 
-                                Width="320" Margin="8,0,0,0">
-                            <controls:MeetingDetailFlyout DataContext="{Binding}"/>
-                        </Border>
+                        <controls:EntityDetailFlyout
+                            Width="320" Margin="8,0,0,0"
+                            FlyoutContent="{Binding SelectedMeeting}"
+                            IsOpen="{Binding IsMeetingDetailOpen}"/>
                     </Border>
                     
                 </Grid>
@@ -1380,7 +1639,7 @@
                     CornerRadius="8" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <ProgressBar IsIndeterminate="True" Width="200"/>
-                    <TextBlock Text="Loading..." Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding LoadingStatus}" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
             

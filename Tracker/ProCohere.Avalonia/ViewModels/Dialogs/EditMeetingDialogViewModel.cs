@@ -510,6 +510,9 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         Log($"AddAgendaItem: Adding '{result.Title}'");
         AddAgendaItem(
             result.Title.Trim(),
+            linkedEntityId: result.LinkedEntityId,
+            linkedEntityType: result.LinkedEntityType,
+            linkedEntityTitle: result.LinkedEntityTitle,
             visibilityScope: result.VisibilityScope ?? "meeting",
             sharedContext: result.SharedContext?.Trim(),
             privateContext: result.PrivateContext?.Trim(),
@@ -540,6 +543,10 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         item.SharedContext = result.SharedContext;
         item.PrivateContext = result.PrivateContext;
         item.VisibilityScope = result.VisibilityScope ?? "meeting";
+        item.LinkedEntityId = result.LinkedEntityId;
+        item.LinkedEntityType = result.LinkedEntityType;
+        item.LinkedEntityTitle = result.LinkedEntityTitle;
+        item.LinkedEntityTitleSnapshot = result.LinkedEntityTitle;
         item.IsDirty = true;
         
         // Update talking points
@@ -993,7 +1000,10 @@ public partial class EditMeetingDialogViewModel : ObservableObject
                 sharedContext: agendaItem.SharedContext,
                 privateContext: agendaItem.PrivateContext,
                 visibilityScope: agendaItem.VisibilityScope,
-                talkingPoints: agendaItem.TalkingPoints);
+                talkingPoints: agendaItem.TalkingPoints,
+                linkedEntityType: agendaItem.LinkedEntityType,
+                linkedEntityId: agendaItem.LinkedEntityId,
+                linkedEntityTitleSnapshot: agendaItem.LinkedEntityTitleSnapshot);
         }
         
         // Delete prep items marked for deletion

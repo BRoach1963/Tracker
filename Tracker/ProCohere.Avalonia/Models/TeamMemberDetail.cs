@@ -1,6 +1,9 @@
 using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
+using System.Windows.Input;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -12,7 +15,7 @@ namespace ProCohere.Avalonia.Models;
 /// Used for dashboard display.
 /// </summary>
 [Table("v_team_members")]
-public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
+public class TeamMemberDetail : BaseModel, INotifyPropertyChanged, IDetailEntity
 {
     private bool _isSelected;
 
@@ -381,4 +384,107 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged
     public bool HasPhone => !string.IsNullOrWhiteSpace(UserPhone);
 
     #endregion
+
+    #region IDetailEntity Implementation
+
+    /// <summary>
+    /// Display title for IDetailEntity - uses FullName.
+    /// </summary>
+    string IDetailEntity.Title => FullName;
+
+    /// <summary>
+    /// Command to close the flyout. Wired by ViewModel.
+    /// </summary>
+    [JsonIgnore]
+    public ICommand? CloseCommand { get; set; }
+
+    /// <summary>
+    /// Command to edit this team member. Wired by ViewModel.
+    /// </summary>
+    [JsonIgnore]
+    public ICommand? EditCommand { get; set; }
+
+    /// <summary>
+    /// Command to delete this team member. Wired by ViewModel.
+    /// </summary>
+    [JsonIgnore]
+    public ICommand? DeleteCommand { get; set; }
+
+    #endregion
+
+    #region Related Data Collections (populated by ViewModel before selection)
+
+    /// <summary>
+    /// Goals owned by this team member.
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<GoalDetail> MemberGoals { get; } = new();
+
+    /// <summary>
+    /// Meetings involving this team member.
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<MeetingDetail> MemberMeetings { get; } = new();
+
+    /// <summary>
+    /// Feedback for this team member.
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<FeedbackDetail> MemberFeedback { get; } = new();
+
+    /// <summary>
+    /// Direct reports of this team member (for managers).
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<TeamMemberDetail> MemberDirectReports { get; } = new();
+
+    /// <summary>
+    /// Tasks assigned to this team member.
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<TaskDetail> MemberTasks { get; } = new();
+
+    #endregion
+
+    #region Tab State
+
+    private MemberDetailTab _memberDetailTab = MemberDetailTab.Overview;
+
+    /// <summary>
+    /// Currently selected tab in the detail flyout.
+    /// </summary>
+    [JsonIgnore]
+    public MemberDetailTab MemberDetailTab
+    {
+        get => _memberDetailTab;
+        set
+        {
+            if (_memberDetailTab != value)
+            {
+                _memberDetailTab = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Command to set the detail tab. Wired by ViewModel or used directly.
+    /// </summary>
+    [JsonIgnore]
+    public ICommand? SetMemberDetailTabCommand { get; set; }
+
+    #endregion
+}
+
+/// <summary>
+/// Tabs within the team member detail flyout.
+/// </summary>
+ public enum MemberDetailTab
+{
+    Overview,
+    Goals,
+    Tasks,
+    Meetings,
+    Feedback,
+    Team
 }

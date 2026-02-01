@@ -669,15 +669,15 @@ public partial class MeViewModel : ViewModelBase
     [RelayCommand]
     private void CreateGoal()
     {
-        Log("[MeViewModel] CreateGoal command - TODO: implement");
-        // TODO: Open goal creation dialog
+        Log("[MeViewModel] CreateGoal command - opening dialog");
+        CreateGoalDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
     private void CreateNote()
     {
-        Log("[MeViewModel] CreateNote command - TODO: implement");
-        // TODO: Open note creation dialog
+        Log("[MeViewModel] CreateNote command - opening dialog");
+        CreateNoteDialogRequested?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -915,6 +915,16 @@ public partial class MeViewModel : ViewModelBase
     /// Event to request showing the Edit Task dialog with an existing task.
     /// </summary>
     public event EventHandler<TaskDetail>? EditTaskDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Create Goal dialog.
+    /// </summary>
+    public event EventHandler? CreateGoalDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Create Note dialog.
+    /// </summary>
+    public event EventHandler? CreateNoteDialogRequested;
 
     #endregion
 

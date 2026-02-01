@@ -418,9 +418,21 @@
                     <StackPanel Spacing="12" Margin="0,0,12,0">
                         
                         <!-- Goals Header -->
-                        <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,4">
-                            <Run Text="{Binding MyGoals.Count, FallbackValue=0}"/><Run Text=" goals"/>
-                        </TextBlock>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                            <TextBlock Grid.Column="0" FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center">
+                                <Run Text="{Binding MyGoals.Count, FallbackValue=0}"/><Run Text=" goals"/>
+                            </TextBlock>
+                            <Button Grid.Column="1" 
+                                    Classes="icon-button"
+                                    Command="{Binding CreateGoalCommand}"
+                                    ToolTip.Tip="New Goal">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                              Width="12" Height="12"/>
+                                    <TextBlock Text="New Goal" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
                         
                         <!-- Goals List -->
                         <ItemsControl ItemsSource="{Binding MyGoals}">

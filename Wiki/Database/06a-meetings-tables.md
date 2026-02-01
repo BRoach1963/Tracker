@@ -118,7 +118,7 @@ Join table linking team members to meetings with attendance metadata.
 ## procohere.meeting_agenda_items
 
 **Purpose**  
-Individual discussion items on meeting agendas with rich conversation tracking.
+Individual discussion items on meeting agendas with rich conversation tracking. Supports linking to goals, metrics, tasks, and projects for Circle drill-in and Pulse synthesis.
 
 **Columns**
 | Column | Type | Nullable | Notes |
@@ -141,13 +141,63 @@ Individual discussion items on meeting agendas with rich conversation tracking.
 | outcome_type | varchar | YES | 'discussed', 'decision', 'deferred', 'blocked' |
 | outcome_summary | text | YES | |
 | visibility_scope | varchar | YES | 'meeting' or 'personal' |
-| linked_entity_title_snapshot | varchar | YES | Cached linked entity title |
+| linked_entity_type | varchar | YES | 'goal', 'metric', 'task', 'project', 'note', 'team_member' |
+| linked_entity_id | uuid | YES | FK to linked entity (not enforced - poly morph ic) |
+| linked_entity_title_snapshot | varchar | YES | Cached linked entity title at link time |
 | discussed_at | timestamptz | YES | |
 | is_deleted | boolean | NO | |
 | created_at | timestamptz | NO | |
 | updated_at | timestamptz | NO | |
 | deleted_at | timestamptz | YES | |
 | deleted_by | uuid | YES | |
+
+**Constraints:**
+```sql
+-- linked_entity_type and linked_entity_id must both be set or both NULL
+CONSTRAINT chk_meeting_agenda_items_linked_pair
+CHECK (
+  (linked_entity_type IS NULL AND linked_entity_id IS NULL) OR
+  (linked_entity_type IS NOT NULL AND linked_entity_id IS NOT NULL)
+)
+
+-- linked_entity_type must be a valid entity type
+CONSTRAINT chk_meeting_agenda_items_linked_entity_type
+CHECK (linked_entity_type IN ('goal', 'metric', 'task', 'project', 'note', 'team_member'))
+```
+
+**Indexes:**
+```sql
+-- Index for finding all discussions of a specific entity (e.g., "show me recent goal discussions")
+CREATE INDEX ix_meeting_agenda_items_linked_entity
+ON procohere.meeting_agenda_items (linked_entity_type, linked_entity_id)
+WHERE linked_entity_type IS NOT NULL AND is_deleted = false;
+```
+
+### Entity Linking Contract
+
+Agenda items create durable links to goals, metrics, projects, and other entities. This enables:
+
+1. **Circle Goal Drill-In**: "Recent Discussions" section shows meetings where a goal was discussed
+2. **Pulse Synthesis**: AI can reference agenda item links to understand what was discussed
+3. **Metric Context**: Shows which meetings discussed a metric's trends
+
+**Linking Rules:**
+- `linked_entity_type` determines the entity table (goal, metric, task, project)
+- `linked_entity_id` references the entity's ID
+- `linked_entity_title_snapshot` caches the entity title at link time to prevent historical drift
+- Links are queried via: `linked_entity_type = 'goal' AND linked_entity_id = <goal_id>`
+
+**Query Pattern (Recent Discussions):**
+```sql
+SELECT m.id, m.title, m.scheduled_at, ai.title as agenda_item_title
+FROM procohere.meeting_agenda_items ai
+JOIN procohere.meetings m ON ai.meeting_id = m.id
+WHERE ai.linked_entity_type = 'goal'
+  AND ai.linked_entity_id = '<goal_id>'
+  AND ai.is_deleted = false
+ORDER BY m.scheduled_at DESC
+LIMIT 5;
+```
 
 **Model:** `MeetingAgendaItem` (in MeetingDetail.cs) ✅ Verified match (after fix)
 

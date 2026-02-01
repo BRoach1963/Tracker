@@ -120,6 +120,11 @@ public class AgendaItemDialogResult
     public string? VisibilityScope { get; init; }
     public List<TalkingPoint> TalkingPoints { get; init; } = new();
     
+    // Linked entity fields per GOALS_SPEC
+    public string? LinkedEntityType { get; init; }
+    public Guid? LinkedEntityId { get; init; }
+    public string? LinkedEntityTitle { get; init; }
+    
     /// <summary>
     /// Creates a result from a DialogAgendaItem.
     /// </summary>
@@ -130,6 +135,9 @@ public class AgendaItemDialogResult
         SharedContext = item.SharedContext,
         PrivateContext = item.PrivateContext,
         VisibilityScope = item.VisibilityScope,
-        TalkingPoints = new List<TalkingPoint>(item.TalkingPoints)
+        TalkingPoints = new List<TalkingPoint>(item.TalkingPoints),
+        LinkedEntityType = item.LinkedEntityType,
+        LinkedEntityId = item.LinkedEntityId,
+        LinkedEntityTitle = item.LinkedEntityTitle
     };
 }

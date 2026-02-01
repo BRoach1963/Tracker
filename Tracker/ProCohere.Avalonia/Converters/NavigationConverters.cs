@@ -314,6 +314,93 @@ public class GoalStatusToBackgroundConverter : IValueConverter
 }
 
 /// <summary>
+/// Converts GoalDerivedHealth enum to background color for Circle view.
+/// Per GOALS_SPEC: Circle uses derived health from metric signals, not legacy status.
+/// </summary>
+public class GoalDerivedHealthToBackgroundConverter : IValueConverter
+{
+    public static readonly GoalDerivedHealthToBackgroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not Models.GoalDerivedHealth health)
+            return Color.Parse("#6B7280"); // Gray default
+        
+        return health switch
+        {
+            Models.GoalDerivedHealth.OnTrack => Color.Parse("#10B981"),    // Green
+            Models.GoalDerivedHealth.AtRisk => Color.Parse("#F59E0B"),     // Amber
+            Models.GoalDerivedHealth.OffTrack => Color.Parse("#EF4444"),   // Red
+            Models.GoalDerivedHealth.Unknown => Color.Parse("#6B7280"),    // Gray
+            _ => Color.Parse("#6B7280")
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts GoalDerivedHealth enum to display text for Circle view.
+/// Per GOALS_SPEC: Circle uses derived health from metric signals.
+/// </summary>
+public class GoalDerivedHealthToDisplayConverter : IValueConverter
+{
+    public static readonly GoalDerivedHealthToDisplayConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not Models.GoalDerivedHealth health)
+            return "Unknown";
+        
+        return health switch
+        {
+            Models.GoalDerivedHealth.OnTrack => "On Track",
+            Models.GoalDerivedHealth.AtRisk => "At Risk",
+            Models.GoalDerivedHealth.OffTrack => "Off Track",
+            Models.GoalDerivedHealth.Unknown => "No Metrics",
+            _ => "Unknown"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts GoalDerivedHealth enum to reflection prompt for Circle view.
+/// Per GOALS_SPEC: Circle uses derived health from metric signals.
+/// </summary>
+public class GoalDerivedHealthToPromptConverter : IValueConverter
+{
+    public static readonly GoalDerivedHealthToPromptConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not Models.GoalDerivedHealth health)
+            return "What metrics could provide evidence for this goal?";
+        
+        return health switch
+        {
+            Models.GoalDerivedHealth.OnTrack => "Metrics are signaling progress. What's driving success?",
+            Models.GoalDerivedHealth.AtRisk => "Some metrics need attention. What adjustments might help?",
+            Models.GoalDerivedHealth.OffTrack => "Metrics show challenges. Is the goal still relevant, or do tactics need to change?",
+            Models.GoalDerivedHealth.Unknown => "Link metrics to get signal-based health for this goal.",
+            _ => "What metrics could provide evidence for this goal?"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
 /// Converts DisplayDepth (int) to left margin for tree view indentation.
 /// Each level adds 24 pixels of left margin.
 /// </summary>

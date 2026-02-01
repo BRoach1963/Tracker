@@ -1,4 +1,5 @@
 using ProCohere.Avalonia.Models;
+using System;
 using System.Collections.Generic;
 
 namespace ProCohere.Avalonia.Models.Dialogs;
@@ -16,4 +17,9 @@ public class EditAgendaItemResult
     public string? PrivateContext { get; set; }
     public string VisibilityScope { get; set; } = "meeting";
     public List<TalkingPoint> TalkingPoints { get; set; } = new();
+    
+    // Linked entity fields per GOALS_SPEC
+    public string? LinkedEntityType { get; set; }
+    public Guid? LinkedEntityId { get; set; }
+    public string? LinkedEntityTitle { get; set; }
 }

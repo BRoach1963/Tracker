@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Input;
 using Avalonia.Media;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
@@ -8,9 +9,10 @@ namespace ProCohere.Avalonia.Models;
 /// <summary>
 /// Task model - maps to the tasks table in Supabase.
 /// Used for dashboard upcoming tasks.
+/// Implements IDetailEntity for use in EntityDetailFlyout.
 /// </summary>
 [Table("tasks")]
-public class TaskDetail : BaseModel
+public class TaskDetail : BaseModel, IDetailEntity
 {
     [PrimaryKey("id", false)]
     public Guid Id { get; set; }
@@ -292,6 +294,31 @@ public class TaskDetail : BaseModel
     /// Alias for OwnerName for consistent naming in UI.
     /// </summary>
     public string? AssignedToName => OwnerName;
+
+    #endregion
+
+    #region IDetailEntity Commands (wired up by parent ViewModel)
+
+    /// <summary>
+    /// Command to close the detail flyout. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? CloseCommand { get; set; }
+
+    /// <summary>
+    /// Command to edit this task. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? EditCommand { get; set; }
+
+    /// <summary>
+    /// Command to delete this task. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? DeleteCommand { get; set; }
 
     #endregion
 }

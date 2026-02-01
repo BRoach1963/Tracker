@@ -19,6 +19,16 @@ public partial class LinkableItem : ObservableObject
     public string Title { get; init; } = string.Empty;
     public string? Subtitle { get; init; }
     
+    /// <summary>
+    /// Avatar URL for team members.
+    /// </summary>
+    public string? AvatarUrl { get; init; }
+    
+    /// <summary>
+    /// Initials to display when no avatar is available.
+    /// </summary>
+    public string? Initials { get; init; }
+    
     [ObservableProperty]
     private bool _isSelected;
 }

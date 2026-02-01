@@ -380,7 +380,10 @@ public class MeetingAgendaItemService
         string? visibilityScope = null,
         List<TalkingPoint>? talkingPoints = null,
         string? outcomeType = null,
-        string? outcomeSummary = null)
+        string? outcomeSummary = null,
+        string? linkedEntityType = null,
+        Guid? linkedEntityId = null,
+        string? linkedEntityTitleSnapshot = null)
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
@@ -413,7 +416,10 @@ public class MeetingAgendaItemService
                 p_talking_points = talkingPointsJson,
                 p_outcome_type = outcomeType,
                 p_outcome_summary = outcomeSummary,
-                p_visibility_scope = visibilityScope
+                p_visibility_scope = visibilityScope,
+                p_linked_entity_type = linkedEntityType,
+                p_linked_entity_id = linkedEntityId,
+                p_linked_entity_title_snapshot = linkedEntityTitleSnapshot
             });
 
             Log($"Update agenda item RPC result: {rpcResult?.Content ?? "NULL"}");
@@ -782,4 +788,140 @@ public class MeetingAgendaItemService
             return false;
         }
     }
+
+    /// <summary>
+    /// Gets recent meetings where a specific entity was discussed (via agenda items).
+    /// Returns meetings with their agenda items filtered to only those referencing the entity.
+    /// Per GOALS_SPEC: Goals discussed recently should be queryable for Circle drill-in.
+    /// </summary>
+    /// <param name="entityType">The entity type: goal, metric, task, etc.</param>
+    /// <param name="entityId">The entity ID</param>
+    /// <param name="maxResults">Maximum number of meetings to return (default 5)</param>
+    public async Task<List<GoalDiscussion>> GetRecentDiscussionsForEntityAsync(
+        string entityType, 
+        Guid entityId, 
+        int maxResults = 5)
+    {
+        LastError = null;
+        var client = AuthService.Instance.GetProCohereClient();
+        
+        if (client == null)
+        {
+            LastError = "Not authenticated";
+            return new List<GoalDiscussion>();
+        }
+
+        try
+        {
+            Log($"Getting recent discussions for {entityType}: {entityId}");
+            
+            // Query agenda items that reference this entity
+            var agendaItemsResult = await client.From<MeetingAgendaItem>()
+                .Filter("linked_entity_type", Operator.Equals, entityType)
+                .Filter("linked_entity_id", Operator.Equals, entityId.ToString())
+                .Filter("is_deleted", Operator.Equals, "false")
+                .Order("created_at", Ordering.Descending)
+                .Limit(maxResults * 2) // Get more to handle duplicates
+                .Get();
+
+            var agendaItems = agendaItemsResult.Models ?? new List<MeetingAgendaItem>();
+            
+            if (agendaItems.Count == 0)
+            {
+                Log("No agenda items found for this entity");
+                return new List<GoalDiscussion>();
+            }
+
+            // Get unique meeting IDs
+            var meetingIds = agendaItems
+                .Select(a => a.MeetingId)
+                .Distinct()
+                .Take(maxResults)
+                .ToList();
+
+            // Load meeting details for each
+            var discussions = new List<GoalDiscussion>();
+            foreach (var meetingId in meetingIds)
+            {
+                var meeting = await MeetingService.Instance.GetMeetingAsync(meetingId);
+                if (meeting != null)
+                {
+                    var relatedItems = agendaItems
+                        .Where(a => a.MeetingId == meetingId)
+                        .ToList();
+
+                    // Get attendee name (first non-organizer, or team member name if available)
+                    var attendeeName = meeting.TeamMemberName 
+                        ?? meeting.Attendees.FirstOrDefault(a => !a.IsOrganizer)?.Name
+                        ?? meeting.Attendees.FirstOrDefault()?.Name;
+
+                    discussions.Add(new GoalDiscussion
+                    {
+                        MeetingId = meetingId,
+                        MeetingTitle = meeting.Title,
+                        MeetingDate = meeting.ScheduledAt,
+                        OtherPersonName = attendeeName,
+                        AgendaItemTitles = relatedItems.Select(a => a.EffectiveTitle).ToList()
+                    });
+                }
+            }
+
+            Log($"Found {discussions.Count} discussions for entity");
+            return discussions
+                .OrderByDescending(d => d.MeetingDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetRecentDiscussionsForEntity ERROR: {ex.Message}");
+            return new List<GoalDiscussion>();
+        }
+    }
+}
+
+/// <summary>
+/// Represents a meeting where a goal (or other entity) was discussed.
+/// Used by Circle goal detail to show recent discussions.
+/// </summary>
+public class GoalDiscussion
+{
+    public Guid MeetingId { get; set; }
+    public string? MeetingTitle { get; set; }
+    public DateTime? MeetingDate { get; set; }
+    public string? OtherPersonName { get; set; }
+    public List<string> AgendaItemTitles { get; set; } = new();
+
+    /// <summary>
+    /// Display text for the meeting date (e.g., "Jan 15" or "Yesterday").
+    /// </summary>
+    public string MeetingDateDisplay
+    {
+        get
+        {
+            if (!MeetingDate.HasValue)
+                return "Unknown";
+
+            var date = MeetingDate.Value.Date;
+            var today = DateTime.UtcNow.Date;
+
+            if (date == today)
+                return "Today";
+            if (date == today.AddDays(-1))
+                return "Yesterday";
+            if ((today - date).Days < 7)
+                return date.ToString("dddd"); // Day name
+            return date.ToString("MMM d");
+        }
+    }
+
+    /// <summary>
+    /// Summary of what was discussed.
+    /// </summary>
+    public string AgendaItemsSummary => AgendaItemTitles.Count switch
+    {
+        0 => "Referenced in meeting",
+        1 => AgendaItemTitles[0],
+        _ => $"{AgendaItemTitles[0]} (+{AgendaItemTitles.Count - 1} more)"
+    };
 }

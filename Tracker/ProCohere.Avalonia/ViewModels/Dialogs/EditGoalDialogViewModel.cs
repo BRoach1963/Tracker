@@ -60,11 +60,10 @@ public partial class EditGoalDialogViewModel : ObservableObject
     private int _selectedYearIndex = 1; // Default to current year (index 1 in a list starting from previous year)
     
     [ObservableProperty]
-    private DateTimeOffset? _startDate;
-    
+    private DateTime? _startDate;
+
     [ObservableProperty]
-    private DateTimeOffset? _endDate;
-    
+    private DateTime? _endDate;
     [ObservableProperty]
     private int _healthIndex;
     
@@ -118,8 +117,8 @@ public partial class EditGoalDialogViewModel : ObservableObject
         var quarterStart = new DateTime(now.Year, (quarter - 1) * 3 + 1, 1);
         var quarterEnd = quarterStart.AddMonths(3).AddDays(-1);
         
-        StartDate = new DateTimeOffset(quarterStart);
-        EndDate = new DateTimeOffset(quarterEnd);
+        StartDate = quarterStart;
+        EndDate = quarterEnd;
         
         // Select current quarter (Q1=0, Q2=1, Q3=2, Q4=3)
         TimePeriodIndex = quarter - 1;
@@ -148,9 +147,9 @@ public partial class EditGoalDialogViewModel : ObservableObject
         
         // Set dates
         if (goal.StartDate.HasValue)
-            StartDate = new DateTimeOffset(goal.StartDate.Value);
+            StartDate = goal.StartDate.Value;
         if (goal.DueDate.HasValue)
-            EndDate = new DateTimeOffset(goal.DueDate.Value);
+            EndDate = goal.DueDate.Value;
         
         // Set status (displayed as "health" in UI)
         if (!string.IsNullOrEmpty(goal.Status))
@@ -231,6 +230,8 @@ public partial class EditGoalDialogViewModel : ObservableObject
     [RelayCommand]
     private async Task CancelAsync()
     {
+        Debug.WriteLine($"[EditGoalDialog] CancelAsync called - HasUnsavedChanges: {HasUnsavedChanges}, DialogService: {_dialogService != null}");
+        
         // Show confirmation if there's unsaved data during creation
         if (HasUnsavedChanges && _dialogService != null)
         {
@@ -240,12 +241,15 @@ public partial class EditGoalDialogViewModel : ObservableObject
                 "Discard",
                 "Keep Editing");
             
+            Debug.WriteLine($"[EditGoalDialog] Confirmation result: {confirmed}");
+            
             if (!confirmed)
             {
                 return;
             }
         }
         
+        Debug.WriteLine("[EditGoalDialog] Closing dialog via CloseRequested");
         Result = null;
         CloseRequested?.Invoke();
     }
@@ -266,8 +270,8 @@ public partial class EditGoalDialogViewModel : ObservableObject
             Title = title,
             Description = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim(),
             GoalType = GetTagByIndex(GoalTypeTags, GoalTypeIndex),
-            StartDate = StartDate?.DateTime,
-            DueDate = EndDate?.DateTime,
+            StartDate = StartDate,
+            DueDate = EndDate,
             OwnerTeamMemberId = SelectedOwner?.Id,
             Status = GetTagByIndex(HealthTags, HealthIndex),
             IsDeleted = false

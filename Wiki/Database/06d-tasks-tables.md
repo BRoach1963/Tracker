@@ -41,6 +41,54 @@ Action items and tasks. Can be standalone or linked to source entities (meetings
 | deleted_at | timestamptz | YES | |
 | deleted_by | uuid | YES | |
 
+**Constraints:**
+```sql
+-- source_type must be a valid entity type
+CONSTRAINT chk_tasks_source_type
+CHECK (source_type IS NULL OR source_type IN ('meeting', 'agenda_item', 'goal', 'feedback', 'note'))
+
+-- source_type and source_id must both be set or both NULL
+CONSTRAINT chk_tasks_source_pair
+CHECK (
+  (source_type IS NULL AND source_id IS NULL) OR
+  (source_type IS NOT NULL AND source_id IS NOT NULL)
+)
+```
+
+### Task Source Contract
+
+Tasks track their origin via `source_type` and `source_id`. This enables provenance tracking and enables queries like "show me tasks spawned from goal work."
+
+**Allowed Source Types:**
+
+| source_type | source_id points to | Use Case |
+|-------------|---------------------|----------|
+| `meeting` | `meetings.id` | Task created during meeting |
+| `agenda_item` | `meeting_agenda_items.id` | Task created from agenda item discussion |
+| `goal` | `goals.id` | Task supporting a goal |
+| `feedback` | `feedback.id` | Task from feedback conversation |
+| `note` | `notes.id` | Task extracted from note |
+
+**Recommended Pattern (Pulse/Circle):**
+- Task created from a discussion should use `source_type='agenda_item'`
+- This preserves the discussion context and enables Pulse to synthesize action patterns
+- Tasks directly supporting goals use `source_type='goal'`
+
+**Query Examples:**
+
+```sql
+-- Tasks spawned from goal work (direct goal tasks)
+SELECT * FROM procohere.tasks
+WHERE source_type = 'goal' AND source_id = '<goal_id>';
+
+-- Tasks spawned from discussions (via agenda items)
+SELECT t.* FROM procohere.tasks t
+JOIN procohere.meeting_agenda_items ai ON t.source_id = ai.id
+WHERE t.source_type = 'agenda_item'
+  AND ai.linked_entity_type = 'goal'
+  AND ai.linked_entity_id = '<goal_id>';
+```
+
 **Model:** `TaskDetail.cs` ✅ Verified match (after fix)
 
 **Fixes Applied:**
@@ -49,7 +97,5 @@ Action items and tasks. Can be standalone or linked to source entities (meetings
 - Added `updated_at` column
 - Added `deleted_at` column
 - Added `deleted_by` column
-
-**Provenance:** Tasks track where they came from via `source_type` and `source_id`. This enables showing "Created from Meeting: Weekly 1:1" in the UI.
 
 **RLS:** Organization isolation.

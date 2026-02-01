@@ -36,6 +36,8 @@ public partial class MeView : UserControl
         _viewModel.EditMeetingDialogRequested += OnEditMeetingDialogRequested;
         _viewModel.CreateTaskDialogRequested += OnCreateTaskDialogRequested;
         _viewModel.EditTaskDialogRequested += OnEditTaskDialogRequested;
+        _viewModel.CreateGoalDialogRequested += OnCreateGoalDialogRequested;
+        _viewModel.CreateNoteDialogRequested += OnCreateNoteDialogRequested;
         
         // Initial population after control is loaded
         Loaded += MeView_Loaded;
@@ -143,6 +145,36 @@ public partial class MeView : UserControl
         {
             Debug.WriteLine($"[MeView] Edit task error: {result.Error}");
         }
+    }
+
+    /// <summary>
+    /// Show the create goal dialog.
+    /// </summary>
+    private async void OnCreateGoalDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowCreateGoalAsync(window);
+        
+        if (result.Success && result.Goal != null)
+        {
+            // Refresh to include the new goal
+            _viewModel.RefreshCommand.Execute(null);
+        }
+        else if (result.Error != null)
+        {
+            Debug.WriteLine($"[MeView] Create goal error: {result.Error}");
+        }
+    }
+
+    /// <summary>
+    /// Show the create note dialog (placeholder for now).
+    /// </summary>
+    private void OnCreateNoteDialogRequested(object? sender, EventArgs e)
+    {
+        // TODO: Implement note creation dialog when available
+        NotificationService.Instance.ShowInfo("Coming Soon", "Note creation will be available soon.");
     }
 
     #endregion

@@ -160,4 +160,103 @@ public class NullToBoolConverter : IValueConverter
     }
 }
 
+/// <summary>
+/// Converts MetricTrend to a color for display.
+/// Simple single-value converter for trend arrows.
+/// </summary>
+public class MetricTrendToColorConverter : IValueConverter
+{
+    public static readonly MetricTrendToColorConverter Instance = new();
+
+    private static readonly SolidColorBrush GreenBrush = new(Color.Parse("#10B981"));
+    private static readonly SolidColorBrush AmberBrush = new(Color.Parse("#F59E0B"));
+    private static readonly SolidColorBrush RedBrush = new(Color.Parse("#EF4444"));
+    private static readonly SolidColorBrush GrayBrush = new(Color.Parse("#9CA3AF"));
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var trend = value as MetricTrend? ?? MetricTrend.Unknown;
+
+        return trend switch
+        {
+            MetricTrend.TrendingUp => GreenBrush,
+            MetricTrend.Stable => AmberBrush,
+            MetricTrend.TrendingDown => RedBrush,
+            MetricTrend.MoreVariable => AmberBrush,
+            _ => GrayBrush
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Converts MetricTrend to a signal brush color (for the indicator dot).
+/// Same as MetricTrendToColorConverter but for the signal dot.
+/// </summary>
+public class MetricTrendToSignalBrushConverter : IValueConverter
+{
+    public static readonly MetricTrendToSignalBrushConverter Instance = new();
+
+    private static readonly SolidColorBrush GreenBrush = new(Color.Parse("#10B981"));
+    private static readonly SolidColorBrush AmberBrush = new(Color.Parse("#F59E0B"));
+    private static readonly SolidColorBrush RedBrush = new(Color.Parse("#EF4444"));
+    private static readonly SolidColorBrush GrayBrush = new(Color.Parse("#9CA3AF"));
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var trend = value as MetricTrend? ?? MetricTrend.Unknown;
+
+        return trend switch
+        {
+            MetricTrend.TrendingUp => GreenBrush,
+            MetricTrend.Stable => AmberBrush,
+            MetricTrend.TrendingDown => RedBrush,
+            MetricTrend.MoreVariable => AmberBrush,
+            _ => GrayBrush
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+/// <summary>
+/// Converts a DateTime to a human-readable age string.
+/// Examples: "today", "1d ago", "2w ago", "1mo ago"
+/// </summary>
+public class DateTimeToAgeConverter : IValueConverter
+{
+    public static readonly DateTimeToAgeConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not DateTime dateTime)
+            return "unknown";
+
+        var elapsed = DateTime.UtcNow - dateTime;
+
+        return elapsed.TotalDays switch
+        {
+            < 1 => "today",
+            < 2 => "1d ago",
+            < 7 => $"{(int)elapsed.TotalDays}d ago",
+            < 14 => "1w ago",
+            < 30 => $"{(int)(elapsed.TotalDays / 7)}w ago",
+            < 60 => "1mo ago",
+            _ => $"{(int)(elapsed.TotalDays / 30)}mo ago"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
 // Note: InverseBoolConverter is defined in NavigationConverters.cs

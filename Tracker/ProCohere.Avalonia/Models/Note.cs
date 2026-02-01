@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Windows.Input;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -8,9 +9,10 @@ namespace ProCohere.Avalonia.Models;
 /// <summary>
 /// Note model - maps to the notes table in Supabase procohere schema.
 /// Represents a journal entry that can optionally be linked to various entities.
+/// Implements IDetailEntity for use in EntityDetailFlyout.
 /// </summary>
 [Table("notes")]
-public class Note : BaseModel
+public class Note : BaseModel, IDetailEntity
 {
     #region Identity
 
@@ -224,6 +226,36 @@ public class Note : BaseModel
     public string ContentPreviewExtended => Content.Length > 500
         ? Content[..500] + "..."
         : Content;
+
+    #endregion
+
+    #region IDetailEntity Implementation
+
+    /// <summary>
+    /// Display title for IDetailEntity - uses DisplayTitle computed property.
+    /// </summary>
+    string IDetailEntity.Title => DisplayTitle;
+
+    /// <summary>
+    /// Command to close the detail flyout. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? CloseCommand { get; set; }
+
+    /// <summary>
+    /// Command to edit this note. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? EditCommand { get; set; }
+
+    /// <summary>
+    /// Command to delete this note. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? DeleteCommand { get; set; }
 
     #endregion
 }

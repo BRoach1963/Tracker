@@ -159,7 +159,7 @@ public partial class App : Application
                 if (completedTask == loginTask)
                 {
                     autoLoginSuccess = await loginTask;
-                    cts.Cancel(); // Cancel the delay task
+                     cts.Cancel(); // Cancel the delay task
                 }
                 else
                 {

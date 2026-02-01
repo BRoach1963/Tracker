@@ -240,10 +240,14 @@
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </StackPanel>
                     
-                    <!-- Empty State -->
-                    <StackPanel IsVisible="{Binding !Metrics.Count}" 
-                                VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12"
-                                Opacity="{Binding !IsLoading, Converter={StaticResource BoolToOpacity}}">
+                    <!-- Empty State (only when not loading AND no metrics) -->
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                        <StackPanel.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                <Binding Path="!IsLoading"/>
+                                <Binding Path="!Metrics.Count"/>
+                            </MultiBinding>
+                        </StackPanel.IsVisible>
                         <PathIcon Data="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z" 
                                   Width="48" Height="48" 
                                   Foreground="{DynamicResource BrushTextSecondary}"/>
@@ -254,9 +258,14 @@
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
                     
-                    <!-- Metrics List -->
-                    <ItemsControl ItemsSource="{Binding Metrics}"
-                                  IsVisible="{Binding !!Metrics.Count}">
+                    <!-- Metrics List (only when not loading AND has metrics) -->
+                    <ItemsControl ItemsSource="{Binding Metrics}">
+                        <ItemsControl.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                <Binding Path="!IsLoading"/>
+                                <Binding Path="!!Metrics.Count"/>
+                            </MultiBinding>
+                        </ItemsControl.IsVisible>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:MetricDetail">
                                 <Border Classes="metric-card"

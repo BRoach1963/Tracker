@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Windows.Input;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -10,9 +11,11 @@ namespace ProCohere.Avalonia.Models;
 /// 
 /// Philosophy: "Goals express intent, Metrics observe reality, Humans decide."
 /// NO progress bars, percentages, or red/yellow/green status indicators.
+/// 
+/// Implements IDetailEntity for use in EntityDetailFlyout.
 /// </summary>
 [Table("goals")]
-public class GoalDetail : BaseModel
+public class GoalDetail : BaseModel, IDetailEntity
 {
     #region Identity
 
@@ -232,6 +235,62 @@ public class GoalDetail : BaseModel
 
     #endregion
 
+    #region IDetailEntity Commands (wired up by parent ViewModel)
+
+    /// <summary>
+    /// Command to close the detail flyout. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? CloseCommand { get; set; }
+
+    /// <summary>
+    /// Command to edit this goal. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? EditCommand { get; set; }
+
+    /// <summary>
+    /// Command to delete this goal. Wired up by parent ViewModel.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ICommand? DeleteCommand { get; set; }
+
+    #endregion
+
+    #region Derived Health (Circle View - NOT in DB)
+
+    /// <summary>
+    /// Derived health from linked metric signals. Used by Circle view.
+    /// Computed at load time using worst-state logic from linked metrics.
+    /// NOT stored in DB - this is the authoritative health for Circle per GOALS_SPEC.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public GoalDerivedHealth DerivedHealth { get; set; } = GoalDerivedHealth.Unknown;
+
+    /// <summary>
+    /// Number of linked metrics (for Unknown state context).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public int LinkedMetricsCount { get; set; }
+
+    /// <summary>
+    /// Display text for derived health.
+    /// </summary>
+    public string DerivedHealthDisplay => DerivedHealth switch
+    {
+        GoalDerivedHealth.OnTrack => "On Track",
+        GoalDerivedHealth.AtRisk => "At Risk",
+        GoalDerivedHealth.OffTrack => "Off Track",
+        _ => LinkedMetricsCount == 0 ? "No Metrics" : "Unknown"
+    };
+
+    #endregion
+
     #region Computed Display Properties
 
     /// <summary>
@@ -309,4 +368,32 @@ public class GoalDetail : BaseModel
     };
 
     #endregion
+}
+
+/// <summary>
+/// Derived health state for goals - computed from linked metric signals.
+/// This is the authoritative health for Circle view per GOALS_SPEC.
+/// Uses worst-state logic: any OffTrack metric = OffTrack goal.
+/// </summary>
+public enum GoalDerivedHealth
+{
+    /// <summary>
+    /// No metrics linked or insufficient data to determine health.
+    /// </summary>
+    Unknown,
+    
+    /// <summary>
+    /// All linked metrics are On Track.
+    /// </summary>
+    OnTrack,
+    
+    /// <summary>
+    /// At least one linked metric is At Risk/NeedsAttention, none Off Track.
+    /// </summary>
+    AtRisk,
+    
+    /// <summary>
+    /// At least one linked metric is Off Track.
+    /// </summary>
+    OffTrack
 }

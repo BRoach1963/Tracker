@@ -39,7 +39,7 @@ public partial class AddTaskDialogViewModel : ObservableObject
     private string _description = string.Empty;
     
     [ObservableProperty]
-    private DateTimeOffset? _dueDate;
+    private DateTime? _dueDate;
     
     [ObservableProperty]
     private int _priorityIndex = -1;
@@ -73,7 +73,7 @@ public partial class AddTaskDialogViewModel : ObservableObject
     public AddTaskDialogViewModel()
     {
         // Set default due date to tomorrow
-        DueDate = DateTimeOffset.Now.AddDays(1);
+        DueDate = DateTime.Now.AddDays(1);
     }
     
     /// <summary>
@@ -146,7 +146,7 @@ public partial class AddTaskDialogViewModel : ObservableObject
         // Set due date
         if (task.DueDate.HasValue)
         {
-            DueDate = new DateTimeOffset(task.DueDate.Value);
+            DueDate = task.DueDate.Value;
         }
         
         // Assignee is set in SetTeamMembers if called after LoadTask
@@ -210,7 +210,7 @@ public partial class AddTaskDialogViewModel : ObservableObject
             Description = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim(),
             Priority = priority,
             Status = status,
-            DueDate = DueDate?.DateTime,
+            DueDate = DueDate,
             AssigneeId = SelectedAssignee?.Id,
             IsDeleted = false
         };

@@ -52,6 +52,9 @@
             <converters:BoolToHighlightBackgroundConverter x:Key="BoolToHighlightBackgroundConverter"/>
             <converters:BoolToForegroundConverter x:Key="BoolToForegroundConverter"/>
             <converters:GoalStatusToBackgroundConverter x:Key="GoalStatusToBackgroundConverter"/>
+            <converters:GoalDerivedHealthToBackgroundConverter x:Key="GoalDerivedHealthToBackgroundConverter"/>
+            <converters:GoalDerivedHealthToDisplayConverter x:Key="GoalDerivedHealthToDisplayConverter"/>
+            <converters:GoalDerivedHealthToPromptConverter x:Key="GoalDerivedHealthToPromptConverter"/>
             <converters:TreeDepthToMarginConverter x:Key="TreeDepthToMarginConverter"/>
             <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
             <converters:TopOffsetToMarginConverter x:Key="TopOffsetToMarginConverter"/>
@@ -69,6 +72,10 @@
             <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
             <converters:CategoryToColorConverter x:Key="CategoryToColorConverter"/>
             <converters:CategoryToAccentConverter x:Key="CategoryToAccentConverter"/>
+            <converters:MetricTrendToColorConverter x:Key="MetricTrendToColorConverter"/>
+            <converters:MetricTrendToSignalBrushConverter x:Key="MetricTrendToSignalBrushConverter"/>
+            <converters:DateTimeToAgeConverter x:Key="DateTimeToAgeConverter"/>
+            <converters:AgendaStatusToBrushConverter x:Key="AgendaStatusToBrushConverter"/>
         </ResourceDictionary>
     </Application.Resources>
   

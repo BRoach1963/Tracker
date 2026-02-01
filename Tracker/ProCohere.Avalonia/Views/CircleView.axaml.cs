@@ -37,6 +37,8 @@ public partial class CircleView : UserControl
         _viewModel.EditTeamMemberDialogRequested += OnEditTeamMemberDialogRequested;
         _viewModel.InviteTeamMemberDialogRequested += OnInviteTeamMemberDialogRequested;
         _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+        _viewModel.LinkMetricToGoalRequested += OnLinkMetricToGoalRequested;
+        _viewModel.AddGoalDialogRequested += OnAddGoalDialogRequested;
         
         // Initial population after control is loaded
         Loaded += CircleView_Loaded;
@@ -109,6 +111,57 @@ public partial class CircleView : UserControl
         else if (result.Success && result.Meeting != null)
         {
             _viewModel.OnMeetingSaved(result.Meeting);
+        }
+    }
+
+    private async void OnLinkMetricToGoalRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel?.SelectedGoal == null) return;
+
+        // Show the entity picker filtered to only show metrics
+        var dialog = new EntityPickerDialog();
+        dialog.SetAllowedTypes("metric");
+        
+        await dialog.ShowDialog(window);
+        
+        if (dialog.Result != null && dialog.Result.EntityType == "metric")
+        {
+            // Get the metric and link it to the goal
+            var metric = await MetricsService.Instance.GetMetricByIdAsync(dialog.Result.EntityId);
+            if (metric != null)
+            {
+                await _viewModel.LinkMetricCommand.ExecuteAsync(metric);
+            }
+        }
+    }
+
+    private async void OnAddGoalDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var viewModel = new EditGoalDialogViewModel();
+        var dialog = new EditGoalDialog
+        {
+            DataContext = viewModel
+        };
+
+        await dialog.ShowDialog(window);
+
+        // Refresh goals list after dialog closes (whether saved or cancelled)
+        _viewModel.RefreshCommand.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles click on a linked goal in the metric detail flyout.
+    /// Navigates to the Goals tab and selects the goal.
+    /// </summary>
+    private void LinkedGoal_Tapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is GoalDetail goal && _viewModel != null)
+        {
+            _viewModel.NavigateToGoalCommand.Execute(goal);
         }
     }
 
@@ -514,6 +567,53 @@ public partial class CircleView : UserControl
             if (DataContext is CircleViewModel vm)
             {
                 vm.SelectGoalCommand.Execute(goal);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Metrics Tab Handlers
+
+    private void MetricFilter_All_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetMetricFilterCommand.Execute(MetricFilter.All);
+        }
+    }
+
+    private void MetricFilter_OnTrack_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetMetricFilterCommand.Execute(MetricFilter.OnTrack);
+        }
+    }
+
+    private void MetricFilter_NeedsAttention_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetMetricFilterCommand.Execute(MetricFilter.NeedsAttention);
+        }
+    }
+
+    private void MetricFilter_OffTrack_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CircleViewModel vm)
+        {
+            vm.SetMetricFilterCommand.Execute(MetricFilter.OffTrack);
+        }
+    }
+
+    private void MetricCard_Tapped(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is MetricDetail metric)
+        {
+            if (DataContext is CircleViewModel vm)
+            {
+                vm.SelectMetricCommand.Execute(metric);
             }
         }
     }
