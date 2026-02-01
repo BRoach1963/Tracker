@@ -165,9 +165,32 @@ public partial class ProjectsView : UserControl
             .Select(m => new LinkableItem
             {
                 Id = m.Id,
-                Title = m.DisplayName ?? m.Email ?? "Unknown",
-                Subtitle = m.JobTitle
+                Title = m.FullName ?? m.Email ?? "Unknown",
+                Subtitle = m.JobTitle,
+                AvatarUrl = m.UserAvatarUrl,
+                Initials = GetInitials(m.FirstName, m.LastName, m.Email)
             });
+    }
+    
+    /// <summary>
+    /// Gets initials from name or email for avatar fallback.
+    /// </summary>
+    private static string GetInitials(string? firstName, string? lastName, string? email)
+    {
+        if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
+        {
+            return $"{firstName[0]}{lastName[0]}".ToUpper();
+        }
+        if (!string.IsNullOrEmpty(firstName))
+        {
+            return firstName.Length >= 2 ? firstName[..2].ToUpper() : firstName.ToUpper();
+        }
+        if (!string.IsNullOrEmpty(email))
+        {
+            var namePart = email.Split('@')[0];
+            return namePart.Length >= 2 ? namePart[..2].ToUpper() : namePart.ToUpper();
+        }
+        return "??";
     }
 
     /// <summary>

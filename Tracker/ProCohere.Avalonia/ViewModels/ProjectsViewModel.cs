@@ -12,6 +12,17 @@ using ProCohere.Avalonia.Services;
 namespace ProCohere.Avalonia.ViewModels;
 
 /// <summary>
+/// Tab options for the project detail flyout.
+/// </summary>
+public enum ProjectDetailTab
+{
+    Overview,
+    Goals,
+    Tasks,
+    Meetings
+}
+
+/// <summary>
 /// ViewModel for the Projects view.
 /// Manages project listing, filtering, and CRUD operations.
 /// </summary>
@@ -145,6 +156,102 @@ public partial class ProjectsViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isNewProject;
+
+    /// <summary>
+    /// Current tab selection in the detail flyout.
+    /// </summary>
+    [ObservableProperty]
+    private ProjectDetailTab _projectDetailTab = ProjectDetailTab.Overview;
+
+    /// <summary>
+    /// Sets the detail flyout tab.
+    /// </summary>
+    [RelayCommand]
+    private void SetProjectDetailTab(ProjectDetailTab tab)
+    {
+        ProjectDetailTab = tab;
+    }
+
+    #endregion
+
+    #region Linked Items by Type
+    
+    /// <summary>
+    /// Goals linked to the selected project.
+    /// </summary>
+    public ObservableCollection<ProjectLink> LinkedGoals { get; } = new();
+    
+    /// <summary>
+    /// Tasks linked to the selected project.
+    /// </summary>
+    public ObservableCollection<ProjectLink> LinkedTasks { get; } = new();
+    
+    /// <summary>
+    /// Meetings linked to the selected project.
+    /// </summary>
+    public ObservableCollection<ProjectLink> LinkedMeetings { get; } = new();
+    
+    /// <summary>
+    /// Metrics linked to the selected project.
+    /// </summary>
+    public ObservableCollection<ProjectLink> LinkedMetrics { get; } = new();
+    
+    /// <summary>
+    /// Whether the selected project has any linked goals.
+    /// </summary>
+    public bool HasLinkedGoals => LinkedGoals.Count > 0;
+    
+    /// <summary>
+    /// Whether the selected project has any linked tasks.
+    /// </summary>
+    public bool HasLinkedTasks => LinkedTasks.Count > 0;
+    
+    /// <summary>
+    /// Whether the selected project has any linked meetings.
+    /// </summary>
+    public bool HasLinkedMeetings => LinkedMeetings.Count > 0;
+    
+    /// <summary>
+    /// Whether the selected project has any linked metrics.
+    /// </summary>
+    public bool HasLinkedMetrics => LinkedMetrics.Count > 0;
+    
+    /// <summary>
+    /// Populates the linked item collections from the selected project's Links.
+    /// </summary>
+    private void PopulateLinkedItemCollections()
+    {
+        LinkedGoals.Clear();
+        LinkedTasks.Clear();
+        LinkedMeetings.Clear();
+        LinkedMetrics.Clear();
+        
+        if (SelectedProject?.Links == null) return;
+        
+        foreach (var link in SelectedProject.Links.Where(l => !l.IsDeleted))
+        {
+            switch (link.EntityType)
+            {
+                case ProjectLinkEntityType.Goal:
+                    LinkedGoals.Add(link);
+                    break;
+                case ProjectLinkEntityType.Task:
+                    LinkedTasks.Add(link);
+                    break;
+                case ProjectLinkEntityType.Meeting:
+                    LinkedMeetings.Add(link);
+                    break;
+                case ProjectLinkEntityType.Metric:
+                    LinkedMetrics.Add(link);
+                    break;
+            }
+        }
+        
+        OnPropertyChanged(nameof(HasLinkedGoals));
+        OnPropertyChanged(nameof(HasLinkedTasks));
+        OnPropertyChanged(nameof(HasLinkedMeetings));
+        OnPropertyChanged(nameof(HasLinkedMetrics));
+    }
 
     #endregion
 
@@ -425,7 +532,15 @@ public partial class ProjectsViewModel : ViewModelBase
             SelectedProject = null;
             IsDetailFlyoutOpen = false;
             LinkedNotes.Clear();
+            LinkedGoals.Clear();
+            LinkedTasks.Clear();
+            LinkedMeetings.Clear();
+            LinkedMetrics.Clear();
             OnPropertyChanged(nameof(HasLinkedNotes));
+            OnPropertyChanged(nameof(HasLinkedGoals));
+            OnPropertyChanged(nameof(HasLinkedTasks));
+            OnPropertyChanged(nameof(HasLinkedMeetings));
+            OnPropertyChanged(nameof(HasLinkedMetrics));
             return;
         }
 
@@ -435,6 +550,12 @@ public partial class ProjectsViewModel : ViewModelBase
         {
             SelectedProject = fullProject;
             IsDetailFlyoutOpen = true;
+            
+            // Reset tab to Overview when selecting new project
+            ProjectDetailTab = ProjectDetailTab.Overview;
+            
+            // Populate linked item collections by type
+            PopulateLinkedItemCollections();
             
             // Load linked Chronicle notes
             await LoadLinkedNotesAsync(fullProject.Id);

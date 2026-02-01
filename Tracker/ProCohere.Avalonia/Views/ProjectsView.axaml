@@ -63,10 +63,16 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Margin" Value="0,0,0,12"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Border.project-card:pointerover">
-            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
         </Style>
         <!-- Completed project cards are subdued -->
         <Style Selector="Border.project-card.completed">
@@ -110,6 +116,63 @@
         <Style Selector="Border.detail-panel.open">
             <Setter Property="RenderTransform" Value="translate(0, 0)"/>
             <Setter Property="Opacity" Value="1"/>
+        </Style>
+        
+        <!-- Flyout Tab Button - Matches navigation rail style -->
+        <Style Selector="Button.flyout-tab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Padding" Value="8,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="52"/>
+        </Style>
+        <Style Selector="Button.flyout-tab PathIcon">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <Style Selector="Button.flyout-tab TextBlock">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover PathIcon">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.flyout-tab:pointerover TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource BrushHighlight}"/>
+        </Style>
+        <Style Selector="Button.flyout-tab.selected TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <!-- Detail Section Header -->
+        <Style Selector="TextBlock.detail-section-header">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextTertiary}"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        
+        <!-- Link item card style -->
+        <Style Selector="Border.link-item">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.link-item:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSecondaryHover}"/>
         </Style>
     </UserControl.Styles>
 
@@ -369,303 +432,407 @@
                     Classes.open="{Binding IsDetailFlyoutOpen}"
                     Width="400"
                     IsVisible="{Binding HasSelectedProject}">
-                <Grid RowDefinitions="Auto,*,Auto">
-                    <!-- Header -->
-                    <Border Grid.Row="0" 
-                            Background="{DynamicResource BrushSurfaceAlt}"
-                            CornerRadius="12,12,0,0"
-                            Padding="20,16">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding SelectedProject.Name}"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextPrimary}"
-                                       TextTrimming="CharacterEllipsis"/>
-                            <Button Grid.Column="1"
-                                    Classes="ghost"
-                                    Command="{Binding CloseDetailCommand}"
-                                    ToolTip.Tip="Close">
-                                <TextBlock Text="&#xE8BB;"
-                                           FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                           FontSize="14"/>
+                <Grid ColumnDefinitions="Auto,*">
+                    
+                    <!-- Vertical Tab Bar - Navy blue like navigation -->
+                    <Border Grid.Column="0" Background="{DynamicResource BrushSecondary}" CornerRadius="12,0,0,12">
+                        <StackPanel Spacing="2" Margin="0,8">
+                            <Button Classes="flyout-tab" ToolTip.Tip="Overview"
+                                    Classes.selected="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Overview}}"
+                                    Command="{Binding SetProjectDetailTabCommand}" CommandParameter="{x:Static vm:ProjectDetailTab.Overview}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Info" HorizontalAlignment="Center"/>
+                                </StackPanel>
                             </Button>
-                        </Grid>
+                            <Button Classes="flyout-tab" ToolTip.Tip="Goals"
+                                    Classes.selected="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Goals}}"
+                                    Command="{Binding SetProjectDetailTabCommand}" CommandParameter="{x:Static vm:ProjectDetailTab.Goals}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V5H19V19H5V5H7V7M7.5,13.5L9,12L11,14L15.5,9.5L17,11L11,17L7.5,13.5Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Goals" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="flyout-tab" ToolTip.Tip="Tasks"
+                                    Classes.selected="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Tasks}}"
+                                    Command="{Binding SetProjectDetailTabCommand}" CommandParameter="{x:Static vm:ProjectDetailTab.Tasks}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Tasks" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="flyout-tab" ToolTip.Tip="Meetings"
+                                    Classes.selected="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Meetings}}"
+                                    Command="{Binding SetProjectDetailTabCommand}" CommandParameter="{x:Static vm:ProjectDetailTab.Meetings}">
+                                <StackPanel Spacing="4">
+                                    <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z"
+                                              Width="16" Height="16"/>
+                                    <TextBlock Text="Meets" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </Border>
                     
-                    <!-- Content -->
-                    <ScrollViewer Grid.Row="1" Padding="20,16">
-                        <StackPanel Spacing="20">
-                            <!-- Status (owner can change) -->
-                            <StackPanel Spacing="8" IsVisible="{Binding IsCurrentUserOwner}">
-                                <TextBlock Text="Status"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Classes="secondary"
-                                            Classes.primary="{Binding SelectedProject.IsActive}"
-                                            Command="{Binding SetProjectStatusCommand}"
-                                            CommandParameter="active"
-                                            Content="Active"/>
-                                    <Button Classes="secondary"
-                                            Classes.primary="{Binding SelectedProject.IsPaused}"
-                                            Command="{Binding SetProjectStatusCommand}"
-                                            CommandParameter="paused"
-                                            Content="Paused"/>
-                                    <Button Classes="secondary"
-                                            Classes.primary="{Binding SelectedProject.IsCompleted}"
-                                            Command="{Binding SetProjectStatusCommand}"
-                                            CommandParameter="completed"
-                                            Content="Completed"/>
-                                </StackPanel>
-                            </StackPanel>
-                            
-                            <!-- Status (read-only for non-owners) -->
-                            <StackPanel Spacing="8" IsVisible="{Binding !IsCurrentUserOwner}">
-                                <TextBlock Text="Status"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <!-- Content Area -->
+                    <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
+                        <!-- Header with close button -->
+                        <Grid Grid.Row="0" Margin="12,12,12,0">
+                            <TextBlock Text="{Binding SelectedProject.Name}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="0,0,32,0"/>
+                            <Button Classes="icon-button" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    ToolTip.Tip="Close"
+                                    Command="{Binding CloseDetailCommand}">
+                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                          Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            </Button>
+                        </Grid>
+                        
+                        <!-- ===== OVERVIEW TAB ===== -->
+                        <ScrollViewer Grid.Row="1" 
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="12,8,12,12"
+                                      IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Overview}}">
+                            <StackPanel Spacing="16">
+                                <!-- Status Badge -->
                                 <Border Classes="status-badge"
                                         Classes.active="{Binding SelectedProject.IsActive}"
                                         Classes.paused="{Binding SelectedProject.IsPaused}"
                                         Classes.completed="{Binding SelectedProject.IsCompleted}"
                                         HorizontalAlignment="Left">
                                     <TextBlock Text="{Binding SelectedProject.StatusDisplay}"
-                                               FontSize="13"
+                                               FontSize="12"
                                                FontWeight="Medium"
                                                Foreground="{DynamicResource BrushTextPrimary}"/>
                                 </Border>
-                            </StackPanel>
-                            
-                            <!-- Owner Section -->
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Owner"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
                                 
-                                <!-- Normal owner display (not orphaned) -->
-                                <Grid ColumnDefinitions="*,Auto"
-                                      IsVisible="{Binding !SelectedProject.IsOrphaned}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <!-- Owner avatar with initials -->
-                                        <Border Width="28" Height="28"
-                                                CornerRadius="14"
-                                                Background="{DynamicResource BrushPrimary}">
-                                            <TextBlock Text="{Binding SelectedProject.OwnerInitials}"
-                                                       FontSize="11"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="White"
-                                                       HorizontalAlignment="Center"
+                                <!-- Status Change (owner only) -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsCurrentUserOwner}">
+                                    <TextBlock Text="Change Status" Classes="detail-section-header"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Button Classes="secondary" Padding="8,4"
+                                                Classes.primary="{Binding SelectedProject.IsActive}"
+                                                Command="{Binding SetProjectStatusCommand}"
+                                                CommandParameter="active">
+                                            <TextBlock Text="Active" FontSize="11"/>
+                                        </Button>
+                                        <Button Classes="secondary" Padding="8,4"
+                                                Classes.primary="{Binding SelectedProject.IsPaused}"
+                                                Command="{Binding SetProjectStatusCommand}"
+                                                CommandParameter="paused">
+                                            <TextBlock Text="Paused" FontSize="11"/>
+                                        </Button>
+                                        <Button Classes="secondary" Padding="8,4"
+                                                Classes.primary="{Binding SelectedProject.IsCompleted}"
+                                                Command="{Binding SetProjectStatusCommand}"
+                                                CommandParameter="completed">
+                                            <TextBlock Text="Completed" FontSize="11"/>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                
+                                <!-- Description -->
+                                <StackPanel Spacing="4"
+                                            IsVisible="{Binding SelectedProject.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="Description" Classes="detail-section-header"/>
+                                    <TextBlock Text="{Binding SelectedProject.Description}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                
+                                <!-- Due Date -->
+                                <StackPanel Spacing="4"
+                                            IsVisible="{Binding SelectedProject.DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <TextBlock Text="Due Date" Classes="detail-section-header"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <PathIcon Data="M19,4H18V2H16V4H8V2H6V4H5C3.89,4 3,4.9 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6A2,2 0 0,0 19,4M19,20H5V10H19V20M19,8H5V6H19V8Z"
+                                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{Binding SelectedProject.DueDate, StringFormat='{}{0:MMMM d, yyyy}'}"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                
+                                <!-- Owner -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Owner" Classes="detail-section-header"/>
+                                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !SelectedProject.IsOrphaned}">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                            <Border Width="24" Height="24" CornerRadius="12"
+                                                    Background="{DynamicResource BrushPrimary}">
+                                                <TextBlock Text="{Binding SelectedProject.OwnerInitials}"
+                                                           FontSize="10" FontWeight="SemiBold"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding SelectedProject.OwnerDisplayName}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
                                                        VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Text="{Binding SelectedProject.OwnerDisplayName}"
-                                                   FontSize="14"
-                                                   Foreground="{DynamicResource BrushTextPrimary}"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <!-- Transfer button (visible only to current owner) -->
-                                    <Button Grid.Column="1" 
-                                            Classes="secondary"
-                                            Padding="8,4"
-                                            Command="{Binding ShowOwnerSelectorCommand}"
-                                            IsVisible="{Binding IsCurrentUserOwner}"
-                                            ToolTip.Tip="Transfer ownership">
-                                        <TextBlock Text="Transfer" FontSize="12"/>
-                                    </Button>
-                                </Grid>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Classes="secondary" Padding="6,3"
+                                                Command="{Binding ShowOwnerSelectorCommand}"
+                                                IsVisible="{Binding IsCurrentUserOwner}"
+                                                ToolTip.Tip="Transfer ownership">
+                                            <TextBlock Text="Transfer" FontSize="11"/>
+                                        </Button>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding SelectedProject.IsOrphaned}">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                            <PathIcon Data="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"
+                                                      Width="16" Height="16" Foreground="{DynamicResource BrushWarning}"/>
+                                            <TextBlock Text="Unassigned"
+                                                       FontSize="13" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushWarning}"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Classes="secondary" Padding="6,3"
+                                                Command="{Binding ShowOwnerSelectorCommand}"
+                                                IsVisible="{Binding IsAdmin}"
+                                                ToolTip.Tip="Assign owner">
+                                            <TextBlock Text="Assign" FontSize="11"/>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
                                 
-                                <!-- Orphaned project display -->
-                                <Grid ColumnDefinitions="*,Auto"
-                                      IsVisible="{Binding SelectedProject.IsOrphaned}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <!-- Warning icon -->
-                                        <PathIcon Data="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"
-                                                  Width="18" Height="18"
-                                                  Foreground="{DynamicResource BrushWarning}"/>
-                                        <TextBlock Text="Unassigned"
-                                                   FontSize="14"
-                                                   Foreground="{DynamicResource BrushWarning}"
-                                                   FontWeight="Medium"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <!-- Assign owner button (visible only to admins) -->
-                                    <Button Grid.Column="1" 
-                                            Classes="secondary"
-                                            Padding="8,4"
-                                            Command="{Binding ShowOwnerSelectorCommand}"
-                                            IsVisible="{Binding IsAdmin}"
-                                            ToolTip.Tip="Assign owner">
-                                        <TextBlock Text="Assign Owner" FontSize="12"/>
-                                    </Button>
-                                </Grid>
-                            </StackPanel>
-                            
-                            <!-- Description -->
-                            <StackPanel Spacing="8" 
-                                        IsVisible="{Binding SelectedProject.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                <TextBlock Text="Description"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <TextBlock Text="{Binding SelectedProject.Description}"
-                                           FontSize="14"
-                                           Foreground="{DynamicResource BrushTextPrimary}"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
-                            
-                            <!-- Due Date -->
-                            <StackPanel Spacing="8"
-                                        IsVisible="{Binding SelectedProject.DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                <TextBlock Text="Due Date"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <TextBlock Text="{Binding SelectedProject.DueDate, StringFormat='{}{0:MMMM d, yyyy}'}"
-                                           FontSize="14"
-                                           Foreground="{DynamicResource BrushTextPrimary}"/>
-                            </StackPanel>
-                            
-                            <!-- Members -->
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Members"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <ItemsControl ItemsSource="{Binding SelectedProject.Members}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type models:ProjectMember}">
-                                            <Border Background="{DynamicResource BrushSurfaceAlt}"
-                                                    CornerRadius="8"
-                                                    Padding="12,8"
-                                                    Margin="0,0,0,8">
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <TextBlock Grid.Column="0"
-                                                               Text="{Binding TeamMember.DisplayName, FallbackValue='Team Member'}"
-                                                               FontSize="13"
-                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding RoleDisplay}"
-                                                               FontSize="11"
-                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="No members added yet"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource BrushTextTertiary}"
-                                           IsVisible="{Binding !SelectedProject.Members.Count}"/>
-                            </StackPanel>
-                            
-                            <!-- Links -->
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Linked Items"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <ItemsControl ItemsSource="{Binding SelectedProject.Links}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type models:ProjectLink}">
-                                            <Border Background="{DynamicResource BrushSurfaceAlt}"
-                                                    CornerRadius="8"
-                                                    Padding="12,8"
-                                                    Margin="0,0,0,8">
-                                                <Grid ColumnDefinitions="Auto,*">
-                                                    <TextBlock Grid.Column="0"
-                                                               Text="{Binding EntityTypeIcon}"
-                                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                                               FontSize="14"
-                                                               Foreground="{DynamicResource BrushTextTertiary}"
-                                                               Margin="0,0,12,0"
-                                                               VerticalAlignment="Center"/>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding EntityTitleSnapshot, FallbackValue='Linked Item'}"
-                                                                   FontSize="13"
-                                                                   Foreground="{DynamicResource BrushTextPrimary}"
-                                                                   TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding EntityTypeDisplay}"
-                                                                   FontSize="11"
-                                                                   Foreground="{DynamicResource BrushTextTertiary}"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="No linked items yet"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource BrushTextTertiary}"
-                                           IsVisible="{Binding !SelectedProject.Links.Count}"/>
-                            </StackPanel>
-                            
-                            <!-- Chronicle Notes -->
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Chronicle Notes"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <ItemsControl ItemsSource="{Binding LinkedNotes}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="models:Note">
-                                            <Button Classes="ghost"
-                                                    Command="{Binding $parent[UserControl].((vm:ProjectsViewModel)DataContext).OpenNoteCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    HorizontalAlignment="Stretch"
-                                                    HorizontalContentAlignment="Stretch"
-                                                    Padding="0"
-                                                    Margin="0,0,0,4">
-                                                <Border Background="{DynamicResource BrushSurfaceAlt}"
-                                                        CornerRadius="8"
-                                                        Padding="12,8">
-                                                    <Grid ColumnDefinitions="Auto,*">
-                                                        <PathIcon Grid.Column="0"
-                                                                  Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M14,18H6V16H14V18M16,14H6V12H16V14M13,9V3.5L18.5,9H13Z"
-                                                                  Width="14" Height="14"
-                                                                  Foreground="{DynamicResource BrushTextTertiary}"
-                                                                  Margin="0,0,12,0"
-                                                                  VerticalAlignment="Center"/>
+                                <!-- Members -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Members" Classes="detail-section-header"/>
+                                    <ItemsControl ItemsSource="{Binding SelectedProject.Members}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type models:ProjectMember}">
+                                                <Border Classes="link-item">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                                        <Border Grid.Column="0" Width="24" Height="24" CornerRadius="12"
+                                                                Background="{DynamicResource BrushTextTertiary}" Margin="0,0,8,0">
+                                                            <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                                                      Width="12" Height="12" Foreground="White"/>
+                                                        </Border>
                                                         <TextBlock Grid.Column="1"
-                                                                   Text="{Binding DisplayTitle}"
+                                                                   Text="{Binding TeamMember.DisplayName, FallbackValue='Team Member'}"
                                                                    FontSize="13"
                                                                    Foreground="{DynamicResource BrushTextPrimary}"
-                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2"
+                                                                   Text="{Binding RoleDisplay}"
+                                                                   FontSize="11"
+                                                                   Foreground="{DynamicResource BrushTextTertiary}"
                                                                    VerticalAlignment="Center"/>
                                                     </Grid>
                                                 </Border>
-                                            </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No members added yet"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               IsVisible="{Binding !SelectedProject.Members.Count}"/>
+                                </StackPanel>
+                                
+                                <!-- Chronicle Notes -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Chronicle Notes" Classes="detail-section-header"/>
+                                    <ItemsControl ItemsSource="{Binding LinkedNotes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="models:Note">
+                                                <Button Classes="ghost"
+                                                        Command="{Binding $parent[UserControl].((vm:ProjectsViewModel)DataContext).OpenNoteCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Padding="0" Margin="0,0,0,4">
+                                                    <Border Classes="link-item" Margin="0">
+                                                        <Grid ColumnDefinitions="Auto,*">
+                                                            <PathIcon Grid.Column="0"
+                                                                      Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M14,18H6V16H14V18M16,14H6V12H16V14M13,9V3.5L18.5,9H13Z"
+                                                                      Width="14" Height="14"
+                                                                      Foreground="{DynamicResource BrushTextTertiary}"
+                                                                      Margin="0,0,10,0"/>
+                                                            <TextBlock Grid.Column="1"
+                                                                       Text="{Binding DisplayTitle}"
+                                                                       FontSize="13"
+                                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No Chronicle notes linked"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               IsVisible="{Binding !HasLinkedNotes}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- ===== GOALS TAB ===== -->
+                        <ScrollViewer Grid.Row="1" 
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="12,8,12,12"
+                                      IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Goals}}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Linked Goals" Classes="detail-section-header" Margin="0,8,0,8"/>
+                                <ItemsControl ItemsSource="{Binding LinkedGoals}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:ProjectLink}">
+                                            <Border Classes="link-item">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <PathIcon Grid.Column="0"
+                                                              Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V5H19V19H5V5H7V7M7.5,13.5L9,12L11,14L15.5,9.5L17,11L11,17L7.5,13.5Z"
+                                                              Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushHighlight}"
+                                                              Margin="0,0,10,0"/>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding EntityTitleSnapshot, FallbackValue='Goal'}"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Text="No Chronicle notes linked"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource BrushTextTertiary}"
-                                           IsVisible="{Binding !HasLinkedNotes}"/>
+                                <StackPanel IsVisible="{Binding !HasLinkedGoals}" 
+                                            HorizontalAlignment="Center" 
+                                            Margin="0,32,0,0" Spacing="8">
+                                    <PathIcon Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3"
+                                              Width="32" Height="32" Foreground="{DynamicResource BrushTextTertiary}"
+                                              HorizontalAlignment="Center" Opacity="0.5"/>
+                                    <TextBlock Text="No goals linked"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Link goals from the Circle page"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
-                    
-                    <!-- Footer actions -->
-                    <Border Grid.Row="2" 
-                            Background="{DynamicResource BrushSurfaceAlt}"
-                            CornerRadius="0,0,12,12"
-                            Padding="20,12">
-                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
-                            <Button Classes="ghost danger"
-                                    Command="{Binding DeleteProjectCommand}"
-                                    ToolTip.Tip="Delete project">
-                                <TextBlock Text="&#xE74D;"
-                                           FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                           FontSize="14"/>
-                            </Button>
-                            <Button Classes="secondary"
-                                    Command="{Binding EditProjectCommand}"
-                                    Content="Edit"/>
-                        </StackPanel>
-                    </Border>
+                        </ScrollViewer>
+                        
+                        <!-- ===== TASKS TAB ===== -->
+                        <ScrollViewer Grid.Row="1" 
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="12,8,12,12"
+                                      IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Tasks}}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Linked Tasks" Classes="detail-section-header" Margin="0,8,0,8"/>
+                                <ItemsControl ItemsSource="{Binding LinkedTasks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:ProjectLink}">
+                                            <Border Classes="link-item">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <PathIcon Grid.Column="0"
+                                                              Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
+                                                              Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushInfo}"
+                                                              Margin="0,0,10,0"/>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding EntityTitleSnapshot, FallbackValue='Task'}"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel IsVisible="{Binding !HasLinkedTasks}" 
+                                            HorizontalAlignment="Center" 
+                                            Margin="0,32,0,0" Spacing="8">
+                                    <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
+                                              Width="32" Height="32" Foreground="{DynamicResource BrushTextTertiary}"
+                                              HorizontalAlignment="Center" Opacity="0.5"/>
+                                    <TextBlock Text="No tasks linked"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Link tasks from Pulse or when creating tasks"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- ===== MEETINGS TAB ===== -->
+                        <ScrollViewer Grid.Row="1" 
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="12,8,12,12"
+                                      IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Meetings}}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Linked Meetings" Classes="detail-section-header" Margin="0,8,0,8"/>
+                                <ItemsControl ItemsSource="{Binding LinkedMeetings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:ProjectLink}">
+                                            <Border Classes="link-item">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <PathIcon Grid.Column="0"
+                                                              Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z"
+                                                              Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushPrimary}"
+                                                              Margin="0,0,10,0"/>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding EntityTitleSnapshot, FallbackValue='Meeting'}"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel IsVisible="{Binding !HasLinkedMeetings}" 
+                                            HorizontalAlignment="Center" 
+                                            Margin="0,32,0,0" Spacing="8">
+                                    <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38"
+                                              Width="32" Height="32" Foreground="{DynamicResource BrushTextTertiary}"
+                                              HorizontalAlignment="Center" Opacity="0.5"/>
+                                    <TextBlock Text="No meetings linked"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Link meetings from the Circle page"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                        
+                        <!-- Footer actions -->
+                        <Border Grid.Row="2" 
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="0,1,0,0"
+                                Padding="12,10">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Button Classes="ghost danger" Padding="8,6"
+                                        Command="{Binding DeleteProjectCommand}"
+                                        ToolTip.Tip="Delete project">
+                                    <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                              Width="14" Height="14"/>
+                                </Button>
+                                <Button Classes="secondary" Padding="12,6"
+                                        Command="{Binding EditProjectCommand}">
+                                    <TextBlock Text="Edit" FontSize="12"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
