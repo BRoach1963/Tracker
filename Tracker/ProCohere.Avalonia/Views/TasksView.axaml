@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:pulse="using:ProCohere.Avalonia.Views.Pulse"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="ProCohere.Avalonia.Views.TasksView"
+             x:DataType="vm:TasksViewModel">
+    
+    <!-- 
+    ============================================================================
+    TASKS VIEW - Standalone Browse/Manage Page
+    ============================================================================
+    
+    This is the authoritative destination for browsing and managing tasks.
+    Quick Access from Pulse navigates here (not to Me page).
+    
+    Structure:
+    - Page header with title and back navigation
+    - Embeds TasksTabView component for the actual list/filters/flyout
+    ============================================================================
+    -->
+    
+    <Grid RowDefinitions="Auto,*">
+        
+        <!-- Page Header with Back Navigation -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,16">
+            <!-- Back Button -->
+            <Button Grid.Column="0" 
+                    Classes="ghost"
+                    Command="{Binding NavigateBackCommand}"
+                    Padding="8,6"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" 
+                              Width="16" Height="16"/>
+                    <TextBlock Text="Back to Pulse" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Tasks"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                <TextBlock Text="Manage your tasks and follow-ups"
+                           FontSize="13"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Tasks Content (embedded tab view) -->
+        <pulse:TasksTabView Grid.Row="1" x:Name="TasksContent" />
+        
+    </Grid>
+</UserControl>

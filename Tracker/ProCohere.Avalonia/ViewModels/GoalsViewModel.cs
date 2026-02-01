@@ -19,6 +19,18 @@ namespace ProCohere.Avalonia.ViewModels;
 /// </summary>
 public partial class GoalsViewModel : ViewModelBase
 {
+    #region Navigation Events
+
+    /// <summary>
+    /// Event raised when user wants to navigate back to Pulse.
+    /// </summary>
+    public event EventHandler? NavigateBackRequested;
+
+    [RelayCommand]
+    private void NavigateBack() => NavigateBackRequested?.Invoke(this, EventArgs.Empty);
+
+    #endregion
+
     #region Loading State
 
     [ObservableProperty]
@@ -175,9 +187,13 @@ public partial class GoalsViewModel : ViewModelBase
 
     public GoalsViewModel()
     {
-        // Load goals on initialization
-        _ = LoadGoalsAsync();
+        // Don't load in constructor - let the View trigger load when visible
     }
+    
+    /// <summary>
+    /// Public method to trigger data refresh. Called by View when it becomes visible.
+    /// </summary>
+    public Task RefreshAsync() => LoadGoalsAsync();
 
     #region Commands
 

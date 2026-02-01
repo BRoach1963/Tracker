@@ -21,6 +21,18 @@ namespace ProCohere.Avalonia.ViewModels;
 /// </summary>
 public partial class MetricsViewModel : ViewModelBase
 {
+    #region Navigation Events
+
+    /// <summary>
+    /// Event raised when user wants to navigate back to Pulse.
+    /// </summary>
+    public event EventHandler? NavigateBackRequested;
+
+    [RelayCommand]
+    private void NavigateBack() => NavigateBackRequested?.Invoke(this, EventArgs.Empty);
+
+    #endregion
+
     #region Dialog Events
     
     /// <summary>
@@ -273,9 +285,13 @@ public partial class MetricsViewModel : ViewModelBase
 
     public MetricsViewModel()
     {
-        // Load metrics on initialization
-        _ = LoadMetricsAsync();
+        // Don't load in constructor - let the View trigger load when visible
     }
+    
+    /// <summary>
+    /// Public method to trigger data refresh. Called by View when it becomes visible.
+    /// </summary>
+    public Task RefreshAsync() => LoadMetricsAsync();
 
     #region Load Commands
 

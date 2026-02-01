@@ -16,6 +16,18 @@ namespace ProCohere.Avalonia.ViewModels;
 /// </summary>
 public partial class TasksViewModel : ViewModelBase
 {
+    #region Navigation Events
+
+    /// <summary>
+    /// Event raised when user wants to navigate back to Pulse.
+    /// </summary>
+    public event EventHandler? NavigateBackRequested;
+
+    [RelayCommand]
+    private void NavigateBack() => NavigateBackRequested?.Invoke(this, EventArgs.Empty);
+
+    #endregion
+
     #region Loading State
 
     [ObservableProperty]
@@ -154,6 +166,11 @@ public partial class TasksViewModel : ViewModelBase
         }
         else
         {
+            // Wire up IDetailEntity commands before setting the task
+            task.CloseCommand = CloseTaskDetailCommand;
+            task.EditCommand = new RelayCommand(() => EditTask(task));
+            task.DeleteCommand = new AsyncRelayCommand(() => DeleteTaskAsync(task));
+            
             SelectedTask = task;
             TaskDetailTab = TaskDetailTab.Overview;
             IsTaskDetailOpen = true;
@@ -458,12 +475,7 @@ public partial class TasksViewModel : ViewModelBase
         // Subscribe to profile changes
         AuthService.Instance.ProfileChanged += OnProfileChanged;
         
-        // Only load data if profile is already available
-        if (AuthService.Instance.CurrentProfile != null)
-        {
-            Log("[TasksViewModel] Profile available, loading tasks");
-            _ = LoadTasksAsync();
-        }
+        // Don't load in constructor - let the View trigger load when visible
     }
 
     private void OnProfileChanged(object? sender, UserProfile? profile)
@@ -592,10 +604,10 @@ public partial class TasksViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Refreshes task list.
+    /// Refreshes task list. Public for View to call when becoming visible.
     /// </summary>
     [RelayCommand]
-    private async Task RefreshAsync()
+    public async Task RefreshAsync()
     {
         await LoadTasksAsync();
     }

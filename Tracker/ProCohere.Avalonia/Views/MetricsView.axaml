@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:pulse="using:ProCohere.Avalonia.Views.Pulse"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="ProCohere.Avalonia.Views.MetricsView"
+             x:DataType="vm:MetricsViewModel">
+    
+    <!-- 
+    ============================================================================
+    METRICS VIEW - Standalone Browse/Manage Page
+    ============================================================================
+    
+    This is the authoritative destination for browsing and managing metrics.
+    Quick Access from Pulse navigates here (not to Circle tabs).
+    
+    Structure:
+    - Page header with title and back navigation
+    - Embeds MetricsTabView component for the actual list/filters/flyout
+    ============================================================================
+    -->
+    
+    <Grid RowDefinitions="Auto,*">
+        
+        <!-- Page Header with Back Navigation -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,16">
+            <!-- Back Button -->
+            <Button Grid.Column="0" 
+                    Classes="ghost"
+                    Command="{Binding NavigateBackCommand}"
+                    Padding="8,6"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" 
+                              Width="16" Height="16"/>
+                    <TextBlock Text="Back to Pulse" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Metrics"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                <TextBlock Text="Track and observe your key metrics"
+                           FontSize="13"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Metrics Content (embedded tab view) -->
+        <pulse:MetricsTabView Grid.Row="1" x:Name="MetricsContent" />
+        
+    </Grid>
+</UserControl>
