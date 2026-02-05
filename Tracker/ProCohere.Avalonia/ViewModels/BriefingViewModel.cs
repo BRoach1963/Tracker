@@ -697,6 +697,15 @@ public partial class BriefingViewModel : ViewModelBase
             var teamMember = AuthService.Instance.CurrentTeamMember;
             var profile = AuthService.Instance.CurrentProfile;
             
+            // DIAGNOSTIC: Log the auth user ID and team member linkage
+            var authUser = AuthService.Instance.GetProCohereClient()?.Auth.CurrentUser;
+            var authUid = authUser?.Id ?? "(null)";
+            var linkedId = teamMember?.LinkedUserId?.ToString() ?? "(null)";
+            Log($"[BriefingViewModel] DIAG: auth.uid = {authUid}");
+            Log($"[BriefingViewModel] DIAG: teamMember.Id = {teamMember?.Id}");
+            Log($"[BriefingViewModel] DIAG: teamMember.LinkedUserId = {linkedId}");
+            Log($"[BriefingViewModel] DIAG: Match? {authUid == linkedId}");
+            
             if (teamMember == null || profile?.OrganizationId == null)
             {
                 Log("[BriefingViewModel] No current team member or org, skipping insights");

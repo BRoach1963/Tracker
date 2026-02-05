@@ -211,7 +211,10 @@ public class EqualToZeroConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        // Return 0 if true, 1 if false (for TwoWay bindings)
+        if (value is bool boolVal)
+            return boolVal ? 0 : 1;
+        return global::Avalonia.Data.BindingOperations.DoNothing;
     }
 }
 
@@ -516,6 +519,29 @@ public class BoolToOverdueColorConverter : IValueConverter
             return new SolidColorBrush(Color.Parse("#EF4444")); // Red
         }
         return new SolidColorBrush(Color.Parse("#6B7280")); // Gray (text tertiary)
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean (hasError) to color - red if error, gray if not.
+/// Used for status messages in chat and similar UIs.
+/// </summary>
+public class BoolToErrorColorConverter : IValueConverter
+{
+    public static readonly BoolToErrorColorConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool hasError && hasError)
+        {
+            return new SolidColorBrush(Color.Parse("#EF4444")); // Red - error
+        }
+        return new SolidColorBrush(Color.Parse("#6B7280")); // Gray - normal status
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
-using ProCohere.Avalonia.Commands;
+using CommunityToolkit.Mvvm.Input;
 
 namespace ProCohere.Avalonia.ViewModels.Dialogs;
 
@@ -55,9 +55,9 @@ public class AboutDialogViewModel : ViewModelBase
             : "Version 1.0.0";
 
         // Initialize commands
-        OpenWebsiteCommand = new TrackerCommand(_ => OpenUrl("https://pricklycactussoftware.com/"));
-        OpenSupportCommand = new TrackerCommand(_ => OpenUrl("https://pricklycactussoftware.com/contact/"));
-        CloseCommand = new TrackerCommand(_ => CloseRequested?.Invoke());
+        OpenWebsiteCommand = new RelayCommand(() => OpenUrl("https://pricklycactussoftware.com/"));
+        OpenSupportCommand = new RelayCommand(() => OpenUrl("https://pricklycactussoftware.com/contact/"));
+        CloseCommand = new RelayCommand(() => CloseRequested?.Invoke());
     }
 
     #endregion

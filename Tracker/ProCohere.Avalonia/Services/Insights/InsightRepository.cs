@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -15,6 +17,26 @@ namespace ProCohere.Avalonia.Services.Insights;
 public class InsightRepository : IInsightRepository
 {
     private Supabase.Client Client => AuthService.Instance.GetProCohereClient()!;
+
+    #region Logging
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ProCohere", "insight_engine.log");
+
+    private static void Log(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
+        Debug.WriteLine(line);
+        try
+        {
+            var dir = Path.GetDirectoryName(_logPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            File.AppendAllText(_logPath, line + Environment.NewLine);
+        }
+        catch { }
+    }
+    #endregion
 
     public async Task<List<Insight>> GetActiveInsightsAsync(Guid teamMemberId)
     {
@@ -61,6 +83,9 @@ public class InsightRepository : IInsightRepository
             dto.Id = Guid.NewGuid();
             dto.CreatedAt = DateTime.UtcNow;
             dto.UpdatedAt = DateTime.UtcNow;
+            
+            // Debug logging
+            Log($"[InsightRepository] INSERT: org={dto.OrganizationId}, generatedFor={dto.GeneratedFor}, type={dto.InsightType}");
             
             var response = await Client
                 .From<InsightDto>()

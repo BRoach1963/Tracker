@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -21,6 +22,20 @@ public class ActionItemStalenessAnalyzer : IInsightAnalyzer
     /// </summary>
     private const int StaleThresholdDays = 14;
 
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
+        "ProCohere", "insight_engine.log");
+
+    private static void Log(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_logPath)!);
+            File.AppendAllText(_logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}\n");
+        }
+        catch { /* Ignore logging errors */ }
+    }
+
     public string Name => "Action Item Staleness";
 
     public IReadOnlyList<InsightType> InsightTypes => new[]
@@ -39,12 +54,13 @@ public class ActionItemStalenessAnalyzer : IInsightAnalyzer
 
         try
         {
-            Console.WriteLine($"[ActionItemStalenessAnalyzer] Analyzing for user {userId}");
+            Log($"[ActionItemStalenessAnalyzer] Analyzing for user {userId}, org {organizationId}");
 
             var today = DateTime.UtcNow.Date;
             var staleDate = today.AddDays(-StaleThresholdDays);
 
             // Get all uncompleted tasks for user's organization
+            Log("[ActionItemStalenessAnalyzer] Fetching tasks...");
             var response = await Client
                 .From<TaskDto>()
                 .Where(x => x.OrganizationId == organizationId)
@@ -53,7 +69,7 @@ public class ActionItemStalenessAnalyzer : IInsightAnalyzer
                 .Get();
 
             var tasks = response.Models;
-            Console.WriteLine($"[ActionItemStalenessAnalyzer] Found {tasks.Count} tasks");
+            Log($"[ActionItemStalenessAnalyzer] Found {tasks.Count} tasks");
 
             foreach (var task in tasks)
             {
@@ -63,21 +79,23 @@ public class ActionItemStalenessAnalyzer : IInsightAnalyzer
                     var daysOverdue = (today - task.DueDate.Value.Date).Days;
                     var severity = CalculateOverdueSeverity(daysOverdue);
                     insights.Add(CreateOverdueInsight(task, daysOverdue, severity, userId));
+                    Log($"[ActionItemStalenessAnalyzer] Overdue insight: {task.Title}");
                 }
                 // Check if stale (no due date or future due date, but task is old)
                 else if (task.CreatedAt.Date <= staleDate && !task.DueDate.HasValue)
                 {
                     var daysOld = (today - task.CreatedAt.Date).Days;
                     insights.Add(CreateStaleInsight(task, daysOld, userId));
+                    Log($"[ActionItemStalenessAnalyzer] Stale insight: {task.Title}");
                 }
             }
 
-            Console.WriteLine($"[ActionItemStalenessAnalyzer] Generated {insights.Count} insights");
+            Log($"[ActionItemStalenessAnalyzer] Generated {insights.Count} insights");
             return insights;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ActionItemStalenessAnalyzer] ERROR: {ex.Message}");
+            Log($"[ActionItemStalenessAnalyzer] ERROR: {ex.Message}\n{ex.StackTrace}");
             return insights; // Return what we have, don't throw
         }
     }

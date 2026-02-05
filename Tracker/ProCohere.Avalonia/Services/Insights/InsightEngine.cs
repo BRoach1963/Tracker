@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ProCohere.Avalonia.Models;
@@ -18,11 +19,25 @@ public class InsightEngine
     private readonly List<IInsightAnalyzer> _analyzers;
     private readonly IInsightRepository _repository;
     private bool _isRunning;
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
+        "ProCohere", "insight_engine.log");
+
+    private static void Log(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_logPath)!);
+            File.AppendAllText(_logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}\n");
+        }
+        catch { /* Ignore logging errors */ }
+    }
 
     private InsightEngine()
     {
         _analyzers = new List<IInsightAnalyzer>();
         _repository = new InsightRepository();
+        Log("[InsightEngine] Constructor called");
     }
 
     /// <summary>
@@ -33,12 +48,12 @@ public class InsightEngine
     {
         if (_analyzers.Any(a => a.Name == analyzer.Name))
         {
-            Console.WriteLine($"[InsightEngine] Analyzer {analyzer.Name} already registered");
+            Log($"[InsightEngine] Analyzer {analyzer.Name} already registered");
             return;
         }
 
         _analyzers.Add(analyzer);
-        Console.WriteLine($"[InsightEngine] Registered analyzer: {analyzer.Name}");
+        Log($"[InsightEngine] Registered analyzer: {analyzer.Name}");
     }
 
     /// <summary>
@@ -52,14 +67,14 @@ public class InsightEngine
     {
         if (_isRunning)
         {
-            Console.WriteLine("[InsightEngine] Analysis already running");
+            Log("[InsightEngine] Analysis already running");
             return 0;
         }
 
         try
         {
             _isRunning = true;
-            Console.WriteLine($"[InsightEngine] Starting analysis with {_analyzers.Count} analyzers");
+            Log($"[InsightEngine] Starting analysis for user {userId} org {organizationId} with {_analyzers.Count} analyzers");
 
             var allInsights = new List<Insight>();
             var startTime = DateTime.UtcNow;
@@ -69,24 +84,25 @@ public class InsightEngine
             {
                 try
                 {
-                    Console.WriteLine($"[InsightEngine] Running analyzer: {analyzer.Name}");
+                    Log($"[InsightEngine] Running analyzer: {analyzer.Name}");
                     var insights = await analyzer.AnalyzeAsync(userId, organizationId);
                     
-                    Console.WriteLine($"[InsightEngine] {analyzer.Name} generated {insights.Count} insights");
+                    Log($"[InsightEngine] {analyzer.Name} generated {insights.Count} insights");
                     allInsights.AddRange(insights);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[InsightEngine] ERROR in {analyzer.Name}: {ex.Message}");
+                    Log($"[InsightEngine] ERROR in {analyzer.Name}: {ex.Message}\n{ex.StackTrace}");
                     // Continue with other analyzers
                 }
             }
 
             // Deduplicate and persist
+            Log($"[InsightEngine] Total insights generated: {allInsights.Count}, now persisting...");
             var createdCount = await DeduplicateAndPersistAsync(allInsights, userId);
 
             var duration = DateTime.UtcNow - startTime;
-            Console.WriteLine($"[InsightEngine] Analysis completed in {duration.TotalSeconds:F2}s: {createdCount} new insights");
+            Log($"[InsightEngine] Analysis completed in {duration.TotalSeconds:F2}s: {createdCount} new insights created");
 
             return createdCount;
         }
@@ -117,7 +133,7 @@ public class InsightEngine
     /// </summary>
     public async Task DismissInsightAsync(Guid insightId, Guid userId)
     {
-        Console.WriteLine($"[InsightEngine] Dismissing insight {insightId}");
+        Log($"[InsightEngine] Dismissing insight {insightId}");
         await _repository.DismissInsightAsync(insightId, userId);
     }
 
@@ -126,7 +142,7 @@ public class InsightEngine
     /// </summary>
     public async Task ActOnInsightAsync(Guid insightId)
     {
-        Console.WriteLine($"[InsightEngine] Acting on insight {insightId}");
+        Log($"[InsightEngine] Acting on insight {insightId}");
         await _repository.MarkInsightActionedAsync(insightId);
     }
 
@@ -135,7 +151,7 @@ public class InsightEngine
     /// </summary>
     public async Task SnoozeInsightAsync(Guid insightId, DateTime until)
     {
-        Console.WriteLine($"[InsightEngine] Snoozing insight {insightId}");
+        Log($"[InsightEngine] Snoozing insight {insightId}");
         await _repository.SnoozeInsightAsync(insightId, until);
     }
 
@@ -168,17 +184,18 @@ public class InsightEngine
 
                 if (isDuplicate)
                 {
-                    Console.WriteLine($"[InsightEngine] Skipping duplicate: {insight.Type}");
+                    Log($"[InsightEngine] Skipping duplicate: {insight.Type} for entity {insight.EntityId}");
                     continue;
                 }
 
                 // Create new insight
+                Log($"[InsightEngine] Persisting insight: {insight.Type} - {insight.Title}");
                 await _repository.CreateInsightAsync(insight);
                 createdCount++;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[InsightEngine] ERROR persisting insight: {ex.Message}");
+                Log($"[InsightEngine] ERROR persisting insight: {ex.Message}\n{ex.StackTrace}");
                 // Continue with other insights
             }
         }

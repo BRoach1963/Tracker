@@ -95,6 +95,7 @@
                     Padding="16">
                 <Button Content="Close"
                         HorizontalAlignment="Center"
+                        HorizontalContentAlignment="Center"
                         MinWidth="100"
                         Command="{Binding CloseCommand}"
                         Background="{DynamicResource BrushPrimary}"

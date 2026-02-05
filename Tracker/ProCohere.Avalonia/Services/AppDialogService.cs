@@ -672,6 +672,8 @@ public static class AppDialogService
             : null;
     }
     
+    #endregion
+    
     #region Kudos Dialogs
 
     /// <summary>
@@ -810,6 +812,22 @@ public static class AppDialogService
 
     #endregion
     
+    #region About Dialog
+
+    /// <summary>
+    /// Shows the About dialog.
+    /// </summary>
+    public static async Task ShowAboutDialogAsync(Window parentWindow)
+    {
+        var dialog = new AboutDialog();
+        var vm = new AboutDialogViewModel();
+        
+        vm.CloseRequested += () => dialog.Close();
+        
+        dialog.DataContext = vm;
+        await dialog.ShowDialog(parentWindow);
+    }
+
     #endregion
 }
 
@@ -1087,24 +1105,6 @@ public class KudosDialogResult
     {
         Error = error
     };
-}
-
-#endregion
-
-#region About Dialog
-
-/// <summary>
-/// Shows the About dialog.
-/// </summary>
-public static async Task ShowAboutDialogAsync(Window parentWindow)
-{
-    var dialog = new AboutDialog();
-    var vm = new AboutDialogViewModel();
-    
-    vm.CloseRequested += () => dialog.Close();
-    
-    dialog.DataContext = vm;
-    await dialog.ShowDialog(parentWindow);
 }
 
 #endregion

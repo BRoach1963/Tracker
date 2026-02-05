@@ -70,6 +70,7 @@
             <converters:TopOffsetToMarginConverter x:Key="TopOffsetToMarginConverter"/>
             <converters:BoolToStrikethroughConverter x:Key="BoolToStrikethroughConverter"/>
             <converters:BoolToOverdueColorConverter x:Key="BoolToOverdueColorConverter"/>
+            <converters:BoolToErrorColorConverter x:Key="BoolToErrorColorConverter"/>
             <converters:PriorityToBgColorConverter x:Key="PriorityToBgColorConverter"/>
             <converters:PriorityToFgColorConverter x:Key="PriorityToFgColorConverter"/>
             <converters:GuidIsEmptyToNewOrEditConverter x:Key="GuidIsEmptyToNewOrEditConverter"/>
