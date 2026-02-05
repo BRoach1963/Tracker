@@ -117,6 +117,9 @@ public class DashboardService
         var attendees = await attendeesTask;
         Log($"RESULTS: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks, {data.Goals.Count} goals, {data.Meetings.Count} meetings, {data.Feedback.Count} feedback, {agendaItems.Count} agenda items, {attendees.Count} attendees");
 
+        // Enrich tasks with goal names
+        EnrichTasksWithGoalNames(data.Tasks, data.Goals);
+
         // Enrich meetings with agenda items
         var agendaByMeeting = agendaItems
             .GroupBy(a => a.MeetingId)
@@ -465,6 +468,41 @@ public class DashboardService
         {
             Log($"PROJECT LINKS ERROR: {ex.Message}");
             // Non-fatal - tasks will just not show project labels
+        }
+    }
+
+    /// <summary>
+    /// Enriches tasks with their linked goal names.
+    /// Since goal_id is a direct column on tasks (not a junction table), this is simpler than project links.
+    /// </summary>
+    private void EnrichTasksWithGoalNames(List<TaskDetail> tasks, List<GoalDetail> goals)
+    {
+        if (tasks == null || !tasks.Any() || goals == null || !goals.Any()) return;
+        
+        try
+        {
+            Log($"Enriching {tasks.Count} tasks with goal names from {goals.Count} goals...");
+            
+            // Build goal name lookup
+            var goalDict = goals.ToDictionary(g => g.Id, g => g.Title);
+            
+            // Enrich tasks
+            int enrichedCount = 0;
+            foreach (var task in tasks)
+            {
+                if (task.GoalId.HasValue && goalDict.TryGetValue(task.GoalId.Value, out var goalName))
+                {
+                    task.GoalName = goalName;
+                    enrichedCount++;
+                }
+            }
+            
+            Log($"Enriched {enrichedCount} tasks with goal names");
+        }
+        catch (Exception ex)
+        {
+            Log($"GOAL NAMES ERROR: {ex.Message}");
+            // Non-fatal - tasks will just not show goal labels
         }
     }
 

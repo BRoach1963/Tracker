@@ -2,6 +2,9 @@
 # .gitignore for .NET / Visual Studio projects
 ################################################################################
 
+# ProCohere specific - sensitive configuration
+**/appsettings.json
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

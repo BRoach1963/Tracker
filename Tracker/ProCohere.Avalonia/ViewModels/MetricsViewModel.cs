@@ -190,6 +190,7 @@ public partial class MetricsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(SelectedMetricScopeDisplay))]
     [NotifyPropertyChangedFor(nameof(SelectedMetricLifecycleDisplay))]
     [NotifyPropertyChangedFor(nameof(IsSelectedMetricManual))]
+    [NotifyPropertyChangedFor(nameof(HasTrendAnalysis))]
     private MetricDetail? _selectedMetric;
 
     [ObservableProperty]
@@ -202,10 +203,53 @@ public partial class MetricsViewModel : ViewModelBase
     private MetricDetail? _editingMetric;
 
     /// <summary>
-    /// Detail tab: 0=Details, 1=History
+    /// Detail tab: 0=Details, 1=History, 2=Trend Analysis
     /// </summary>
     [ObservableProperty]
     private int _detailTab = 0;
+
+    /// <summary>
+    /// Detailed trend analysis for selected metric using linear regression.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTrendAnalysis))]
+    [NotifyPropertyChangedFor(nameof(TrendConfidenceDescription))]
+    [NotifyPropertyChangedFor(nameof(TrendProjectionDescription))]
+    private TrendResult? _trendAnalysis;
+
+    [ObservableProperty]
+    private bool _isLoadingTrendAnalysis;
+
+    /// <summary>
+    /// Whether trend analysis data is available.
+    /// </summary>
+    public bool HasTrendAnalysis => TrendAnalysis != null && TrendAnalysis.Direction != MetricTrend.Unknown;
+
+    /// <summary>
+    /// Human-readable confidence description.
+    /// </summary>
+    public string TrendConfidenceDescription => TrendAnalysis != null 
+        ? $"{TrendAnalysis.ConfidenceLevel} confidence (R²={TrendAnalysis.RSquared:F3})" 
+        : "No trend analysis available";
+
+    /// <summary>
+    /// Description of trend projection.
+    /// </summary>
+    public string TrendProjectionDescription
+    {
+        get
+        {
+            if (TrendAnalysis == null || TrendAnalysis.Direction == MetricTrend.Unknown)
+                return "Not enough data for projection";
+
+            var daysToProject = 30;
+            var targetDate = DateTime.UtcNow.AddDays(daysToProject);
+            var analyzer = new TrendAnalyzer();
+            var projected = analyzer.ProjectValue(TrendAnalysis, targetDate);
+
+            return $"In {daysToProject} days (by {targetDate:MMM d}): {projected:F2}";
+        }
+    }
 
     [RelayCommand]
     private void SetDetailTab(string tabIndex)
@@ -399,8 +443,10 @@ public partial class MetricsViewModel : ViewModelBase
         IsDetailFlyoutOpen = true;
         IsEditorFlyoutOpen = false;
 
-        // Load history in background
-        await LoadMetricHistoryAsync();
+        // Load history and trend analysis in parallel
+        var historyTask = LoadMetricHistoryAsync();
+        var trendTask = LoadTrendAnalysisAsync();
+        await Task.WhenAll(historyTask, trendTask);
     }
 
     [RelayCommand]
@@ -409,6 +455,29 @@ public partial class MetricsViewModel : ViewModelBase
         IsDetailFlyoutOpen = false;
         SelectedMetric = null;
         MetricHistory.Clear();
+        TrendAnalysis = null;
+    }
+
+    [RelayCommand]
+    private async Task LoadTrendAnalysisAsync()
+    {
+        if (SelectedMetric == null) return;
+
+        IsLoadingTrendAnalysis = true;
+        try
+        {
+            var analysis = await MetricsService.Instance.GetTrendAnalysisAsync(SelectedMetric.Id, lookbackDays: 30);
+            TrendAnalysis = analysis;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load trend analysis: {ex.Message}";
+            TrendAnalysis = null;
+        }
+        finally
+        {
+            IsLoadingTrendAnalysis = false;
+        }
     }
 
     #endregion

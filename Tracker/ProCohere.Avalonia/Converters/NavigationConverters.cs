@@ -879,6 +879,230 @@ public class GuidIsNotEmptyConverter : IValueConverter
 }
 
 /// <summary>
+/// Converts task status to background color/brush.
+/// Used for task status badges in meeting task list.
+/// </summary>
+public class TaskStatusToBackgroundConverter : IValueConverter
+{
+    public static readonly TaskStatusToBackgroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var status = value?.ToString()?.ToLowerInvariant();
+        
+        var color = status switch
+        {
+            "not started" => "#6B7280",      // Gray
+            "in progress" => "#3B82F6",      // Blue
+            "blocked" => "#EF4444",          // Red
+            "completed" => "#10B981",        // Green
+            _ => "#6B7280"                   // Gray default
+        };
+        
+        return new SolidColorBrush(Color.Parse(color));
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts task status to foreground color/brush for badge text.
+/// </summary>
+public class TaskStatusToForegroundConverter : IValueConverter
+{
+    public static readonly TaskStatusToForegroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        // All statuses use white text on colored backgrounds
+        return new SolidColorBrush(Colors.White);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts priority string to icon/text foreground brush.
+/// Used for priority icons in task lists.
+/// </summary>
+public class PriorityToBrushConverter : IValueConverter
+{
+    public static readonly PriorityToBrushConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var priority = value?.ToString()?.ToLowerInvariant();
+        
+        var color = priority switch
+        {
+            "high" => "#DC2626",    // Red
+            "medium" => "#F59E0B",  // Amber
+            "low" => "#10B981",     // Green
+            _ => "#6B7280"          // Gray default
+        };
+        
+        return new SolidColorBrush(Color.Parse(color));
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts recurrence pattern index to plural unit text for display.
+/// Used in AddTaskDialog to show "days", "weeks", or "months".
+/// </summary>
+public class RecurrencePatternToUnitConverter : IValueConverter
+{
+    public static readonly RecurrencePatternToUnitConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not int index)
+            return "days";
+        
+        return index switch
+        {
+            0 => "days",
+            1 => "weeks",
+            2 => "months",
+            _ => "days"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts prep item status to background color.
+/// </summary>
+public class PrepItemStatusToBackgroundConverter : IValueConverter
+{
+    public static readonly PrepItemStatusToBackgroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var status = value as string ?? "open";
+        return status.ToLowerInvariant() switch
+        {
+            "done" => "#10B981",
+            "in_progress" => "#3B82F6",
+            "dismissed" => "#6B7280",
+            _ => "#F59E0B" // open
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts prep item status to foreground color.
+/// </summary>
+public class PrepItemStatusToForegroundConverter : IValueConverter
+{
+    public static readonly PrepItemStatusToForegroundConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return "White";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts prep item status to display text.
+/// </summary>
+public class PrepItemStatusToTextConverter : IValueConverter
+{
+    public static readonly PrepItemStatusToTextConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var status = value as string ?? "open";
+        return status.ToLowerInvariant() switch
+        {
+            "done" => "DONE",
+            "in_progress" => "IN PROGRESS",
+            "dismissed" => "DISMISSED",
+            _ => "OPEN"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts prep item visibility scope to icon path data.
+/// </summary>
+public class PrepItemVisibilityToIconConverter : IValueConverter
+{
+    public static readonly PrepItemVisibilityToIconConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var scope = value as string ?? "personal";
+        return scope.ToLowerInvariant() switch
+        {
+            "personal" => "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z", // person
+            "assigned" => "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z", // person (same)
+            "meeting" => "M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z", // people
+            _ => "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts prep item visibility scope to display text.
+/// </summary>
+public class PrepItemVisibilityToTextConverter : IValueConverter
+{
+    public static readonly PrepItemVisibilityToTextConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var scope = value as string ?? "personal";
+        return scope.ToLowerInvariant() switch
+        {
+            "personal" => "Personal",
+            "assigned" => "Assigned",
+            "meeting" => "Shared with all attendees",
+            _ => scope
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
 /// Inverts a boolean value.
 /// </summary>
 public class InverseBoolConverter : IValueConverter

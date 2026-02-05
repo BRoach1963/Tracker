@@ -10,12 +10,14 @@ using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Views.Controls;
 using ProCohere.Avalonia.Views.Dialogs;
+using ProCohere.Avalonia.Attributes;
 
 namespace ProCohere.Avalonia.Views;
 
 /// <summary>
 /// Projects view - displays projects in a list with detail panel.
 /// </summary>
+[HelpContext("projects", ContextName = "ProjectsView")]
 public partial class ProjectsView : UserControl
 {
     private ProjectsViewModel? _viewModel;

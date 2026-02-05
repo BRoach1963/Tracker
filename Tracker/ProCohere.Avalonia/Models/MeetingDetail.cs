@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Windows.Input;
@@ -157,6 +158,40 @@ public class MeetingDetail : BaseModel, System.ComponentModel.INotifyPropertyCha
 
     [Column("deleted_by")]
     public Guid? DeletedBy { get; set; }
+
+    #region Calendar Integration
+
+    /// <summary>
+    /// External calendar event ID (Google Calendar, Outlook, etc.).
+    /// </summary>
+    [Column("calendar_event_id")]
+    public string? CalendarEventId { get; set; }
+
+    /// <summary>
+    /// Calendar provider: 'google', 'microsoft', 'apple'.
+    /// </summary>
+    [Column("calendar_provider")]
+    public string? CalendarProvider { get; set; }
+
+    /// <summary>
+    /// FK to calendar_integrations - which OAuth connection was used to sync this meeting.
+    /// </summary>
+    [Column("calendar_link_id")]
+    public Guid? CalendarLinkId { get; set; }
+
+    /// <summary>
+    /// When this meeting was last synced to external calendar.
+    /// </summary>
+    [Column("last_synced_at")]
+    public DateTime? LastSyncedAt { get; set; }
+
+    /// <summary>
+    /// Sync status: 'synced', 'pending', 'error', 'unsynced'.
+    /// </summary>
+    [Column("sync_status")]
+    public string? SyncStatus { get; set; }
+
+    #endregion
 
     #region Legacy/Compatibility Properties
 
@@ -728,6 +763,71 @@ public class MeetingDetail : BaseModel, System.ComponentModel.INotifyPropertyCha
     public bool HasLocation => !string.IsNullOrWhiteSpace(Location);
 
     /// <summary>
+    /// Human-readable recurrence display (e.g., "Every 2 weeks" or "Every day").
+    /// </summary>
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string RecurrenceDisplay
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(RecurrenceRule)) return string.Empty;
+            
+            try
+            {
+                var parts = RecurrenceRule.Split(';');
+                string? freq = null;
+                int interval = 1;
+                DateTime? until = null;
+                
+                foreach (var part in parts)
+                {
+                    var keyValue = part.Split('=');
+                    if (keyValue.Length != 2) continue;
+                    
+                    var key = keyValue[0].Trim().ToUpperInvariant();
+                    var value = keyValue[1].Trim();
+                    
+                    switch (key)
+                    {
+                        case "FREQ":
+                            freq = value.ToLowerInvariant();
+                            break;
+                        case "INTERVAL":
+                            int.TryParse(value, out interval);
+                            break;
+                        case "UNTIL":
+                            DateTime.TryParse(value, out var untilDate);
+                            until = untilDate;
+                            break;
+                    }
+                }
+                
+                if (string.IsNullOrEmpty(freq)) return RecurrenceRule;
+                
+                var unit = freq switch
+                {
+                    "daily" => interval == 1 ? "day" : "days",
+                    "weekly" => interval == 1 ? "week" : "weeks",
+                    "monthly" => interval == 1 ? "month" : "months",
+                    _ => freq
+                };
+                
+                var display = interval == 1 ? $"Every {unit}" : $"Every {interval} {unit}";
+                
+                if (until.HasValue)
+                    display += $" until {until.Value:MMM d, yyyy}";
+                
+                return display;
+            }
+            catch
+            {
+                return RecurrenceRule;
+            }
+        }
+    }
+
+    /// <summary>
     /// Whether this meeting is in the past (end time has passed).
     /// </summary>
     [Newtonsoft.Json.JsonIgnore]
@@ -846,6 +946,22 @@ public class MeetingDetail : BaseModel, System.ComponentModel.INotifyPropertyCha
     [Newtonsoft.Json.JsonIgnore]
     public ICommand? SetMeetingDetailTabCommand { get; set; }
 
+    /// <summary>
+    /// Linked tasks - tasks created from this meeting's agenda items.
+    /// Populated by ViewModel via TaskService.GetTasksForMeetingAsync().
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ObservableCollection<TaskDetail> LinkedTasks { get; } = new();
+
+    /// <summary>
+    /// Linked prep items - prep items for this meeting.
+    /// Populated by ViewModel via MeetingPrepItemService.GetPrepItemsForMeetingAsync().
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public ObservableCollection<MeetingPrepItem> LinkedPrepItems { get; } = new();
+
     #endregion
 }
 
@@ -855,9 +971,11 @@ public class MeetingDetail : BaseModel, System.ComponentModel.INotifyPropertyCha
 public enum MeetingDetailTab
 {
     Overview,
+    Prep,
     Agenda,
     Attendees,
-    Notes
+    Notes,
+    Tasks
 }
 
 /// <summary>

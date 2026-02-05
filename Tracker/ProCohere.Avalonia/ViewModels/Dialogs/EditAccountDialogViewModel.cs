@@ -93,6 +93,9 @@ public partial class EditAccountDialogViewModel : ObservableObject
     private bool _isSaving;
 
     [ObservableProperty]
+    private bool _isUploadingAvatar;
+
+    [ObservableProperty]
     private string _statusText = string.Empty;
 
     [ObservableProperty]
@@ -165,14 +168,26 @@ public partial class EditAccountDialogViewModel : ObservableObject
             // Upload avatar if changed
             if (!string.IsNullOrEmpty(_pendingAvatarPath))
             {
+                IsUploadingAvatar = true;
                 StatusText = "Uploading photo...";
-                StatusColor = "#64748B";
+                StatusColor = "#3B82F6"; // Blue
 
                 var (success, avatarUrl, error) = await authService.UploadAvatarAsync(_pendingAvatarPath);
+                
+                IsUploadingAvatar = false;
+                
                 if (!success)
                 {
                     avatarError = error;
                     Debug.WriteLine($"Avatar upload failed: {error}");
+                    
+                    // Show specific error to user
+                    StatusText = $"Photo upload failed: {error}";
+                    StatusColor = "#DC2626"; // Red
+                }
+                else
+                {
+                    Debug.WriteLine($"Avatar uploaded successfully: {avatarUrl}");
                 }
             }
 
@@ -287,13 +302,44 @@ public partial class EditAccountDialogViewModel : ObservableObject
     /// </summary>
     public void SetPendingAvatarPath(string? path)
     {
-        if (!string.IsNullOrEmpty(path))
+        if (!string.IsNullOrEmpty(path) && File.Exists(path))
         {
-            _pendingAvatarPath = path;
-            _removeAvatar = false;
-            UpdateAvatarDisplay();
-            StatusText = "New photo selected. Save to apply.";
-            StatusColor = "#64748B";
+            try
+            {
+                var fileInfo = new FileInfo(path);
+                
+                // Validate file size (max 5MB)
+                if (fileInfo.Length > 5 * 1024 * 1024)
+                {
+                    StatusText = "File too large. Maximum size is 5MB.";
+                    StatusColor = "#DC2626"; // Red
+                    return;
+                }
+
+                // Validate file extension
+                var extension = fileInfo.Extension.ToLowerInvariant();
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                if (!Array.Exists(allowedExtensions, e => e == extension))
+                {
+                    StatusText = "Invalid file type. Allowed: JPG, PNG, GIF, WebP.";
+                    StatusColor = "#DC2626"; // Red
+                    return;
+                }
+
+                _pendingAvatarPath = path;
+                _removeAvatar = false;
+                UpdateAvatarDisplay();
+                
+                // Show file size for user confirmation
+                var sizeInKb = fileInfo.Length / 1024;
+                StatusText = $"New photo selected ({sizeInKb:N0} KB). Save to upload.";
+                StatusColor = "#10B981"; // Green
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Error reading file: {ex.Message}";
+                StatusColor = "#DC2626"; // Red
+            }
         }
     }
 

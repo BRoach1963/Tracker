@@ -7,6 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Markup.Xaml;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.Services.AI;
+using ProCohere.Avalonia.Services.Insights;
+using ProCohere.Avalonia.Services.Insights.Analyzers;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Views;
 
@@ -40,9 +43,9 @@ public partial class App : Application
             // Initialize theme service (applies saved theme preference)
             ThemeService.Instance.Initialize();
             
-            // Initialize system tray service and wire up events
-            InitializeSystemTray(desktop);
-
+        // Initialize AI services
+        InitializeAIServices();
+        
             // Show splash screen while checking authentication
             var splashWindow = new SplashWindow();
             desktop.MainWindow = splashWindow;
@@ -57,7 +60,7 @@ public partial class App : Application
     /// <summary>
     /// Initializes the system tray service and wires up event handlers.
     /// </summary>
-    private void InitializeSystemTray(IClassicDesktopStyleApplicationLifetime desktop)
+    private static void InitializeSystemTray(IClassicDesktopStyleApplicationLifetime desktop)
     {
         SystemTrayService.Instance.Initialize();
         
@@ -147,6 +150,10 @@ public partial class App : Application
         {
             System.Diagnostics.Debug.WriteLine("[App] Starting InitializeAndNavigateAsync...");
             
+            // Load appsettings.json
+            System.Diagnostics.Debug.WriteLine("[App] Loading appsettings.json...");
+            await AppSettingsService.Instance.LoadSettingsAsync();
+            
             // Try auto-login with stored credentials (with 10 second timeout)
             System.Diagnostics.Debug.WriteLine("[App] Calling TryAutoLoginAsync...");
             bool autoLoginSuccess;
@@ -206,6 +213,10 @@ public partial class App : Application
                 
                 mainWindow.Show();
                 splashWindow.Close();
+                
+                // Initialize system tray
+                InitializeSystemTray(desktop);
+                
                 System.Diagnostics.Debug.WriteLine("[App] MainWindow shown, splash closed");
                 
                 // Show welcome toast
@@ -256,12 +267,53 @@ public partial class App : Application
             ReminderSchedulerService.Instance.Start();
             
             mainWindow.Show();
+            
+            // Initialize system tray
+            InitializeSystemTray(desktop);
+            
             loginWindow.Close();
         };
 
         desktop.MainWindow = loginWindow;
         loginWindow.Show();
         splashWindow.Close();
+    }
+    
+    /// <summary>
+    /// Initializes AI services and providers.
+    /// </summary>
+    private void InitializeAIServices()
+    {
+        // AI services use singleton patterns and are self-initializing
+        // Just ensure the factory is ready
+        _ = ChatProviderFactory.Instance;
+        
+        // Register insight analyzers
+        InitializeInsightAnalyzers();
+        
+        System.Diagnostics.Debug.WriteLine("[App] AI services initialized");
+    }
+    
+    /// <summary>
+    /// Registers all insight analyzers with the InsightEngine.
+    /// </summary>
+    private void InitializeInsightAnalyzers()
+    {
+        try
+        {
+            InsightEngine.Instance.RegisterAnalyzer(new ActionItemStalenessAnalyzer());
+            InsightEngine.Instance.RegisterAnalyzer(new GoalTrajectoryAnalyzer());
+            InsightEngine.Instance.RegisterAnalyzer(new MeetingCadenceAnalyzer());
+            InsightEngine.Instance.RegisterAnalyzer(new MetricGapAnalyzer());
+            InsightEngine.Instance.RegisterAnalyzer(new PersonalDateAnalyzer());
+            InsightEngine.Instance.RegisterAnalyzer(new SurveySentimentAnalyzer());
+            
+            System.Diagnostics.Debug.WriteLine("[App] Insight analyzers registered");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[App] Failed to register insight analyzers: {ex.Message}");
+        }
     }
 
     private void DisableAvaloniaDataAnnotationValidation()

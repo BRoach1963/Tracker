@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Models.Dialogs;
+using ProCohere.Avalonia.ViewModels.Dialogs;
 using ProCohere.Avalonia.Views.Dialogs;
 using System;
 using System.Linq;
@@ -361,6 +363,31 @@ public static class AppDialogService
         }
     }
 
+    /// <summary>
+    /// Shows the what-if scenario dialog for trajectory simulation.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="trajectory">Current trajectory to simulate scenarios for</param>
+    public static async Task ShowWhatIfDialogAsync(Window parentWindow, TrajectoryResult trajectory)
+    {
+        try
+        {
+            var viewModel = new WhatIfDialogViewModel();
+            viewModel.Initialize(trajectory);
+            
+            var dialog = new WhatIfDialog
+            {
+                DataContext = viewModel
+            };
+            
+            await dialog.ShowDialog(parentWindow);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] Error showing what-if dialog: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region Task Dialogs
@@ -399,7 +426,14 @@ public static class AppDialogService
                 dialog.Result.Description,
                 dialog.Result.Priority,
                 dialog.Result.DueDate,
-                dialog.Result.AssigneeId);
+                dialog.Result.AssigneeId,
+                null,
+                null,
+                dialog.Result.GoalId,
+                dialog.Result.IsRecurring,
+                dialog.Result.RecurrencePattern,
+                dialog.Result.RecurrenceInterval,
+                dialog.Result.RecurrenceEndDate);
             
             if (created != null)
             {
@@ -459,6 +493,11 @@ public static class AppDialogService
             task.Status = dialog.Result.Status ?? task.Status;
             task.DueDate = dialog.Result.DueDate;
             task.OwnerTeamMemberId = dialog.Result.AssigneeId;
+            task.GoalId = dialog.Result.GoalId;
+            task.IsRecurring = dialog.Result.IsRecurring;
+            task.RecurrencePattern = dialog.Result.IsRecurring ? dialog.Result.RecurrencePattern : null;
+            task.RecurrenceInterval = dialog.Result.IsRecurring ? dialog.Result.RecurrenceInterval : 1;
+            task.RecurrenceEndDate = dialog.Result.IsRecurring ? dialog.Result.RecurrenceEndDate : null;
             
             var updated = await TaskService.Instance.UpdateTaskAsync(task);
             
@@ -491,16 +530,24 @@ public static class AppDialogService
             var window = GetMainWindow();
             if (window == null) return null;
             
-            var dialog = new EditMetricDialog();
+            var viewModel = new AddMetricDialogViewModel();
             
             // Load team members for owner selection
             var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
-            dialog.SetTeamMembers(teamMembers);
+            viewModel.SetTeamMembers(teamMembers);
+            
+            // Set dialog service for confirmation
+            viewModel.SetDialogService(new DialogService(window));
+            
+            var dialog = new AddMetricDialog
+            {
+                DataContext = viewModel
+            };
             
             await dialog.ShowDialog(window);
             
             // Result is null if cancelled
-            if (dialog.Result == null)
+            if (viewModel.Result == null || viewModel.Result.IsDeleted)
             {
                 return null;
             }
@@ -509,14 +556,14 @@ public static class AppDialogService
             var newMetric = new MetricDetail
             {
                 Id = Guid.Empty, // Will be assigned by service
-                Name = dialog.Result.Name,
-                Description = dialog.Result.Description,
-                CurrentValue = dialog.Result.CurrentValue,
-                TargetValue = dialog.Result.TargetValue,
-                Unit = dialog.Result.Unit,
-                TargetDirection = dialog.Result.TargetDirection,
-                Frequency = dialog.Result.Frequency,
-                OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId
+                Name = viewModel.Result.Name,
+                Description = viewModel.Result.Description,
+                CurrentValue = viewModel.Result.CurrentValue,
+                TargetValue = viewModel.Result.TargetValue,
+                Unit = viewModel.Result.Unit,
+                TargetDirection = viewModel.Result.TargetDirection,
+                Frequency = viewModel.Result.Frequency,
+                OwnerTeamMemberId = viewModel.Result.OwnerTeamMemberId
             };
             
             // Create the metric in the database
@@ -624,6 +671,144 @@ public static class AppDialogService
             ? desktop.MainWindow
             : null;
     }
+    
+    #region Kudos Dialogs
+
+    /// <summary>
+    /// Shows the give kudos dialog.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="recipientMemberId">Team member receiving the kudos</param>
+    /// <param name="recipientName">Name of the recipient for display</param>
+    /// <returns>Result containing the created kudos or cancellation info</returns>
+    public static async Task<KudosDialogResult> ShowGiveKudosAsync(
+        Window parentWindow,
+        Guid recipientMemberId,
+        string recipientName)
+    {
+        try
+        {
+            var viewModel = new AddKudosDialogViewModel();
+            viewModel.SetRecipient(recipientMemberId, recipientName);
+            
+            var dialog = new AddKudosDialog
+            {
+                DataContext = viewModel
+            };
+            
+            // Set up dialog service for confirmations
+            var dialogService = new DialogService(parentWindow);
+            viewModel.SetDialogService(dialogService);
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            if (viewModel.WasSaved && viewModel.CreatedKudos != null)
+            {
+                return KudosDialogResult.Created(viewModel.CreatedKudos);
+            }
+            
+            return KudosDialogResult.Cancelled();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] ShowGiveKudosAsync error: {ex}");
+            return KudosDialogResult.Failed($"Failed to show kudos dialog: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region Quick Message Dialogs
+
+    /// <summary>
+    /// Shows the quick message dialog.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <param name="recipientEmail">Email address of the recipient</param>
+    /// <param name="recipientName">Name of the recipient for display</param>
+    /// <returns>Result containing send status or cancellation info</returns>
+    public static async Task<MessageResult> ShowQuickMessageAsync(
+        Window parentWindow,
+        string recipientEmail,
+        string recipientName)
+    {
+        try
+        {
+            var viewModel = new QuickMessageDialogViewModel();
+            viewModel.SetRecipient(recipientEmail, recipientName);
+            
+            var dialog = new QuickMessageDialog
+            {
+                DataContext = viewModel
+            };
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            return viewModel.Result ?? MessageResult.Cancelled();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] ShowQuickMessageAsync error: {ex}");
+            return MessageResult.Failed($"Failed to show message dialog: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region Survey Dialogs
+
+    /// <summary>
+    /// Shows the create survey dialog.
+    /// </summary>
+    /// <param name="parentWindow">Parent window for modal dialog</param>
+    /// <returns>Created survey or null if cancelled</returns>
+    public static async Task<Survey?> ShowCreateSurveyAsync(Window parentWindow)
+    {
+        try
+        {
+            var viewModel = new CreateSurveyDialogViewModel();
+            
+            var dialog = new CreateSurveyDialog
+            {
+                DataContext = viewModel
+            };
+            
+            await dialog.ShowDialog(parentWindow);
+            
+            if (viewModel.Result != null)
+            {
+                // Save to database
+                var created = await SurveyService.Instance.CreateSurveyAsync(viewModel.Result);
+                
+                if (created == null)
+                {
+                    // Show error if save failed
+                    await ShowConfirmationAsync(
+                        parentWindow,
+                        "Survey Creation Failed",
+                        $"Failed to create survey: {SurveyService.Instance.LastError}",
+                        "OK");
+                    return null;
+                }
+                
+                return created;
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppDialogService] ShowCreateSurveyAsync error: {ex}");
+            await ShowConfirmationAsync(
+                parentWindow,
+                "Error",
+                $"Failed to show survey dialog: {ex.Message}",
+                "OK");
+            return null;
+        }
+    }
+
+    #endregion
     
     #endregion
 }
@@ -853,6 +1038,73 @@ public class GoalDialogResult
     {
         Error = error
     };
+}
+
+/// <summary>
+/// Result from a kudos dialog operation.
+/// </summary>
+public class KudosDialogResult
+{
+    /// <summary>
+    /// The kudos that was created (null if cancelled).
+    /// </summary>
+    public Kudos? Kudos { get; init; }
+    
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? Error { get; init; }
+    
+    /// <summary>
+    /// True if the user cancelled the dialog.
+    /// </summary>
+    public bool WasCancelled { get; init; }
+    
+    /// <summary>
+    /// True if kudos was created.
+    /// </summary>
+    public bool WasCreated { get; init; }
+    
+    /// <summary>
+    /// True if the operation was successful.
+    /// </summary>
+    public bool Success => WasCreated;
+
+    // Factory methods for clean result creation
+    
+    public static KudosDialogResult Created(Kudos kudos) => new()
+    {
+        Kudos = kudos,
+        WasCreated = true
+    };
+    
+    public static KudosDialogResult Cancelled() => new()
+    {
+        WasCancelled = true
+    };
+    
+    public static KudosDialogResult Failed(string error) => new()
+    {
+        Error = error
+    };
+}
+
+#endregion
+
+#region About Dialog
+
+/// <summary>
+/// Shows the About dialog.
+/// </summary>
+public static async Task ShowAboutDialogAsync(Window parentWindow)
+{
+    var dialog = new AboutDialog();
+    var vm = new AboutDialogViewModel();
+    
+    vm.CloseRequested += () => dialog.Close();
+    
+    dialog.DataContext = vm;
+    await dialog.ShowDialog(parentWindow);
 }
 
 #endregion

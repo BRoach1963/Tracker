@@ -42,6 +42,26 @@ public partial class PulseViewModel : ViewModelBase
     /// </summary>
     public event EventHandler? NavigateToTasksRequested;
     
+    /// <summary>
+    /// Event raised when user wants to create a new survey.
+    /// </summary>
+    public event EventHandler? CreateSurveyRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to distribute a survey.
+    /// </summary>
+    public event EventHandler<Guid>? DistributeSurveyRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to close a survey.
+    /// </summary>
+    public event EventHandler<Guid>? CloseSurveyRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to view survey analytics.
+    /// </summary>
+    public event EventHandler<Guid>? ViewAnalyticsRequested;
+    
     [RelayCommand]
     private void NavigateToGoals() => NavigateToGoalsRequested?.Invoke(this, EventArgs.Empty);
     
@@ -50,6 +70,34 @@ public partial class PulseViewModel : ViewModelBase
     
     [RelayCommand]
     private void NavigateToTasks() => NavigateToTasksRequested?.Invoke(this, EventArgs.Empty);
+    
+    [RelayCommand]
+    private void CreateSurvey() => CreateSurveyRequested?.Invoke(this, EventArgs.Empty);
+    
+    #endregion
+    
+    #region Survey Collections
+    
+    /// <summary>
+    /// Draft surveys (not yet distributed).
+    /// </summary>
+    public ObservableCollection<SurveyCardViewModel> DraftSurveys { get; } = new();
+    
+    /// <summary>
+    /// Active surveys (currently accepting responses).
+    /// </summary>
+    public ObservableCollection<SurveyCardViewModel> ActiveSurveys { get; } = new();
+    
+    /// <summary>
+    /// Closed surveys (no longer accepting responses).
+    /// </summary>
+    public ObservableCollection<SurveyCardViewModel> ClosedSurveys { get; } = new();
+    
+    /// <summary>
+    /// Selected survey tab (0=Draft, 1=Active, 2=Closed).
+    /// </summary>
+    [ObservableProperty]
+    private int _selectedSurveyTab;
     
     #endregion
     
@@ -333,20 +381,18 @@ public partial class PulseViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasActionItems));
             OnPropertyChanged(nameof(ShowActionsEmpty));
             
+            // Load surveys
+            await LoadSurveysAsync(ct);
+            
             LastRefreshed = DateTime.Now;
-            OnPropertyChanged(nameof(HasAnySignals));
-            OnPropertyChanged(nameof(ShowEmptyState));
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore cancellation
+            IsLoading = false;
+            
+            System.Diagnostics.Debug.WriteLine("[PulseViewModel] LoadPulseDataAsync complete");
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to load Pulse data: {ex.Message}";
-        }
-        finally
-        {
+            System.Diagnostics.Debug.WriteLine($"[PulseViewModel] ERROR: {ex}");
             IsLoading = false;
             IsLoadingAttention = false;
             IsLoadingChanges = false;
@@ -356,10 +402,88 @@ public partial class PulseViewModel : ViewModelBase
     }
     
     /// <summary>
-    /// Refreshes all Pulse data. Public method for View to call on initialization.
+    /// Loads surveys and their response statistics.
     /// </summary>
-    public async Task RefreshDataAsync()
+    private async Task LoadSurveysAsync(CancellationToken ct = default)
     {
-        await LoadPulseDataAsync();
+        try
+        {
+            var allSurveys = await SurveyService.Instance.GetOrganizationSurveysAsync(ct);
+            
+            DraftSurveys.Clear();
+            ActiveSurveys.Clear();
+            ClosedSurveys.Clear();
+            
+            foreach (var survey in allSurveys)
+            {
+                // Get response stats
+                var (total, completed) = await SurveyService.Instance.GetSurveyStatsAsync(survey.Id, ct);
+                var card = new SurveyCardViewModel(survey, total, completed);
+                
+                if (survey.Status == "draft")
+                    DraftSurveys.Add(card);
+                else if (survey.Status == "active")
+                    ActiveSurveys.Add(card);
+                else if (survey.Status == "closed")
+                    ClosedSurveys.Add(card);
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[PulseViewModel] Surveys loaded - Draft: {DraftSurveys.Count}, Active: {ActiveSurveys.Count}, Closed: {ClosedSurveys.Count}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PulseViewModel] ERROR loading surveys: {ex}");
+        }
+    }
+    
+    /// <summary>
+    /// Distributes a survey to target team members.
+    /// </summary>
+    [RelayCommand]
+    private async Task DistributeSurveyAsync(Guid surveyId, CancellationToken ct = default)
+    {
+        DistributeSurveyRequested?.Invoke(this, surveyId);
+    }
+    
+    /// <summary>
+    /// Closes a survey (stops accepting responses).
+    /// </summary>
+    [RelayCommand]
+    private async Task CloseSurveyAsync(Guid surveyId, CancellationToken ct = default)
+    {
+        CloseSurveyRequested?.Invoke(this, surveyId);
+    }
+    
+    /// <summary>
+    /// Opens the analytics dialog for a survey.
+    /// </summary>
+    [RelayCommand]
+    private void ViewAnalytics(Guid surveyId)
+    {
+        ViewAnalyticsRequested?.Invoke(this, surveyId);
+    }
+    
+    /// <summary>
+    /// Called after a survey is distributed to refresh the list.
+    /// </summary>
+    public async Task OnSurveyDistributedAsync()
+    {
+        await LoadSurveysAsync();
+    }
+    
+    /// <summary>
+    /// Called after a survey is closed to refresh the list.
+    /// </summary>
+    public async Task OnSurveyClosedAsync()
+    {
+        await LoadSurveysAsync();
+    }
+    
+    /// <summary>
+    /// Called after a new survey is created to refresh the list.
+    /// </summary>
+    public async Task OnSurveyCreatedAsync()
+    {
+        await LoadSurveysAsync();
     }
 }

@@ -105,6 +105,23 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,8,0,8"/>
         </Style>
+        
+        <!-- Segment tab style -->
+        <Style Selector="RadioButton.segment-tab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="RadioButton.segment-tab:checked">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimarySoft}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
     </UserControl.Styles>
 
     <Grid ColumnDefinitions="*,Auto">
@@ -128,8 +145,8 @@
                     Padding="12" 
                     Margin="0,0,0,24"
                     Opacity="0.9">
-                <Grid ColumnDefinitions="*,Auto,*">
-                    <UniformGrid Grid.Column="1" Columns="3" HorizontalAlignment="Center">
+                <Grid ColumnDefinitions="*,Auto,Auto,*">
+                    <UniformGrid Grid.Column="1" Columns="3" HorizontalAlignment="Center" Margin="0,0,8,0">
                         <Button Classes="quick-access" 
                                 Command="{Binding NavigateToGoalsCommand}"
                                 Margin="0,0,8,0">
@@ -158,6 +175,19 @@
                             </StackPanel>
                         </Button>
                     </UniformGrid>
+                    
+                    <!-- Create Survey Button -->
+                    <Button Grid.Column="2"
+                            Command="{Binding CreateSurveyCommand}"
+                            Classes="action-button"
+                            Margin="8,0,0,0"
+                            ToolTip.Tip="Create new pulse survey">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                      Width="14" Height="14"/>
+                            <TextBlock Text="New Survey" FontSize="12"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
             
@@ -420,6 +450,298 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                </StackPanel>
+            </Border>
+            
+            <!-- ================================================================
+                 SECTION 5: SURVEYS
+                 Manage and distribute pulse surveys
+                 ================================================================ -->
+            <Border Classes="section-container">
+                <StackPanel>
+                    <TextBlock Classes="section-header">
+                        <Run Text="📊 "/>
+                        <Run Text="Pulse Surveys"/>
+                    </TextBlock>
+                    
+                    <!-- Tab Selector -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,16">
+                        <RadioButton GroupName="SurveyTabs" 
+                                     Content="Draft" 
+                                     IsChecked="{Binding SelectedSurveyTab, Converter={StaticResource EqualToZeroConverter}}"
+                                     Classes="segment-tab"/>
+                        <RadioButton GroupName="SurveyTabs" 
+                                     Content="Active" 
+                                     IsChecked="{Binding SelectedSurveyTab, Converter={StaticResource IntEqualConverter}, ConverterParameter=1}"
+                                     Classes="segment-tab"/>
+                        <RadioButton GroupName="SurveyTabs" 
+                                     Content="Closed" 
+                                     IsChecked="{Binding SelectedSurveyTab, Converter={StaticResource IntEqualConverter}, ConverterParameter=2}"
+                                     Classes="segment-tab"/>
+                    </StackPanel>
+                    
+                    <!-- Draft Surveys Tab -->
+                    <StackPanel IsVisible="{Binding SelectedSurveyTab, Converter={StaticResource EqualToZeroConverter}}">
+                        <!-- Empty state -->
+                        <TextBlock Classes="empty-state"
+                                   Text="No draft surveys. Click 'New Survey' to create one."
+                                   IsVisible="{Binding !DraftSurveys.Count}"/>
+                        
+                        <!-- Survey cards -->
+                        <ItemsControl ItemsSource="{Binding DraftSurveys}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SurveyCardViewModel">
+                                    <Border Classes="signal-card" Margin="0,0,0,12">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
+                                            <!-- Icon -->
+                                            <PathIcon Grid.Row="0" Grid.Column="0" Grid.RowSpan="2"
+                                                      Data="{Binding TypeIcon}"
+                                                      Width="20" Height="20"
+                                                      Foreground="{Binding StatusColor}"
+                                                      VerticalAlignment="Top" Margin="0,0,12,0"/>
+                                            
+                                            <!-- Title -->
+                                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"/>
+                                            
+                                            <!-- Status Badge -->
+                                            <Border Grid.Row="0" Grid.Column="2"
+                                                    CornerRadius="4" Padding="6,2"
+                                                    Background="#E0E0E0">
+                                                <TextBlock Text="{Binding StatusDisplay}" 
+                                                           FontSize="10" FontWeight="SemiBold"
+                                                           Foreground="#757575"/>
+                                            </Border>
+                                            
+                                            <!-- Meta info -->
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                                        Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
+                                                <TextBlock Text="{Binding TypeDisplay}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                <TextBlock Text="•" FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                <TextBlock Text="{Binding FrequencyDisplay}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Description -->
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                                       Text="{Binding Description}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       Margin="0,8,0,0"
+                                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            
+                                            <!-- Actions -->
+                                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                                        Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+                                                <Button Classes="action-button"
+                                                        Command="{Binding $parent[UserControl].((vm:PulseViewModel)DataContext).DistributeSurveyCommand}"
+                                                        CommandParameter="{Binding Id}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <PathIcon Data="M2,21L23,12L2,3V10L17,12L2,14V21Z" Width="12" Height="12"/>
+                                                        <TextBlock Text="Distribute" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    
+                    <!-- Active Surveys Tab -->
+                    <StackPanel IsVisible="{Binding SelectedSurveyTab, Converter={StaticResource IntEqualConverter}, ConverterParameter=1}">
+                        <!-- Empty state -->
+                        <TextBlock Classes="empty-state"
+                                   Text="No active surveys"
+                                   IsVisible="{Binding !ActiveSurveys.Count}"/>
+                        
+                        <!-- Survey cards -->
+                        <ItemsControl ItemsSource="{Binding ActiveSurveys}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SurveyCardViewModel">
+                                    <Border Classes="signal-card" Margin="0,0,0,12">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
+                                            <!-- Icon -->
+                                            <PathIcon Grid.Row="0" Grid.Column="0" Grid.RowSpan="2"
+                                                      Data="{Binding TypeIcon}"
+                                                      Width="20" Height="20"
+                                                      Foreground="{Binding StatusColor}"
+                                                      VerticalAlignment="Top" Margin="0,0,12,0"/>
+                                            
+                                            <!-- Title -->
+                                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"/>
+                                            
+                                            <!-- Status Badge -->
+                                            <Border Grid.Row="0" Grid.Column="2"
+                                                    CornerRadius="4" Padding="6,2"
+                                                    Background="#E8F5E9">
+                                                <TextBlock Text="{Binding StatusDisplay}" 
+                                                           FontSize="10" FontWeight="SemiBold"
+                                                           Foreground="#4CAF50"/>
+                                            </Border>
+                                            
+                                            <!-- Meta info -->
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                                        Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
+                                                <TextBlock Text="{Binding DatesDisplay}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Progress bar -->
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="Responses" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    <TextBlock Grid.Column="1" 
+                                                               Text="{Binding ResponseProgressText}"
+                                                               FontSize="11" FontWeight="SemiBold"/>
+                                                </Grid>
+                                                <ProgressBar Height="6" 
+                                                             Value="{Binding CompletionRate}" 
+                                                             Maximum="100"
+                                                             Foreground="#4CAF50"
+                                                             Background="{DynamicResource BrushSurfaceAlt}"
+                                                             CornerRadius="3"
+                                                             Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Description -->
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                                                       Text="{Binding Description}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       Margin="0,8,0,0"
+                                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            
+                                            <!-- Actions -->
+                                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                                                        Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+                                                <Button Classes="secondary-button"
+                                                        Command="{Binding $parent[UserControl].((vm:PulseViewModel)DataContext).ViewAnalyticsCommand}"
+                                                        CommandParameter="{Binding Id}"
+                                                        IsVisible="{Binding HasResponses}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <PathIcon Data="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z" Width="12" Height="12"/>
+                                                        <TextBlock Text="View Analytics" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="secondary-button"
+                                                        Command="{Binding $parent[UserControl].((vm:PulseViewModel)DataContext).CloseSurveyCommand}"
+                                                        CommandParameter="{Binding Id}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" Width="12" Height="12"/>
+                                                        <TextBlock Text="Close Survey" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    
+                    <!-- Closed Surveys Tab -->
+                    <StackPanel IsVisible="{Binding SelectedSurveyTab, Converter={StaticResource IntEqualConverter}, ConverterParameter=2}">
+                        <!-- Empty state -->
+                        <TextBlock Classes="empty-state"
+                                   Text="No closed surveys"
+                                   IsVisible="{Binding !ClosedSurveys.Count}"/>
+                        
+                        <!-- Survey cards -->
+                        <ItemsControl ItemsSource="{Binding ClosedSurveys}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SurveyCardViewModel">
+                                    <Border Classes="signal-card" Margin="0,0,0,12" Opacity="0.75">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
+                                            <!-- Icon -->
+                                            <PathIcon Grid.Row="0" Grid.Column="0" Grid.RowSpan="2"
+                                                      Data="{Binding TypeIcon}"
+                                                      Width="20" Height="20"
+                                                      Foreground="{Binding StatusColor}"
+                                                      VerticalAlignment="Top" Margin="0,0,12,0"/>
+                                            
+                                            <!-- Title -->
+                                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"/>
+                                            
+                                            <!-- Status Badge -->
+                                            <Border Grid.Row="0" Grid.Column="2"
+                                                    CornerRadius="4" Padding="6,2"
+                                                    Background="#FFEBEE">
+                                                <TextBlock Text="{Binding StatusDisplay}" 
+                                                           FontSize="10" FontWeight="SemiBold"
+                                                           Foreground="#F44336"/>
+                                            </Border>
+                                            
+                                            <!-- Meta info -->
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                                        Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
+                                                <TextBlock Text="{Binding DatesDisplay}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Final stats -->
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                                                        Orientation="Horizontal" Spacing="16">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="Responses" FontSize="10"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="{Binding CompletedResponses}" 
+                                                               FontSize="16" FontWeight="Bold"/>
+                                                </StackPanel>
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="Completion Rate" FontSize="10"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="{Binding CompletionRateText}" 
+                                                               FontSize="16" FontWeight="Bold"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            
+                                            <!-- Description -->
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                                                       Text="{Binding Description}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       Margin="0,8,0,0"
+                                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            
+                                            <!-- Actions -->
+                                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                                                        Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+                                                <Button Classes="secondary-button"
+                                                        Command="{Binding $parent[UserControl].((vm:PulseViewModel)DataContext).ViewAnalyticsCommand}"
+                                                        CommandParameter="{Binding Id}"
+                                                        IsVisible="{Binding HasResponses}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <PathIcon Data="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z" Width="12" Height="12"/>
+                                                        <TextBlock Text="View Analytics" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </StackPanel>
             </Border>
             

@@ -171,6 +171,48 @@
                                            Foreground="White"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center" />
+                                <!-- Uploading Overlay -->
+                                <Border IsVisible="{Binding IsUploadingAvatar}"
+                                        Background="#80000000"
+                                        CornerRadius="36">
+                                    <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Spacing="4">
+                                        <TextBlock Text="⟳"
+                                                   FontSize="20"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   RenderTransformOrigin="0.5,0.5">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="0">
+                                                    <RotateTransform.Transitions>
+                                                        <Transitions>
+                                                            <DoubleTransition Property="Angle" Duration="0:0:1" Easing="LinearEasing"/>
+                                                        </Transitions>
+                                                    </RotateTransform.Transitions>
+                                                </RotateTransform>
+                                            </TextBlock.RenderTransform>
+                                            <TextBlock.Styles>
+                                                <Style Selector="TextBlock">
+                                                    <Style.Animations>
+                                                        <Animation Duration="0:0:1" IterationCount="Infinite">
+                                                            <KeyFrame Cue="0%">
+                                                                <Setter Property="(RotateTransform.Angle)" Value="0"/>
+                                                            </KeyFrame>
+                                                            <KeyFrame Cue="100%">
+                                                                <Setter Property="(RotateTransform.Angle)" Value="360"/>
+                                                            </KeyFrame>
+                                                        </Animation>
+                                                    </Style.Animations>
+                                                </Style>
+                                            </TextBlock.Styles>
+                                        </TextBlock>
+                                        <TextBlock Text="Uploading..."
+                                                   FontSize="10"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
                             </Panel>
                         </Border>
                         
@@ -190,11 +232,13 @@
                                 <Button x:Name="UploadAvatarButton"
                                         Content="Upload"
                                         Classes="small"
-                                        Command="{Binding UploadAvatarCommand}" />
+                                        Command="{Binding UploadAvatarCommand}"
+                                        IsEnabled="{Binding !IsUploadingAvatar}" />
                                 <Button x:Name="RemoveAvatarButton"
                                         Content="Remove"
                                         Classes="small"
-                                        Command="{Binding RemoveAvatarCommand}" />
+                                        Command="{Binding RemoveAvatarCommand}"
+                                        IsEnabled="{Binding !IsUploadingAvatar}" />
                             </StackPanel>
                         </StackPanel>
                     </Grid>

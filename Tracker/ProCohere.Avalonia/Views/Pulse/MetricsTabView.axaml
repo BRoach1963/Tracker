@@ -398,6 +398,10 @@
                                     Tapped="TabHistory_Tapped">
                                 <TextBlock Text="History" FontSize="13"/>
                             </Border>
+                            <Border Classes="tab-btn" Classes.selected="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=2}"
+                                    Tapped="TabTrend_Tapped">
+                                <TextBlock Text="Trend Analysis" FontSize="13"/>
+                            </Border>
                         </StackPanel>
                     </Border>
                     
@@ -546,6 +550,177 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                            </StackPanel>
+                            
+                            <!-- Trend Analysis Tab -->
+                            <StackPanel IsVisible="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=2}"
+                                        Spacing="16" Margin="16">
+                                
+                                <!-- Loading State -->
+                                <StackPanel IsVisible="{Binding IsLoadingTrendAnalysis}"
+                                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                                            Spacing="8" Margin="0,24">
+                                    <PathIcon Data="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" 
+                                              Width="32" Height="32"
+                                              Foreground="{DynamicResource BrushAccent}"/>
+                                    <TextBlock Text="Analyzing trend..." FontSize="13"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- No Trend Data -->
+                                <StackPanel IsVisible="{Binding !HasTrendAnalysis}"
+                                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                                            Spacing="8" Margin="0,24">
+                                    <PathIcon Data="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"
+                                              Width="32" Height="32"
+                                              Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="Not enough data for trend analysis" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="At least 3 data points are required" FontSize="12"
+                                               Foreground="{DynamicResource BrushTextTertiary}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Trend Analysis Content -->
+                                <StackPanel IsVisible="{Binding HasTrendAnalysis}" Spacing="16">
+                                    
+                                    <!-- Trend Direction -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Trend Direction" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding TrendAnalysis.TrendArrow}"
+                                                       FontSize="32" FontWeight="Bold"
+                                                       VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding TrendAnalysis.Direction, Converter={x:Static converters:MetricTrendDisplayConverter.Instance}}"
+                                                           FontSize="16" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <TextBlock Text="{Binding TrendAnalysis.Description}"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    
+                                    <!-- Statistics -->
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Statistics" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                        
+                                        <!-- Confidence -->
+                                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                CornerRadius="8" Padding="12">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="Confidence" FontSize="13"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding TrendConfidenceDescription}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            </Grid>
+                                        </Border>
+                                        
+                                        <!-- Slope -->
+                                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                CornerRadius="8" Padding="12">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="Rate of Change" FontSize="13"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0:F2} per day">
+                                                            <Binding Path="TrendAnalysis.Slope"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Border>
+                                        
+                                        <!-- Data Points -->
+                                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                CornerRadius="8" Padding="12">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="Data Points Analyzed" FontSize="13"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding TrendAnalysis.DataPointCount}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                    
+                                    <!-- Projection -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="30-Day Projection" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                        <Border Background="{DynamicResource BrushSurface}"
+                                                BorderBrush="{DynamicResource BrushBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8" Padding="12">
+                                            <TextBlock Text="{Binding TrendProjectionDescription}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </StackPanel>
+                                    
+                                    <!-- Value Range -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Value Range" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="First Value" FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                <TextBlock FontSize="16" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0:F2}">
+                                                            <Binding Path="TrendAnalysis.FirstValue"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextTertiary}">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}on {0:MMM d, yyyy}">
+                                                            <Binding Path="TrendAnalysis.FirstDate"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <PathIcon Grid.Column="1" Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+                                                      Width="24" Height="24"
+                                                      Foreground="{DynamicResource BrushTextTertiary}"
+                                                      VerticalAlignment="Center" Margin="8,0"/>
+                                            <StackPanel Grid.Column="2" Spacing="4">
+                                                <TextBlock Text="Latest Value" FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                <TextBlock FontSize="16" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0:F2}">
+                                                            <Binding Path="TrendAnalysis.LatestValue"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextTertiary}">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}on {0:MMM d, yyyy}">
+                                                            <Binding Path="TrendAnalysis.LatestDate"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                    
+                                </StackPanel>
                             </StackPanel>
                         </Panel>
                     </ScrollViewer>

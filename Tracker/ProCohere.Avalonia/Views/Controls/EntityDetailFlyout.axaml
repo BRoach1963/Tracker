@@ -353,6 +353,16 @@
                                 <TextBlock Text="Info" FontSize="9" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <!-- Prep Tab -->
+                        <Button Classes="flyout-tab" ToolTip.Tip="Prep Items"
+                                Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MeetingDetailTab.Prep}}"
+                                Command="{Binding SetMeetingDetailTabCommand}" CommandParameter="{x:Static models:MeetingDetailTab.Prep}">
+                            <StackPanel Spacing="4">
+                                <PathIcon Data="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4V14Z"
+                                          Width="16" Height="16"/>
+                                <TextBlock Text="Prep" FontSize="9" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <!-- Agenda Tab -->
                         <Button Classes="flyout-tab" ToolTip.Tip="Agenda"
                                 Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MeetingDetailTab.Agenda}}"
@@ -381,6 +391,16 @@
                                 <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,13V18H10V13H13Z"
                                           Width="16" Height="16"/>
                                 <TextBlock Text="Notes" FontSize="9" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <!-- Tasks Tab -->
+                        <Button Classes="flyout-tab" ToolTip.Tip="Tasks"
+                                Classes.selected="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MeetingDetailTab.Tasks}}"
+                                Command="{Binding SetMeetingDetailTabCommand}" CommandParameter="{x:Static models:MeetingDetailTab.Tasks}">
+                            <StackPanel Spacing="4">
+                                <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
+                                          Width="16" Height="16"/>
+                                <TextBlock Text="Tasks" FontSize="9" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -441,6 +461,27 @@
                                 </Button>
                             </StackPanel>
                             
+                            <!-- Recurrence -->
+                            <StackPanel IsVisible="{Binding RecurrenceRule, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Margin="0,12,0,0">
+                                <TextBlock Text="RECURRENCE" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                        BorderBrush="{DynamicResource BrushBorder}"
+                                        BorderThickness="1" CornerRadius="6" Padding="10">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <PathIcon Data="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z" 
+                                                  Width="14" Height="14"
+                                                  Foreground="{DynamicResource BrushSecondary}"
+                                                  VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding RecurrenceDisplay}" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                            
                             <!-- Quick Stats -->
                             <Grid ColumnDefinitions="*,*" Margin="0,16,0,0">
                                 <StackPanel Orientation="Horizontal" Spacing="4">
@@ -484,6 +525,92 @@
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    
+                    <!-- ===== PREP TAB ===== -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MeetingDetailTab.Prep}}">
+                        <StackPanel Margin="12,8,18,12">
+                            <TextBlock Text="PREP ITEMS" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,24,0,8"/>
+                            
+                            <!-- Empty state -->
+                            <TextBlock Text="No prep items" FontSize="12" Opacity="0.5" Margin="0,8,0,0"
+                                       IsVisible="{Binding LinkedPrepItems.Count, Converter={StaticResource EqualToZeroConverter}}"/>
+                            
+                            <!-- Prep items list -->
+                            <ItemsControl ItemsSource="{Binding LinkedPrepItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:MeetingPrepItem">
+                                        <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" 
+                                                Padding="10" Margin="0,0,0,8">
+                                            <StackPanel Spacing="6">
+                                                <!-- Status badge and title -->
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <!-- Status badge -->
+                                                    <Border Grid.Column="0" 
+                                                            CornerRadius="3" Padding="6,3" 
+                                                            VerticalAlignment="Top"
+                                                            Background="{Binding Status, Converter={StaticResource PrepItemStatusToBackgroundConverter}}">
+                                                        <TextBlock Text="{Binding Status, Converter={StaticResource PrepItemStatusToTextConverter}}" 
+                                                                   FontSize="9" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{Binding Status, Converter={StaticResource PrepItemStatusToForegroundConverter}}"/>
+                                                    </Border>
+                                                    
+                                                    <!-- Title -->
+                                                    <TextBlock Grid.Column="1" 
+                                                               Text="{Binding Title}" 
+                                                               FontSize="12" 
+                                                               FontWeight="Medium"
+                                                               TextWrapping="Wrap"
+                                                               Margin="8,0,0,0"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                </Grid>
+                                                
+                                                <!-- Body/Description -->
+                                                <TextBlock Text="{Binding Body}" 
+                                                           FontSize="11" 
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           IsVisible="{Binding Body, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                
+                                                <!-- Assignee info -->
+                                                <Grid ColumnDefinitions="Auto,*" 
+                                                      IsVisible="{Binding AssignedToName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                    <PathIcon Grid.Column="0"
+                                                              Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
+                                                              Width="11" Height="11" 
+                                                              VerticalAlignment="Center"
+                                                              Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Grid.Column="1" 
+                                                               FontSize="10" 
+                                                               Margin="6,0,0,0"
+                                                               Foreground="{DynamicResource BrushTextSecondary}">
+                                                        <Run Text="Assigned to"/>
+                                                        <Run Text="{Binding AssignedToName}" FontWeight="Medium"/>
+                                                    </TextBlock>
+                                                </Grid>
+                                                
+                                                <!-- Visibility scope -->
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <PathIcon Grid.Column="0"
+                                                              Data="{Binding VisibilityScope, Converter={StaticResource PrepItemVisibilityToIconConverter}}" 
+                                                              Width="11" Height="11" 
+                                                              VerticalAlignment="Center"
+                                                              Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Grid.Column="1" 
+                                                               Text="{Binding VisibilityScope, Converter={StaticResource PrepItemVisibilityToTextConverter}}" 
+                                                               FontSize="10" 
+                                                               Margin="6,0,0,0"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </ScrollViewer>
                     
@@ -613,6 +740,79 @@
                                     <TextBlock Text="Edit Notes" FontSize="12"/>
                                 </StackPanel>
                             </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                    
+                    <!-- ===== TASKS TAB ===== -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding MeetingDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MeetingDetailTab.Tasks}}">
+                        <StackPanel Margin="12,8,18,12">
+                            <TextBlock Text="LINKED TASKS" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,24,0,8"/>
+                            
+                            <!-- Empty state -->
+                            <TextBlock Text="No tasks linked to this meeting" FontSize="12" Opacity="0.5" Margin="0,8,0,0"
+                                       IsVisible="{Binding LinkedTasks.Count, Converter={StaticResource EqualToZeroConverter}}"/>
+                            
+                            <!-- Linked tasks list -->
+                            <ItemsControl ItemsSource="{Binding LinkedTasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:TaskDetail">
+                                        <Border Background="{DynamicResource BrushCardBackground}" CornerRadius="6" 
+                                                Padding="12" Margin="0,0,0,8"
+                                                BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                                <!-- Task Title -->
+                                                <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap"/>
+                                                
+                                                <!-- Status Badge -->
+                                                <Border Grid.Column="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Top"
+                                                        Background="{Binding Status, Converter={StaticResource TaskStatusToBackgroundConverter}}">
+                                                    <TextBlock Text="{Binding Status}" FontSize="9" FontWeight="SemiBold"
+                                                               Foreground="{Binding Status, Converter={StaticResource TaskStatusToForegroundConverter}}"/>
+                                                </Border>
+                                                
+                                                <!-- Task Details Row -->
+                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+                                                    <!-- Priority -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding Priority, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                        <PathIcon Data="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16" 
+                                                                  Width="10" Height="10" 
+                                                                  Foreground="{Binding Priority, Converter={StaticResource PriorityToBrushConverter}}"/>
+                                                        <TextBlock Text="{Binding Priority}" FontSize="10"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Assignee -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding AssignedToName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                        <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
+                                                                  Width="10" Height="10" 
+                                                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        <TextBlock Text="{Binding AssignedToName}" FontSize="10"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Due Date -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" 
+                                                                  Width="10" Height="10" 
+                                                                  Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                        <TextBlock Text="{Binding DueDate, StringFormat={}{0:MMM d}}" FontSize="10"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                
+                                                <!-- Description (if present) -->
+                                                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" 
+                                                           Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" MaxLines="2"
+                                                           Foreground="{DynamicResource BrushTextTertiary}" Margin="0,6,0,0"
+                                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </ScrollViewer>
                     
@@ -814,6 +1014,16 @@
                                 <TextBlock Text="Feed" FontSize="9" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <!-- Kudos Tab -->
+                        <Button Classes="flyout-tab" ToolTip.Tip="Kudos"
+                                Classes.selected="{Binding MemberDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MemberDetailTab.Kudos}}"
+                                Command="{Binding SetMemberDetailTabCommand}" CommandParameter="{x:Static models:MemberDetailTab.Kudos}">
+                            <StackPanel Spacing="4">
+                                <PathIcon Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                                          Width="16" Height="16"/>
+                                <TextBlock Text="Kudos" FontSize="9" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <!-- Team Tab - Only visible for managers -->
                         <Button Classes="flyout-tab" ToolTip.Tip="Direct Reports"
                                 IsVisible="{Binding IsManager}"
@@ -904,6 +1114,20 @@
                             
                             <!-- Quick Actions -->
                             <StackPanel Margin="0,16,0,0" Spacing="6">
+                                <Button Classes="action-button" HorizontalAlignment="Stretch"
+                                        Command="{Binding GiveKudosCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" Width="12" Height="12"/>
+                                        <TextBlock Text="Give Kudos" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="action-button" HorizontalAlignment="Stretch"
+                                        Command="{Binding SendMessageCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" Width="12" Height="12"/>
+                                        <TextBlock Text="Send Message" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
                                 <Button Classes="action-button" HorizontalAlignment="Stretch"
                                         Command="{Binding EditCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -1070,6 +1294,51 @@
                                                 <TextBlock Text="{Binding Content}" FontSize="11" TextWrapping="Wrap"
                                                            Foreground="{DynamicResource BrushTextSecondary}" MaxLines="3"
                                                            TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                    
+                    <!-- ===== KUDOS TAB ===== -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding MemberDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:MemberDetailTab.Kudos}}">
+                        <StackPanel Margin="12,8,12,12">
+                            <TextBlock Text="KUDOS RECEIVED" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextTertiary}" Margin="0,24,0,8"/>
+                            
+                            <!-- Empty state -->
+                            <TextBlock Text="No kudos yet" FontSize="12" Opacity="0.5" Margin="0,8,0,0"
+                                       IsVisible="{Binding MemberKudos.Count, Converter={StaticResource EqualToZeroConverter}}"/>
+                            
+                            <!-- Kudos list -->
+                            <ItemsControl ItemsSource="{Binding MemberKudos}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Kudos">
+                                        <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+                                            <StackPanel Spacing="6">
+                                                <!-- Category Badge + Date -->
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <Border CornerRadius="4" Padding="6,3" HorizontalAlignment="Left" Background="#F59E0B">
+                                                        <TextBlock Text="{Binding CategoryDisplay}" FontSize="10" FontWeight="SemiBold"
+                                                                   Foreground="White"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="1" Text="{Binding CreatedAt, StringFormat='{}{0:MMM d}'}" 
+                                                               FontSize="10" Foreground="{DynamicResource BrushTextTertiary}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <!-- Message -->
+                                                <TextBlock Text="{Binding Message}" FontSize="11" TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource BrushTextSecondary}" MaxLines="4"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <!-- Visibility indicator (if private) -->
+                                                <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsPublic}">
+                                                    <PathIcon Data="M12,17C10.89,17 10,16.1 10,15C10,13.89 10.89,13 12,13A2,2 0 0,1 14,15A2,2 0 0,1 12,17M18,20V10H6V20H18M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                                                              Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="Private" FontSize="9" FontStyle="Italic"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>

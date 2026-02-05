@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
@@ -11,10 +12,14 @@ namespace ProCohere.Avalonia.Views;
 public partial class MainWindow : Window
 {
     private bool _forceClose = false;
+    private readonly HelpWindowFactory _helpWindowFactory;
     
     public MainWindow()
     {
         InitializeComponent();
+        
+        // Initialize help factory with this window as parent
+        _helpWindowFactory = new HelpWindowFactory(this);
         
         // Wire up events after loading
         Loaded += OnLoaded;
@@ -81,6 +86,18 @@ public partial class MainWindow : Window
         {
             mainVm.SignOutRequested += OnLogoutRequested;
             mainVm.EditProfileRequested += OnEditProfileRequested;
+            mainVm.HelpRequested += OnHelpRequestedAsync;
+        }
+        
+        // Wire up BriefingViewModel navigation events
+        if (BriefingViewControl != null)
+        {
+            var briefingVm = BriefingViewControl.GetViewModel();
+            briefingVm.NavigateToProjectRequested += (_, projectId) => NavigateToProject(projectId);
+            briefingVm.NavigateToTaskRequested += (_, taskId) => NavigateToTask(taskId);
+            briefingVm.NavigateToGoalRequested += (_, goalId) => NavigateToGoal(goalId);
+            briefingVm.NavigateToMetricRequested += (_, metricId) => NavigateToMetric(metricId);
+            briefingVm.NavigateToMeetingRequested += (_, meetingId) => NavigateToMeeting(meetingId);
         }
     }
 
@@ -118,6 +135,18 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error showing edit profile dialog: {ex.Message}");
+        }
+    }
+    
+    private async Task OnHelpRequestedAsync(string? initialTopicId)
+    {
+        try
+        {
+            await _helpWindowFactory.ShowHelpWindowAsync(initialTopicId ?? "overview");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Failed to show help window: {ex.Message}");
         }
     }
 
@@ -172,8 +201,90 @@ public partial class MainWindow : Window
         {
             mainVm.SignOutRequested -= OnLogoutRequested;
             mainVm.EditProfileRequested -= OnEditProfileRequested;
+            mainVm.HelpRequested -= OnHelpRequestedAsync;
         }
         
         base.OnClosed(e);
+    }
+
+    #region Navigation Helpers
+
+    /// <summary>
+    /// Navigates to Projects tab (already implemented via existing event).
+    /// </summary>
+    private void NavigateToProject(Guid projectId)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedNavigation = NavigationItem.Projects;
+            // TODO: Select specific project if needed
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Projects for project {projectId}");
+        }
+    }
+
+    /// <summary>
+    /// Navigates to Tasks tab and selects specific task.
+    /// </summary>
+    private void NavigateToTask(Guid taskId)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedNavigation = NavigationItem.Tasks;
+            // TODO: TasksViewModel.SelectTask(taskId) when implemented
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Tasks for task {taskId}");
+        }
+    }
+
+    /// <summary>
+    /// Navigates to Goals tab and selects specific goal.
+    /// </summary>
+    private void NavigateToGoal(Guid goalId)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedNavigation = NavigationItem.Goals;
+            // TODO: GoalsViewModel.SelectGoal(goalId) when implemented
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Goals for goal {goalId}");
+        }
+    }
+
+    /// <summary>
+    /// Navigates to Metrics tab and selects specific metric.
+    /// </summary>
+    private void NavigateToMetric(Guid metricId)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedNavigation = NavigationItem.Metrics;
+            // TODO: MetricsViewModel.SelectMetric(metricId) when implemented
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Metrics for metric {metricId}");
+        }
+    }
+
+    /// <summary>
+    /// Navigates to Me tab for meeting (1-on-1s).
+    /// </summary>
+    private void NavigateToMeeting(Guid meetingId)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedNavigation = NavigationItem.Me;
+            // TODO: MeViewModel.SelectMeeting(meetingId) when implemented
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Me for meeting {meetingId}");
+        }
+    }
+
+    #endregion
+    
+    private async void About_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await AppDialogService.ShowAboutDialogAsync(this);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error showing About dialog: {ex.Message}");
+        }
     }
 }

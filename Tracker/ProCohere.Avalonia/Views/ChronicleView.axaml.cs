@@ -9,12 +9,14 @@ using Avalonia.Input;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Views.Controls;
+using ProCohere.Avalonia.Attributes;
 
 namespace ProCohere.Avalonia.Views;
 
 /// <summary>
 /// Chronicle view - displays notes in a responsive card grid layout.
 /// </summary>
+[HelpContext("chronicle", ContextName = "ChronicleView")]
 public partial class ChronicleView : UserControl
 {
     private ChronicleViewModel? _viewModel;

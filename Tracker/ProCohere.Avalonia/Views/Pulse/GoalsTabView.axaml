@@ -5,6 +5,7 @@
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:local="using:ProCohere.Avalonia.Views.Pulse"
+             xmlns:converters="using:ProCohere.Avalonia.Converters"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.Pulse.GoalsTabView"
              x:DataType="vm:GoalsViewModel">
@@ -70,6 +71,24 @@
         <Style Selector="Border.detail-panel.open">
             <Setter Property="RenderTransform" Value="translate(0, 0)"/>
             <Setter Property="Opacity" Value="1"/>
+        </Style>
+        
+        <!-- Tab Button Style -->
+        <Style Selector="Border.tab-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.tab-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceHover}"/>
+        </Style>
+        <Style Selector="Border.tab-btn.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+        </Style>
+        <Style Selector="Border.tab-btn.selected TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
     </UserControl.Styles>
     
@@ -308,7 +327,7 @@
                     Classes.open="{Binding IsDetailFlyoutOpen}"
                     Width="340" Margin="0,0,0,0"
                     IsVisible="{Binding SelectedGoal, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <Grid RowDefinitions="Auto,*">
+                <Grid RowDefinitions="Auto,Auto,*">
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource BrushBorder}" 
                             BorderThickness="0,0,0,1" Padding="16">
@@ -324,9 +343,26 @@
                         </Grid>
                     </Border>
                     
+                    <!-- Tab Strip -->
+                    <Border Grid.Row="1" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="tab-btn" Classes.selected="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=0}"
+                                    Tapped="TabDetails_Tapped">
+                                <TextBlock Text="Details" FontSize="13"/>
+                            </Border>
+                            <Border Classes="tab-btn" Classes.selected="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=1}"
+                                    Tapped="TabTrajectory_Tapped">
+                                <TextBlock Text="Trajectory" FontSize="13"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    
                     <!-- Content -->
-                    <ScrollViewer Grid.Row="1" Padding="16">
-                        <StackPanel Spacing="16" DataContext="{Binding SelectedGoal}">
+                    <ScrollViewer Grid.Row="2" Padding="16">
+                        <Panel>
+                            <!-- Details Tab -->
+                            <StackPanel Spacing="16" DataContext="{Binding SelectedGoal}"
+                                        IsVisible="{Binding $parent[UserControl].((vm:GoalsViewModel)DataContext).DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=0}">
                             <!-- Title -->
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Title" FontSize="11" FontWeight="Medium"
@@ -433,6 +469,188 @@
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
+                        
+                        <!-- Trajectory Tab -->
+                        <StackPanel Spacing="16"
+                                    IsVisible="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=1}">
+                            
+                            <!-- Loading State -->
+                            <StackPanel IsVisible="{Binding IsLoadingTrajectory}"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        Spacing="8" Margin="0,24">
+                                <PathIcon Data="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" 
+                                          Width="32" Height="32"
+                                          Foreground="{DynamicResource BrushAccent}"/>
+                                <TextBlock Text="Analyzing trajectory..." FontSize="13"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- No Trajectory Data -->
+                            <StackPanel IsVisible="{Binding !HasTrajectory}"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        Spacing="8" Margin="0,24">
+                                <PathIcon Data="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"
+                                          Width="32" Height="32"
+                                          Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="No trajectory data" FontSize="13"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Set a due date to enable predictions" FontSize="12"
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Trajectory Content -->
+                            <StackPanel IsVisible="{Binding HasTrajectory}" Spacing="16">
+                                
+                                <!-- Status Card -->
+                                <Border Background="{DynamicResource BrushSurface}"
+                                        BorderBrush="{DynamicResource BrushBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="8" Padding="16">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Trajectory.StatusIcon}"
+                                                   FontSize="32" VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding TrajectoryStatusDisplay}"
+                                                       FontSize="18" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding Trajectory.Description}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Completion Probability -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Completion Probability" FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                            CornerRadius="8" Padding="12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="Likelihood of on-time completion" FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding TrajectoryProbabilityDisplay}"
+                                                       FontSize="18" FontWeight="Bold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Time Remaining -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Time Remaining" FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                            CornerRadius="8" Padding="12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="Days until due date" FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Trajectory.DaysRemainingDisplay}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Confidence -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Prediction Confidence" FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                            CornerRadius="8" Padding="12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="Based on data quality" FontSize="13"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Trajectory.ConfidenceLevel}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Linked Metrics Summary -->
+                                <StackPanel Spacing="4"
+                                            IsVisible="{Binding Trajectory.HasLinkedMetrics}">
+                                    <TextBlock Text="Linked Metrics Analysis" FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                    <ItemsControl ItemsSource="{Binding Trajectory.MetricPredictions}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                        CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                                        <!-- On Track Indicator -->
+                                                        <Ellipse Grid.Column="0" Width="8" Height="8"
+                                                                 Margin="0,0,8,0" VerticalAlignment="Center">
+                                                            <Ellipse.Fill>
+                                                                <SolidColorBrush Color="{Binding IsOnTrack, Converter={x:Static local:GoalsTabView.TrajectoryStatusColorConverter}}"/>
+                                                            </Ellipse.Fill>
+                                                        </Ellipse>
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock Text="{Binding MetricName}" FontSize="12" FontWeight="Medium"
+                                                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Assessment}" FontSize="11"
+                                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                        <!-- Trend Arrow -->
+                                                        <TextBlock Grid.Column="2" 
+                                                                   Text="{Binding TrendDirection, Converter={x:Static converters:MetricTrendDisplayConverter.Instance}}"
+                                                                   FontSize="14" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                
+                                <!-- Projected Completion (if available) -->
+                                <StackPanel Spacing="4"
+                                            IsVisible="{Binding Trajectory.ProjectedCompletionDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <TextBlock Text="Projected Completion" FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
+                                    <Border Background="{DynamicResource BrushSurface}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="8" Padding="12">
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource BrushTextPrimary}">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}Based on current progress: {0:MMM d, yyyy}">
+                                                    <Binding Path="Trajectory.ProjectedCompletionDate"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Run What-If Scenario Button -->
+                                <Button HorizontalAlignment="Stretch"
+                                        Padding="12"
+                                        Background="{DynamicResource BrushSecondary}"
+                                        Foreground="White"
+                                        CornerRadius="8"
+                                        Click="RunScenario_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                        <PathIcon Data="M3,22V8H7V22H3M10,22V2H14V22H10M17,22V14H21V22H17Z" 
+                                                  Width="14" Height="14" Foreground="White"/>
+                                        <TextBlock Text="Run What-If Scenario" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                            </StackPanel>
+                        </StackPanel>
+                        </Panel>
                     </ScrollViewer>
                 </Grid>
             </Border>

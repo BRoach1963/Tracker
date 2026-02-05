@@ -1,10 +1,12 @@
 using Avalonia.Controls;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Attributes;
 using System;
 
 namespace ProCohere.Avalonia.Views.Briefing;
 
+[HelpContext("briefing", ContextName = "BriefingView")]
 public partial class BriefingView : UserControl
 {
     private readonly BriefingViewModel _viewModel;
@@ -21,6 +23,11 @@ public partial class BriefingView : UserControl
         _viewModel.CreateGoalDialogRequested += OnCreateGoalDialogRequested;
         _viewModel.CreateNoteDialogRequested += OnCreateNoteDialogRequested;
     }
+
+    /// <summary>
+    /// Exposes ViewModel for event subscriptions (e.g., navigation events).
+    /// </summary>
+    public BriefingViewModel GetViewModel() => _viewModel;
 
     private async void OnCreateTaskDialogRequested(object? sender, EventArgs e)
     {

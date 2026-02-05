@@ -43,6 +43,7 @@
             <!-- Converters -->
             <converters:EnumEqualConverter x:Key="EnumEqualConverter"/>
             <converters:EnumNotEqualConverter x:Key="EnumNotEqualConverter"/>
+            <converters:IntEqualConverter x:Key="IntEqualConverter"/>
             <converters:NavWidthConverter x:Key="NavWidthConverter"/>
             <converters:CollapseIconConverter x:Key="CollapseIconConverter"/>
             <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
@@ -55,6 +56,15 @@
             <converters:GoalDerivedHealthToBackgroundConverter x:Key="GoalDerivedHealthToBackgroundConverter"/>
             <converters:GoalDerivedHealthToDisplayConverter x:Key="GoalDerivedHealthToDisplayConverter"/>
             <converters:GoalDerivedHealthToPromptConverter x:Key="GoalDerivedHealthToPromptConverter"/>
+            <converters:TaskStatusToBackgroundConverter x:Key="TaskStatusToBackgroundConverter"/>
+            <converters:TaskStatusToForegroundConverter x:Key="TaskStatusToForegroundConverter"/>
+            <converters:PriorityToBrushConverter x:Key="PriorityToBrushConverter"/>
+            <converters:RecurrencePatternToUnitConverter x:Key="RecurrencePatternToUnitConverter"/>
+            <converters:PrepItemStatusToBackgroundConverter x:Key="PrepItemStatusToBackgroundConverter"/>
+            <converters:PrepItemStatusToForegroundConverter x:Key="PrepItemStatusToForegroundConverter"/>
+            <converters:PrepItemStatusToTextConverter x:Key="PrepItemStatusToTextConverter"/>
+            <converters:PrepItemVisibilityToIconConverter x:Key="PrepItemVisibilityToIconConverter"/>
+            <converters:PrepItemVisibilityToTextConverter x:Key="PrepItemVisibilityToTextConverter"/>
             <converters:TreeDepthToMarginConverter x:Key="TreeDepthToMarginConverter"/>
             <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
             <converters:TopOffsetToMarginConverter x:Key="TopOffsetToMarginConverter"/>
@@ -76,6 +86,7 @@
             <converters:MetricTrendToSignalBrushConverter x:Key="MetricTrendToSignalBrushConverter"/>
             <converters:DateTimeToAgeConverter x:Key="DateTimeToAgeConverter"/>
             <converters:AgendaStatusToBrushConverter x:Key="AgendaStatusToBrushConverter"/>
+            <converters:PercentToWidthConverter x:Key="PercentToWidthConverter"/>
         </ResourceDictionary>
     </Application.Resources>
   

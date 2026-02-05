@@ -253,6 +253,9 @@ public class MeetingService
             // Create reminder for the meeting if enabled
             await CreateMeetingReminderIfEnabledAsync(reloadedMeeting);
             
+            // Auto-sync to Google Calendar if enabled
+            await TrySyncToCalendarAsync(reloadedMeeting);
+            
             return reloadedMeeting;
         }
         catch (Exception ex)
@@ -304,6 +307,10 @@ public class MeetingService
             }
 
             Log($"Meeting updated: {meeting.Id}");
+            
+            // Auto-sync to Google Calendar if enabled
+            await TrySyncToCalendarAsync(meeting);
+            
             return true;
         }
         catch (Exception ex)
@@ -775,6 +782,289 @@ public class MeetingService
         catch (Exception ex)
         {
             Log($"Failed to update meeting reminder: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region Calendar Integration
+
+    /// <summary>
+    /// Syncs a meeting to Google Calendar if integration is enabled and connected.
+    /// Creates or updates the calendar event and updates meeting with event ID.
+    /// </summary>
+    public async Task<bool> SyncToGoogleCalendarAsync(MeetingDetail meeting)
+    {
+        return await SyncToCalendarAsync(meeting, "google");
+    }
+
+    /// <summary>
+    /// Syncs a meeting to Microsoft Calendar if integration is enabled and connected.
+    /// Creates or updates the calendar event and updates meeting with event ID.
+    /// </summary>
+    public async Task<bool> SyncToMicrosoftCalendarAsync(MeetingDetail meeting)
+    {
+        return await SyncToCalendarAsync(meeting, "microsoft");
+    }
+
+    /// <summary>
+    /// Syncs a meeting to the specified calendar provider.
+    /// </summary>
+    private async Task<bool> SyncToCalendarAsync(MeetingDetail meeting, string provider)
+    {
+        LastError = null;
+
+        try
+        {
+            Log($"Starting {provider} Calendar sync for meeting {meeting.Id}");
+
+            var client = AuthService.Instance.GetProCohereClient();
+            if (client == null)
+            {
+                LastError = "Not authenticated";
+                return false;
+            }
+
+            var session = AuthService.Instance.CurrentSession_ProCohere;
+            if (session?.TeamMember == null)
+            {
+                LastError = "No team member session";
+                return false;
+            }
+
+            // Get active calendar integration for provider
+            var integrationResponse = await client
+                .From<CalendarIntegration>()
+                .Filter("team_member_id", Operator.Equals, session.TeamMember.Id)
+                .Filter("provider", Operator.Equals, provider)
+                .Filter("sync_enabled", Operator.Equals, true)
+                .Filter("is_deleted", Operator.Equals, false)
+                .Single();
+
+            if (integrationResponse == null)
+            {
+                LastError = $"No active {provider} Calendar integration";
+                Log($"No {provider} Calendar integration found");
+                return false;
+            }
+
+            // Initialize calendar service based on provider
+            bool initSuccess;
+            if (provider == "google")
+            {
+                initSuccess = await GoogleCalendarService.Instance.InitializeFromIntegrationAsync(integrationResponse);
+                if (!initSuccess)
+                {
+                    LastError = GoogleCalendarService.Instance.LastError ?? $"Failed to initialize {provider} Calendar";
+                }
+            }
+            else if (provider == "microsoft")
+            {
+                initSuccess = await MicrosoftCalendarService.Instance.InitializeFromIntegrationAsync(integrationResponse);
+                if (!initSuccess)
+                {
+                    LastError = MicrosoftCalendarService.Instance.LastError ?? $"Failed to initialize {provider} Calendar";
+                }
+            }
+            else
+            {
+                LastError = $"Unsupported provider: {provider}";
+                return false;
+            }
+
+            if (!initSuccess)
+            {
+                Log($"Failed to initialize: {LastError}");
+                return false;
+            }
+
+            // Create or update calendar event
+            string? eventId;
+            if (string.IsNullOrEmpty(meeting.CalendarEventId))
+            {
+                // Create new event
+                if (provider == "google")
+                {
+                    eventId = await GoogleCalendarService.Instance.CreateEventAsync(meeting);
+                    LastError = GoogleCalendarService.Instance.LastError;
+                }
+                else // microsoft
+                {
+                    eventId = await MicrosoftCalendarService.Instance.CreateEventAsync(meeting);
+                    LastError = MicrosoftCalendarService.Instance.LastError;
+                }
+
+                if (eventId == null)
+                {
+                    LastError ??= "Failed to create calendar event";
+                    Log($"Failed to create event: {LastError}");
+                    return false;
+                }
+
+                Log($"Created calendar event: {eventId}");
+            }
+            else
+            {
+                // Update existing event
+                bool updateSuccess;
+                if (provider == "google")
+                {
+                    updateSuccess = await GoogleCalendarService.Instance.UpdateEventAsync(meeting.CalendarEventId, meeting);
+                    LastError = GoogleCalendarService.Instance.LastError;
+                }
+                else // microsoft
+                {
+                    updateSuccess = await MicrosoftCalendarService.Instance.UpdateEventAsync(meeting.CalendarEventId, meeting);
+                    LastError = MicrosoftCalendarService.Instance.LastError;
+                }
+
+                if (!updateSuccess)
+                {
+                    LastError ??= "Failed to update calendar event";
+                    Log($"Failed to update event: {LastError}");
+                    return false;
+                }
+
+                eventId = meeting.CalendarEventId;
+                Log($"Updated calendar event: {eventId}");
+            }
+
+            // Update meeting with calendar info
+            meeting.CalendarEventId = eventId;
+            meeting.CalendarProvider = provider;
+            meeting.CalendarLinkId = integrationResponse.Id;
+            meeting.LastSyncedAt = DateTime.UtcNow;
+            meeting.SyncStatus = "synced";
+
+            var updateMeetingSuccess = await UpdateMeetingAsync(meeting);
+            if (!updateMeetingSuccess)
+            {
+                Log($"Failed to update meeting calendar fields: {LastError}");
+                return false;
+            }
+
+            Log($"Successfully synced meeting to Google Calendar");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"Calendar sync error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Removes a meeting from Google Calendar.
+    /// </summary>
+    public async Task<bool> UnsyncFromGoogleCalendarAsync(MeetingDetail meeting)
+    {
+        LastError = null;
+
+        if (string.IsNullOrEmpty(meeting.CalendarEventId) || meeting.CalendarProvider != "google")
+        {
+            return true; // Nothing to unsync
+        }
+
+        try
+        {
+            Log($"Unsyncing meeting {meeting.Id} from Google Calendar");
+
+            var client = AuthService.Instance.GetProCohereClient();
+            if (client == null)
+            {
+                LastError = "Not authenticated";
+                return false;
+            }
+
+            var session = AuthService.Instance.CurrentSession_ProCohere;
+            if (session?.TeamMember == null)
+            {
+                LastError = "No team member session";
+                return false;
+            }
+
+            // Get integration
+            var integrationResponse = await client
+                .From<CalendarIntegration>()
+                .Filter("id", Operator.Equals, meeting.CalendarLinkId ?? Guid.Empty)
+                .Single();
+
+            if (integrationResponse == null)
+            {
+                Log("Calendar integration not found, clearing local fields only");
+            }
+            else
+            {
+                // Initialize service based on provider and delete event
+                if (integrationResponse.Provider == "google")
+                {
+                    var initSuccess = await GoogleCalendarService.Instance.InitializeFromIntegrationAsync(integrationResponse);
+                    if (initSuccess)
+                    {
+                        await GoogleCalendarService.Instance.DeleteEventAsync(meeting.CalendarEventId);
+                        Log($"Deleted Google calendar event: {meeting.CalendarEventId}");
+                    }
+                }
+                else if (integrationResponse.Provider == "microsoft")
+                {
+                    var initSuccess = await MicrosoftCalendarService.Instance.InitializeFromIntegrationAsync(integrationResponse);
+                    if (initSuccess)
+                    {
+                        await MicrosoftCalendarService.Instance.DeleteEventAsync(meeting.CalendarEventId);
+                        Log($"Deleted Microsoft calendar event: {meeting.CalendarEventId}");
+                    }
+                }
+            }
+
+            // Clear calendar fields
+            meeting.CalendarEventId = null;
+            meeting.CalendarProvider = null;
+            meeting.CalendarLinkId = null;
+            meeting.LastSyncedAt = null;
+            meeting.SyncStatus = null;
+
+            await UpdateMeetingAsync(meeting);
+
+            Log("Meeting unsynced from Google Calendar");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"Unsync error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Attempts to auto-sync meeting to calendar if integration is enabled.
+    /// Silently fails if no integration exists. Tries both Google and Microsoft.
+    /// </summary>
+    private async Task TrySyncToCalendarAsync(MeetingDetail? meeting)
+    {
+        if (meeting == null) return;
+
+        try
+        {
+            // Check if Google Calendar integration exists and is enabled
+            var googleIntegration = await CalendarIntegrationService.Instance.GetGoogleIntegrationAsync();
+            if (googleIntegration != null && googleIntegration.SyncEnabled)
+            {
+                await SyncToGoogleCalendarAsync(meeting);
+            }
+
+            // Check if Microsoft Calendar integration exists and is enabled
+            var msIntegration = await CalendarIntegrationService.Instance.GetMicrosoftIntegrationAsync();
+            if (msIntegration != null && msIntegration.SyncEnabled)
+            {
+                await SyncToMicrosoftCalendarAsync(meeting);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the meeting operation if sync fails
+            Log($"Auto-sync failed (non-critical): {ex.Message}");
         }
     }
 

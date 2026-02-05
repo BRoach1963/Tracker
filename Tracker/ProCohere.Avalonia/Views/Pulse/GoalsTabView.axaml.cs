@@ -6,8 +6,10 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data.Converters;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Views.Controls;
 
@@ -43,6 +45,17 @@ public partial class GoalsTabView : UserControl
             GoalHealth.AtRisk => new SolidColorBrush(Color.Parse("#14EF4444")),
             GoalHealth.ReframingNeeded => new SolidColorBrush(Color.Parse("#148B5CF6")),
             _ => new SolidColorBrush(Color.Parse("#146B7280"))
+        });
+
+    /// <summary>
+    /// Converter: bool? IsOnTrack -> Color for trajectory status dot
+    /// </summary>
+    public static readonly FuncValueConverter<bool?, Color> TrajectoryStatusColorConverter =
+        new(isOnTrack => isOnTrack switch
+        {
+            true => Color.Parse("#22C55E"),   // Green - on track
+            false => Color.Parse("#EF4444"),  // Red - off track
+            null => Color.Parse("#9CA3AF")    // Gray - unknown
         });
 
     public GoalsTabView()
@@ -141,6 +154,37 @@ public partial class GoalsTabView : UserControl
             if (DataContext is GoalsViewModel vm)
             {
                 vm.SelectGoalCommand.Execute(goal);
+            }
+        }
+    }
+
+    private void TabDetails_Tapped(object? sender, TappedEventArgs e)
+    {
+        Log("[GoalsTabView] Tab: Details");
+        if (DataContext is GoalsViewModel vm)
+        {
+            vm.SetDetailTabCommand.Execute("0");
+        }
+    }
+
+    private void TabTrajectory_Tapped(object? sender, TappedEventArgs e)
+    {
+        Log("[GoalsTabView] Tab: Trajectory");
+        if (DataContext is GoalsViewModel vm)
+        {
+            vm.SetDetailTabCommand.Execute("1");
+        }
+    }
+
+    private async void RunScenario_Click(object? sender, RoutedEventArgs e)
+    {
+        Log("[GoalsTabView] RunScenario_Click");
+        if (DataContext is GoalsViewModel vm && vm.Trajectory != null)
+        {
+            var window = TopLevel.GetTopLevel(this) as Window;
+            if (window != null)
+            {
+                await AppDialogService.ShowWhatIfDialogAsync(window, vm.Trajectory);
             }
         }
     }

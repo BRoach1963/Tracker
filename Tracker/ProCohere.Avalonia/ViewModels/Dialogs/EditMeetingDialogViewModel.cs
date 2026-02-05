@@ -99,6 +99,18 @@ public partial class EditMeetingDialogViewModel : ObservableObject
     [ObservableProperty]
     private string? _videoLink;
     
+    [ObservableProperty]
+    private bool _isRecurringEnabled;
+    
+    [ObservableProperty]
+    private int _recurrencePatternIndex = -1; // daily (0), weekly (1), monthly (2)
+    
+    [ObservableProperty]
+    private int _recurrenceInterval = 1;
+    
+    [ObservableProperty]
+    private DateTime? _recurrenceEndDate;
+    
     // Note: _notes removed - now using MeetingNotes collection
     
     [ObservableProperty]
@@ -190,6 +202,13 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         "other" => "General meeting—customize attendees as needed",
         _ => ""
     };
+    
+    #endregion
+    
+    #region Constants
+    
+    // Recurrence patterns matching XAML order: daily (0), weekly (1), monthly (2)
+    private static readonly string[] RecurrencePatterns = { "daily", "weekly", "monthly" };
     
     #endregion
     
@@ -318,6 +337,13 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         DurationMinutes = meeting.DurationMinutes ?? 30;
         Location = meeting.Location;
         VideoLink = meeting.VideoLink;
+        
+        // Load recurrence if present
+        if (!string.IsNullOrEmpty(meeting.RecurrenceRule))
+        {
+            IsRecurringEnabled = true;
+            ParseRecurrenceRule(meeting.RecurrenceRule);
+        }
         
         // Set attendee for 1:1 meetings
         if (meeting.TeamMemberId.HasValue)
@@ -862,7 +888,9 @@ public partial class EditMeetingDialogViewModel : ObservableObject
             ScheduledAt = ScheduledDateTime!.Value,
             DurationMinutes = DurationMinutes,
             Location = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
-            VideoLink = string.IsNullOrWhiteSpace(VideoLink) ? null : VideoLink.Trim()
+            VideoLink = string.IsNullOrWhiteSpace(VideoLink) ? null : VideoLink.Trim(),
+            RecurrenceRule = BuildRecurrenceRule(),
+            MeetingSeriesId = IsRecurringEnabled ? Guid.NewGuid() : null
         };
         
         // Get attendee IDs
@@ -937,6 +965,7 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         _existingMeeting.DurationMinutes = DurationMinutes;
         _existingMeeting.Location = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim();
         _existingMeeting.VideoLink = string.IsNullOrWhiteSpace(VideoLink) ? null : VideoLink.Trim();
+        _existingMeeting.RecurrenceRule = BuildRecurrenceRule();
         
         var success = await MeetingService.Instance.UpdateMeetingAsync(_existingMeeting);
         
@@ -1428,6 +1457,65 @@ public partial class EditMeetingDialogViewModel : ObservableObject
         {
             Log($"Failed to load team members: {ex.Message}");
         }
+    }
+    
+    #endregion
+    
+    #region Recurrence Helpers
+    
+    private void ParseRecurrenceRule(string recurrenceRule)
+    {
+        // Parse RecurrenceRule string (e.g., "FREQ=DAILY;INTERVAL=2;UNTIL=2026-12-31")
+        try
+        {
+            var parts = recurrenceRule.Split(';');
+            foreach (var part in parts)
+            {
+                var keyValue = part.Split('=');
+                if (keyValue.Length != 2) continue;
+                
+                var key = keyValue[0].Trim().ToUpperInvariant();
+                var value = keyValue[1].Trim();
+                
+                switch (key)
+                {
+                    case "FREQ":
+                        RecurrencePatternIndex = value.ToUpperInvariant() switch
+                        {
+                            "DAILY" => 0,
+                            "WEEKLY" => 1,
+                            "MONTHLY" => 2,
+                            _ => 0
+                        };
+                        break;
+                    case "INTERVAL":
+                        if (int.TryParse(value, out var interval))
+                            RecurrenceInterval = interval;
+                        break;
+                    case "UNTIL":
+                        if (DateTime.TryParse(value, out var until))
+                            RecurrenceEndDate = until;
+                        break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Failed to parse recurrence rule: {ex.Message}");
+        }
+    }
+    
+    private string BuildRecurrenceRule()
+    {
+        if (!IsRecurringEnabled) return string.Empty;
+        
+        var pattern = RecurrencePatterns[RecurrencePatternIndex].ToUpperInvariant();
+        var rule = $"FREQ={pattern};INTERVAL={RecurrenceInterval}";
+        
+        if (RecurrenceEndDate.HasValue)
+            rule += $";UNTIL={RecurrenceEndDate.Value:yyyy-MM-dd}";
+        
+        return rule;
     }
     
     #endregion

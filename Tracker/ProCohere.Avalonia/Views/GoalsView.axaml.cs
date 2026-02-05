@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.Attributes;
 
 namespace ProCohere.Avalonia.Views;
 
@@ -11,6 +12,7 @@ namespace ProCohere.Avalonia.Views;
 /// This is the authoritative destination for browsing and managing goals.
 /// Quick Access from Pulse navigates here (not to Circle tabs).
 /// </summary>
+[HelpContext("goals", ContextName = "GoalsView")]
 public partial class GoalsView : UserControl
 {
     private GoalsViewModel? _viewModel;

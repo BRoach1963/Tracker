@@ -399,7 +399,12 @@ public class TaskService
         DateTime? dueDate = null,
         Guid? assignedTo = null,
         string? sourceType = null,
-        Guid? sourceId = null)
+        Guid? sourceId = null,
+        Guid? goalId = null,
+        bool isRecurring = false,
+        string? recurrencePattern = null,
+        int recurrenceInterval = 1,
+        DateTime? recurrenceEndDate = null)
     {
         LastError = null;
         var client = AuthService.Instance.GetProCohereClient();
@@ -427,6 +432,11 @@ public class TaskService
                 CreatedByTeamMemberId = profile.Id,
                 SourceType = sourceType,
                 SourceId = sourceId,
+                GoalId = goalId,
+                IsRecurring = isRecurring,
+                RecurrencePattern = isRecurring ? recurrencePattern : null,
+                RecurrenceInterval = isRecurring ? recurrenceInterval : 1,
+                RecurrenceEndDate = isRecurring ? recurrenceEndDate : null,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow
             };
@@ -476,6 +486,48 @@ public class TaskService
         );
 
         return task;
+    }
+
+    /// <summary>
+    /// Gets all tasks linked to a specific meeting (via agenda items or direct meeting link).
+    /// Returns tasks WHERE source_id = meetingId AND source_type IN ('meeting', 'agenda_item').
+    /// </summary>
+    public async Task<List<TaskDetail>> GetTasksForMeetingAsync(Guid meetingId)
+    {
+        Log($"Fetching tasks for meeting: {meetingId}");
+        LastError = null;
+        
+        try
+        {
+            var client = AuthService.Instance.GetProCohereClient();
+            if (client == null)
+            {
+                Log("No Supabase client available");
+                return new List<TaskDetail>();
+            }
+
+            var response = await client
+                .From<TaskDetail>()
+                .Where(t => t.SourceId == meetingId && (t.SourceType == "meeting" || t.SourceType == "agenda_item"))
+                .Where(t => !t.IsDeleted)
+                .Order("created_at", Ordering.Descending)
+                .Get();
+
+            if (response?.Models != null)
+            {
+                Log($"Found {response.Models.Count} linked tasks for meeting {meetingId}");
+                return response.Models;
+            }
+
+            Log("No linked tasks found for meeting");
+            return new List<TaskDetail>();
+        }
+        catch (Exception ex)
+        {
+            Log($"Error fetching tasks for meeting: {ex.Message}");
+            LastError = ex.Message;
+            return new List<TaskDetail>();
+        }
     }
 
     /// <summary>

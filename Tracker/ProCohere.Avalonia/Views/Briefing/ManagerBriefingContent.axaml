@@ -31,7 +31,7 @@
          - My Meetings (secondary)
     -->
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
         <!-- Row 0: This Week at a Glance - Sparkline (ONLY visible in Week View per spec) -->
         <Border Grid.Row="0" Background="{DynamicResource BrushSurface}" CornerRadius="10" Padding="16,14"
@@ -118,8 +118,95 @@
             </Grid>
         </Border>
 
-        <!-- Row 2: Main Content - Tasks as anchor, Meetings secondary -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,*">
+        <!-- Row 2: AI Insights (only visible when HasAIInsights = true) -->
+        <Border Grid.Row="2" IsVisible="{Binding HasAIInsights}"
+                Background="{DynamicResource BrushSurface}" CornerRadius="10" Padding="14"
+                Margin="0,4,0,12" BorderBrush="{DynamicResource BrushPrimarySoft}" BorderThickness="1">
+            <Grid RowDefinitions="Auto,Auto">
+                <!-- Header -->
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z" 
+                                  Width="16" Height="16" 
+                                  Foreground="{DynamicResource BrushPrimary}"/>
+                        <TextBlock Text="AI Insights" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Insights List -->
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding AIInsights}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!-- InsightCard component - State flows FROM ViewModel TO View -->
+                            <Border Background="{DynamicResource BrushBackground}" 
+                                    CornerRadius="8" Padding="12" Margin="0,0,0,8"
+                                    BorderBrush="{Binding SeverityColor}" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
+                                    <!-- Row 0: Header with icon, title, time -->
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,6">
+                                        <PathIcon Grid.Column="0" Data="{Binding SeverityIcon}" 
+                                                  Width="16" Height="16" 
+                                                  Foreground="{Binding SeverityColor}"
+                                                  Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Title}" 
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding RelativeTime}" 
+                                                   FontSize="10" 
+                                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                                   Margin="8,0,0,0"/>
+                                    </Grid>
+
+                                    <!-- Row 1: Description -->
+                                    <TextBlock Grid.Row="1" Text="{Binding Content}" 
+                                               FontSize="12" 
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Margin="24,0,0,8"/>
+
+                                    <!-- Row 2: Actions - Commands flow FROM View TO ViewModel -->
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="24,4,0,0">
+                                        <Button Command="{Binding $parent[UserControl].((vm:BriefingViewModel)DataContext).ViewInsightCommand}"
+                                                CommandParameter="{Binding}"
+                                                Classes="text-button"
+                                                IsVisible="{Binding EntityId, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z" 
+                                                          Width="12" Height="12"/>
+                                                <TextBlock Text="View" FontSize="11"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding $parent[UserControl].((vm:BriefingViewModel)DataContext).SnoozeInsightCommand}"
+                                                CommandParameter="{Binding}"
+                                                Classes="text-button">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="M9,2V4H7V6H9V7.09C6.16,7.57 4,10.03 4,13A7,7 0 0,0 11,20C14.38,20 17.16,17.45 17.74,14H15.69C15.14,16.34 13,18 11,18A5,5 0 0,1 6,13C6,10.92 7.21,9.16 9,8.35V11H11V2M18,6V8H20V10H18V12H16V10H14V8H16V6H18Z" 
+                                                          Width="12" Height="12"/>
+                                                <TextBlock Text="Snooze 24h" FontSize="11"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding $parent[UserControl].((vm:BriefingViewModel)DataContext).DismissInsightCommand}"
+                                                CommandParameter="{Binding}"
+                                                Classes="text-button">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                                                          Width="12" Height="12"/>
+                                                <TextBlock Text="Dismiss" FontSize="11"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <!-- Row 3: Main Content - Tasks as anchor, Meetings secondary -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,*">
 
             <!-- Left: My Tasks (THE VISUAL ANCHOR) -->
             <Border Grid.Column="0" 

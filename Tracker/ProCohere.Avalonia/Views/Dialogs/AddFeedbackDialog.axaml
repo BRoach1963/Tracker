@@ -1,0 +1,157 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="580"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.AddFeedbackDialog"
+        x:DataType="vm:AddFeedbackDialogViewModel"
+        Title="Give Feedback"
+        Width="520" Height="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Comment/feedback icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22H9M4,4V16H9V19.08L13.08,15H20V4H4Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Give Feedback" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{Binding RecipientDisplayName, StringFormat='For {0}'}" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="20,16">
+            <StackPanel Spacing="16">
+                
+                <!-- Feedback Type -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Type" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox SelectedIndex="{Binding FeedbackTypeIndex}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="General" Tag="general" />
+                        <ComboBoxItem Content="Praise" Tag="praise" />
+                        <ComboBoxItem Content="Constructive" Tag="constructive" />
+                        <ComboBoxItem Content="Coaching" Tag="coaching" />
+                        <ComboBoxItem Content="Recognition" Tag="recognition" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Title (Optional) -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Title (Optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox Text="{Binding Title}"
+                             Watermark="Brief summary..." />
+                </StackPanel>
+                
+                <!-- Content -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Feedback *" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox Text="{Binding Content}"
+                             Watermark="Share your feedback..."
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="150" />
+                </StackPanel>
+                
+                <!-- Rating (Optional) -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Rating (Optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox SelectedIndex="{Binding Rating}"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="No rating">
+                        <ComboBoxItem Content="⭐ 1 - Needs Improvement" />
+                        <ComboBoxItem Content="⭐⭐ 2 - Below Expectations" />
+                        <ComboBoxItem Content="⭐⭐⭐ 3 - Meets Expectations" />
+                        <ComboBoxItem Content="⭐⭐⭐⭐ 4 - Exceeds Expectations" />
+                        <ComboBoxItem Content="⭐⭐⭐⭐⭐ 5 - Outstanding" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Visibility -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Visibility" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox SelectedIndex="{Binding VisibilityIndex}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Private (manager only)" Tag="private" />
+                        <ComboBoxItem Content="Shared (recipient can see)" Tag="shared" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Anonymous Option -->
+                <StackPanel Spacing="4">
+                    <CheckBox IsChecked="{Binding IsAnonymous}"
+                              Content="Give this feedback anonymously" />
+                    <TextBlock Text="Anonymous feedback hides your identity from the recipient"
+                               FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Margin="28,0,0,0" />
+                </StackPanel>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Button Grid.Column="1"
+                            Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            MinWidth="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Content="Give Feedback"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            BorderThickness="1"
+                            MinWidth="120"
+                            Command="{Binding SaveCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

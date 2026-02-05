@@ -122,6 +122,76 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
                     </StackPanel>
+                    
+                    <!-- Goal -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Goal" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox x:Name="GoalComboBox" 
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding Goals}"
+                                  SelectedItem="{Binding SelectedGoal}"
+                                  PlaceholderText="Link to a goal (optional)">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:GoalDetail">
+                                    <TextBlock Text="{Binding Title}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <!-- Recurrence Section -->
+                    <Border BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,8,0,0">
+                        <StackPanel Spacing="12">
+                            <!-- Recurrence Toggle -->
+                            <CheckBox Content="Repeat this task" 
+                                      FontSize="13" FontWeight="Medium" 
+                                      Foreground="{DynamicResource BrushTextPrimary}"
+                                      IsChecked="{Binding IsRecurringEnabled}"/>
+                            
+                            <!-- Recurrence Settings (visible when enabled) -->
+                            <StackPanel Spacing="12" IsVisible="{Binding IsRecurringEnabled}">
+                                <!-- Pattern -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Frequency" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <ComboBox x:Name="RecurrencePatternComboBox" 
+                                              HorizontalAlignment="Stretch"
+                                              SelectedIndex="{Binding RecurrencePatternIndex}">
+                                        <ComboBoxItem Content="Daily" Tag="daily"/>
+                                        <ComboBoxItem Content="Weekly" Tag="weekly"/>
+                                        <ComboBoxItem Content="Monthly" Tag="monthly"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                
+                                <!-- Interval -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Repeat Every" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <NumericUpDown Grid.Column="0" 
+                                                       Width="80"
+                                                       Minimum="1" 
+                                                       Maximum="365"
+                                                       Value="{Binding RecurrenceInterval}"
+                                                       ShowButtonSpinner="True"
+                                                       AllowSpin="True"/>
+                                        <TextBlock Grid.Column="1" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="8,0,0,0"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource BrushTextTertiary}">
+                                            <Run Text="{Binding RecurrencePatternIndex, Converter={StaticResource RecurrencePatternToUnitConverter}}"/>
+                                        </TextBlock>
+                                    </Grid>
+                                </StackPanel>
+                                
+                                <!-- End Date -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Ends (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <DatePicker SelectedDate="{Binding RecurrenceEndDate}" 
+                                                HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
             

@@ -9,6 +9,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.Services.Insights;
+using ProCohere.Avalonia.Services.Insights.Analyzers;
 
 namespace ProCohere.Avalonia.ViewModels;
 
@@ -311,6 +313,17 @@ public partial class BriefingViewModel : ViewModelBase
     /// </summary>
     public bool HasProjectSignals => ProjectSignals.Count > 0;
 
+    /// <summary>
+    /// AI-generated insights (actionable recommendations).
+    /// Populated by InsightEngine running all registered analyzers.
+    /// </summary>
+    public ObservableCollection<Insight> AIInsights { get; } = new();
+
+    /// <summary>
+    /// Whether there are any AI insights to display.
+    /// </summary>
+    public bool HasAIInsights => AIInsights.Count > 0;
+
     #endregion
 
     #region Weekly Load Sparkline
@@ -392,9 +405,23 @@ public partial class BriefingViewModel : ViewModelBase
 
     #endregion
 
+    #region Services
+
+    /// <summary>
+    /// Repository for insight data operations.
+    /// Instantiated once per ViewModel lifecycle.
+    /// </summary>
+    private readonly IInsightRepository _insightRepository = new InsightRepository();
+
+    #endregion
+
     public BriefingViewModel()
     {
         Log("[BriefingViewModel] Constructor called");
+        
+        // Register all AI analyzers (one-time setup)
+        RegisterAnalyzers();
+        
         // Subscribe to profile changes
         AuthService.Instance.ProfileChanged += OnProfileChanged;
         
@@ -409,6 +436,22 @@ public partial class BriefingViewModel : ViewModelBase
         {
             Log("[BriefingViewModel] Profile not yet available, waiting for ProfileChanged");
         }
+    }
+
+    /// <summary>
+    /// Registers all AI insight analyzers with the engine.
+    /// Called once during initialization.
+    /// </summary>
+    private void RegisterAnalyzers()
+    {
+        var engine = InsightEngine.Instance;
+        engine.RegisterAnalyzer(new ActionItemStalenessAnalyzer());
+        engine.RegisterAnalyzer(new GoalTrajectoryAnalyzer());
+        engine.RegisterAnalyzer(new MeetingCadenceAnalyzer());
+        engine.RegisterAnalyzer(new MetricGapAnalyzer());
+        engine.RegisterAnalyzer(new PersonalDateAnalyzer());
+        engine.RegisterAnalyzer(new SurveySentimentAnalyzer());
+        Log("[BriefingViewModel] Registered 6 AI analyzers");
     }
 
     private void OnProfileChanged(object? sender, Models.UserProfile? profile)
@@ -617,6 +660,9 @@ public partial class BriefingViewModel : ViewModelBase
             // Load project signals (passive awareness indicators)
             await LoadProjectSignalsAsync();
 
+            // Load AI insights (run analysis and get results)
+            await LoadAIInsightsAsync();
+
             // Check for errors
             if (!string.IsNullOrEmpty(DashboardService.Instance.LastError))
             {
@@ -639,6 +685,49 @@ public partial class BriefingViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Loads AI insights by running all registered analyzers.
+    /// Insights are generated based on current user/org data.
+    /// </summary>
+    private async Task LoadAIInsightsAsync()
+    {
+        try
+        {
+            Log("[BriefingViewModel] Loading AI insights...");
+            
+            var teamMember = AuthService.Instance.CurrentTeamMember;
+            var profile = AuthService.Instance.CurrentProfile;
+            
+            if (teamMember == null || profile?.OrganizationId == null)
+            {
+                Log("[BriefingViewModel] No current team member or org, skipping insights");
+                return;
+            }
+
+            // Run all analyzers
+            var createdCount = await InsightEngine.Instance.RunAnalysisAsync(teamMember.Id, profile.OrganizationId.Value);
+            Log($"[BriefingViewModel] InsightEngine created {createdCount} new insights");
+
+            // Get active insights
+            var insights = await InsightEngine.Instance.GetActiveInsightsAsync(teamMember.Id);
+            Log($"[BriefingViewModel] Retrieved {insights.Count} active insights");
+
+            // Update collection
+            AIInsights.Clear();
+            foreach (var insight in insights.OrderByDescending(i => i.Severity).ThenByDescending(i => i.CreatedAt))
+            {
+                AIInsights.Add(insight);
+            }
+
+            OnPropertyChanged(nameof(HasAIInsights));
+        }
+        catch (Exception ex)
+        {
+            Log($"[BriefingViewModel] Failed to load AI insights: {ex}");
+            // Don't throw - insights are non-critical
+        }
+    }
+
+    /// <summary>
     /// Refreshes all briefing data.
     /// </summary>
     [RelayCommand]
@@ -646,6 +735,159 @@ public partial class BriefingViewModel : ViewModelBase
     {
         await LoadDataAsync();
     }
+
+    #region Insight Actions
+
+    /// <summary>
+    /// Dismisses an insight (marks it as dismissed).
+    /// </summary>
+    [RelayCommand]
+    private async Task DismissInsight(Insight insight)
+    {
+        if (insight == null)
+        {
+            Log("[BriefingViewModel] Cannot dismiss null insight");
+            return;
+        }
+
+        try
+        {
+            Log($"[BriefingViewModel] Dismissing insight: {insight.Id} - {insight.Title}");
+            
+            var teamMember = AuthService.Instance.CurrentTeamMember;
+            if (teamMember == null)
+            {
+                Log("[BriefingViewModel] No current team member, cannot dismiss insight");
+                ErrorMessage = "You must be logged in to dismiss insights.";
+                HasError = true;
+                return;
+            }
+            
+            await _insightRepository.DismissInsightAsync(insight.Id, teamMember.Id);
+            
+            // Remove from UI immediately for responsive UX
+            AIInsights.Remove(insight);
+            OnPropertyChanged(nameof(HasAIInsights));
+            
+            Log($"[BriefingViewModel] Insight dismissed successfully");
+        }
+        catch (Exception ex)
+        {
+            Log($"[BriefingViewModel] Failed to dismiss insight: {ex}");
+            ErrorMessage = "Failed to dismiss insight. Please try again.";
+            HasError = true;
+        }
+    }
+
+    /// <summary>
+    /// Snoozes an insight until a specific time.
+    /// Currently snoozes for 24 hours.
+    /// </summary>
+    [RelayCommand]
+    private async Task SnoozeInsight(Insight insight)
+    {
+        if (insight == null)
+        {
+            Log("[BriefingViewModel] Cannot snooze null insight");
+            return;
+        }
+
+        try
+        {
+            Log($"[BriefingViewModel] Snoozing insight: {insight.Id} - {insight.Title}");
+            
+            // Snooze for 24 hours from now
+            var snoozeUntil = DateTime.UtcNow.AddDays(1);
+            
+            await _insightRepository.SnoozeInsightAsync(insight.Id, snoozeUntil);
+            
+            // Remove from UI immediately for responsive UX
+            AIInsights.Remove(insight);
+            OnPropertyChanged(nameof(HasAIInsights));
+            
+            Log($"[BriefingViewModel] Insight snoozed until {snoozeUntil:yyyy-MM-dd HH:mm} UTC");
+        }
+        catch (Exception ex)
+        {
+            Log($"[BriefingViewModel] Failed to snooze insight: {ex}");
+            ErrorMessage = "Failed to snooze insight. Please try again.";
+            HasError = true;
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the entity referenced by an insight and marks it as acted upon.
+    /// </summary>
+    [RelayCommand]
+    private async Task ViewInsight(Insight insight)
+    {
+        if (insight == null)
+        {
+            Log("[BriefingViewModel] Cannot view null insight");
+            return;
+        }
+
+        try
+        {
+            Log($"[BriefingViewModel] Viewing insight entity: {insight.EntityType}/{insight.EntityId} - {insight.Title}");
+            
+            // Mark as acted on first
+            await _insightRepository.MarkInsightActionedAsync(insight.Id);
+            
+            // Navigate based on entity type
+            if (insight.EntityId.HasValue && !string.IsNullOrEmpty(insight.EntityType))
+            {
+                RaiseNavigationEvent(insight.EntityType, insight.EntityId.Value);
+            }
+            
+            // Remove from UI after navigation is initiated
+            AIInsights.Remove(insight);
+            OnPropertyChanged(nameof(HasAIInsights));
+            
+            Log($"[BriefingViewModel] Insight marked as acted on, navigation initiated");
+        }
+        catch (Exception ex)
+        {
+            Log($"[BriefingViewModel] Failed to view insight: {ex}");
+            ErrorMessage = "Failed to navigate to insight. Please try again.";
+            HasError = true;
+        }
+    }
+
+    /// <summary>
+    /// Raises the appropriate navigation event based on entity type.
+    /// MainWindowViewModel subscribes to these events.
+    /// </summary>
+    private void RaiseNavigationEvent(string entityType, Guid entityId)
+    {
+        Log($"[BriefingViewModel] Raising navigation event for {entityType} with ID {entityId}");
+        
+        switch (entityType.ToLowerInvariant())
+        {
+            case "task":
+            case "action_item":
+                NavigateToTaskRequested?.Invoke(this, entityId);
+                break;
+                
+            case "goal":
+                NavigateToGoalRequested?.Invoke(this, entityId);
+                break;
+                
+            case "meeting":
+                NavigateToMeetingRequested?.Invoke(this, entityId);
+                break;
+                
+            case "metric":
+                NavigateToMetricRequested?.Invoke(this, entityId);
+                break;
+                
+            default:
+                Log($"[BriefingViewModel] Unknown entity type for navigation: {entityType}");
+                break;
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Converts a string to Title Case.
@@ -926,6 +1168,26 @@ public partial class BriefingViewModel : ViewModelBase
     /// The shell should navigate to Projects tab.
     /// </summary>
     public event EventHandler<Guid>? NavigateToProjectRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to navigate to a specific task.
+    /// </summary>
+    public event EventHandler<Guid>? NavigateToTaskRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to navigate to a specific goal.
+    /// </summary>
+    public event EventHandler<Guid>? NavigateToGoalRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to navigate to a specific metric.
+    /// </summary>
+    public event EventHandler<Guid>? NavigateToMetricRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to navigate to a specific meeting.
+    /// </summary>
+    public event EventHandler<Guid>? NavigateToMeetingRequested;
     
     /// <summary>
     /// Command to handle clicking on a project signal.

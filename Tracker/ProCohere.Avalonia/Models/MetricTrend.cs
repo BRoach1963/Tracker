@@ -108,6 +108,11 @@ public static class MetricTrendExtensions
     };
 
     /// <summary>
+    /// Alias for GetColorHint() for consistency with TrendResult API.
+    /// </summary>
+    public static string GetColor(this MetricTrend trend) => GetColorHint(trend);
+
+    /// <summary>
     /// Parses a string to MetricTrend.
     /// </summary>
     public static MetricTrend ParseMetricTrend(string? value) => value?.ToLower() switch

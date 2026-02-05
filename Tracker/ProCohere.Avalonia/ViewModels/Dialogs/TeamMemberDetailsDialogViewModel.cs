@@ -21,6 +21,7 @@ public partial class TeamMemberDetailsDialogViewModel : ObservableObject
     #region Fields
 
     private TeamMemberDetail? _teamMember;
+    private IDialogService? _dialogService;
 
     #endregion
 
@@ -176,15 +177,28 @@ public partial class TeamMemberDetailsDialogViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteNoteAsync(Guid noteId)
     {
+        var noteToDelete = Notes.FirstOrDefault(n => n.Id == noteId);
+        if (noteToDelete == null) return;
+
+        var noteTitle = noteToDelete.Title ?? "Untitled";
+
+        // Show confirmation dialog for destructive action
+        if (_dialogService != null)
+        {
+            var confirmed = await _dialogService.ShowDestructiveConfirmationAsync(
+                "Delete Note",
+                $"Are you sure you want to delete '{noteTitle}'? This action cannot be undone.",
+                "Delete Note",
+                "Cancel");
+            
+            if (!confirmed)
+                return;
+        }
+
         try
         {
             await NotesService.Instance.DeleteNoteAsync(noteId);
-            
-            var noteToRemove = Notes.FirstOrDefault(n => n.Id == noteId);
-            if (noteToRemove != null)
-            {
-                Notes.Remove(noteToRemove);
-            }
+            Notes.Remove(noteToDelete);
         }
         catch (Exception ex)
         {
@@ -216,6 +230,14 @@ public partial class TeamMemberDetailsDialogViewModel : ObservableObject
     #endregion
 
     #region Public Methods
+
+    /// <summary>
+    /// Set the dialog service for confirmations.
+    /// </summary>
+    public void SetDialogService(IDialogService dialogService)
+    {
+        _dialogService = dialogService;
+    }
 
     /// <summary>
     /// Initialize with available managers.

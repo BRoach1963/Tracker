@@ -91,6 +91,52 @@ public partial class GoalsViewModel : ViewModelBase
     [ObservableProperty]
     private GoalDetail? _editingGoal;
 
+    /// <summary>
+    /// Detail tab: 0=Details, 1=Trajectory
+    /// </summary>
+    [ObservableProperty]
+    private int _detailTab = 0;
+
+    [RelayCommand]
+    private void SetDetailTab(string tabIndex)
+    {
+        if (int.TryParse(tabIndex, out var index))
+        {
+            DetailTab = index;
+        }
+    }
+
+    #endregion
+
+    #region Trajectory State
+
+    /// <summary>
+    /// Trajectory prediction for selected goal.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTrajectory))]
+    [NotifyPropertyChangedFor(nameof(TrajectoryStatusDisplay))]
+    [NotifyPropertyChangedFor(nameof(TrajectoryProbabilityDisplay))]
+    private TrajectoryResult? _trajectory;
+
+    [ObservableProperty]
+    private bool _isLoadingTrajectory;
+
+    /// <summary>
+    /// Whether trajectory data is available.
+    /// </summary>
+    public bool HasTrajectory => Trajectory != null && Trajectory.Status != TrajectoryStatus.Unknown;
+
+    /// <summary>
+    /// Trajectory status for display.
+    /// </summary>
+    public string TrajectoryStatusDisplay => Trajectory?.StatusDisplay ?? "Unknown";
+
+    /// <summary>
+    /// Probability display.
+    /// </summary>
+    public string TrajectoryProbabilityDisplay => Trajectory?.ProbabilityDisplay ?? "--";
+
     #endregion
 
     #region Health/Lifecycle Dialog State
@@ -243,11 +289,15 @@ public partial class GoalsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SelectGoal(GoalDetail goal)
+    private async Task SelectGoal(GoalDetail goal)
     {
         SelectedGoal = goal;
+        DetailTab = 0;
         IsDetailFlyoutOpen = true;
         IsEditorFlyoutOpen = false;
+
+        // Load trajectory in background
+        await LoadTrajectoryAsync();
     }
 
     [RelayCommand]
@@ -255,6 +305,29 @@ public partial class GoalsViewModel : ViewModelBase
     {
         IsDetailFlyoutOpen = false;
         SelectedGoal = null;
+        Trajectory = null;
+    }
+
+    [RelayCommand]
+    private async Task LoadTrajectoryAsync()
+    {
+        if (SelectedGoal == null) return;
+
+        IsLoadingTrajectory = true;
+        try
+        {
+            var trajectory = await GoalsService.Instance.GetGoalTrajectoryAsync(SelectedGoal.Id);
+            Trajectory = trajectory;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load trajectory: {ex.Message}";
+            Trajectory = null;
+        }
+        finally
+        {
+            IsLoadingTrajectory = false;
+        }
     }
 
     #endregion

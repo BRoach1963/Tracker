@@ -453,11 +453,15 @@ public partial class CircleViewModel : ViewModelBase
         member.MemberGoals.Clear();
         member.MemberMeetings.Clear();
         member.MemberFeedback.Clear();
+        member.MemberKudos.Clear();
         member.MemberDirectReports.Clear();
         member.MemberTasks.Clear();
 
         // Load tasks asynchronously
         _ = LoadMemberTasksAsync(member);
+        
+        // Load kudos asynchronously
+        _ = LoadMemberKudosAsync(member);
 
         // Snapshot collections to avoid enumeration modification errors
         var teamMembers = _allTeamMembers.ToList();
@@ -512,6 +516,29 @@ public partial class CircleViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Loads kudos received by the specified team member asynchronously.
+    /// </summary>
+    private async System.Threading.Tasks.Task LoadMemberKudosAsync(TeamMemberDetail member)
+    {
+        try
+        {
+            var kudos = await KudosService.Instance.GetKudosReceivedAsync(member.Id);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                member.MemberKudos.Clear();
+                foreach (var k in kudos)
+                {
+                    member.MemberKudos.Add(k);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Log($"Error loading member kudos: {ex.Message}");
+        }
+    }
+
     [RelayCommand]
     private void SetMemberDetailTab(MemberDetailTab tab)
     {
@@ -544,6 +571,8 @@ public partial class CircleViewModel : ViewModelBase
             // Wire IDetailEntity commands before setting selection
             member.CloseCommand = CloseDetailPanelCommand;
             member.EditCommand = new RelayCommand(() => EditTeamMember(member));
+            member.GiveKudosCommand = new RelayCommand(() => GiveKudos(member));
+            member.SendMessageCommand = new RelayCommand(() => SendMessage(member));
             // Team members are deactivated via the edit dialog, not deleted directly
             member.DeleteCommand = null;
             member.SetMemberDetailTabCommand = new RelayCommand<MemberDetailTab>(tab => member.MemberDetailTab = tab);
@@ -692,7 +721,7 @@ public partial class CircleViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SelectMeeting(MeetingDetail? meeting)
+    private async Task SelectMeeting(MeetingDetail? meeting)
     {
         if (meeting == null)
         {
@@ -715,6 +744,10 @@ public partial class CircleViewModel : ViewModelBase
             meeting.DeleteCommand = new AsyncRelayCommand(() => DeleteMeetingAsync(meeting));
             meeting.SetMeetingDetailTabCommand = new RelayCommand<MeetingDetailTab>(tab => meeting.MeetingDetailTab = tab);
             
+            // Load linked tasks and prep items for this meeting
+            await LoadLinkedTasksForMeetingAsync(meeting);
+            await LoadPrepItemsForMeetingAsync(meeting);
+            
             // Reset to Overview tab when switching meetings
             meeting.MeetingDetailTab = MeetingDetailTab.Overview;
             
@@ -728,6 +761,52 @@ public partial class CircleViewModel : ViewModelBase
     {
         IsMeetingDetailOpen = false;
         SelectedMeeting = null;
+    }
+
+    /// <summary>
+    /// Loads all tasks linked to a meeting (created from its agenda items).
+    /// </summary>
+    private async Task LoadLinkedTasksForMeetingAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            var tasks = await TaskService.Instance.GetTasksForMeetingAsync(meeting.Id);
+            
+            meeting.LinkedTasks.Clear();
+            foreach (var task in tasks)
+            {
+                meeting.LinkedTasks.Add(task);
+            }
+            
+            Log($"[CircleViewModel] Loaded {tasks.Count} linked tasks for meeting: {meeting.Title}");
+        }
+        catch (Exception ex)
+        {
+            Log($"[CircleViewModel] Error loading linked tasks for meeting: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads all prep items for a meeting.
+    /// </summary>
+    private async Task LoadPrepItemsForMeetingAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            var prepItems = await MeetingPrepItemService.Instance.GetPrepItemsForMeetingAsync(meeting.Id);
+            
+            meeting.LinkedPrepItems.Clear();
+            foreach (var prepItem in prepItems)
+            {
+                meeting.LinkedPrepItems.Add(prepItem);
+            }
+            
+            Log($"[CircleViewModel] Loaded {prepItems.Count} prep items for meeting: {meeting.Title}");
+        }
+        catch (Exception ex)
+        {
+            Log($"[CircleViewModel] Error loading prep items for meeting: {ex.Message}");
+        }
     }
 
     private void EditMeeting(MeetingDetail meeting)
@@ -1129,6 +1208,18 @@ public partial class CircleViewModel : ViewModelBase
     /// </summary>
     public event EventHandler? AddGoalDialogRequested;
 
+    public event EventHandler<TeamMemberDetail>? GiveFeedbackDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Give Kudos dialog.
+    /// </summary>
+    public event EventHandler<TeamMemberDetail>? GiveKudosDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Quick Message dialog.
+    /// </summary>
+    public event EventHandler<TeamMemberDetail>? SendMessageDialogRequested;
+
     #endregion
 
     #region Commands
@@ -1175,6 +1266,22 @@ public partial class CircleViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void GiveKudos(TeamMemberDetail? member)
+    {
+        if (member == null) return;
+        Log($"GiveKudos command - requesting dialog for {member.FullName}");
+        GiveKudosDialogRequested?.Invoke(this, member);
+    }
+
+    [RelayCommand]
+    private void SendMessage(TeamMemberDetail? member)
+    {
+        if (member == null) return;
+        Log($"SendMessage command - requesting dialog for {member.FullName}");
+        SendMessageDialogRequested?.Invoke(this, member);
+    }
+
+    [RelayCommand]
     private void AddGoal()
     {
         Debug.WriteLine("Add Goal clicked");
@@ -1182,10 +1289,16 @@ public partial class CircleViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void GiveFeedback()
+    private async Task GiveFeedbackAsync()
     {
-        Debug.WriteLine("Give Feedback clicked");
-        // TODO: Open feedback dialog
+        if (SelectedTeamMember == null)
+        {
+            Debug.WriteLine("Give Feedback clicked but no team member selected");
+            return;
+        }
+        
+        Debug.WriteLine($"Give Feedback clicked for {SelectedTeamMember.FullName}");
+        GiveFeedbackDialogRequested?.Invoke(this, SelectedTeamMember);
     }
 
     [RelayCommand]
@@ -1572,8 +1685,52 @@ public partial class CircleViewModel : ViewModelBase
     private async Task DeleteGoalAsync(GoalDetail? goal)
     {
         if (goal == null) return;
-        // TODO: Confirm and delete goal
-        Log($"Delete goal: {goal.Title}");
+
+        // Show confirmation dialog for destructive action
+        var confirmed = await ConfirmationService.Instance.ShowDestructiveConfirmationAsync(
+            "Delete Goal",
+            $"Are you sure you want to delete '{goal.Title}'? This action cannot be undone.",
+            "Delete Goal",
+            "Cancel");
+        
+        if (!confirmed)
+            return;
+
+        try
+        {
+            Log($"Deleting goal: {goal.Id}");
+            var success = await GoalsService.Instance.DeleteGoalAsync(goal.Id);
+
+            if (success)
+            {
+                // Remove from local collection
+                _allGoals.Remove(goal);
+                
+                // Close detail if this goal was selected
+                if (SelectedGoal?.Id == goal.Id)
+                {
+                    CloseGoalDetail();
+                }
+                
+                // Refresh display
+                ApplyGoalFilters();
+                
+                NotificationService.Instance.ShowSuccess("Goal Deleted", $"'{goal.Title}' has been removed.");
+                Log($"Goal deleted successfully: {goal.Id}");
+            }
+            else
+            {
+                var errorMessage = GoalsService.Instance.LastError ?? "Failed to delete goal";
+                NotificationService.Instance.ShowError("Delete Failed", errorMessage);
+                Log($"Failed to delete goal: {errorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to delete goal: {ex.Message}";
+            NotificationService.Instance.ShowError("Delete Failed", ex.Message);
+            Log(errorMessage);
+        }
     }
 
     [RelayCommand]

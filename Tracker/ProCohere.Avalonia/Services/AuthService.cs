@@ -371,6 +371,35 @@ public class AuthService
     }
 
     /// <summary>
+    /// Sends a password reset email to the specified address.
+    /// </summary>
+    /// <param name="email">The email address to send the reset link to.</param>
+    /// <returns>Success status and error message if failed.</returns>
+    public async Task<(bool Success, string? Error)> ResetPasswordForEmailAsync(string email)
+    {
+        try
+        {
+            if (_publicClient?.Auth == null)
+            {
+                return (false, "Authentication service not initialized");
+            }
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return (false, "Email address is required");
+            }
+
+            await _publicClient.Auth.ResetPasswordForEmail(email);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AuthService] Password reset failed: {ex.Message}");
+            return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Updates the current user's metadata (profile information).
     /// </summary>
     public async Task<bool> UpdateUserMetadataAsync(Dictionary<string, object> metadata)

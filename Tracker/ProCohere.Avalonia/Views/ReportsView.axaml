@@ -1,0 +1,785 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
+             x:Class="ProCohere.Avalonia.Views.ReportsView"
+             x:DataType="vm:ReportsViewModel">
+    
+    <!-- 
+    ============================================================================
+    REPORTS VIEW - Analytics & Historical Data
+    ============================================================================
+    
+    Unlike Briefing/Pulse (current state), Reports show TRENDS OVER TIME.
+    Heavy use of charts via LiveCharts2.
+    
+    Structure:
+    - Header with date range controls
+    - Tab navigation (Overview, Goals, Metrics, Tasks, Meetings, Team)
+    - Chart-heavy content per tab
+    
+    MVVM: All state owned by ReportsViewModel.
+    ============================================================================
+    -->
+    
+    <UserControl.Styles>
+        <!-- Tab Button Style -->
+        <Style Selector="Button.report-tab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style Selector="Button.report-tab:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+        </Style>
+        <Style Selector="Button.report-tab.active">
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        
+        <!-- Date Range Preset Button -->
+        <Style Selector="Button.date-preset">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MinWidth" Value="50"/>
+        </Style>
+        <Style Selector="Button.date-preset:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+        
+        <!-- Stat Card -->
+        <Style Selector="Border.stat-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+        
+        <!-- Chart Container -->
+        <Style Selector="Border.chart-container">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <Grid RowDefinitions="Auto,Auto,*">
+        
+        <!-- Header: Title + Date Range Controls -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource BrushSurface}"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="0,0,0,1"
+                Padding="24,16">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Title -->
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock Text="Reports" 
+                               FontSize="20" 
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Text="Analytics and historical trends"
+                               FontSize="12"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+                
+                <!-- Date Range Controls -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <!-- Quick Presets -->
+                    <Button Classes="date-preset" Content="7D" Command="{Binding SetDateRangeCommand}" CommandParameter="7d"/>
+                    <Button Classes="date-preset" Content="30D" Command="{Binding SetDateRangeCommand}" CommandParameter="30d"/>
+                    <Button Classes="date-preset" Content="90D" Command="{Binding SetDateRangeCommand}" CommandParameter="90d"/>
+                    <Button Classes="date-preset" Content="YTD" Command="{Binding SetDateRangeCommand}" CommandParameter="ytd"/>
+                    <Button Classes="date-preset" Content="1Y" Command="{Binding SetDateRangeCommand}" CommandParameter="1y"/>
+                    
+                    <Rectangle Width="1" Height="24" Fill="{DynamicResource BrushBorder}" Margin="8,0"/>
+                    
+                    <!-- Date Pickers -->
+                    <CalendarDatePicker SelectedDate="{Binding StartDate}" 
+                                        Watermark="Start"
+                                        Width="130"/>
+                    <TextBlock Text="to" VerticalAlignment="Center" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <CalendarDatePicker SelectedDate="{Binding EndDate}"
+                                        Watermark="End" 
+                                        Width="130"/>
+                    
+                    <!-- Refresh -->
+                    <Button Command="{Binding RefreshCommand}"
+                            Background="{DynamicResource BrushPrimary}"
+                            Foreground="White"
+                            Padding="12,8"
+                            CornerRadius="6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" 
+                                      Width="14" Height="14" Foreground="White"/>
+                            <TextBlock Text="Refresh"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Export Button with Flyout Menu -->
+                    <Button x:Name="ExportButton"
+                            Background="{DynamicResource BrushSurfaceAlt}"
+                            Foreground="{DynamicResource BrushTextPrimary}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1"
+                            Padding="12,8"
+                            CornerRadius="6"
+                            IsEnabled="{Binding !IsExporting}">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <!-- Excel Export -->
+                                <MenuItem Header="Excel (.xlsx)">
+                                    <MenuItem.Icon>
+                                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z" 
+                                                  Width="14" Height="14"/>
+                                    </MenuItem.Icon>
+                                    <MenuItem Header="Export Current Tab" Click="ExportCurrentTab_Click"/>
+                                    <MenuItem Header="Export All Data" Click="ExportAllData_Click"/>
+                                </MenuItem>
+                                <!-- PDF Export -->
+                                <MenuItem Header="PDF (.pdf)">
+                                    <MenuItem.Icon>
+                                        <PathIcon Data="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M9.5,11A1.5,1.5 0 0,0 8,12.5V16H9.5V14H10.5A1.5,1.5 0 0,0 12,12.5A1.5,1.5 0 0,0 10.5,11H9.5M9.5,12.5H10.5V13H9.5V12.5M14.5,11A1.5,1.5 0 0,0 13,12.5V14.5A1.5,1.5 0 0,0 14.5,16H16V14.5H14.5V12.5H16V11H14.5Z" 
+                                                  Width="14" Height="14"/>
+                                    </MenuItem.Icon>
+                                    <MenuItem Header="Export Current Tab" Click="ExportCurrentTabToPdf_Click"/>
+                                    <MenuItem Header="Export All Data" Click="ExportAllDataToPdf_Click"/>
+                                </MenuItem>
+                                <!-- CSV Export -->
+                                <MenuItem Header="CSV (.csv)">
+                                    <MenuItem.Icon>
+                                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,13H7V11H10V13M14,13H11V11H14V13M10,16H7V14H10V16M14,16H11V14H14V16Z" 
+                                                  Width="14" Height="14"/>
+                                    </MenuItem.Icon>
+                                    <MenuItem Header="Export Current Tab" Click="ExportCurrentTabToCsv_Click"/>
+                                    <MenuItem Header="Export All Data (.zip)" Click="ExportAllDataToCsv_Click"/>
+                                </MenuItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z" 
+                                      Width="14" Height="14"/>
+                            <TextBlock Text="Export"/>
+                            <PathIcon Data="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" 
+                                      Width="10" Height="10"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Tab Navigation -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource BrushSurfaceAlt}"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="0,0,0,1"
+                Padding="24,0">
+            <StackPanel Orientation="Horizontal" Spacing="0">
+                <Button Classes="report-tab" Classes.active="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
+                        Click="TabOverview_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z" 
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Overview"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="report-tab" Classes.active="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
+                        Click="TabGoals_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z" 
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Goals"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="report-tab" Classes.active="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
+                        Click="TabMetrics_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Metrics"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="report-tab" Classes.active="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
+                        Click="TabTasks_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z" 
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Tasks"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="report-tab" Classes.active="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}"
+                        Click="TabMeetings_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1" 
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Meetings"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="report-tab" Classes.active="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}"
+                        Click="TabTeam_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z" 
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Team"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+        
+        <!-- Content Area -->
+        <ScrollViewer Grid.Row="2" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <Panel>
+                <!-- Loading Overlay -->
+                <Border Background="{DynamicResource BrushSurface}"
+                        IsVisible="{Binding IsLoading}"
+                        ZIndex="10">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                        <ProgressBar IsIndeterminate="True" Width="200"/>
+                        <TextBlock Text="Loading report..." 
+                                   FontSize="14"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Error Message -->
+                <Border Background="{DynamicResource BrushSurface}"
+                        IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                        Padding="24"
+                        ZIndex="9">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                        <PathIcon Data="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" 
+                                  Width="40" Height="40" Foreground="#EF4444"/>
+                        <TextBlock Text="{Binding ErrorMessage}" 
+                                   FontSize="14"
+                                   Foreground="#EF4444"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"/>
+                        <Button Content="Retry" Command="{Binding RefreshCommand}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Tab Content Panels -->
+                <Grid IsVisible="{Binding !IsLoading}">
+                    
+                    <!-- Overview Tab (Index 0) -->
+                    <StackPanel IsVisible="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
+                                Margin="24" Spacing="20">
+                        
+                        <!-- Summary Stats Row -->
+                        <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
+                            <Border Classes="stat-card" Grid.Column="0" Margin="0,0,10,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Goals" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding OverviewData.TotalGoals}" FontSize="28" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding OverviewData.GoalsOnTrack}" Foreground="#22C55E"/>
+                                        <TextBlock Text="on track" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="1" Margin="5,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Tasks" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding OverviewData.TotalTasks}" FontSize="28" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding OverviewData.TasksCompleted}" Foreground="#22C55E"/>
+                                        <TextBlock Text="completed" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="2" Margin="5,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Meetings" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding OverviewData.TotalMeetings}" FontSize="28" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding OverviewData.TotalMeetingHoursDisplay}" Foreground="#3B82F6"/>
+                                        <TextBlock Text="total" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="3" Margin="10,0,0,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Metrics" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding OverviewData.TotalMetrics}" FontSize="28" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding OverviewData.MetricsImproving}" Foreground="#22C55E"/>
+                                        <TextBlock Text="improving" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Charts Row -->
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="300">
+                            <Border Classes="chart-container" Grid.Column="0" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="Goal Progress Over Time" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:CartesianChart Series="{Binding GoalProgressSeries}"
+                                                        XAxes="{Binding TimeXAxes}"
+                                                        YAxes="{Binding DefaultYAxes}"
+                                                        Height="230"
+                                                        TooltipPosition="Top"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="chart-container" Grid.Column="1" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Task Completion Trend" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:CartesianChart Series="{Binding TaskCompletionSeries}"
+                                                        XAxes="{Binding TimeXAxes}"
+                                                        YAxes="{Binding DefaultYAxes}"
+                                                        Height="230"
+                                                        TooltipPosition="Top"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Meeting Minutes Chart -->
+                        <Border Classes="chart-container">
+                            <StackPanel>
+                                <TextBlock Text="Meeting Minutes by Week" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart Series="{Binding MeetingMinutesSeries}"
+                                                    XAxes="{Binding TimeXAxes}"
+                                                    YAxes="{Binding DefaultYAxes}"
+                                                    Height="200"
+                                                    TooltipPosition="Top"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Goals Tab (Index 1) -->
+                    <StackPanel IsVisible="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
+                                Margin="24" Spacing="20">
+                        
+                        <!-- Summary Stats -->
+                        <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="Auto">
+                            <Border Classes="stat-card" Grid.Column="0" Margin="0,0,8,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Total" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding GoalsData.TotalGoals}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="1" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="On Track" FontSize="11" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding GoalsData.OnTrack}" FontSize="24" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="2" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="At Risk" FontSize="11" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding GoalsData.AtRisk}" FontSize="24" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="3" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Completed" FontSize="11" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding GoalsData.Completed}" FontSize="24" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="4" Margin="8,0,0,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Avg Progress" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock FontSize="24" FontWeight="Bold" HorizontalAlignment="Center">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0:F0}%">
+                                                <Binding Path="GoalsData.AverageProgress"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Charts -->
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="300">
+                            <Border Classes="chart-container" Grid.Column="0" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="Goal Health Distribution" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:PieChart Series="{Binding GoalHealthPieSeries}"
+                                                  Height="230"
+                                                  InitialRotation="-90"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="chart-container" Grid.Column="1" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Goals by Type" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:PieChart Series="{Binding GoalTypePieSeries}"
+                                                  Height="230"
+                                                  InitialRotation="-90"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Goals List -->
+                        <Border Classes="chart-container">
+                            <StackPanel>
+                                <TextBlock Text="Goal Details" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <ItemsControl ItemsSource="{Binding GoalsData.Goals}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource BrushSurfaceAlt}" 
+                                                    CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                                <Grid ColumnDefinitions="*,100,80,80">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Title}" 
+                                                               VerticalAlignment="Center" FontWeight="Medium"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Owner}" 
+                                                               VerticalAlignment="Center" 
+                                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                                               FontSize="12"/>
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                                                        <ProgressBar Value="{Binding Progress}" Maximum="100" 
+                                                                     Width="50" Height="6" CornerRadius="3"/>
+                                                        <TextBlock FontSize="11" Foreground="{DynamicResource BrushTextSecondary}">
+                                                            <TextBlock.Text>
+                                                                <MultiBinding StringFormat="{}{0:F0}%">
+                                                                    <Binding Path="Progress"/>
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Health}" 
+                                                               VerticalAlignment="Center" 
+                                                               HorizontalAlignment="Right"
+                                                               FontSize="11"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Metrics Tab (Index 2) -->
+                    <StackPanel IsVisible="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
+                                Margin="24" Spacing="20">
+                        
+                        <!-- Summary Stats -->
+                        <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
+                            <Border Classes="stat-card" Grid.Column="0" Margin="0,0,8,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Total Metrics" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MetricsData.TotalMetrics}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="1" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Improving ↑" FontSize="11" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MetricsData.Improving}" FontSize="24" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="2" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Stable →" FontSize="11" Foreground="#F59E0B" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MetricsData.Stable}" FontSize="24" FontWeight="Bold" Foreground="#F59E0B" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="3" Margin="8,0,0,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Declining ↓" FontSize="11" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MetricsData.Declining}" FontSize="24" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Metrics Trend Chart -->
+                        <Border Classes="chart-container">
+                            <StackPanel>
+                                <TextBlock Text="Metric Trends Over Time" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart Series="{Binding MetricTrendSeries}"
+                                                    XAxes="{Binding TimeXAxes}"
+                                                    Height="300"
+                                                    TooltipPosition="Top"
+                                                    LegendPosition="Right"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Metrics List -->
+                        <Border Classes="chart-container">
+                            <StackPanel>
+                                <TextBlock Text="Metric Summary" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <ItemsControl ItemsSource="{Binding MetricsData.Metrics}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource BrushSurfaceAlt}" 
+                                                    CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                                <Grid ColumnDefinitions="*,100,80,60">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" 
+                                                               VerticalAlignment="Center" FontWeight="Medium"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                <Binding Path="CurrentValue"/>
+                                                                <Binding Path="Unit"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                    <TextBlock Grid.Column="2" Text="{Binding TrendArrow}" 
+                                                               VerticalAlignment="Center" FontSize="18"
+                                                               HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" 
+                                                               HorizontalAlignment="Right" FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat="{}{0:+0.0;-0.0;0}%">
+                                                                <Binding Path="ChangePercent"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Tasks Tab (Index 3) -->
+                    <StackPanel IsVisible="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
+                                Margin="24" Spacing="20">
+                        
+                        <!-- Summary Stats -->
+                        <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="Auto">
+                            <Border Classes="stat-card" Grid.Column="0" Margin="0,0,8,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Total" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TasksData.TotalTasks}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="1" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Completed" FontSize="11" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TasksData.Completed}" FontSize="24" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="2" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="In Progress" FontSize="11" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TasksData.InProgress}" FontSize="24" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="3" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Overdue" FontSize="11" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TasksData.Overdue}" FontSize="24" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="4" Margin="8,0,0,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Completion %" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock FontSize="24" FontWeight="Bold" HorizontalAlignment="Center">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0:F0}%">
+                                                <Binding Path="TasksData.CompletionRate"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Charts -->
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="300">
+                            <Border Classes="chart-container" Grid.Column="0" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="Task Status Distribution" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:PieChart Series="{Binding TaskStatusPieSeries}"
+                                                  Height="230"
+                                                  InitialRotation="-90"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="chart-container" Grid.Column="1" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Task Completion Trend" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:CartesianChart Series="{Binding TaskCompletionTrendSeries}"
+                                                        XAxes="{Binding TimeXAxes}"
+                                                        YAxes="{Binding DefaultYAxes}"
+                                                        Height="230"
+                                                        TooltipPosition="Top"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                    
+                    <!-- Meetings Tab (Index 4) -->
+                    <StackPanel IsVisible="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}"
+                                Margin="24" Spacing="20">
+                        
+                        <!-- Summary Stats -->
+                        <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
+                            <Border Classes="stat-card" Grid.Column="0" Margin="0,0,8,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Total Meetings" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MeetingsData.TotalMeetings}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="1" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="1:1 Meetings" FontSize="11" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MeetingsData.OneOnOnes}" FontSize="24" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="2" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Team Meetings" FontSize="11" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MeetingsData.TeamMeetings}" FontSize="24" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="3" Margin="8,0,0,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Total Time" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MeetingsData.TotalTimeDisplay}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Charts -->
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="300">
+                            <Border Classes="chart-container" Grid.Column="0" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="Meeting Types" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:PieChart Series="{Binding MeetingTypePieSeries}"
+                                                  Height="230"
+                                                  InitialRotation="-90"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="chart-container" Grid.Column="1" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Meetings per Week" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:CartesianChart Series="{Binding MeetingCountTrendSeries}"
+                                                        XAxes="{Binding TimeXAxes}"
+                                                        YAxes="{Binding DefaultYAxes}"
+                                                        Height="230"
+                                                        TooltipPosition="Top"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                    
+                    <!-- Team Tab (Index 5) -->
+                    <StackPanel IsVisible="{Binding SelectedReportIndex, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}"
+                                Margin="24" Spacing="20">
+                        
+                        <!-- Summary Stats -->
+                        <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
+                            <Border Classes="stat-card" Grid.Column="0" Margin="0,0,8,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Team Members" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TeamData.TotalMembers}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="1" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Feedback Given" FontSize="11" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TeamData.TotalFeedbackGiven}" FontSize="24" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="2" Margin="4,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Feedback Received" FontSize="11" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TeamData.TotalFeedbackReceived}" FontSize="24" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat-card" Grid.Column="3" Margin="8,0,0,0">
+                                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                    <TextBlock Text="Recognition" FontSize="11" Foreground="#F59E0B" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TeamData.RecognitionFeedback}" FontSize="24" FontWeight="Bold" Foreground="#F59E0B" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Charts -->
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="300">
+                            <Border Classes="chart-container" Grid.Column="0" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="Feedback by Type" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:PieChart Series="{Binding FeedbackTypePieSeries}"
+                                                  Height="230"
+                                                  InitialRotation="-90"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="chart-container" Grid.Column="1" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Feedback Over Time" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                    <lvc:CartesianChart Series="{Binding FeedbackTrendSeries}"
+                                                        XAxes="{Binding TimeXAxes}"
+                                                        YAxes="{Binding DefaultYAxes}"
+                                                        Height="230"
+                                                        TooltipPosition="Top"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Team Member Activity Table -->
+                        <Border Classes="chart-container">
+                            <StackPanel>
+                                <TextBlock Text="Team Member Activity" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <ItemsControl ItemsSource="{Binding TeamData.MemberActivity}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource BrushSurfaceAlt}" 
+                                                    CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                                <Grid ColumnDefinitions="*,60,60,60,60,60">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" 
+                                                               VerticalAlignment="Center" FontWeight="Medium"/>
+                                                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding GoalsOwned}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Goals" FontSize="9" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding TasksCompleted}" FontWeight="SemiBold" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Done" FontSize="9" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding TasksAssigned}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Tasks" FontSize="9" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding MeetingsAttended}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Mtgs" FontSize="9" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="5" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding FeedbackGiven}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="FB" FontSize="9" Foreground="{DynamicResource BrushTextSecondary}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    
+                </Grid>
+            </Panel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

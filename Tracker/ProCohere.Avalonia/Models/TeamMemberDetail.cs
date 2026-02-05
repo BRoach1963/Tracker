@@ -410,6 +410,18 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged, IDetailEntity
     [JsonIgnore]
     public ICommand? DeleteCommand { get; set; }
 
+    /// <summary>
+    /// Command to give kudos to this team member. Wired by ViewModel.
+    /// </summary>
+    [JsonIgnore]
+    public ICommand? GiveKudosCommand { get; set; }
+
+    /// <summary>
+    /// Command to send a quick message to this team member. Wired by ViewModel.
+    /// </summary>
+    [JsonIgnore]
+    public ICommand? SendMessageCommand { get; set; }
+
     #endregion
 
     #region Related Data Collections (populated by ViewModel before selection)
@@ -431,6 +443,12 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged, IDetailEntity
     /// </summary>
     [JsonIgnore]
     public ObservableCollection<FeedbackDetail> MemberFeedback { get; } = new();
+
+    /// <summary>
+    /// Kudos received by this team member.
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<Kudos> MemberKudos { get; } = new();
 
     /// <summary>
     /// Direct reports of this team member (for managers).
@@ -486,5 +504,6 @@ public class TeamMemberDetail : BaseModel, INotifyPropertyChanged, IDetailEntity
     Tasks,
     Meetings,
     Feedback,
+    Kudos,
     Team
 }

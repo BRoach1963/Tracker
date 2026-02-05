@@ -7,9 +7,11 @@ using Avalonia.Platform.Storage;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Views.Dialogs;
+using ProCohere.Avalonia.Attributes;
 
 namespace ProCohere.Avalonia.Views;
 
+[HelpContext("settings", ContextName = "SettingsView")]
 public partial class SettingsView : UserControl
 {
     public SettingsView()

@@ -133,6 +133,30 @@ public interface IGoalsService
 
     #endregion
 
+    #region Trajectory Prediction
+
+    /// <summary>
+    /// Gets trajectory prediction for a goal based on its linked metrics.
+    /// Uses TrajectoryPredictor to analyze trends and predict completion probability.
+    /// </summary>
+    /// <param name="goalId">Goal ID to analyze.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Trajectory prediction result.</returns>
+    Task<TrajectoryResult> GetGoalTrajectoryAsync(Guid goalId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets trajectory predictions for multiple goals in batch.
+    /// More efficient than calling GetGoalTrajectoryAsync for each goal.
+    /// </summary>
+    /// <param name="goalIds">Goal IDs to analyze. Pass null for all active goals.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>List of trajectory results.</returns>
+    Task<List<TrajectoryResult>> GetGoalsTrajectoryBatchAsync(
+        IEnumerable<Guid>? goalIds = null,
+        CancellationToken ct = default);
+
+    #endregion
+
     #region Error Handling
 
     /// <summary>

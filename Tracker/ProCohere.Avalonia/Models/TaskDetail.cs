@@ -97,6 +97,88 @@ public class TaskDetail : BaseModel, IDetailEntity
     
     #endregion
 
+    #region Goal Link
+    
+    /// <summary>
+    /// ID of the linked goal.
+    /// </summary>
+    [Column("goal_id")]
+    public Guid? GoalId { get; set; }
+    
+    /// <summary>
+    /// Title of the linked goal (for display).
+    /// Not a DB column - set by service when fetching tasks.
+    /// </summary>
+    public string? GoalName { get; set; }
+    
+    /// <summary>
+    /// Whether this task is linked to a goal.
+    /// </summary>
+    public bool HasGoal => GoalId.HasValue;
+    
+    #endregion
+
+    #region Recurrence
+
+    /// <summary>
+    /// Whether this task has a recurrence pattern.
+    /// </summary>
+    [Column("is_recurring")]
+    public bool IsRecurring { get; set; }
+
+    /// <summary>
+    /// Recurrence frequency: 'daily', 'weekly', 'monthly'.
+    /// </summary>
+    [Column("recurrence_pattern")]
+    public string? RecurrencePattern { get; set; }
+
+    /// <summary>
+    /// Recurrence interval: repeat every N days/weeks/months.
+    /// </summary>
+    [Column("recurrence_interval")]
+    public int RecurrenceInterval { get; set; } = 1;
+
+    /// <summary>
+    /// When recurrence stops (NULL = never ends).
+    /// </summary>
+    [Column("recurrence_end_date")]
+    public DateTime? RecurrenceEndDate { get; set; }
+
+    /// <summary>
+    /// Links recurring task instances to their parent pattern.
+    /// </summary>
+    [Column("parent_recurring_task_id")]
+    public Guid? ParentRecurringTaskId { get; set; }
+
+    /// <summary>
+    /// Display text for recurrence pattern.
+    /// </summary>
+    public string RecurrenceDisplay
+    {
+        get
+        {
+            if (!IsRecurring || string.IsNullOrEmpty(RecurrencePattern))
+                return "Does not repeat";
+
+            var interval = RecurrenceInterval > 1 ? $"{RecurrenceInterval} " : "";
+            var pattern = RecurrencePattern?.ToLower() switch
+            {
+                "daily" => RecurrenceInterval > 1 ? "days" : "day",
+                "weekly" => RecurrenceInterval > 1 ? "weeks" : "week",
+                "monthly" => RecurrenceInterval > 1 ? "months" : "month",
+                _ => ""
+            };
+
+            var endText = RecurrenceEndDate.HasValue 
+                ? $" until {RecurrenceEndDate.Value:MMM d, yyyy}" 
+                : "";
+
+            return $"Every {interval}{pattern}{endText}";
+        }
+    }
+
+    #endregion
+
     #region Computed Properties
 
     /// <summary>

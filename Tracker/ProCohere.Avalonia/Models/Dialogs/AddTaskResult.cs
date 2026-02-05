@@ -14,5 +14,10 @@ public class AddTaskResult
     public string? Status { get; init; }
     public DateTime? DueDate { get; init; }
     public Guid? AssigneeId { get; init; }
+    public Guid? GoalId { get; init; }
+    public bool IsRecurring { get; init; }
+    public string? RecurrencePattern { get; init; }
+    public int RecurrenceInterval { get; init; } = 1;
+    public DateTime? RecurrenceEndDate { get; init; }
     public bool IsDeleted { get; init; }
 }

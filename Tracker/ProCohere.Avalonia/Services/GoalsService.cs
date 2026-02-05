@@ -1070,6 +1070,123 @@ public class GoalsService : IGoalsService
     }
 
     #endregion
+
+    #region Trajectory Prediction
+
+    /// <summary>
+    /// Gets trajectory prediction for a goal based on its linked metrics.
+    /// Uses TrajectoryPredictor to analyze trends and predict completion probability.
+    /// </summary>
+    /// <param name="goalId">Goal ID to analyze.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Trajectory prediction result.</returns>
+    public async Task<TrajectoryResult> GetGoalTrajectoryAsync(
+        Guid goalId,
+        CancellationToken ct = default)
+    {
+        LastError = null;
+
+        try
+        {
+            Log($"Getting trajectory for goal: {goalId}");
+
+            // Load goal
+            var goal = await GetGoalByIdAsync(goalId, ct);
+            if (goal == null)
+            {
+                LastError = "Goal not found";
+                return TrajectoryResult.NoDueDate(new GoalDetail { Id = goalId, Title = "Unknown" });
+            }
+
+            // Load linked metrics
+            var linkedMetrics = await GetAssociatedMetricsAsync(goalId, ct);
+            
+            // Load history for each metric
+            var metricHistories = new Dictionary<Guid, List<MetricHistoryEntry>>();
+            foreach (var metric in linkedMetrics)
+            {
+                ct.ThrowIfCancellationRequested();
+                var history = await MetricsService.Instance.GetHistoryAsync(metric.Id, limit: 30, ct);
+                metricHistories[metric.Id] = history;
+            }
+
+            // Predict trajectory
+            var predictor = new TrajectoryPredictor();
+            var result = predictor.PredictTrajectory(goal, linkedMetrics, metricHistories);
+
+            Log($"Trajectory for {goalId}: {result.Status} ({result.ProbabilityDisplay}, {result.ConfidenceLevel} confidence)");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            Log("GetGoalTrajectory cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetGoalTrajectory ERROR: {ex.Message}");
+            return TrajectoryResult.NoDueDate(new GoalDetail { Id = goalId, Title = "Unknown" });
+        }
+    }
+
+    /// <summary>
+    /// Gets trajectory predictions for multiple goals in batch.
+    /// More efficient than calling GetGoalTrajectoryAsync for each goal.
+    /// </summary>
+    /// <param name="goalIds">Goal IDs to analyze. Pass null for all active goals.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>List of trajectory results.</returns>
+    public async Task<List<TrajectoryResult>> GetGoalsTrajectoryBatchAsync(
+        IEnumerable<Guid>? goalIds = null,
+        CancellationToken ct = default)
+    {
+        LastError = null;
+        var results = new List<TrajectoryResult>();
+
+        try
+        {
+            // If no specific IDs, get all active goals (my goals)
+            var goals = goalIds == null
+                ? await GetMyGoalsAsync(ct)
+                : new List<GoalDetail>();
+
+            if (goalIds != null)
+            {
+                foreach (var id in goalIds)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var goal = await GetGoalByIdAsync(id, ct);
+                    if (goal != null) goals.Add(goal);
+                }
+            }
+
+            Log($"Getting trajectory batch for {goals.Count} goals");
+
+            // Process each goal (could be parallelized in future)
+            foreach (var goal in goals)
+            {
+                ct.ThrowIfCancellationRequested();
+                var trajectory = await GetGoalTrajectoryAsync(goal.Id, ct);
+                results.Add(trajectory);
+            }
+
+            return results;
+        }
+        catch (OperationCanceledException)
+        {
+            Log("GetGoalsTrajectoryBatch cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Log($"GetGoalsTrajectoryBatch ERROR: {ex.Message}");
+            return results;
+        }
+    }
+
+    #endregion
 }
 
 /// <summary>

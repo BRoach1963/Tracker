@@ -11,12 +11,14 @@ using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.ViewModels.Dialogs;
 using ProCohere.Avalonia.Views.Dialogs;
+using ProCohere.Avalonia.Attributes;
 using System;
 using System.ComponentModel;
 using System.Linq;
 
 namespace ProCohere.Avalonia.Views;
 
+[HelpContext("circle-view", ContextName = "CircleView")]
 public partial class CircleView : UserControl
 {
     private CircleViewModel? _viewModel;
@@ -39,6 +41,9 @@ public partial class CircleView : UserControl
         _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
         _viewModel.LinkMetricToGoalRequested += OnLinkMetricToGoalRequested;
         _viewModel.AddGoalDialogRequested += OnAddGoalDialogRequested;
+        _viewModel.GiveFeedbackDialogRequested += OnGiveFeedbackDialogRequested;
+        _viewModel.GiveKudosDialogRequested += OnGiveKudosDialogRequested;
+        _viewModel.SendMessageDialogRequested += OnSendMessageDialogRequested;
         
         // Initial population after control is loaded
         Loaded += CircleView_Loaded;
@@ -57,6 +62,9 @@ public partial class CircleView : UserControl
         if (window == null || _viewModel == null) return;
 
         var viewModel = new TeamMemberDetailsDialogViewModel();
+        
+        // Set dialog service for confirmations
+        viewModel.SetDialogService(new DialogService(window));
         
         // Filter out the member being edited from available managers
         var availableManagers = _viewModel.FilteredTeamMembers
@@ -141,16 +149,124 @@ public partial class CircleView : UserControl
         var window = TopLevel.GetTopLevel(this) as Window;
         if (window == null || _viewModel == null) return;
 
-        var viewModel = new EditGoalDialogViewModel();
-        var dialog = new EditGoalDialog
+        var viewModel = new AddGoalDialogViewModel();
+        
+        // Get team members from service
+        var teamMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+        viewModel.SetTeamMembers(teamMembers);
+        
+        // Pre-select the current team member as owner if one is selected
+        if (_viewModel.SelectedTeamMember != null)
+        {
+            viewModel.SetDefaultOwner(_viewModel.SelectedTeamMember.Id);
+        }
+        
+        // Set dialog service for confirmation
+        viewModel.SetDialogService(new DialogService(window));
+        
+        var dialog = new AddGoalDialog
         {
             DataContext = viewModel
         };
 
         await dialog.ShowDialog(window);
 
-        // Refresh goals list after dialog closes (whether saved or cancelled)
-        _viewModel.RefreshCommand.Execute(null);
+        // If user saved, create the goal
+        if (viewModel.Result != null && !viewModel.Result.IsDeleted)
+        {
+            try
+            {
+                var newGoal = new GoalDetail
+                {
+                    Title = viewModel.Result.Title!,
+                    Description = viewModel.Result.Description,
+                    GoalTypeValue = viewModel.Result.GoalType,
+                    StartDate = viewModel.Result.StartDate,
+                    DueDate = viewModel.Result.DueDate,
+                    OwnerTeamMemberId = viewModel.Result.OwnerTeamMemberId ?? Guid.Empty,
+                    Status = "active"
+                };
+                
+                await GoalsService.Instance.CreateGoalAsync(newGoal);
+                
+                // Refresh goals list
+                _viewModel.RefreshCommand.Execute(null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CircleView] Failed to create goal: {ex.Message}");
+            }
+        }
+    }
+
+    private async void OnGiveFeedbackDialogRequested(object? sender, TeamMemberDetail teamMember)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var viewModel = new AddFeedbackDialogViewModel();
+        
+        // Set the recipient
+        viewModel.SetRecipient(teamMember.Id, teamMember.FullName);
+        
+        // Set dialog service for confirmation
+        viewModel.SetDialogService(new DialogService(window));
+        
+        var dialog = new AddFeedbackDialog
+        {
+            DataContext = viewModel
+        };
+
+        await dialog.ShowDialog(window);
+
+        // If user saved, refresh the circle view
+        if (viewModel.WasSaved)
+        {
+            try
+            {
+                // Refresh the dashboard data which includes feedback
+                _viewModel?.RefreshCommand.Execute(null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CircleView] Failed to refresh after feedback creation: {ex.Message}");
+            }
+        }
+    }
+
+    private async void OnGiveKudosDialogRequested(object? sender, TeamMemberDetail teamMember)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var result = await AppDialogService.ShowGiveKudosAsync(window, teamMember.Id, teamMember.FullName);
+
+        if (result.WasCreated)
+        {
+            try
+            {
+                // Refresh to show new kudos (if we add a kudos display)
+                _viewModel?.RefreshCommand.Execute(null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CircleView] Failed to refresh after kudos creation: {ex.Message}");
+            }
+        }
+    }
+
+    private async void OnSendMessageDialogRequested(object? sender, TeamMemberDetail teamMember)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var result = await AppDialogService.ShowQuickMessageAsync(window, teamMember.Email, teamMember.FullName);
+
+        // No refresh needed - message was sent externally
+        if (result.WasSent)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CircleView] Message sent to {teamMember.FullName}");
+        }
     }
 
     /// <summary>

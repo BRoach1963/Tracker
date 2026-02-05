@@ -1,0 +1,123 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.AboutDialog"
+        x:DataType="vm:AboutDialogViewModel"
+        Title="About Pro Cohere"
+        Width="400" Height="450"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource BrushPrimary}"
+                    Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Pro Cohere Logo -->
+                    <Image Source="/Assets/procohere.png" 
+                           Width="48" Height="48"
+                           VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Pro Cohere"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   Foreground="White" />
+                        <TextBlock Text="{Binding VersionText}"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            
+            <!-- Content -->
+            <StackPanel Grid.Row="1" 
+                        Spacing="24"
+                        Margin="24"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                
+                <!-- App Description -->
+                <TextBlock Text="Team Performance Management"
+                           FontSize="14"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           HorizontalAlignment="Center"/>
+                
+                <!-- Separator -->
+                <Border Height="1" 
+                        Background="{DynamicResource BrushBorder}"
+                        Margin="0,8"/>
+                
+                <!-- Prickly Cactus Logo and Copyright -->
+                <StackPanel Spacing="12" HorizontalAlignment="Center">
+                    <Image Source="/Assets/Icon And Logo.png" 
+                           Width="160" Height="80"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Center"/>
+                    <TextBlock Text="© 2026 Prickly Cactus Software"
+                               FontSize="12"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- Links -->
+                <StackPanel Orientation="Horizontal" 
+                            Spacing="16" 
+                            HorizontalAlignment="Center">
+                    <Button Classes="link" 
+                            Content="Website"
+                            Command="{Binding OpenWebsiteCommand}"
+                            Cursor="Hand"/>
+                    <TextBlock Text="•" 
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <Button Classes="link"
+                            Content="Support"
+                            Command="{Binding OpenSupportCommand}"
+                            Cursor="Hand"/>
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- Footer -->
+            <Border Grid.Row="2" 
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    Padding="16">
+                <Button Content="Close"
+                        HorizontalAlignment="Center"
+                        MinWidth="100"
+                        Command="{Binding CloseCommand}"
+                        Background="{DynamicResource BrushPrimary}"
+                        Foreground="White"
+                        Padding="16,8"
+                        CornerRadius="4"/>
+            </Border>
+        </Grid>
+    </Border>
+    
+    <Window.Styles>
+        <!-- Link button style -->
+        <Style Selector="Button.link">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
+        <Style Selector="Button.link:pointerover">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button.link:pointerover /template/ ContentPresenter">
+            <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+        </Style>
+    </Window.Styles>
+</Window>

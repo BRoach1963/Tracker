@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.Views;
+using ProCohere.Avalonia.ViewModels;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,6 +37,16 @@ public partial class MainWindowViewModel : ViewModelBase
     /// ViewModel for the standalone Tasks browse page.
     /// </summary>
     public TasksViewModel TasksViewModel { get; }
+    
+    /// <summary>
+    /// ViewModel for the AI chat assistant.
+    /// </summary>
+    public ChatViewModel ChatViewModel { get; }
+    
+    /// <summary>
+    /// ViewModel for the Reports page (analytics and charts).
+    /// </summary>
+    public ReportsViewModel ReportsViewModel { get; }
     
     #endregion
     
@@ -127,8 +139,12 @@ public partial class MainWindowViewModel : ViewModelBase
     /// Raised when the user wants to edit their profile. 
     /// The view should show the EditAccountDialog.
     /// </summary>
-    public event Action? EditProfileRequested;
-
+    public event Action? EditProfileRequested;    
+    /// <summary>
+    /// Event raised when the user requests help (F1 or Help command).
+    /// The view should show the help window with context-appropriate content.
+    /// </summary>
+    public event Func<string?, Task>? HelpRequested;
     #endregion
 
     #region Theme
@@ -165,6 +181,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     #endregion
 
+    #region AI Chat
+
+    /// <summary>
+    /// Controls visibility of the AI chat panel.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isChatOpen;
+
+    #endregion
+
     public MainWindowViewModel()
     {
         // Initialize child ViewModels
@@ -172,6 +198,8 @@ public partial class MainWindowViewModel : ViewModelBase
         GoalsViewModel = new GoalsViewModel();
         MetricsViewModel = new MetricsViewModel();
         TasksViewModel = new TasksViewModel();
+        ChatViewModel = new ChatViewModel();
+        ReportsViewModel = new ReportsViewModel();
         
         // Wire up Quick Access navigation events from Pulse
         PulseViewModel.NavigateToGoalsRequested += (_, _) => SelectedNavigation = NavigationItem.Goals;
@@ -392,10 +420,29 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenHelp()
+    private async Task OpenHelpAsync()
     {
-        // TODO: Open help / AI assistant
-        StatusMessage = "Help coming soon...";
+        try
+        {
+            // Get context-sensitive help topic ID
+            var contextHelp = await HelpService.Instance.GetContextHelpAsync(this);
+            var initialTopicId = contextHelp?.Id;
+            
+            // Request the view to show the help window
+            if (HelpRequested != null)
+            {
+                await HelpRequested.Invoke(initialTopicId);
+            }
+            else
+            {
+                StatusMessage = "Help system not available";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Failed to open help: {ex.Message}");
+            StatusMessage = "Failed to open help";
+        }
     }
 
     [RelayCommand]
@@ -414,6 +461,19 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     #endregion
+    
+    #region Chat Commands
+    
+    /// <summary>
+    /// Toggles the AI chat panel open/closed.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleChat()
+    {
+        IsChatOpen = !IsChatOpen;
+    }
+    
+    #endregion
 }
 
 /// <summary>
@@ -429,6 +489,7 @@ public enum NavigationItem
     Goals,      // Goals browse/manage page (standalone destination)
     Metrics,    // Metrics browse/manage page (standalone destination)
     Tasks,      // Tasks browse/manage page (standalone destination)
-    Chronicle,  // Notes, Reports
+    Chronicle,  // Notes, narrative
+    Reports,    // Analytics - charts and historical trends
     Settings    // App settings
 }

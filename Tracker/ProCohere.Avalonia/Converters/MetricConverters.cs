@@ -259,4 +259,25 @@ public class DateTimeToAgeConverter : IValueConverter
     }
 }
 
-// Note: InverseBoolConverter is defined in NavigationConverters.cs
+/// <summary>
+/// Converts MetricTrend enum to display name.
+/// </summary>
+public class MetricTrendDisplayConverter : IValueConverter
+{
+    public static readonly MetricTrendDisplayConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is MetricTrend trend)
+        {
+            return trend.ToDisplayName();
+        }
+        return "Unknown";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+

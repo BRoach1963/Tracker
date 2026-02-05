@@ -8,12 +8,14 @@ using Avalonia.Threading;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Attributes;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
 
 namespace ProCohere.Avalonia.Views;
 
+[HelpContext("me-view", ContextName = "MeView")]
 public partial class MeView : UserControl
 {
     private MeViewModel? _viewModel;

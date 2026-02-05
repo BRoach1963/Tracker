@@ -1,0 +1,611 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="700"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.CreateSurveyDialog"
+        x:DataType="vm:CreateSurveyDialogViewModel"
+        Title="Create Survey"
+        Width="620" Height="700"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+            
+            <!-- Header (purple/survey color) -->
+            <Border Grid.Row="0" 
+                    Background="#9C27B0"
+                    Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Survey icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="#7B1FA2" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9,13V19H7V13H9M15,15V19H17V15H15M11,11V19H13V11H11Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Create Pulse Survey"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Gather feedback from your team"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Step Indicator -->
+            <Border Grid.Row="1" 
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0,0,0,1"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="*,*,*,*,*">
+                    <!-- Step 1 -->
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <Border Width="32" Height="32" CornerRadius="16"
+                                Background="{Binding IsBasicStep, Converter={StaticResource BoolToHighlightBackgroundConverter}}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="1" FontWeight="SemiBold" 
+                                       Foreground="{Binding IsBasicStep, Converter={StaticResource BoolToForegroundConverter}}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Basic" FontSize="10" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                    
+                    <!-- Step 2 -->
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <Border Width="32" Height="32" CornerRadius="16"
+                                Background="{Binding IsQuestionsStep, Converter={StaticResource BoolToHighlightBackgroundConverter}}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="2" FontWeight="SemiBold" 
+                                       Foreground="{Binding IsQuestionsStep, Converter={StaticResource BoolToForegroundConverter}}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Questions" FontSize="10" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                    
+                    <!-- Step 3 -->
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <Border Width="32" Height="32" CornerRadius="16"
+                                Background="{Binding IsScheduleStep, Converter={StaticResource BoolToHighlightBackgroundConverter}}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="3" FontWeight="SemiBold" 
+                                       Foreground="{Binding IsScheduleStep, Converter={StaticResource BoolToForegroundConverter}}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Schedule" FontSize="10" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                    
+                    <!-- Step 4 -->
+                    <StackPanel Grid.Column="3" Spacing="4">
+                        <Border Width="32" Height="32" CornerRadius="16"
+                                Background="{Binding IsTargetingStep, Converter={StaticResource BoolToHighlightBackgroundConverter}}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="4" FontWeight="SemiBold" 
+                                       Foreground="{Binding IsTargetingStep, Converter={StaticResource BoolToForegroundConverter}}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Audience" FontSize="10" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                    
+                    <!-- Step 5 -->
+                    <StackPanel Grid.Column="4" Spacing="4">
+                        <Border Width="32" Height="32" CornerRadius="16"
+                                Background="{Binding IsSettingsStep, Converter={StaticResource BoolToHighlightBackgroundConverter}}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="5" FontWeight="SemiBold" 
+                                       Foreground="{Binding IsSettingsStep, Converter={StaticResource BoolToForegroundConverter}}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Settings" FontSize="10" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="2" 
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="20,16">
+                <StackPanel Spacing="16">
+                    
+                    <!-- Error Message -->
+                    <Border IsVisible="{Binding HasError}"
+                            Background="#FEE"
+                            BorderBrush="{DynamicResource BrushError}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource BrushError}"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="{DynamicResource BrushError}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- STEP 1: BASIC INFO -->
+                    <StackPanel IsVisible="{Binding IsBasicStep}" Spacing="16">
+                        <TextBlock Text="Basic Information" 
+                                   FontSize="14" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                        
+                        <!-- Title -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Survey Title *" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBox Text="{Binding Title}"
+                                     Watermark="e.g., Weekly Team Pulse Check" />
+                        </StackPanel>
+                        
+                        <!-- Description -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Description" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBox Text="{Binding Description}"
+                                     Watermark="Provide context about this survey's purpose"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="80" />
+                        </StackPanel>
+                        
+                        <!-- Survey Type -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Survey Type" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <ComboBox SelectedIndex="{Binding SurveyTypeIndex}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="Pulse (Quick Check-in)" Tag="pulse" />
+                                <ComboBoxItem Content="Engagement" Tag="engagement" />
+                                <ComboBoxItem Content="Custom" Tag="custom" />
+                            </ComboBox>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- STEP 2: QUESTIONS -->
+                    <StackPanel IsVisible="{Binding IsQuestionsStep}" Spacing="16">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Survey Questions" 
+                                       FontSize="14" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                            <Button Grid.Column="1"
+                                    Command="{Binding StartAddQuestionCommand}"
+                                    IsVisible="{Binding !IsAddingQuestion}"
+                                    Classes="action-button"
+                                    Padding="8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
+                                              Width="12" Height="12"/>
+                                    <TextBlock Text="Add Question" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Add Question Form -->
+                        <Border IsVisible="{Binding IsAddingQuestion}"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <!-- Question Text -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Question *" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBox Text="{Binding NewQuestionText}"
+                                             Watermark="Enter your question"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             Height="60"/>
+                                </StackPanel>
+
+                                <!-- Question Type -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Type" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <ComboBox SelectedIndex="{Binding NewQuestionTypeIndex}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Text Response" />
+                                        <ComboBoxItem Content="Rating Scale" />
+                                        <ComboBoxItem Content="Multiple Choice" />
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <!-- Rating Options -->
+                                <Grid IsVisible="{Binding IsRatingQuestion}"
+                                      ColumnDefinitions="*,Auto,*">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Min" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <NumericUpDown Value="{Binding NewQuestionMinValue}"
+                                                       Minimum="1" Maximum="10"
+                                                       Increment="1"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="to" 
+                                               VerticalAlignment="Bottom" Margin="8,0,8,8"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <StackPanel Grid.Column="2" Spacing="4">
+                                        <TextBlock Text="Max" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <NumericUpDown Value="{Binding NewQuestionMaxValue}"
+                                                       Minimum="2" Maximum="10"
+                                                       Increment="1"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Choice Options -->
+                                <StackPanel IsVisible="{Binding IsChoiceQuestion}" Spacing="4">
+                                    <TextBlock Text="Options (comma-separated)" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBox Text="{Binding NewQuestionOptions}"
+                                             Watermark="e.g., Excellent, Good, Fair, Poor"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             Height="50"/>
+                                </StackPanel>
+
+                                <!-- Required Checkbox -->
+                                <CheckBox IsChecked="{Binding NewQuestionRequired}"
+                                          Content="Required question"
+                                          FontSize="11"/>
+
+                                <!-- Actions -->
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                    <Button Content="Cancel"
+                                            Command="{Binding CancelAddQuestionCommand}"
+                                            Classes="secondary-button"
+                                            Width="80"/>
+                                    <Button Content="Add"
+                                            Command="{Binding SaveNewQuestionCommand}"
+                                            Foreground="{DynamicResource BrushPrimary}"
+                                            FontWeight="SemiBold"
+                                            BorderThickness="1"
+                                            BorderBrush="{DynamicResource BrushPrimary}"
+                                            Width="80">
+                                        <Button.Styles>
+                                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                                <Setter Property="Background" Value="White"/>
+                                            </Style>
+                                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Questions List -->
+                        <ItemsControl ItemsSource="{Binding Questions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource BrushSurface}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="12"
+                                            Margin="0,0,0,8">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <!-- Sort Order -->
+                                            <Border Grid.Column="0"
+                                                    Width="24" Height="24"
+                                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                                    CornerRadius="12"
+                                                    VerticalAlignment="Top">
+                                                <TextBlock Text="{Binding SortOrder}"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+
+                                            <!-- Question Content -->
+                                            <StackPanel Grid.Column="1" Margin="12,0" Spacing="4">
+                                                <TextBlock Text="{Binding QuestionText}"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding QuestionTypeDisplay}"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="•" FontSize="10"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="{Binding RequiredDisplay}"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Actions -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                                                <Button Command="{Binding $parent[ItemsControl].((vm:CreateSurveyDialogViewModel)DataContext).MoveQuestionUpCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Classes="icon-button"
+                                                        ToolTip.Tip="Move Up">
+                                                    <PathIcon Data="M7,15L12,10L17,15H7Z" Width="12" Height="12"/>
+                                                </Button>
+                                                <Button Command="{Binding $parent[ItemsControl].((vm:CreateSurveyDialogViewModel)DataContext).MoveQuestionDownCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Classes="icon-button"
+                                                        ToolTip.Tip="Move Down">
+                                                    <PathIcon Data="M7,10L12,15L17,10H7Z" Width="12" Height="12"/>
+                                                </Button>
+                                                <Button Command="{Binding $parent[ItemsControl].((vm:CreateSurveyDialogViewModel)DataContext).RemoveQuestionCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Classes="icon-button"
+                                                        ToolTip.Tip="Remove">
+                                                    <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
+                                                              Width="12" Height="12"
+                                                              Foreground="{DynamicResource BrushError}"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Empty State -->
+                        <Border IsVisible="{Binding !Questions.Count}"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                CornerRadius="6"
+                                Padding="40,32"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13,13H11V18H13V13M13,4V9H18L13,4M11,11V9H13V11H11Z"
+                                          Width="32" Height="32"
+                                          Foreground="{DynamicResource BrushTextTertiary}"
+                                          HorizontalAlignment="Center"/>
+                                <TextBlock Text="No questions yet"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Click 'Add Question' to get started"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 3: SCHEDULE -->
+                    <StackPanel IsVisible="{Binding IsScheduleStep}" Spacing="16">
+                        <TextBlock Text="Schedule" 
+                                   FontSize="14" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+
+                        <!-- Frequency -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Frequency" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <ComboBox SelectedIndex="{Binding FrequencyIndex}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="One Time" />
+                                <ComboBoxItem Content="Weekly" />
+                                <ComboBoxItem Content="Biweekly" />
+                                <ComboBoxItem Content="Monthly" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- Start Date -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Start Date" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <DatePicker SelectedDate="{Binding StartsAt}"
+                                        HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+
+                        <!-- End Date -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="End Date (Optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <DatePicker SelectedDate="{Binding EndsAt}"
+                                        HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- STEP 4: TARGETING -->
+                    <StackPanel IsVisible="{Binding IsTargetingStep}" Spacing="16">
+                        <TextBlock Text="Target Audience" 
+                                   FontSize="14" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+
+                        <!-- Target All Employees -->
+                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12">
+                            <StackPanel Spacing="8">
+                                <CheckBox IsChecked="{Binding TargetAllEmployees}"
+                                          Content="Send to all team members"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"/>
+                                <TextBlock Text="Survey will be sent to everyone in your organization"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           Margin="28,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Specific Targeting (placeholder for future enhancement) -->
+                        <Border IsVisible="{Binding !TargetAllEmployees}"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                CornerRadius="6"
+                                Padding="20,16">
+                            <TextBlock Text="Specific team/member targeting will be available in a future update"
+                                       FontSize="11"
+                                       FontStyle="Italic"
+                                       Foreground="{DynamicResource BrushTextTertiary}"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 5: SETTINGS -->
+                    <StackPanel IsVisible="{Binding IsSettingsStep}" Spacing="16">
+                        <TextBlock Text="Survey Settings" 
+                                   FontSize="14" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+
+                        <!-- Anonymous -->
+                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12">
+                            <StackPanel Spacing="8">
+                                <CheckBox IsChecked="{Binding IsAnonymous}"
+                                          Content="Anonymous responses"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"/>
+                                <TextBlock Text="Respondent names will not be recorded (encourages honest feedback)"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource BrushTextTertiary}"
+                                           TextWrapping="Wrap"
+                                           Margin="28,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Comments -->
+                        <CheckBox IsChecked="{Binding AllowComments}"
+                                  Content="Allow freeform comments"
+                                  FontSize="12"/>
+
+                        <!-- Reminders -->
+                        <StackPanel Spacing="8">
+                            <CheckBox IsChecked="{Binding ReminderEnabled}"
+                                      Content="Send reminder notifications"
+                                      FontSize="12"/>
+                            <StackPanel IsVisible="{Binding ReminderEnabled}"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        Margin="28,0,0,0">
+                                <NumericUpDown Value="{Binding ReminderDaysBeforeClose}"
+                                               Minimum="1" Maximum="14"
+                                               Increment="1"
+                                               Width="100"/>
+                                <TextBlock Text="days before close"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Welcome Message -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Welcome Message (Optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBox Text="{Binding WelcomeMessage}"
+                                     Watermark="Message shown before starting the survey"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="60"/>
+                        </StackPanel>
+
+                        <!-- Thank You Message -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Thank You Message" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBox Text="{Binding ThankYouMessage}"
+                                     Watermark="Message shown after completing the survey"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="60"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer Navigation -->
+            <Border Grid.Row="3"
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0,1,0,0"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                    <!-- Cancel -->
+                    <Button Grid.Column="0"
+                            Content="Cancel"
+                            Command="{Binding CancelCommand}"
+                            Classes="secondary-button"
+                            Width="80"
+                            IsEnabled="{Binding !IsSaving}"/>
+
+                    <!-- Previous -->
+                    <Button Grid.Column="2"
+                            Content="Previous"
+                            Command="{Binding PreviousStepCommand}"
+                            IsVisible="{Binding CanGoPrevious}"
+                            Classes="secondary-button"
+                            Width="90"
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding !IsSaving}"/>
+
+                    <!-- Next -->
+                    <Button Grid.Column="3"
+                            Content="Next"
+                            Command="{Binding NextStepCommand}"
+                            IsVisible="{Binding CanGoNext}"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Width="90"
+                            IsEnabled="{Binding !IsSaving}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+
+                    <!-- Create -->
+                    <Button Grid.Column="4"
+                            Content="Create Survey"
+                            Command="{Binding SaveCommand}"
+                            IsVisible="{Binding !CanGoNext}"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            MinWidth="120"
+                            IsEnabled="{Binding CanSave}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Border>
+</Window>

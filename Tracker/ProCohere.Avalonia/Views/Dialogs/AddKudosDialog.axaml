@@ -1,0 +1,147 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="560"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.AddKudosDialog"
+        x:DataType="vm:AddKudosDialogViewModel"
+        Title="Give Kudos"
+        Width="520" Height="560"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (gold/yellow for recognition) -->
+            <Border Grid.Row="0" Background="#F59E0B" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Trophy/star icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="#D97706" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" 
+                                  Width="20" Height="20" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Give Kudos" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{Binding RecipientDisplayName, StringFormat='Recognize {0}'}" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="20,16">
+            <StackPanel Spacing="16">
+                
+                <!-- Category -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Category" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox SelectedIndex="{Binding CategoryIndex}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="🤝 Teamwork" Tag="teamwork" />
+                        <ComboBoxItem Content="💡 Innovation" Tag="innovation" />
+                        <ComboBoxItem Content="👑 Leadership" Tag="leadership" />
+                        <ComboBoxItem Content="👥 Customer Focus" Tag="customer_focus" />
+                        <ComboBoxItem Content="✨ Quality" Tag="quality" />
+                        <ComboBoxItem Content="🚀 Above &amp; Beyond" Tag="above_and_beyond" />
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Message -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Recognition Message *" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox Text="{Binding Message}"
+                             Watermark="What do you want to recognize them for?"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="180" />
+                    <TextBlock Text="{Binding MessageCharacterCount, StringFormat='{}{0} characters'}" 
+                               FontSize="10" 
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               HorizontalAlignment="Right"/>
+                </StackPanel>
+                
+                <!-- Visibility -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Visibility" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <StackPanel Spacing="8">
+                        <RadioButton Content="Public (visible to entire organization)" 
+                                     IsChecked="{Binding IsPublic}"
+                                     GroupName="Visibility">
+                            <RadioButton.Styles>
+                                <Style Selector="RadioButton">
+                                    <Setter Property="FontSize" Value="13"/>
+                                </Style>
+                            </RadioButton.Styles>
+                        </RadioButton>
+                        <RadioButton Content="Private (only visible to recipient and you)" 
+                                     IsChecked="{Binding !IsPublic}"
+                                     GroupName="Visibility">
+                            <RadioButton.Styles>
+                                <Style Selector="RadioButton">
+                                    <Setter Property="FontSize" Value="13"/>
+                                </Style>
+                            </RadioButton.Styles>
+                        </RadioButton>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Validation Error -->
+                <Border Background="{DynamicResource BrushError}"
+                        Padding="12"
+                        CornerRadius="4"
+                        IsVisible="{Binding HasError}">
+                    <TextBlock Text="{Binding ErrorMessage}" 
+                               Foreground="White" 
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
+                </Border>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Action Buttons -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource BrushSurface2}" 
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="0,1,0,0"
+                Padding="20,12">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <!-- Left: Character limit info -->
+                <TextBlock Grid.Column="0"
+                           Text="Share a genuine, specific recognition"
+                           FontSize="11"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           VerticalAlignment="Center"/>
+                           
+                <!-- Cancel -->
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                        Classes="Secondary"
+                        Width="100"
+                        Margin="0,0,8,0"/>
+                        
+                <!-- Submit -->
+                <Button Grid.Column="2"
+                        Content="Give Kudos"
+                        Command="{Binding SubmitCommand}"
+                        Classes="Primary"
+                        Width="120"
+                        IsEnabled="{Binding CanSubmit}"/>
+            </Grid>
+        </Border>
+        
+        </Grid>
+    </Border>
+</Window>

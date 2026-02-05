@@ -135,6 +135,11 @@ public partial class MetricsTabView : UserControl
         ViewModel?.SetDetailTabCommand.Execute("1");
     }
 
+    private void TabTrend_Tapped(object? sender, TappedEventArgs e)
+    {
+        ViewModel?.SetDetailTabCommand.Execute("2");
+    }
+
     #endregion
 
     #region Card Selection

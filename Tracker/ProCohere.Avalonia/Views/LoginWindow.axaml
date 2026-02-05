@@ -242,22 +242,25 @@
 
                 <!-- Login Form Content -->
                 <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <!-- Welcome Text -->
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock Text="Welcome back"
-                                   FontSize="30"
-                                   FontWeight="Bold"
-                                   Foreground="#1F2937"/>
-                        <Border Width="50" Height="3"
-                                Background="#C7A450"
-                                CornerRadius="1.5"
-                                HorizontalAlignment="Left"
-                                Margin="0,8,0,0"/>
-                    </StackPanel>
-                    <TextBlock Text="Sign in to continue to Pro Cohere"
-                               FontSize="14"
-                               Foreground="#6B7280"
-                               Margin="0,8,0,36"/>
+                    
+                    <!-- Login Mode -->
+                    <StackPanel IsVisible="{Binding !IsPasswordResetMode}">
+                        <!-- Welcome Text -->
+                        <StackPanel Margin="0,0,0,6">
+                            <TextBlock Text="Welcome back"
+                                       FontSize="30"
+                                       FontWeight="Bold"
+                                       Foreground="#1F2937"/>
+                            <Border Width="50" Height="3"
+                                    Background="#C7A450"
+                                    CornerRadius="1.5"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,8,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="Sign in to continue to Pro Cohere"
+                                   FontSize="14"
+                                   Foreground="#6B7280"
+                                   Margin="0,8,0,36"/>
 
                     <!-- Email -->
                     <StackPanel Margin="0,0,0,20">
@@ -309,7 +312,7 @@
                                   HorizontalAlignment="Left"/>
                         <Button Classes="link"
                                 Content="Forgot password?"
-                                Command="{Binding ForgotPasswordCommand}"
+                                Command="{Binding ShowPasswordResetCommand}"
                                 HorizontalAlignment="Right"/>
                     </Grid>
 
@@ -351,6 +354,114 @@
                                    Foreground="#6B7280"
                                    FontSize="13"
                                    VerticalAlignment="Center"/>
+                    </StackPanel>
+                    </StackPanel>
+
+                    <!-- Password Reset Mode -->
+                    <StackPanel IsVisible="{Binding IsPasswordResetMode}">
+                        <!-- Title -->
+                        <StackPanel Margin="0,0,0,6">
+                            <TextBlock Text="Reset Password"
+                                       FontSize="30"
+                                       FontWeight="Bold"
+                                       Foreground="#1F2937"/>
+                            <Border Width="50" Height="3"
+                                    Background="#C7A450"
+                                    CornerRadius="1.5"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,8,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="Enter your email address and we'll send you a link to reset your password"
+                                   FontSize="14"
+                                   Foreground="#6B7280"
+                                   Margin="0,8,0,36"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Email -->
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Email"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="#6B7280"
+                                       Margin="0,0,0,8"/>
+                            <TextBox Classes="modern"
+                                     Text="{Binding ResetEmail}"
+                                     Watermark="Enter your email"/>
+                        </StackPanel>
+
+                        <!-- Success Message -->
+                        <Border Background="#F0FDF4"
+                                BorderBrush="#22C55E"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Margin="0,0,0,20"
+                                Padding="14,10"
+                                IsVisible="{Binding HasSuccess}">
+                            <StackPanel Orientation="Horizontal">
+                                <PathIcon Data="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"
+                                          Foreground="#22C55E"
+                                          Width="18" Height="18"
+                                          Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding SuccessMessage}"
+                                           Foreground="#15803D"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Error Message -->
+                        <Border Background="#FEF2F2"
+                                BorderBrush="#EF4444"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Margin="0,0,0,20"
+                                Padding="14,10"
+                                IsVisible="{Binding HasError}">
+                            <StackPanel Orientation="Horizontal">
+                                <PathIcon Data="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10-4.48 10-10S17.52,2 12,2m1,15h-2v-2h2v2m0-4h-2V7h2v6z"
+                                          Foreground="#EF4444"
+                                          Width="18" Height="18"
+                                          Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding ErrorMessage}"
+                                           Foreground="#EF4444"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Buttons -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,0,0,16">
+                            <Button Grid.Column="0"
+                                    Classes="link"
+                                    Content="← Back to Sign In"
+                                    Command="{Binding CancelPasswordResetCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Padding="24,14"
+                                    BorderThickness="1"
+                                    BorderBrush="#E5E7EB"
+                                    Background="Transparent"
+                                    CornerRadius="8"/>
+                            <Button Grid.Column="1"
+                                    Classes="primary"
+                                    Content="Send Reset Link"
+                                    Command="{Binding SendPasswordResetCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Loading Indicator -->
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    IsVisible="{Binding IsLoading}"
+                                    Margin="0,0,0,16">
+                            <TextBlock Text="Sending email..."
+                                       Foreground="#6B7280"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
 

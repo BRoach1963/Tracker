@@ -28,15 +28,18 @@
         <KeyBinding Gesture="Ctrl+F" Command="{Binding OpenSearchCommand}"/>
         <!-- Help -->
         <KeyBinding Gesture="F1" Command="{Binding OpenHelpCommand}"/>
-        <!-- Navigation: Ctrl+1-6 -->
+        <!-- Navigation: Ctrl+1-7 -->
         <KeyBinding Gesture="Ctrl+D1" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Briefing}"/>
         <KeyBinding Gesture="Ctrl+D2" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Me}"/>
         <KeyBinding Gesture="Ctrl+D3" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Circle}"/>
         <KeyBinding Gesture="Ctrl+D4" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Projects}"/>
         <KeyBinding Gesture="Ctrl+D5" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Pulse}"/>
         <KeyBinding Gesture="Ctrl+D6" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Chronicle}"/>
+        <KeyBinding Gesture="Ctrl+D7" Command="{Binding NavigateToCommand}" CommandParameter="{x:Static vm:NavigationItem.Reports}"/>
         <!-- Toggle sidebar -->
         <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleNavigationCommand}"/>
+        <!-- Toggle AI chat -->
+        <KeyBinding Gesture="Ctrl+OemQuestion" Command="{Binding ToggleChatCommand}"/>
     </Window.KeyBindings>
 
     <Design.DataContext>
@@ -193,6 +196,50 @@
                         </Grid>
                     </Button>
 
+                    <!-- Goals -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Goals}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Goals}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Goals" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Goals}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Target/goal icon -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z"/>
+                                <TextBlock Text="Goals" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <!-- Metrics -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Metrics}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Metrics}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Metrics" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Metrics}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Chart/trending up icon -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/>
+                                <TextBlock Text="Metrics" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
                     <!-- Chronicle -->
                     <Button Classes="nav-item-dark"
                             Command="{Binding NavigateToCommand}"
@@ -210,6 +257,28 @@
                                 <PathIcon Width="18" Height="18"
                                           Data="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/>
                                 <TextBlock Text="Chronicle" VerticalAlignment="Center" FontSize="14"
+                                           IsVisible="{Binding IsNavigationExpanded}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <!-- Reports -->
+                    <Button Classes="nav-item-dark"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="{x:Static vm:NavigationItem.Reports}"
+                            Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Reports}}">
+                        <ToolTip.Tip>
+                            <TextBlock Text="Reports (Ctrl+7)" Foreground="#1F2937"/>
+                        </ToolTip.Tip>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
+                                    Classes="nav-indicator"
+                                    Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Reports}}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                                <!-- Chart bar icon for analytics -->
+                                <PathIcon Width="18" Height="18"
+                                          Data="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z"/>
+                                <TextBlock Text="Reports" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -418,6 +487,18 @@
                                                 </StackPanel>
                                             </Button>
                                             
+                                            <Button Classes="menu-item"
+                                                    Click="About_Click">
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <PathIcon Width="16" Height="16"
+                                                              Foreground="{DynamicResource BrushTextSecondary}"
+                                                              Data="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5H13V11H11V16.5M11,9.5H13V7.5H11V9.5Z"/>
+                                                    <TextBlock Text="About Pro Cohere"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                </StackPanel>
+                                            </Button>
+                                            
                                             <!-- Divider -->
                                             <Border Height="1" 
                                                     Background="{DynamicResource BrushBorder}"
@@ -472,7 +553,7 @@
                 
                 <!-- BRIEFING / Dashboard -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}">
-                    <briefing:BriefingView />
+                    <briefing:BriefingView x:Name="BriefingViewControl" />
                 </Grid>
 
                 <!-- ME (Personal Hub) -->
@@ -515,12 +596,83 @@
                     <views:ChronicleView />
                 </Grid>
 
+                <!-- REPORTS -->
+                <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Reports}}">
+                    <views:ReportsView DataContext="{Binding ReportsViewModel}" />
+                </Grid>
+
                 <!-- SETTINGS - DataContext set in code-behind -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}">
                     <views:SettingsView x:Name="SettingsView" DataContext="{x:Null}" />
                 </Grid>
             </Grid>
         </Grid>
+            
+        <!-- AI Chat Overlay Panel -->
+        <Border Grid.Column="1"
+                IsVisible="{Binding IsChatOpen}"
+                Background="#80000000"
+                ZIndex="100">
+                <Border Width="500" 
+                        Height="700"
+                        HorizontalAlignment="Right" 
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,24,24"
+                        Background="#FFFFFF"
+                        CornerRadius="12"
+                        BoxShadow="0 8 32 0 #40000000">
+                    <Grid RowDefinitions="Auto,*">
+                        <!-- Chat Header -->
+                        <Border Grid.Row="0" 
+                                Background="#1E3A8A"
+                                CornerRadius="12,12,0,0"
+                                Padding="16,12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                    <!-- AI Sparkle Icon -->
+                                    <PathIcon Width="20" Height="20" 
+                                              Foreground="#FFFFFF"
+                                              Data="M12 2l1.09 3.26L16.5 6.35l-3.41 1.09L12 10.7l-1.09-3.26L7.5 6.35l3.41-1.09L12 2zm0 8l.82 2.46 2.46.82-2.46.82L12 16.54l-.82-2.46-2.46-.82 2.46-.82L12 10z"/>
+                                    <TextBlock Text="AI Assistant" 
+                                               FontSize="16" 
+                                               FontWeight="SemiBold"
+                                               Foreground="#FFFFFF"/>
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Command="{Binding ToggleChatCommand}"
+                                        Background="Transparent"
+                                        Padding="8">
+                                    <PathIcon Width="16" Height="16" 
+                                              Foreground="#FFFFFF"
+                                              Data="M6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5l5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6Z"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Chat Content -->
+                        <views:ChatView Grid.Row="1" 
+                                        DataContext="{Binding ChatViewModel}"/>
+                    </Grid>
+                </Border>
+            </Border>
+            
+            <!-- Floating AI Chat Button (bottom-right) -->
+            <Button Grid.Column="1"
+                    Command="{Binding ToggleChatCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,24,24"
+                    Width="56" Height="56"
+                    CornerRadius="28"
+                    Background="#1E3A8A"
+                    ZIndex="99"
+                    IsVisible="{Binding !IsChatOpen}">
+                <ToolTip.Tip>
+                    <TextBlock Text="AI Assistant (Ctrl+/)" Foreground="#1F2937"/>
+                </ToolTip.Tip>
+                <PathIcon Width="24" Height="24" 
+                          Foreground="#FFFFFF"
+                          Data="M12 2l1.09 3.26L16.5 6.35l-3.41 1.09L12 10.7l-1.09-3.26L7.5 6.35l3.41-1.09L12 2zm0 8l.82 2.46 2.46.82-2.46.82L12 16.54l-.82-2.46-2.46-.82 2.46-.82L12 10z"/>
+            </Button>
     </Grid>
 </Window>
-

@@ -205,6 +205,56 @@
                              Watermark="Zoom, Teams, Meet URL" />
                 </StackPanel>
                 
+                <!-- Recurrence -->
+                <Border Background="{DynamicResource BrushSurface}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="12">
+                    <StackPanel Spacing="10">
+                        <CheckBox IsChecked="{Binding IsRecurringEnabled}"
+                                  Content="Repeat this meeting"
+                                  FontSize="12"
+                                  FontWeight="Medium"/>
+                        
+                        <StackPanel Spacing="8" IsVisible="{Binding IsRecurringEnabled}">
+                            <!-- Pattern -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Frequency" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <ComboBox SelectedIndex="{Binding RecurrencePatternIndex}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="Daily" />
+                                    <ComboBoxItem Content="Weekly" />
+                                    <ComboBoxItem Content="Monthly" />
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <!-- Interval -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Repeat every" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <NumericUpDown Value="{Binding RecurrenceInterval}"
+                                                   Minimum="1" Maximum="365"
+                                                   Width="80"
+                                                   Increment="1"
+                                                   FormatString="0"/>
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding RecurrencePatternIndex, Converter={StaticResource RecurrencePatternToUnitConverter}}"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0"
+                                               FontSize="12"/>
+                                </Grid>
+                            </StackPanel>
+                            
+                            <!-- End Date -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Ends on (optional)" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <DatePicker SelectedDate="{Binding RecurrenceEndDate}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
             </StackPanel>
         </ScrollViewer>
     </Border>

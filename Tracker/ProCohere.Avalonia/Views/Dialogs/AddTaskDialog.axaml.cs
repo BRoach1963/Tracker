@@ -29,6 +29,9 @@ public partial class AddTaskDialog : Window
         
         // Focus the title field
         TitleTextBox.AttachedToVisualTree += (s, e) => TitleTextBox.Focus();
+        
+        // Load goals when dialog opens
+        Opened += async (s, e) => await _viewModel.LoadGoalsAsync();
     }
     
     private void SetupViewModel()

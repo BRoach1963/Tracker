@@ -134,6 +134,43 @@ public interface IMetricsService
     /// </summary>
     Task<MetricTrend> CalculateTrendAsync(Guid metricId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Calculates detailed trend analysis using linear regression for a metric.
+    /// Uses TrendAnalyzer for more sophisticated analysis than simple comparison.
+    /// </summary>
+    /// <param name="metricId">Metric ID to analyze.</param>
+    /// <param name="lookbackDays">Number of days to analyze (default: 30).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Detailed trend analysis result.</returns>
+    Task<TrendResult> GetTrendAnalysisAsync(
+        Guid metricId,
+        int lookbackDays = 30,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Projects a metric's value at a future date based on current trend.
+    /// </summary>
+    /// <param name="metricId">Metric ID to project.</param>
+    /// <param name="targetDate">Date to project to.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Projected value, or null if trend analysis is insufficient.</returns>
+    Task<double?> ProjectValueAsync(
+        Guid metricId,
+        DateTime targetDate,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Projects when a metric will reach a target value based on current trend.
+    /// </summary>
+    /// <param name="metricId">Metric ID to analyze.</param>
+    /// <param name="targetValue">Target value to reach.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Projected date, or null if not reachable with current trend.</returns>
+    Task<DateTime?> ProjectTargetDateAsync(
+        Guid metricId,
+        double targetValue,
+        CancellationToken ct = default);
+
     #endregion
 
     #region Error Handling

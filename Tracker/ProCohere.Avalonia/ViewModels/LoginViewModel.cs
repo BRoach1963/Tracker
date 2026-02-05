@@ -36,6 +36,19 @@ public partial class LoginViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isPasswordVisible;
 
+    [ObservableProperty]
+    private bool _isPasswordResetMode;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SendPasswordResetCommand))]
+    private string _resetEmail = string.Empty;
+
+    [ObservableProperty]
+    private string _successMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasSuccess;
+
     /// <summary>
     /// Event raised when login is successful.
     /// </summary>
@@ -119,21 +132,64 @@ public partial class LoginViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ForgotPassword()
+    private void ShowPasswordReset()
     {
+        IsPasswordResetMode = true;
+        ResetEmail = Email; // Pre-fill with current email
+        ClearError();
+        ClearSuccess();
+    }
+
+    [RelayCommand]
+    private void CancelPasswordReset()
+    {
+        IsPasswordResetMode = false;
+        ResetEmail = string.Empty;
+        ClearError();
+        ClearSuccess();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSendPasswordReset))]
+    private async Task SendPasswordResetAsync()
+    {
+        if (IsLoading) return;
+
+        IsLoading = true;
+        ClearError();
+        ClearSuccess();
+
         try
         {
-            var resetUrl = "https://procohere.com/reset-password";
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            var (success, error) = await AuthService.Instance.ResetPasswordForEmailAsync(ResetEmail);
+
+            if (success)
             {
-                FileName = resetUrl,
-                UseShellExecute = true
-            });
+                SetSuccess($"Password reset email sent to {ResetEmail}. Please check your inbox.");
+                // Clear the form after a delay
+                await Task.Delay(3000);
+                if (HasSuccess) // Only reset if user hasn't dismissed
+                {
+                    CancelPasswordReset();
+                }
+            }
+            else
+            {
+                SetError(error ?? "Failed to send password reset email.");
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail
+            SetError($"Error: {ex.Message}");
         }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private bool CanSendPasswordReset()
+    {
+        return !IsLoading && IsValidEmail(ResetEmail);
     }
 
     private static bool IsValidEmail(string email)
@@ -154,6 +210,18 @@ public partial class LoginViewModel : ViewModelBase
     {
         ErrorMessage = string.Empty;
         HasError = false;
+    }
+
+    private void SetSuccess(string message)
+    {
+        SuccessMessage = message;
+        HasSuccess = true;
+    }
+
+    private void ClearSuccess()
+    {
+        SuccessMessage = string.Empty;
+        HasSuccess = false;
     }
 
     private void LoadRememberedSettings()

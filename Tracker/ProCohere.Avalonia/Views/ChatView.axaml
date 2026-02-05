@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:models="using:ProCohere.Avalonia.Models"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="600"
+             x:Class="ProCohere.Avalonia.Views.ChatView"
+             x:DataType="vm:ChatViewModel">
+
+    <Design.DataContext>
+        <vm:ChatViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+        
+        <!-- Header with Context -->
+        <Border Grid.Row="0" 
+                Background="#1976D2" 
+                Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="AI Assistant" 
+                               FontSize="16" 
+                               FontWeight="SemiBold"
+                               Foreground="White"/>
+                    <TextBlock Text="{Binding ContextSummary}" 
+                               FontSize="11"
+                               Foreground="#BBDEFB"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            Spacing="8">
+                    <Button Content="🔄" 
+                            Command="{Binding RefreshContextCommand}"
+                            ToolTip.Tip="Refresh context"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+                    <Button Content="🗑️" 
+                            Command="{Binding ClearChatCommand}"
+                            ToolTip.Tip="Clear chat"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Messages ScrollViewer -->
+        <ScrollViewer Grid.Row="1" 
+                      Name="MessageScrollViewer"
+                      Padding="8">
+            <ItemsControl ItemsSource="{Binding Messages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="models:ChatMessage">
+                        <Panel>
+                            <!-- User Message -->
+                            <Border Background="#E3F2FD" 
+                                    CornerRadius="12"
+                                    Padding="12,8"
+                                    Margin="48,4,8,4"
+                                    HorizontalAlignment="Right"
+                                    MaxWidth="320"
+                                    IsVisible="{Binding IsUser}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Content}" 
+                                               TextWrapping="Wrap"
+                                               Foreground="#1976D2"/>
+                                    <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:h:mm tt}'}" 
+                                               FontSize="10"
+                                               Foreground="#666"
+                                               HorizontalAlignment="Right"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Assistant Message -->
+                            <Border Background="#F5F5F5" 
+                                    CornerRadius="12"
+                                    Padding="12,8"
+                                    Margin="8,4,48,4"
+                                    HorizontalAlignment="Left"
+                                    MaxWidth="320"
+                                    IsVisible="{Binding IsAssistant}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Content}" 
+                                               TextWrapping="Wrap"
+                                               Foreground="#212121"/>
+                                    <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:h:mm tt}'}" 
+                                               FontSize="10"
+                                               Foreground="#666"
+                                               Margin="0,4,0,0"/>
+                                    <TextBlock Text="{Binding ErrorMessage}" 
+                                               TextWrapping="Wrap"
+                                               Foreground="#D32F2F"
+                                               FontSize="10"
+                                               Margin="0,4,0,0"
+                                               IsVisible="{Binding HasError}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- System Message -->
+                            <Border Background="#FFF3E0" 
+                                    CornerRadius="8"
+                                    Padding="8,4"
+                                    Margin="24,4"
+                                    HorizontalAlignment="Center"
+                                    IsVisible="{Binding IsSystem}">
+                                <TextBlock Text="{Binding Content}" 
+                                           FontSize="11"
+                                           Foreground="#E65100"
+                                           TextAlignment="Center"/>
+                            </Border>
+                        </Panel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" 
+                Background="#FAFAFA" 
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Padding="12,6"
+                IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding StatusMessage}" 
+                       FontSize="11"
+                       Foreground="{Binding HasError, Converter={StaticResource BoolToErrorColorConverter}}"/>
+        </Border>
+
+        <!-- Input Area -->
+        <Border Grid.Row="3" 
+                Background="White" 
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Padding="12">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" 
+                         Text="{Binding InputText, Mode=TwoWay}"
+                         Watermark="Ask me anything..."
+                         AcceptsReturn="False"
+                         BorderThickness="1"
+                         BorderBrush="#BDBDBD"
+                         CornerRadius="4"
+                         Padding="10,8"
+                         IsEnabled="{Binding !IsSending}">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Command="{Binding SendMessageCommand}" 
+                                    Gesture="Enter"/>
+                    </TextBox.KeyBindings>
+                </TextBox>
+
+                <Button Grid.Column="1" 
+                        Content="➤" 
+                        Command="{Binding SendMessageCommand}"
+                        IsEnabled="{Binding SendMessageCommand.CanExecute}"
+                        Background="#1976D2"
+                        Foreground="White"
+                        Padding="16,8"
+                        Margin="8,0,0,0"
+                        CornerRadius="4"
+                        FontSize="16">
+                    <Button.Styles>
+                        <Style Selector="Button:disabled">
+                            <Setter Property="Background" Value="#BDBDBD"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Loading Indicator -->
+        <Border Grid.Row="1" 
+                Background="#80000000"
+                IsVisible="{Binding IsSending}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                CornerRadius="8"
+                Padding="24,16">
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="120"/>
+                <TextBlock Text="Thinking..." 
+                           Foreground="White"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>

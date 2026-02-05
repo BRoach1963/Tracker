@@ -681,6 +681,131 @@ public class MetricsService : IMetricsService
         }
     }
 
+    /// <summary>
+    /// Calculates detailed trend analysis using linear regression for a metric.
+    /// Uses TrendAnalyzer for more sophisticated analysis than simple comparison.
+    /// </summary>
+    /// <param name="metricId">Metric ID to analyze.</param>
+    /// <param name="lookbackDays">Number of days to analyze (default: 30).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Detailed trend analysis result.</returns>
+    public async Task<TrendResult> GetTrendAnalysisAsync(
+        Guid metricId,
+        int lookbackDays = 30,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            // Get history for analysis
+            var history = await GetHistoryAsync(metricId, limit: 100, ct);
+
+            if (history.Count < 3)
+            {
+                return TrendResult.InsufficientData();
+            }
+
+            // Filter to lookback period
+            var cutoffDate = DateTime.UtcNow.AddDays(-lookbackDays);
+            var recentHistory = history
+                .Where(h => h.RecordedAt >= cutoffDate)
+                .OrderBy(h => h.RecordedAt)
+                .ToList();
+
+            if (recentHistory.Count < 3)
+            {
+                return TrendResult.InsufficientData();
+            }
+
+            // Use TrendAnalyzer for sophisticated analysis
+            var analyzer = new TrendAnalyzer();
+            var result = analyzer.Analyze(recentHistory);
+
+            Log($"Trend analysis for {metricId}: {result.Direction} (R²={result.RSquared:F3}, {result.DataPointCount} points)");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Log($"GetTrendAnalysis ERROR: {ex.Message}");
+            return TrendResult.InsufficientData();
+        }
+    }
+
+    /// <summary>
+    /// Projects a metric's value at a future date based on current trend.
+    /// </summary>
+    /// <param name="metricId">Metric ID to project.</param>
+    /// <param name="targetDate">Date to project to.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Projected value, or null if trend analysis is insufficient.</returns>
+    public async Task<double?> ProjectValueAsync(
+        Guid metricId,
+        DateTime targetDate,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var trendResult = await GetTrendAnalysisAsync(metricId, ct: ct);
+
+            if (trendResult.Direction == MetricTrend.Unknown)
+            {
+                return null;
+            }
+
+            var analyzer = new TrendAnalyzer();
+            var projected = analyzer.ProjectValue(trendResult, targetDate);
+
+            Log($"Projected value for {metricId} on {targetDate:yyyy-MM-dd}: {projected:F2}");
+            return projected;
+        }
+        catch (Exception ex)
+        {
+            Log($"ProjectValue ERROR: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Projects when a metric will reach a target value based on current trend.
+    /// </summary>
+    /// <param name="metricId">Metric ID to analyze.</param>
+    /// <param name="targetValue">Target value to reach.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Projected date, or null if not reachable with current trend.</returns>
+    public async Task<DateTime?> ProjectTargetDateAsync(
+        Guid metricId,
+        double targetValue,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var trendResult = await GetTrendAnalysisAsync(metricId, ct: ct);
+
+            if (trendResult.Direction == MetricTrend.Unknown)
+            {
+                return null;
+            }
+
+            var analyzer = new TrendAnalyzer();
+            var projected = analyzer.ProjectTargetDate(trendResult, targetValue);
+
+            if (projected.HasValue)
+            {
+                Log($"Projected target date for {metricId} to reach {targetValue}: {projected.Value:yyyy-MM-dd}");
+            }
+            else
+            {
+                Log($"Target {targetValue} not reachable for {metricId} with current trend");
+            }
+
+            return projected;
+        }
+        catch (Exception ex)
+        {
+            Log($"ProjectTargetDate ERROR: {ex.Message}");
+            return null;
+        }
+    }
+
     #endregion
 
     #region Batch Operations
