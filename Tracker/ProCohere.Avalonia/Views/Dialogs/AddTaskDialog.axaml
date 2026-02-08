@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="520"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AddTaskDialog"
         x:DataType="vm:AddTaskDialogViewModel"
@@ -39,7 +40,7 @@
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Create and track your work"
+                        <TextBlock Text="{markup:Localize Key=Dialog_Task_Subtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC"/>
                     </StackPanel>
@@ -51,19 +52,19 @@
                 <StackPanel Spacing="16">
                     <!-- Task Title -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Title *" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Task_TitleLabel}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox x:Name="TitleTextBox"
                                  Text="{Binding Title}"
-                                 Watermark="What needs to be done?"
+                                 Watermark="{markup:Localize Key=Dialog_Task_TitlePlaceholder}"
                                  FontSize="14"/>
                     </StackPanel>
                     
                     <!-- Description -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Description" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Label_Description}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox x:Name="DescriptionTextBox"
                                  Text="{Binding Description}"
-                                 Watermark="Add more details (optional)"
+                                 Watermark="{markup:Localize Key=Dialog_Task_DescriptionPlaceholder}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  MinHeight="80"
@@ -73,48 +74,48 @@
                     <!-- Priority and Due Date Row -->
                     <Grid ColumnDefinitions="*,*">
                         <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
-                            <TextBlock Text="Priority" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Label_Priority}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                             <ComboBox x:Name="PriorityComboBox" 
                                       HorizontalAlignment="Stretch"
                                       SelectedIndex="{Binding PriorityIndex}"
-                                      PlaceholderText="Select priority">
-                                <ComboBoxItem Content="High" Tag="high"/>
-                                <ComboBoxItem Content="Medium" Tag="medium"/>
-                                <ComboBoxItem Content="Low" Tag="low"/>
+                                      PlaceholderText="{markup:Localize Key=Dialog_Task_SelectPriority}">
+                                <ComboBoxItem Content="{markup:Localize Key=Priority_High}" Tag="high"/>
+                                <ComboBoxItem Content="{markup:Localize Key=Priority_Medium}" Tag="medium"/>
+                                <ComboBoxItem Content="{markup:Localize Key=Priority_Low}" Tag="low"/>
                             </ComboBox>
                         </StackPanel>
                         
                         <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
-                            <TextBlock Text="Due Date" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Label_DueDate}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                             <CalendarDatePicker x:Name="DueDatePicker" 
                                                 SelectedDate="{Binding DueDate}"
                                                 HorizontalAlignment="Stretch"
-                                                Watermark="Select date"
+                                                Watermark="{markup:Localize Key=Dialog_Task_SelectDate}"
                                                 IsTodayHighlighted="True"/>
                         </StackPanel>
                     </Grid>
                     
                     <!-- Status (only in edit mode) -->
                     <StackPanel x:Name="StatusSection" Spacing="6" IsVisible="{Binding IsEditMode}">
-                        <TextBlock Text="Status" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Label_Status}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox x:Name="StatusComboBox" 
                                   HorizontalAlignment="Stretch"
                                   SelectedIndex="{Binding StatusIndex}">
-                            <ComboBoxItem Content="Not Started" Tag="not_started"/>
-                            <ComboBoxItem Content="In Progress" Tag="in_progress"/>
-                            <ComboBoxItem Content="Completed" Tag="completed"/>
-                            <ComboBoxItem Content="Blocked" Tag="blocked"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Status_NotStarted}" Tag="not_started"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Status_InProgress}" Tag="in_progress"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Status_Completed}" Tag="completed"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Status_Blocked}" Tag="blocked"/>
                         </ComboBox>
                     </StackPanel>
                     
                     <!-- Assignee -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Assignee" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Assignee}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox x:Name="AssigneeComboBox" 
                                   HorizontalAlignment="Stretch"
                                   ItemsSource="{Binding TeamMembers}"
                                   SelectedItem="{Binding SelectedAssignee}"
-                                  PlaceholderText="Assign to someone">
+                                  PlaceholderText="{markup:Localize Key=Dialog_Task_AssignTo}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:TeamMemberDetail">
                                     <TextBlock Text="{Binding FullName}"/>
@@ -125,12 +126,12 @@
                     
                     <!-- Goal -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Goal" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Goal}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox x:Name="GoalComboBox" 
                                   HorizontalAlignment="Stretch"
                                   ItemsSource="{Binding Goals}"
                                   SelectedItem="{Binding SelectedGoal}"
-                                  PlaceholderText="Link to a goal (optional)">
+                                  PlaceholderText="{markup:Localize Key=Dialog_Task_LinkGoal}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:GoalDetail">
                                     <TextBlock Text="{Binding Title}"/>
@@ -143,7 +144,7 @@
                     <Border BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,8,0,0">
                         <StackPanel Spacing="12">
                             <!-- Recurrence Toggle -->
-                            <CheckBox Content="Repeat this task" 
+                            <CheckBox Content="{markup:Localize Key=Dialog_Task_RepeatTask}" 
                                       FontSize="13" FontWeight="Medium" 
                                       Foreground="{DynamicResource BrushTextPrimary}"
                                       IsChecked="{Binding IsRecurringEnabled}"/>
@@ -152,19 +153,19 @@
                             <StackPanel Spacing="12" IsVisible="{Binding IsRecurringEnabled}">
                                 <!-- Pattern -->
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Frequency" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{markup:Localize Key=Dialog_Task_Frequency}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                                     <ComboBox x:Name="RecurrencePatternComboBox" 
                                               HorizontalAlignment="Stretch"
                                               SelectedIndex="{Binding RecurrencePatternIndex}">
-                                        <ComboBoxItem Content="Daily" Tag="daily"/>
-                                        <ComboBoxItem Content="Weekly" Tag="weekly"/>
-                                        <ComboBoxItem Content="Monthly" Tag="monthly"/>
+                                        <ComboBoxItem Content="{markup:Localize Key=Recurrence_Daily}" Tag="daily"/>
+                                        <ComboBoxItem Content="{markup:Localize Key=Recurrence_Weekly}" Tag="weekly"/>
+                                        <ComboBoxItem Content="{markup:Localize Key=Recurrence_Monthly}" Tag="monthly"/>
                                     </ComboBox>
                                 </StackPanel>
                                 
                                 <!-- Interval -->
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Repeat Every" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{markup:Localize Key=Dialog_Task_RepeatEvery}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                                     <Grid ColumnDefinitions="Auto,*">
                                         <NumericUpDown Grid.Column="0" 
                                                        Width="80"
@@ -185,7 +186,7 @@
                                 
                                 <!-- End Date -->
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Ends (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{markup:Localize Key=Dialog_Task_EndsOptional}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                                     <DatePicker SelectedDate="{Binding RecurrenceEndDate}" 
                                                 HorizontalAlignment="Stretch"/>
                                 </StackPanel>
@@ -201,7 +202,7 @@
                     Padding="20,12">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <Button Grid.Column="0"
-                            Content="Delete"
+                            Content="{markup:Localize Key=Button_Delete}"
                             Background="Transparent"
                             Foreground="{DynamicResource BrushError}"
                             BorderBrush="{DynamicResource BrushError}"
@@ -220,7 +221,7 @@
                     </Button>
                     
                     <Button Grid.Column="2"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="1"

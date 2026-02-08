@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d"
              x:DataType="vm:TasksViewModel"
              x:Class="ProCohere.Avalonia.Views.Controls.TaskDetailFlyout">
@@ -42,7 +43,7 @@
                 <Button Classes="icon-button-small" 
                         Margin="10,0,10,16"
                         Command="{Binding CloseTaskDetailCommand}"
-                        ToolTip.Tip="Close">
+                        ToolTip.Tip="{markup:Localize Key=Tooltip_Close}">
                     <PathIcon Data="{StaticResource icon_dismiss}" 
                               Foreground="{StaticResource BrushTextLight}"
                               Width="16" Height="16"/>
@@ -53,7 +54,7 @@
                         Classes.selected="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Overview}}"
                         Command="{Binding SetTaskDetailTabCommand}"
                         CommandParameter="{x:Static vm:TaskDetailTab.Overview}"
-                        ToolTip.Tip="Overview">
+                        ToolTip.Tip="{markup:Localize Key=Tooltip_Overview}">
                     <PathIcon Data="{StaticResource icon_info}" 
                               Width="20" Height="20"/>
                 </Button>
@@ -63,7 +64,7 @@
                         Classes.selected="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Activity}}"
                         Command="{Binding SetTaskDetailTabCommand}"
                         CommandParameter="{x:Static vm:TaskDetailTab.Activity}"
-                        ToolTip.Tip="Activity">
+                        ToolTip.Tip="{markup:Localize Key=Tooltip_Activity}">
                     <PathIcon Data="{StaticResource icon_history}" 
                               Width="20" Height="20"/>
                 </Button>
@@ -89,14 +90,14 @@
                                     Background="#10B981"
                                     CornerRadius="12" Padding="12,4" VerticalAlignment="Top"
                                     IsVisible="{Binding SelectedTask.IsCompleted}">
-                                <TextBlock Text="Complete" FontSize="12" FontWeight="Medium" Foreground="White"/>
+                                <TextBlock Text="{markup:Localize Key=TaskDetail_Complete}" FontSize="12" FontWeight="Medium" Foreground="White"/>
                             </Border>
                             <!-- Status Badge - In Progress (amber) -->
                             <Border Grid.Column="1" 
                                     Background="#F59E0B"
                                     CornerRadius="12" Padding="12,4" VerticalAlignment="Top"
                                     IsVisible="{Binding !SelectedTask.IsCompleted}">
-                                <TextBlock Text="In Progress" FontSize="12" FontWeight="Medium" Foreground="White"/>
+                                <TextBlock Text="{markup:Localize Key=TaskDetail_InProgress}" FontSize="12" FontWeight="Medium" Foreground="White"/>
                             </Border>
                         </Grid>
                         
@@ -107,7 +108,7 @@
                                       Width="16" Height="16"
                                       Foreground="{StaticResource BrushTextSecondary}"
                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Due:" 
+                            <TextBlock Text="{markup:Localize Key=TaskDetail_Due}" 
                                        Foreground="{StaticResource BrushTextSecondary}"
                                        FontSize="13" Margin="0,0,4,0"/>
                             <TextBlock Text="{Binding SelectedTask.DueDate, StringFormat='{}{0:MMM d, yyyy}'}"
@@ -122,7 +123,7 @@
                                       Width="16" Height="16"
                                       Foreground="{StaticResource BrushTextSecondary}"
                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Priority:" 
+                            <TextBlock Text="{markup:Localize Key=TaskDetail_Priority}" 
                                        Foreground="{StaticResource BrushTextSecondary}"
                                        FontSize="13" Margin="0,0,4,0"/>
                             <TextBlock Text="{Binding SelectedTask.Priority}"
@@ -152,7 +153,7 @@
                         <Border Height="1" Background="{StaticResource BrushBorder}" Margin="0,8,0,16"/>
                         
                         <!-- Description Section -->
-                        <TextBlock Text="Description" 
+                        <TextBlock Text="{markup:Localize Key=TaskDetail_DescriptionHeader}" 
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource BrushTextPrimary}"
                                    Margin="0,0,0,8"/>
@@ -161,7 +162,7 @@
                                    FontSize="13" TextWrapping="Wrap"
                                    Margin="0,0,0,24"
                                    IsVisible="{Binding SelectedTask.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                        <TextBlock Text="No description provided."
+                        <TextBlock Text="{markup:Localize Key=TaskDetail_NoDescriptionProvided}"
                                    Foreground="{StaticResource BrushTextTertiary}"
                                    FontSize="13" FontStyle="Italic"
                                    Margin="0,0,0,24"
@@ -170,7 +171,7 @@
                         <!-- Linked Source Section -->
                         <StackPanel IsVisible="{Binding SelectedTask.HasSource}"
                                     Margin="0,0,0,24">
-                            <TextBlock Text="Source" 
+                            <TextBlock Text="{markup:Localize Key=TaskDetail_SourceHeader}" 
                                        FontSize="14" FontWeight="SemiBold"
                                        Foreground="{StaticResource BrushTextPrimary}"
                                        Margin="0,0,0,8"/>
@@ -198,7 +199,7 @@
                         
                         <!-- Project Section -->
                         <StackPanel Margin="0,0,0,24">
-                            <TextBlock Text="Project" 
+                            <TextBlock Text="{markup:Localize Key=TaskDetail_ProjectHeader}" 
                                        FontSize="14" FontWeight="SemiBold"
                                        Foreground="{StaticResource BrushTextPrimary}"
                                        Margin="0,0,0,8"/>
@@ -206,14 +207,14 @@
                             <!-- Not linked state -->
                             <StackPanel Orientation="Horizontal" Spacing="8"
                                         IsVisible="{Binding !SelectedTask.HasProject}">
-                                <TextBlock Text="Not linked"
+                                <TextBlock Text="{markup:Localize Key=TaskDetail_NotLinked}"
                                            Foreground="{StaticResource BrushTextTertiary}"
                                            FontSize="13"
                                            VerticalAlignment="Center"/>
                                 <Button Classes="button-secondary"
                                         Command="{Binding ShowProjectSelectorCommand}"
                                         Padding="8,4">
-                                    <TextBlock Text="Add to project" FontSize="12"/>
+                                    <TextBlock Text="{markup:Localize Key=TaskDetail_AddToProject}" FontSize="12"/>
                                 </Button>
                             </StackPanel>
                             
@@ -237,21 +238,21 @@
                                 <Button Classes="button-secondary"
                                         Command="{Binding ShowProjectSelectorCommand}"
                                         Padding="6,4"
-                                        ToolTip.Tip="Change project">
-                                    <TextBlock Text="Change" FontSize="11"/>
+                                        ToolTip.Tip="{markup:Localize Key=Tooltip_ChangeProject}">
+                                    <TextBlock Text="{markup:Localize Key=TaskDetail_Change}" FontSize="11"/>
                                 </Button>
                                 <Button Classes="button-secondary"
                                         Command="{Binding UnlinkTaskFromProjectCommand}"
                                         Padding="6,4"
-                                        ToolTip.Tip="Remove from project">
-                                    <TextBlock Text="Remove" FontSize="11"/>
+                                        ToolTip.Tip="{markup:Localize Key=Tooltip_RemoveFromProject}">
+                                    <TextBlock Text="{markup:Localize Key=TaskDetail_Remove}" FontSize="11"/>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
                         
                         <!-- Goal Section -->
                         <StackPanel Margin="0,0,0,24">
-                            <TextBlock Text="Goal" 
+                            <TextBlock Text="{markup:Localize Key=TaskDetail_GoalHeader}" 
                                        FontSize="14" FontWeight="SemiBold"
                                        Foreground="{StaticResource BrushTextPrimary}"
                                        Margin="0,0,0,8"/>
@@ -259,7 +260,7 @@
                             <!-- Not linked state -->
                             <StackPanel Orientation="Horizontal" Spacing="8"
                                         IsVisible="{Binding !SelectedTask.HasGoal}">
-                                <TextBlock Text="Not linked"
+                                <TextBlock Text="{markup:Localize Key=TaskDetail_NotLinked}"
                                            Foreground="{StaticResource BrushTextTertiary}"
                                            FontSize="13"
                                            VerticalAlignment="Center"/>
@@ -287,7 +288,7 @@
                         
                         <!-- Recurrence Section -->
                         <StackPanel Margin="0,0,0,24" IsVisible="{Binding SelectedTask.IsRecurring}">
-                            <TextBlock Text="Recurrence" 
+                            <TextBlock Text="{markup:Localize Key=TaskDetail_RecurrenceHeader}" 
                                        FontSize="14" FontWeight="SemiBold"
                                        Foreground="{StaticResource BrushTextPrimary}"
                                        Margin="0,0,0,8"/>
@@ -313,25 +314,25 @@
                             <Button Classes="button-secondary"
                                     Command="{Binding EditTaskCommand}"
                                     CommandParameter="{Binding SelectedTask}"
-                                    ToolTip.Tip="Edit Task">
+                                    ToolTip.Tip="{markup:Localize Key=Tooltip_EditTask}">
                                 <StackPanel Orientation="Horizontal">
                                     <PathIcon Data="{StaticResource icon_edit}"
                                               Width="14" Height="14"
                                               Foreground="{StaticResource BrushTextPrimary}"
                                               Margin="0,0,6,0"/>
-                                    <TextBlock Text="Edit" FontSize="13"/>
+                                    <TextBlock Text="{markup:Localize Key=TaskDetail_Edit}" FontSize="13"/>
                                 </StackPanel>
                             </Button>
                             <Button Classes="button-danger"
                                     Command="{Binding DeleteTaskCommand}"
                                     CommandParameter="{Binding SelectedTask}"
-                                    ToolTip.Tip="Delete Task">
+                                    ToolTip.Tip="{markup:Localize Key=Tooltip_DeleteTask}">
                                 <StackPanel Orientation="Horizontal">
                                     <PathIcon Data="{StaticResource icon_delete}"
                                               Width="14" Height="14"
                                               Foreground="{StaticResource BrushTextLight}"
                                               Margin="0,0,6,0"/>
-                                    <TextBlock Text="Delete" FontSize="13"/>
+                                    <TextBlock Text="{markup:Localize Key=TaskDetail_Delete}" FontSize="13"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -340,7 +341,7 @@
                     
                     <!-- Activity Tab Content -->
                     <StackPanel IsVisible="{Binding TaskDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:TaskDetailTab.Activity}}">
-                        <TextBlock Text="Activity" 
+                        <TextBlock Text="{markup:Localize Key=TaskDetail_ActivityHeader}" 
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="{StaticResource BrushTextPrimary}"
                                    Margin="0,0,0,16"/>
@@ -355,11 +356,11 @@
                                           Foreground="{StaticResource BrushTextTertiary}"
                                           HorizontalAlignment="Center"
                                           Margin="0,0,0,12"/>
-                                <TextBlock Text="Activity history coming soon"
+                                <TextBlock Text="{markup:Localize Key=TaskDetail_ActivityComingSoon}"
                                            Foreground="{StaticResource BrushTextTertiary}"
                                            FontSize="14"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="Track changes, comments, and updates"
+                                <TextBlock Text="{markup:Localize Key=TaskDetail_TrackChanges}"
                                            Foreground="{StaticResource BrushTextTertiary}"
                                            FontSize="12"
                                            HorizontalAlignment="Center"

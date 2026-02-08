@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:markup="using:ProCohere.Avalonia.Markup"
         x:Class="ProCohere.Avalonia.Views.SplashWindow"
-        Title="Pro Cohere"
+        Title="{markup:Localize Key=App_Title}"
         Width="300" Height="200"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
@@ -17,7 +18,7 @@
                    HorizontalAlignment="Center"/>
             
             <!-- App Name -->
-            <TextBlock Text="Pro Cohere" 
+            <TextBlock Text="{markup:Localize Key=App_Title}" 
                        FontSize="20" 
                        FontWeight="SemiBold"
                        Foreground="#1F2937"

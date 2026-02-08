@@ -51,6 +51,25 @@ public class MeetingService
 
     #endregion
 
+    #region Events
+
+    /// <summary>
+    /// Raised when meetings are created, updated, or deleted.
+    /// Used by MeViewModel and other surfaces for dirty-driven refresh.
+    /// </summary>
+    public event EventHandler? MeetingsChanged;
+
+    /// <summary>
+    /// Raises the MeetingsChanged event.
+    /// </summary>
+    private void OnMeetingsChanged()
+    {
+        Log("MeetingsChanged event raised");
+        MeetingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    #endregion
+
     /// <summary>
     /// Last error message from operations.
     /// </summary>
@@ -256,6 +275,9 @@ public class MeetingService
             // Auto-sync to Google Calendar if enabled
             await TrySyncToCalendarAsync(reloadedMeeting);
             
+            // Raise event for dirty-driven refresh
+            OnMeetingsChanged();
+            
             return reloadedMeeting;
         }
         catch (Exception ex)
@@ -311,6 +333,9 @@ public class MeetingService
             // Auto-sync to Google Calendar if enabled
             await TrySyncToCalendarAsync(meeting);
             
+            // Raise event for dirty-driven refresh
+            OnMeetingsChanged();
+            
             return true;
         }
         catch (Exception ex)
@@ -357,6 +382,10 @@ public class MeetingService
             await CancelMeetingRemindersAsync(meetingId);
 
             Log($"Meeting deleted: {meetingId}");
+            
+            // Raise event for dirty-driven refresh
+            OnMeetingsChanged();
+            
             return true;
         }
         catch (Exception ex)

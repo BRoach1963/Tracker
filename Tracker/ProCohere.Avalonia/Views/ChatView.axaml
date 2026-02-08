@@ -4,6 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
+             xmlns:controls="using:ProCohere.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.ChatView"
              x:DataType="vm:ChatViewModel">
@@ -20,7 +22,7 @@
                 Padding="16,12">
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="AI Assistant" 
+                    <TextBlock Text="{markup:Localize Key=AIChat_Title}" 
                                FontSize="16" 
                                FontWeight="SemiBold"
                                Foreground="White"/>
@@ -35,13 +37,13 @@
                             Spacing="8">
                     <Button Content="🔄" 
                             Command="{Binding RefreshContextCommand}"
-                            ToolTip.Tip="Refresh context"
+                            ToolTip.Tip="{markup:Localize Key=AIChat_RefreshContext}"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"/>
                     <Button Content="🗑️" 
                             Command="{Binding ClearChatCommand}"
-                            ToolTip.Tip="Clear chat"
+                            ToolTip.Tip="{markup:Localize Key=AIChat_ClearChat}"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"/>
@@ -86,9 +88,9 @@
                                     MaxWidth="320"
                                     IsVisible="{Binding IsAssistant}">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding Content}" 
-                                               TextWrapping="Wrap"
-                                               Foreground="#212121"/>
+                                    <controls:MarkdownTextBlock Markdown="{Binding Content}" 
+                                                                 Foreground="#212121"
+                                                                 FontSize="13"/>
                                     <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:h:mm tt}'}" 
                                                FontSize="10"
                                                Foreground="#666"
@@ -141,7 +143,7 @@
             <Grid ColumnDefinitions="*,Auto">
                 <TextBox Grid.Column="0" 
                          Text="{Binding InputText, Mode=TwoWay}"
-                         Watermark="Ask me anything..."
+                         Watermark="{markup:Localize Key=AIChat_AskMeAnything}"
                          AcceptsReturn="False"
                          BorderThickness="1"
                          BorderBrush="#BDBDBD"
@@ -183,7 +185,7 @@
                 Padding="24,16">
             <StackPanel Spacing="8" HorizontalAlignment="Center">
                 <ProgressBar IsIndeterminate="True" Width="120"/>
-                <TextBlock Text="Thinking..." 
+                <TextBlock Text="{markup:Localize Key=AIChat_Thinking}" 
                            Foreground="White"
                            HorizontalAlignment="Center"/>
             </StackPanel>

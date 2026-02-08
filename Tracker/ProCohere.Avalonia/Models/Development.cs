@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -262,6 +263,20 @@ public class DevelopmentPlan : BaseModel
     };
 
     public int ItemCount => Items.Count;
+    
+    public int CompletedItemCount => Items.Count(i => i.IsCompleted);
+    
+    /// <summary>
+    /// Progress percentage (0-100) based on completed items.
+    /// </summary>
+    public decimal ProgressPercentage => ItemCount > 0 
+        ? (decimal)CompletedItemCount / ItemCount * 100 
+        : 0;
+    
+    /// <summary>
+    /// Formatted target date for display.
+    /// </summary>
+    public string TargetDateDisplay => TargetDate?.ToString("MMM d, yyyy") ?? "";
 
     #endregion
 }

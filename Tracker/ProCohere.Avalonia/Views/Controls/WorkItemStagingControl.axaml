@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="ProCohere.Avalonia.Views.Controls.WorkItemStagingControl"
              x:DataType="controls:WorkItemStagingControl">
@@ -30,7 +31,7 @@
     <StackPanel Spacing="12">
         <!-- Create New Section -->
         <StackPanel Spacing="6">
-            <TextBlock Text="Create new"
+            <TextBlock Text="{markup:Localize Key=Staging_CreateNew}"
                        FontSize="11"
                        FontWeight="Medium"
                        Foreground="{DynamicResource BrushTextTertiary}"/>
@@ -90,7 +91,7 @@
         
         <!-- Link Existing Section -->
         <StackPanel Spacing="6">
-            <TextBlock Text="Or link existing"
+            <TextBlock Text="{markup:Localize Key=Staging_OrLinkExisting}"
                        FontSize="11"
                        FontWeight="Medium"
                        Foreground="{DynamicResource BrushTextTertiary}"/>
@@ -106,7 +107,7 @@
                           VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <!-- Empty state -->
-                    <TextBlock Text="No items available"
+                    <TextBlock Text="{markup:Localize Key=Staging_NoItemsAvailable}"
                                FontSize="12"
                                FontStyle="Italic"
                                Foreground="{DynamicResource BrushTextTertiary}"

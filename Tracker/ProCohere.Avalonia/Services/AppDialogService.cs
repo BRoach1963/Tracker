@@ -282,7 +282,8 @@ public static class AppDialogService
                 StartDate = dialog.Result.StartDate,
                 DueDate = dialog.Result.DueDate,
                 OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId ?? Guid.Empty,
-                Status = dialog.Result.Status ?? "active"
+                Status = dialog.Result.Status ?? "active",
+                VisibilityScope = dialog.Result.VisibilityScope ?? "personal"
             };
             
             // Create goal in database
@@ -345,6 +346,7 @@ public static class AppDialogService
                 goal.DueDate = dialog.Result.DueDate;
                 goal.OwnerTeamMemberId = dialog.Result.OwnerTeamMemberId ?? goal.OwnerTeamMemberId;
                 goal.Status = dialog.Result.Status ?? goal.Status;
+                goal.VisibilityScope = dialog.Result.VisibilityScope ?? goal.VisibilityScope;
                 
                 var updatedGoal = await GoalsService.Instance.UpdateGoalAsync(goal);
                 

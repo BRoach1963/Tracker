@@ -279,9 +279,7 @@ public partial class EntityPickerDialogViewModel : ObservableObject
                 }
             }
 
-            // TODO: Add ProjectService when available
-
-            ApplyFilters();;
+            ApplyFilters();
         }
         catch (Exception ex)
         {

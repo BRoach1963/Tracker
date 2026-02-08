@@ -3,6 +3,7 @@
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
              xmlns:local="using:ProCohere.Avalonia.Views.Controls.Meeting"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              x:Class="ProCohere.Avalonia.Views.Controls.Meeting.PrepItemsPanel"
              x:DataType="vm:EditMeetingDialogViewModel">
 
@@ -12,25 +13,25 @@
             <!-- Section Header -->
             <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,8">
                 <StackPanel>
-                    <TextBlock Text="PREP ITEMS" 
+                    <TextBlock Text="{markup:Localize Key=PrepPanel_Header}" 
                                FontSize="10"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource BrushSecondary}" 
                                Margin="0"/>
-                    <TextBlock Text="Things to prepare before this meeting" 
+                    <TextBlock Text="{markup:Localize Key=PrepPanel_Description}" 
                                FontSize="12"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
                 <Button Grid.Column="1" 
                         Classes="icon-button" Padding="6" Margin="0,0,4,0"
-                        ToolTip.Tip="Add from existing task/goal"
+                        ToolTip.Tip="{markup:Localize Key=PrepPanel_AddFromExisting}"
                         Command="{Binding ShowEntityPickerForPrepCommand}">
                     <PathIcon Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4M15,9V12H12V14H15V17H17V14H20V12H17V9H15Z" 
                               Width="14" Height="14"/>
                 </Button>
                 <Button Grid.Column="2" 
                         Classes="icon-button" Padding="6"
-                        ToolTip.Tip="Add new prep item"
+                        ToolTip.Tip="{markup:Localize Key=PrepPanel_AddNewPrepItem}"
                         Command="{Binding AddPrepItemCommand}">
                     <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                               Width="14" Height="14"/>
@@ -62,10 +63,10 @@
                                   Width="24" Height="24" 
                                   Foreground="{DynamicResource BrushTextTertiary}"/>
                     </Border>
-                    <TextBlock Text="No prep items yet" FontSize="14" FontWeight="Medium"
+                    <TextBlock Text="{markup:Localize Key=PrepPanel_NoItemsYet}" FontSize="14" FontWeight="Medium"
                                Foreground="{DynamicResource BrushTextSecondary}" 
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Add things to prepare before this meeting" FontSize="12"
+                    <TextBlock Text="{markup:Localize Key=PrepPanel_AddThingsHint}" FontSize="12"
                                Foreground="{DynamicResource BrushTextTertiary}"
                                HorizontalAlignment="Center" TextWrapping="Wrap"
                                TextAlignment="Center"/>

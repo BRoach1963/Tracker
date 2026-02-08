@@ -53,6 +53,21 @@ public class TaskService
     /// </summary>
     public string? LastError { get; private set; }
 
+    /// <summary>
+    /// Raised when tasks are created, updated, completed, or deleted.
+    /// Subscribe to this to know when to refresh task-dependent views.
+    /// </summary>
+    public event EventHandler? TasksChanged;
+
+    /// <summary>
+    /// Raises the TasksChanged event.
+    /// </summary>
+    private void OnTasksChanged()
+    {
+        Log("TasksChanged event raised");
+        TasksChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private TaskService() { }
 
     /// <summary>
@@ -451,6 +466,9 @@ public class TaskService
                 
                 // Create reminder for the task if enabled
                 await CreateTaskReminderIfEnabledAsync(created);
+                
+                // Notify subscribers of change
+                OnTasksChanged();
             }
 
             return created;
@@ -556,6 +574,7 @@ public class TaskService
             if (updated != null)
             {
                 Log($"Task updated: {updated.Id}");
+                OnTasksChanged();
             }
 
             return updated;
@@ -603,6 +622,7 @@ public class TaskService
 
             var success = result.Models?.Count > 0;
             Log($"Task completed: {success}");
+            if (success) OnTasksChanged();
             return success;
         }
         catch (Exception ex)
@@ -647,6 +667,7 @@ public class TaskService
 
             var success = result.Models?.Count > 0;
             Log($"Task uncompleted: {success}");
+            if (success) OnTasksChanged();
             return success;
         }
         catch (Exception ex)
@@ -695,6 +716,9 @@ public class TaskService
             {
                 // Cancel any pending reminders for this task
                 await CancelTaskRemindersAsync(taskId);
+                
+                // Notify subscribers of change
+                OnTasksChanged();
             }
             
             Log($"Task deleted: {success}");

@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="using:ProCohere.Avalonia.Models.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="550"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EntityPickerDialog"
         x:DataType="vm:EntityPickerDialogViewModel"
@@ -77,11 +78,11 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="Link to Existing Item"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Title}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Search for items to link (tasks, goals, people, meetings)"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Subtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC"/>
                     </StackPanel>
@@ -97,7 +98,7 @@
             <StackPanel Spacing="12">
                 <!-- Search box -->
                 <TextBox x:Name="SearchTextBox"
-                         Watermark="Search by title..."
+                         Watermark="{markup:Localize Key=Dialog_EntityPicker_SearchPlaceholder}"
                          Text="{Binding SearchText}"/>
                 
                 <!-- Filter tabs -->
@@ -105,36 +106,36 @@
                             IsVisible="{Binding ShowFilters}">
                     <Border x:Name="AllFilterBorder" Classes="filter-tab selected"
                             PointerPressed="FilterBorder_PointerPressed" Tag="all">
-                        <TextBlock Text="All" FontSize="12" FontWeight="Medium"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_All}" FontSize="12" FontWeight="Medium"/>
                     </Border>
                     <Border x:Name="TaskFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="task">
-                        <TextBlock Text="Tasks" FontSize="12" FontWeight="Medium"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Tasks}" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                     <Border x:Name="GoalFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="goal">
-                        <TextBlock Text="Goals" FontSize="12" FontWeight="Medium"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Goals}" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                     <Border x:Name="MetricFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="metric">
-                        <TextBlock Text="Metrics" FontSize="12" FontWeight="Medium"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Metrics}" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                     <Border x:Name="ProjectFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="project">
-                        <TextBlock Text="Projects" FontSize="12" FontWeight="Medium"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Projects}" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                     <Border x:Name="PersonFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="person">
-                        <TextBlock Text="People" FontSize="12" FontWeight="Medium"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_People}" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                     <Border x:Name="MeetingFilterBorder" Classes="filter-tab"
                             PointerPressed="FilterBorder_PointerPressed" Tag="meeting">
-                        <TextBlock Text="Meetings" FontSize="12" FontWeight="Medium"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Meetings}" FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </Border>
                 </StackPanel>
@@ -151,7 +152,7 @@
                             VerticalAlignment="Center"
                             Spacing="8">
                     <ProgressBar IsIndeterminate="True" Width="100"/>
-                    <TextBlock Text="Loading items..." 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_Loading}" 
                                FontSize="13"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                HorizontalAlignment="Center"/>
@@ -169,12 +170,12 @@
                                   Width="28" Height="28"
                                   Foreground="{DynamicResource BrushTextTertiary}"/>
                     </Border>
-                    <TextBlock Text="No items found" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_NoItems}" 
                                FontSize="14"
                                FontWeight="Medium"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Try a different search or filter"
+                    <TextBlock Text="{markup:Localize Key=Dialog_EntityPicker_TryDifferent}"
                                FontSize="12"
                                Foreground="{DynamicResource BrushTextTertiary}"
                                HorizontalAlignment="Center"/>
@@ -248,7 +249,7 @@
                            
                 <!-- Cancel button -->
                 <Button Grid.Column="1" 
-                        Content="Cancel"
+                        Content="{markup:Localize Key=Button_Cancel}"
                         Background="Transparent" 
                         Foreground="White"
                         BorderThickness="1"
@@ -271,7 +272,7 @@
                 <!-- Link button -->
                 <Button Grid.Column="2"
                         x:Name="LinkButton"
-                        Content="Link"
+                        Content="{markup:Localize Key=Dialog_EntityPicker_Link}"
                         Foreground="{DynamicResource BrushPrimary}"
                         FontWeight="SemiBold"
                         BorderThickness="1"

@@ -6,86 +6,89 @@ using ProCohere.Avalonia.Models;
 namespace ProCohere.Avalonia.Services.Insights;
 
 /// <summary>
-/// Repository interface for insight data operations.
-/// Provides abstraction over Supabase for testability.
+/// Repository interface for insight read operations.
+/// Write operations go through IInsightRpcService.
 /// </summary>
 public interface IInsightRepository
 {
     /// <summary>
     /// Gets all active insights for a specific user.
+    /// Does not filter by user actions - caller should apply action filtering.
     /// </summary>
-    /// <param name="userId">The user ID to get insights for.</param>
-    /// <returns>List of active insights, ordered by created date descending.</returns>
-    Task<List<Insight>> GetActiveInsightsAsync(Guid userId);
+    Task<List<Insight>> GetActiveInsightsAsync(Guid teamMemberId);
     
     /// <summary>
     /// Gets a specific insight by ID.
     /// </summary>
-    /// <param name="id">The insight ID.</param>
-    /// <returns>The insight if found, null otherwise.</returns>
     Task<Insight?> GetInsightByIdAsync(Guid id);
     
     /// <summary>
-    /// Creates a new insight.
+    /// Gets an insight by its signature hash.
     /// </summary>
-    /// <param name="insight">The insight to create.</param>
-    /// <returns>The ID of the created insight.</returns>
+    Task<Insight?> GetInsightBySignatureAsync(Guid organizationId, string signatureHash);
+    
+    /// <summary>
+    /// Gets insights by type for a specific user.
+    /// </summary>
+    Task<List<Insight>> GetInsightsByTypeAsync(Guid teamMemberId, InsightType type);
+    
+    /// <summary>
+    /// Checks if an insight with the given signature exists.
+    /// </summary>
+    Task<bool> SignatureExistsAsync(Guid organizationId, Guid teamMemberId, string signatureHash);
+    
+    /// <summary>
+    /// Gets the count of active insights for a user.
+    /// </summary>
+    Task<int> GetActiveCountAsync(Guid teamMemberId);
+    
+    /// <summary>
+    /// Gets top N insights by severity for a user.
+    /// Used for startup popup.
+    /// </summary>
+    Task<List<Insight>> GetTopInsightsAsync(Guid teamMemberId, int count, int minSeverity = 4);
+    
+    #region Legacy Methods (deprecated - use IInsightRpcService for writes)
+    
+    /// <summary>
+    /// Creates a new insight. DEPRECATED - use IInsightRpcService.CreateInsightAsync.
+    /// </summary>
+    [Obsolete("Use IInsightRpcService.CreateInsightAsync instead")]
     Task<Guid> CreateInsightAsync(Insight insight);
     
     /// <summary>
     /// Updates an existing insight.
     /// </summary>
-    /// <param name="insight">The insight to update.</param>
     Task UpdateInsightAsync(Insight insight);
     
     /// <summary>
-    /// Dismisses an insight (sets status to dismissed).
+    /// Dismisses an insight. DEPRECATED - use IInsightActionRepository.DismissAsync.
     /// </summary>
-    /// <param name="id">The insight ID.</param>
-    /// <param name="userId">The user dismissing the insight.</param>
+    [Obsolete("Use IInsightActionRepository.DismissAsync instead")]
     Task DismissInsightAsync(Guid id, Guid userId);
     
     /// <summary>
-    /// Marks an insight as acted upon.
+    /// Marks an insight as acted upon. DEPRECATED - use IInsightActionRepository.
     /// </summary>
-    /// <param name="id">The insight ID.</param>
+    [Obsolete("Use IInsightActionRepository.MarkActedAsync instead")]
     Task MarkInsightActionedAsync(Guid id);
     
     /// <summary>
-    /// Snoozes an insight until a specific date/time.
+    /// Snoozes an insight. DEPRECATED - use IInsightActionRepository.SnoozeAsync.
     /// </summary>
-    /// <param name="id">The insight ID.</param>
-    /// <param name="until">When to show the insight again.</param>
+    [Obsolete("Use IInsightActionRepository.SnoozeAsync instead")]
     Task SnoozeInsightAsync(Guid id, DateTime until);
-    
-    /// <summary>
-    /// Gets the count of active insights for a user.
-    /// </summary>
-    /// <param name="userId">The user ID.</param>
-    /// <returns>Number of active insights.</returns>
-    Task<int> GetActiveCountAsync(Guid userId);
     
     /// <summary>
     /// Soft-deletes an insight.
     /// </summary>
-    /// <param name="id">The insight ID.</param>
     Task DeleteInsightAsync(Guid id);
     
     /// <summary>
-    /// Gets insights by type for a specific user.
+    /// Checks if an insight exists. DEPRECATED - use SignatureExistsAsync.
     /// </summary>
-    /// <param name="userId">The user ID.</param>
-    /// <param name="type">The insight type.</param>
-    /// <returns>List of insights matching the type.</returns>
-    Task<List<Insight>> GetInsightsByTypeAsync(Guid userId, InsightType type);
-    
-    /// <summary>
-    /// Checks if an insight already exists (prevents duplicates).
-    /// </summary>
-    /// <param name="organizationId">The organization ID.</param>
-    /// <param name="userId">The user ID.</param>
-    /// <param name="type">The insight type.</param>
-    /// <param name="entityId">The entity ID (optional).</param>
-    /// <returns>True if exists, false otherwise.</returns>
+    [Obsolete("Use SignatureExistsAsync instead")]
     Task<bool> InsightExistsAsync(Guid organizationId, Guid userId, InsightType type, Guid? entityId);
+    
+    #endregion
 }

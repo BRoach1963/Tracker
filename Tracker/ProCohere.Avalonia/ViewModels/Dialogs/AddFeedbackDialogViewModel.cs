@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -51,6 +53,31 @@ public partial class AddFeedbackDialogViewModel : ObservableObject
     [ObservableProperty]
     private int? _rating;
     
+    /// <summary>
+    /// Whether the team member selector should be shown.
+    /// True when dialog is opened without a pre-selected recipient.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showRecipientSelector;
+    
+    /// <summary>
+    /// Available team members to select from when no recipient is pre-set.
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<TeamMemberDetail> _availableTeamMembers = new();
+    
+    /// <summary>
+    /// The selected team member from the picker.
+    /// </summary>
+    [ObservableProperty]
+    private TeamMemberDetail? _selectedTeamMember;
+    
+    /// <summary>
+    /// Whether the team members are still loading.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isLoadingTeamMembers;
+    
     #endregion
     
     // Tag values for combo boxes (must match XAML order)
@@ -65,6 +92,51 @@ public partial class AddFeedbackDialogViewModel : ObservableObject
         _recipientTeamMemberId = teamMemberId;
         _recipientName = name;
         RecipientDisplayName = name;
+        ShowRecipientSelector = false;
+    }
+    
+    /// <summary>
+    /// Initialize dialog for team member selection mode (no pre-selected recipient).
+    /// Loads available team members and shows the selector.
+    /// </summary>
+    public async Task InitializeForTeamMemberSelectionAsync()
+    {
+        ShowRecipientSelector = true;
+        RecipientDisplayName = "Select a team member";
+        IsLoadingTeamMembers = true;
+        
+        try
+        {
+            var currentUserId = AuthService.Instance.CurrentTeamMember?.Id;
+            var members = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            
+            // Filter out self - can't give feedback to yourself
+            var otherMembers = members
+                .Where(m => m.Id != currentUserId && m.Relation != "self")
+                .OrderBy(m => m.FullName)
+                .ToList();
+            
+            AvailableTeamMembers = new ObservableCollection<TeamMemberDetail>(otherMembers);
+            Debug.WriteLine($"[AddFeedbackDialog] Loaded {otherMembers.Count} team members for selection");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AddFeedbackDialog] Error loading team members: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingTeamMembers = false;
+        }
+    }
+    
+    partial void OnSelectedTeamMemberChanged(TeamMemberDetail? value)
+    {
+        if (value != null)
+        {
+            _recipientTeamMemberId = value.Id;
+            _recipientName = value.FullName;
+            RecipientDisplayName = value.FullName;
+        }
     }
     
     private static string? GetTagByIndex(string[] tags, int index)
@@ -121,7 +193,14 @@ public partial class AddFeedbackDialogViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        // Validate
+        // Validate recipient
+        if (_recipientTeamMemberId == Guid.Empty)
+        {
+            Debug.WriteLine("[AddFeedbackDialog] No recipient selected");
+            return;
+        }
+        
+        // Validate content
         var content = Content?.Trim();
         if (string.IsNullOrEmpty(content))
         {

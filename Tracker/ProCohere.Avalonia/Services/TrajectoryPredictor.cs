@@ -427,6 +427,11 @@ public class TrajectoryResult
         _ => $"{DaysRemaining} days left"
     };
 
+    /// <summary>Projected completion date display with localized format.</summary>
+    public string ProjectedCompletionDisplay => ProjectedCompletionDate.HasValue
+        ? string.Format(LocalizationService.Instance.Get("GoalsTab_BasedOnCurrentProgress"), ProjectedCompletionDate.Value)
+        : string.Empty;
+
     #endregion
 
     #region Factory Methods

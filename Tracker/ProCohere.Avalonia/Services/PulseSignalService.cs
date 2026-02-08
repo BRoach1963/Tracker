@@ -455,7 +455,8 @@ public class PulseSignalService
     
     /// <summary>
     /// Generates signals for Recent Discussions section.
-    /// Derived from linked agenda items, grouped by entity.
+    /// Groups by (linked_entity_type, linked_entity_id) for narrative continuity.
+    /// Shows: entity title, discussion count, most recent meeting, last 1-3 topics.
     /// </summary>
     private async Task<List<PulseSignal>> GenerateDiscussionSignalsAsync(
         Guid userId,
@@ -466,35 +467,75 @@ public class PulseSignalService
         
         try
         {
-            Log("Generating discussion signals...");
+            Log("Generating discussion signals with narrative grouping...");
             
             // Load dashboard data which includes meetings with agenda items
             var dashboardData = await DashboardService.Instance.LoadDashboardDataAsync();
+            
+            // Collect all linked agenda items from recent meetings
+            var allDiscussions = new List<(MeetingDetail Meeting, MeetingAgendaItem AgendaItem)>();
             
             foreach (var meeting in dashboardData.Meetings.Where(m => 
                 m.ScheduledAt.HasValue &&
                 m.ScheduledAt.Value >= cutoffDate &&
                 m.ScheduledAt.Value <= DateTime.UtcNow))
             {
-                // Get agenda items that have linked entities
                 var linkedAgendaItems = meeting.AgendaItems?
                     .Where(a => a.LinkedEntityId.HasValue && !string.IsNullOrEmpty(a.LinkedEntityType))
                     .ToList() ?? new List<MeetingAgendaItem>();
                 
                 foreach (var agendaItem in linkedAgendaItems)
                 {
-                    signals.Add(new PulseSignalBuilder()
-                        .ForMeeting(meeting.Id, meeting.Title ?? "Meeting")
-                        .ForUser(userId)
-                        .WithTrigger(PulseTriggerReason.MeetingDiscussion)
-                        .WithSeverity(PulseSignalSeverity.Info)
-                        .InSection(PulseSection.RecentDiscussions)
-                        .WithSummary($"Discussed in {meeting.Title}: {agendaItem.Title}")
-                        .LinkedToMeeting(meeting.Id)
-                        .WithPriority(25)
-                        .CreatedOn(meeting.ScheduledAt ?? DateTime.UtcNow)
-                        .Build());
+                    allDiscussions.Add((meeting, agendaItem));
                 }
+            }
+            
+            // Group by entity (linked_entity_type, linked_entity_id)
+            var groupedByEntity = allDiscussions
+                .GroupBy(d => (d.AgendaItem.LinkedEntityType, d.AgendaItem.LinkedEntityId))
+                .OrderByDescending(g => g.Max(d => d.Meeting.ScheduledAt ?? DateTime.MinValue));
+            
+            foreach (var entityGroup in groupedByEntity)
+            {
+                var entityType = entityGroup.Key.LinkedEntityType ?? "item";
+                var entityId = entityGroup.Key.LinkedEntityId ?? Guid.Empty;
+                var discussionCount = entityGroup.Count();
+                
+                // Get most recent discussion
+                var mostRecent = entityGroup
+                    .OrderByDescending(d => d.Meeting.ScheduledAt ?? DateTime.MinValue)
+                    .First();
+                
+                // Get last 1-3 agenda item titles for context
+                var recentTopics = entityGroup
+                    .OrderByDescending(d => d.Meeting.ScheduledAt ?? DateTime.MinValue)
+                    .Take(3)
+                    .Select(d => d.AgendaItem.Title)
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .ToList();
+                
+                // Build summary that reads like a story
+                var summary = discussionCount == 1
+                    ? $"Discussed in {mostRecent.Meeting.Title}: {mostRecent.AgendaItem.Title}"
+                    : $"Discussed {discussionCount} times, most recently in {mostRecent.Meeting.Title}";
+                
+                // Add topics as subtitle if multiple discussions
+                var topics = recentTopics.Count > 0 
+                    ? string.Join(" • ", recentTopics.Take(3))
+                    : null;
+                
+                signals.Add(new PulseSignalBuilder()
+                    .ForMeeting(mostRecent.Meeting.Id, mostRecent.AgendaItem.Title ?? mostRecent.Meeting.Title ?? "Meeting")
+                    .ForUser(userId)
+                    .WithTrigger(PulseTriggerReason.MeetingDiscussion)
+                    .WithSeverity(PulseSignalSeverity.Info)
+                    .InSection(PulseSection.RecentDiscussions)
+                    .WithSummary(summary)
+                    .WithDetail(topics)
+                    .LinkedToMeeting(mostRecent.Meeting.Id)
+                    .WithPriority(25 + discussionCount) // More discussions = higher priority
+                    .CreatedOn(mostRecent.Meeting.ScheduledAt ?? DateTime.UtcNow)
+                    .Build());
             }
         }
         catch (Exception ex)
@@ -502,10 +543,11 @@ public class PulseSignalService
             Log($"Error generating discussion signals: {ex.Message}");
         }
         
-        Log($"Generated {signals.Count} discussion signals");
+        Log($"Generated {signals.Count} grouped discussion signals");
         
         return signals
-            .OrderByDescending(s => s.CreatedAt)
+            .OrderByDescending(s => s.Priority)
+            .ThenByDescending(s => s.CreatedAt)
             .ToList();
     }
     

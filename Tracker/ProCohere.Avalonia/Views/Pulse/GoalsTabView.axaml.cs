@@ -137,15 +137,6 @@ public partial class GoalsTabView : UserControl
         }
     }
 
-    private void ScopeSharedGoals_Tapped(object? sender, TappedEventArgs e)
-    {
-        Log("[GoalsTabView] Scope: Shared Goals");
-        if (DataContext is GoalsViewModel vm)
-        {
-            vm.SetScopeCommand.Execute("2");
-        }
-    }
-
     private void GoalCard_Tapped(object? sender, TappedEventArgs e)
     {
         if (sender is Border border && border.Tag is GoalDetail goal)

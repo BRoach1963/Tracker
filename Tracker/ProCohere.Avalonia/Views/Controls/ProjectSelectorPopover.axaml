@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="350"
              x:Class="ProCohere.Avalonia.Views.Controls.ProjectSelectorPopover"
              x:DataType="controls:ProjectSelectorPopover">
@@ -56,7 +57,7 @@
                     BorderBrush="{DynamicResource BrushBorder}"
                     BorderThickness="0,0,0,1">
                 <TextBox x:Name="SearchBox"
-                         Watermark="Search projects..."
+                         Watermark="{markup:Localize Key=Project_SearchProjects}"
                          Text="{Binding SearchText, Mode=TwoWay}"
                          FontSize="13"/>
             </Border>
@@ -67,14 +68,14 @@
                           MaxHeight="280">
                 <StackPanel>
                     <!-- Loading indicator -->
-                    <TextBlock Text="Loading..."
+                    <TextBlock Text="{markup:Localize Key=Message_Loading}"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                FontSize="13"
                                Margin="12"
                                IsVisible="{Binding IsLoading}"/>
                     
                     <!-- Empty state -->
-                    <TextBlock Text="No projects found"
+                    <TextBlock Text="{markup:Localize Key=Project_NoProjectsFound}"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                FontSize="13"
                                FontStyle="Italic"

@@ -3,10 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
         x:Class="ProCohere.Avalonia.Views.Dialogs.RecordOutcomeDialog"
         x:DataType="vm:RecordOutcomeDialogViewModel"
-        Title="Record Outcome"
+        Title="{markup:Localize Key=Dialog_RecordOutcome_Title}"
         Width="500"
         Height="450"
         WindowStartupLocation="CenterOwner"
@@ -53,7 +54,7 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Record Outcome" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_RecordOutcome_Title}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
                         <TextBlock Text="{Binding AgendaItemTitle}" FontSize="12" Foreground="#FFFFFFCC" TextTrimming="CharacterEllipsis" MaxWidth="350"/>
                     </StackPanel>
                 </StackPanel>
@@ -67,7 +68,7 @@
             
                     <!-- Outcome Type Selection -->
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Outcome Type" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_RecordOutcome_OutcomeType}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <WrapPanel Orientation="Horizontal">
                             <RadioButton Classes="outcome-type" 
                                          GroupName="OutcomeType"
@@ -76,7 +77,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10Z" 
                                               Width="14" Height="14" Foreground="#F59E0B"/>
-                                    <TextBlock Text="Decision" FontSize="12"/>
+                                    <TextBlock Text="{markup:Localize Key=Dialog_RecordOutcome_Decision}" FontSize="12"/>
                                 </StackPanel>
                             </RadioButton>
                             <RadioButton Classes="outcome-type" 
@@ -86,7 +87,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
                                               Width="14" Height="14" Foreground="#E91E63"/>
-                                    <TextBlock Text="Feedback" FontSize="12"/>
+                                    <TextBlock Text="{markup:Localize Key=Dialog_RecordOutcome_Feedback}" FontSize="12"/>
                                 </StackPanel>
                             </RadioButton>
                             <RadioButton Classes="outcome-type" 
@@ -96,7 +97,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,13H7V11H13V13M17,17H7V15H17V17Z" 
                                               Width="14" Height="14" Foreground="#607D8B"/>
-                                    <TextBlock Text="Notes" FontSize="12"/>
+                                    <TextBlock Text="{markup:Localize Key=Dialog_RecordOutcome_Notes}" FontSize="12"/>
                                 </StackPanel>
                             </RadioButton>
                         </WrapPanel>
@@ -116,13 +117,13 @@
             
                     <!-- Visibility -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Who can see this?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_RecordOutcome_WhoCanSee}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox HorizontalAlignment="Stretch"
                                   SelectedIndex="{Binding SelectedVisibilityIndex}">
-                            <ComboBoxItem Content="Private (only me)"/>
-                            <ComboBoxItem Content="Meeting Attendees"/>
-                            <ComboBoxItem Content="My Team"/>
-                            <ComboBoxItem Content="Organization"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_RecordOutcome_PrivateOnly}"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_RecordOutcome_MeetingAttendees}"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_RecordOutcome_MyTeam}"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_RecordOutcome_Organization}"/>
                         </ComboBox>
                     </StackPanel>
             
@@ -133,7 +134,7 @@
             <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
                     Padding="20,12">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                    <Button Content="Cancel" 
+                    <Button Content="{markup:Localize Key=Button_Cancel}" 
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="1"
@@ -150,7 +151,7 @@
                             </Style>
                         </Button.Styles>
                     </Button>
-                    <Button Content="Save Outcome" 
+                    <Button Content="{markup:Localize Key=Dialog_RecordOutcome_SaveOutcome}" 
                             Foreground="{DynamicResource BrushPrimary}"
                             FontWeight="SemiBold"
                             BorderThickness="1"

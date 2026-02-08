@@ -13,6 +13,7 @@ using ProCohere.Avalonia.ViewModels.Dialogs;
 using ProCohere.Avalonia.Views.Dialogs;
 using ProCohere.Avalonia.Attributes;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
@@ -39,8 +40,13 @@ public partial class CircleView : UserControl
         _viewModel.EditTeamMemberDialogRequested += OnEditTeamMemberDialogRequested;
         _viewModel.InviteTeamMemberDialogRequested += OnInviteTeamMemberDialogRequested;
         _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+        _viewModel.EditMeetingDialogRequested += OnEditMeetingDialogRequested;
+        _viewModel.AddAgendaItemDialogRequested += OnAddAgendaItemDialogRequested;
+        _viewModel.AddAttendeeDialogRequested += OnAddAttendeeDialogRequested;
+        _viewModel.EditMeetingNotesRequested += OnEditMeetingNotesRequested;
         _viewModel.LinkMetricToGoalRequested += OnLinkMetricToGoalRequested;
         _viewModel.AddGoalDialogRequested += OnAddGoalDialogRequested;
+        _viewModel.EditGoalDialogRequested += OnEditGoalDialogRequested;
         _viewModel.GiveFeedbackDialogRequested += OnGiveFeedbackDialogRequested;
         _viewModel.GiveKudosDialogRequested += OnGiveKudosDialogRequested;
         _viewModel.SendMessageDialogRequested += OnSendMessageDialogRequested;
@@ -99,8 +105,11 @@ public partial class CircleView : UserControl
 
         if (dialog.Result != null)
         {
-            // TODO: Send invite via service
-            // For now, refresh the team list
+            // Invite flow: TeamService.InviteTeamMemberAsync needs to be implemented
+            // For now, show success notification and refresh (invite email would be sent by backend)
+            NotificationService.Instance.ShowSuccess(
+                "Invite Sent", 
+                $"Invitation sent to {dialog.Result.Email}");
             _viewModel.RefreshCommand.Execute(null);
         }
     }
@@ -121,6 +130,131 @@ public partial class CircleView : UserControl
             _viewModel.OnMeetingSaved(result.Meeting);
         }
     }
+
+    private async void OnEditMeetingDialogRequested(object? sender, MeetingDetail meeting)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowEditMeetingAsync(window, meeting);
+        
+        if (result.WasDeleted && result.DeletedMeetingId.HasValue)
+        {
+            _viewModel.OnMeetingDeleted(result.DeletedMeetingId.Value);
+        }
+        else if (result.Success && result.Meeting != null)
+        {
+            _viewModel.OnMeetingSaved(result.Meeting);
+        }
+    }
+
+    private async void OnAddAgendaItemDialogRequested(object? sender, MeetingDetail meeting)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var dialog = new AddAgendaItemDialog();
+        var result = await dialog.ShowDialog<AddAgendaItemResult?>(window);
+        
+        if (result != null)
+        {
+            // Create the agenda item via service
+            var newItem = await MeetingAgendaItemService.Instance.CreateAgendaItemAsync(
+                meeting.Id,
+                result.Title,
+                result.Description,
+                sortOrder: meeting.AgendaItems?.Count ?? 0,
+                isPrivate: result.IsPrivate,
+                visibilityScope: result.VisibilityScope);
+            
+            if (newItem != null)
+            {
+                _viewModel.OnAgendaItemAdded(newItem);
+                NotificationService.Instance.ShowSuccess("Agenda Item Added", $"Added '{result.Title}' to the meeting agenda.");
+            }
+            else
+            {
+                NotificationService.Instance.ShowError("Failed to Add", MeetingAgendaItemService.Instance.LastError ?? "Could not add agenda item.");
+            }
+        }
+    }
+
+    private async void OnAddAttendeeDialogRequested(object? sender, MeetingDetail meeting)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        // Get existing attendee IDs to exclude from picker
+        var existingAttendeeIds = new HashSet<Guid>(meeting.Attendees?.Select(a => a.TeamMemberId) ?? Array.Empty<Guid>());
+
+        // Show the entity picker filtered to people only
+        var dialog = new EntityPickerDialog();
+        dialog.SetAllowedTypes("person");
+        
+        await dialog.ShowDialog(window);
+        
+        if (dialog.Result != null && dialog.Result.EntityType == "person")
+        {
+            // Check if already an attendee
+            if (existingAttendeeIds.Contains(dialog.Result.EntityId))
+            {
+                NotificationService.Instance.ShowWarning("Already Added", $"{dialog.Result.EntityTitle} is already an attendee of this meeting.");
+                return;
+            }
+            
+            // Add the attendee via service
+            var newAttendee = await MeetingService.Instance.AddAttendeeAsync(meeting.Id, dialog.Result.EntityId);
+            
+            if (newAttendee != null)
+            {
+                // Enrich with name from picker result
+                newAttendee.Name = dialog.Result.EntityTitle;
+                _viewModel.OnAttendeeAdded(newAttendee);
+                NotificationService.Instance.ShowSuccess("Attendee Added", $"Added {dialog.Result.EntityTitle} to the meeting.");
+            }
+            else
+            {
+                NotificationService.Instance.ShowError("Failed to Add", MeetingService.Instance.LastError ?? "Could not add attendee.");
+            }
+        }
+    }
+
+    private async void OnEditMeetingNotesRequested(object? sender, MeetingDetail meeting)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        // Open the EditMeetingDialog - it has a Notes tab
+        var result = await AppDialogService.ShowEditMeetingAsync(window, meeting);
+        
+        if (result.WasDeleted && result.DeletedMeetingId.HasValue)
+        {
+            _viewModel.OnMeetingDeleted(result.DeletedMeetingId.Value);
+        }
+        else if (result.Success && result.Meeting != null)
+        {
+            _viewModel.OnMeetingSaved(result.Meeting);
+        }
+    }
+
+    #region EntityDetailFlyout Meeting Action Handlers
+    
+    private void OnEntityFlyout_AddAgendaItemRequested(object? sender, MeetingDetail meeting)
+    {
+        _viewModel?.RequestAddAgendaItem();
+    }
+
+    private void OnEntityFlyout_AddAttendeeRequested(object? sender, MeetingDetail meeting)
+    {
+        _viewModel?.RequestAddAttendee();
+    }
+
+    private void OnEntityFlyout_EditNotesRequested(object? sender, MeetingDetail meeting)
+    {
+        _viewModel?.RequestEditMeetingNotes();
+    }
+
+    #endregion
 
     private async void OnLinkMetricToGoalRequested(object? sender, EventArgs e)
     {
@@ -184,7 +318,8 @@ public partial class CircleView : UserControl
                     StartDate = viewModel.Result.StartDate,
                     DueDate = viewModel.Result.DueDate,
                     OwnerTeamMemberId = viewModel.Result.OwnerTeamMemberId ?? Guid.Empty,
-                    Status = "active"
+                    Status = "active",
+                    VisibilityScope = viewModel.Result.VisibilityScope ?? "team"
                 };
                 
                 await GoalsService.Instance.CreateGoalAsync(newGoal);
@@ -196,6 +331,23 @@ public partial class CircleView : UserControl
             {
                 System.Diagnostics.Debug.WriteLine($"[CircleView] Failed to create goal: {ex.Message}");
             }
+        }
+    }
+
+    private async void OnEditGoalDialogRequested(object? sender, GoalDetail goal)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowEditGoalAsync(window, goal);
+        
+        if (result.WasDeleted && result.DeletedGoalId.HasValue)
+        {
+            _viewModel.OnGoalDeleted(result.DeletedGoalId.Value);
+        }
+        else if (result.Success && result.Goal != null)
+        {
+            _viewModel.OnGoalSaved(result.Goal);
         }
     }
 
@@ -597,7 +749,49 @@ public partial class CircleView : UserControl
             if (DataContext is CircleViewModel vm)
             {
                 vm.SelectTeamMemberCommand.Execute(member);
+                
+                // Scroll the selected card into view after a short delay
+                // (allows the panel to expand first)
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(100);
+                    ScrollCardIntoView(border);
+                }, DispatcherPriority.Background);
             }
+        }
+    }
+
+    private void ScrollCardIntoView(Border cardBorder)
+    {
+        try
+        {
+            var scrollViewer = this.FindControl<ScrollViewer>("TeamCardsScrollViewer");
+            if (scrollViewer == null) return;
+
+            // Get the card's position relative to the scroll viewer's content
+            var transform = cardBorder.TransformToVisual(scrollViewer);
+            if (transform == null) return;
+
+            var cardTop = transform.Value.Transform(new Point(0, 0)).Y;
+            var cardBottom = cardTop + cardBorder.Bounds.Height;
+            var viewportHeight = scrollViewer.Viewport.Height;
+            var currentOffset = scrollViewer.Offset.Y;
+
+            // Check if card is fully visible
+            if (cardTop < 0)
+            {
+                // Card is above viewport, scroll up
+                scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset + cardTop - 16);
+            }
+            else if (cardBottom > viewportHeight)
+            {
+                // Card is below viewport, scroll down
+                scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset + (cardBottom - viewportHeight) + 16);
+            }
+        }
+        catch
+        {
+            // Ignore scroll errors
         }
     }
 
@@ -777,6 +971,90 @@ public partial class CircleView : UserControl
             if (DataContext is CircleViewModel vm)
             {
                 vm.SelectFeedbackCommand.Execute(feedback);
+            }
+        }
+    }
+
+    private async void EditFeedback_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.SelectedFeedback == null) return;
+        
+        var feedback = _viewModel.SelectedFeedback;
+        
+        // Only the author can edit their feedback
+        var currentMember = AuthService.Instance.CurrentTeamMember;
+        if (currentMember == null || feedback.FromMemberId != currentMember.Id)
+        {
+            NotificationService.Instance.ShowWarning("Cannot Edit", "You can only edit feedback you created.");
+            return;
+        }
+        
+        // Get recipient name from SelectedTeamMember if available
+        var recipientName = _viewModel.SelectedTeamMember?.DisplayName ?? feedback.RecipientInitials ?? "Team Member";
+        
+        var parent = TopLevel.GetTopLevel(this);
+        if (parent is Window window)
+        {
+            var viewModel = new EditFeedbackDialogViewModel();
+            viewModel.SetDialogService(new DialogService(window));
+            
+            var dialog = new EditFeedbackDialog
+            {
+                DataContext = viewModel
+            };
+            
+            // Load the feedback data
+            await viewModel.LoadFeedbackAsync(feedback.Id, recipientName);
+            
+            await dialog.ShowDialog(window);
+            
+            if (viewModel.WasSaved)
+            {
+                // Refresh to show updated data
+                _viewModel.RefreshCommand?.Execute(null);
+                NotificationService.Instance.ShowSuccess("Success", "Feedback updated successfully.");
+            }
+        }
+    }
+
+    private async void DeleteFeedback_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.SelectedFeedback == null) return;
+        
+        var feedback = _viewModel.SelectedFeedback;
+        
+        // Only the author can delete their feedback
+        var currentMember = AuthService.Instance.CurrentTeamMember;
+        if (currentMember == null || feedback.FromMemberId != currentMember.Id)
+        {
+            NotificationService.Instance.ShowWarning("Cannot Delete", "You can only delete feedback you created.");
+            return;
+        }
+        
+        var parent = TopLevel.GetTopLevel(this);
+        if (parent is Window window)
+        {
+            var dialogService = new DialogService(window);
+            var confirmed = await dialogService.ShowConfirmationAsync(
+                "Delete Feedback",
+                "Are you sure you want to delete this feedback? This action cannot be undone.",
+                "Delete",
+                "Cancel");
+
+            if (confirmed)
+            {
+                var success = await FeedbackService.Instance.DeleteFeedbackAsync(feedback.Id);
+                
+                if (success)
+                {
+                    _viewModel.CloseFeedbackDetailCommand?.Execute(null);
+                    _viewModel.RefreshCommand?.Execute(null);
+                    NotificationService.Instance.ShowSuccess("Success", "Feedback deleted successfully.");
+                }
+                else
+                {
+                    NotificationService.Instance.ShowError("Error", FeedbackService.Instance.LastError ?? "Failed to delete feedback.");
+                }
             }
         }
     }

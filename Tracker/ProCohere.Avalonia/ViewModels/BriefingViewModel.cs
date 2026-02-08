@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -31,6 +32,35 @@ public partial class BriefingViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _hasError;
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
 
     #endregion
 
@@ -95,7 +125,7 @@ public partial class BriefingViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task SetScope(string scope)
+    private void SetScope(string scope)
     {
         CurrentScope = scope switch
         {
@@ -103,8 +133,69 @@ public partial class BriefingViewModel : ViewModelBase
             _ => BriefingScope.Today
         };
         
-        // Refresh data with new scope
-        await LoadDataAsync();
+        // Mark that user explicitly chose this scope (preserves across navigation)
+        _userExplicitlyChoseScope = true;
+        Log($"[BriefingViewModel] User explicitly set scope to {CurrentScope}");
+        
+        // Re-filter cached data - no database reload needed
+        ApplyScopeFilter();
+    }
+    
+    /// <summary>
+    /// Re-filters meetings and tasks by current scope without reloading from database.
+    /// </summary>
+    private void ApplyScopeFilter()
+    {
+        var now = DateTime.Now;
+        var todayStart = now.Date;
+        var weekEnd = todayStart.AddDays(7);
+        
+        // Filter meetings by scope
+        UpcomingMeetings.Clear();
+        var meetingsToShow = _allMeetings
+            .Where(m => m.ScheduledAtLocal.HasValue && !m.IsDeleted)
+            .Where(m => 
+            {
+                var scheduledDate = m.ScheduledAtLocal!.Value.Date;
+                if (IsTodayScope)
+                    return scheduledDate == todayStart;
+                else
+                    return scheduledDate >= todayStart && scheduledDate < weekEnd;
+            })
+            .OrderBy(m => m.ScheduledAtLocal)
+            .Take(10)
+            .ToList();
+        
+        foreach (var meeting in meetingsToShow)
+            UpcomingMeetings.Add(meeting);
+        
+        // Filter tasks by scope
+        UpcomingTasks.Clear();
+        var tasksToShow = _allTasks
+            .Where(t => t.Status != "completed")
+            .Where(t => 
+            {
+                if (!t.DueDate.HasValue) return true; // Tasks without due date always show
+                var dueDate = t.DueDate.Value.Date;
+                if (IsTodayScope)
+                    return dueDate <= todayStart; // Today + overdue
+                else
+                    return dueDate < weekEnd; // Week + overdue
+            })
+            .OrderBy(t => t.DueDate ?? DateTime.MaxValue)
+            .ToList();
+        
+        foreach (var task in tasksToShow)
+            UpcomingTasks.Add(task);
+        
+        // Update stats for the current scope
+        var today = DateTime.Today;
+        TasksDueToday = _allTasks.Count(t => t.Status != "completed" && t.DueDate?.Date == today);
+        TasksDueLater = _allTasks.Count(t => t.Status != "completed" && t.DueDate?.Date > today);
+        TasksOverdue = _allTasks.Count(t => t.Status != "completed" && t.DueDate?.Date < today);
+        MeetingsToday = _allMeetings.Count(m => m.ScheduledAtLocal?.Date == today && !m.IsDeleted);
+        
+        Log($"[BriefingViewModel] Scope filter applied: {UpcomingMeetings.Count} meetings, {UpcomingTasks.Count} tasks (scope: {(IsTodayScope ? "Today" : "Week")})");
     }
 
     #endregion
@@ -286,10 +377,12 @@ public partial class BriefingViewModel : ViewModelBase
     /// <summary>
     /// Tasks sorted by urgency for IC Briefing display.
     /// Order: Overdue → Due today → Due soon (next 3-5 days) → Everything else
+    /// Stable ordering: within each urgency level, sort by due date, then by title.
     /// </summary>
     public IEnumerable<TaskDetail> SortedUpcomingTasks => UpcomingTasks
         .OrderBy(t => GetTaskUrgencyOrder(t))
-        .ThenBy(t => t.DueDate ?? DateTime.MaxValue);
+        .ThenBy(t => t.DueDate ?? DateTime.MaxValue)
+        .ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Active goals owned by the user or their team.
@@ -300,6 +393,16 @@ public partial class BriefingViewModel : ViewModelBase
     /// Upcoming meetings.
     /// </summary>
     public ObservableCollection<MeetingDetail> UpcomingMeetings { get; } = new();
+    
+    /// <summary>
+    /// Cached all meetings (unfiltered) for scope switching without reload.
+    /// </summary>
+    private List<MeetingDetail> _allMeetings = new();
+    
+    /// <summary>
+    /// Cached all tasks (unfiltered) for scope switching without reload.
+    /// </summary>
+    private List<TaskDetail> _allTasks = new();
 
     /// <summary>
     /// Project signals (passive awareness indicators).
@@ -323,6 +426,16 @@ public partial class BriefingViewModel : ViewModelBase
     /// Whether there are any AI insights to display.
     /// </summary>
     public bool HasAIInsights => AIInsights.Count > 0;
+    
+    /// <summary>
+    /// Count of critical (high severity) insights requiring attention.
+    /// </summary>
+    public int CriticalInsightCount => AIInsights.Count(i => i.IsHighSeverity);
+    
+    /// <summary>
+    /// Whether there are critical insights to highlight.
+    /// </summary>
+    public bool HasCriticalInsights => CriticalInsightCount > 0;
 
     #endregion
 
@@ -412,12 +525,158 @@ public partial class BriefingViewModel : ViewModelBase
     /// Instantiated once per ViewModel lifecycle.
     /// </summary>
     private readonly IInsightRepository _insightRepository = new InsightRepository();
+    
+    /// <summary>
+    /// Repository for insight action operations (dismiss, snooze, act).
+    /// </summary>
+    private readonly IInsightActionRepository _insightActionRepository;
 
     #endregion
+
+    #region Surface Activation
+
+    /// <summary>
+    /// Timestamp of last data load to support staleness checks.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// The calendar date when data was last loaded (for day-change detection).
+    /// </summary>
+    private DateTime _lastLoadDate = DateTime.MinValue;
+
+    /// <summary>
+    /// Whether the surface has been marked dirty by external edits.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Whether the user explicitly chose a scope in this session.
+    /// Reset on day change or staleness threshold.
+    /// </summary>
+    private bool _userExplicitlyChoseScope;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, reassert Today scope.
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(45);
+
+    /// <summary>
+    /// Called when the Briefing surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        Log("[BriefingViewModel] OnSurfaceActivated called");
+        
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            Log("[BriefingViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+        
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            Log("[BriefingViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // Check for time scope reassertion conditions
+        var now = DateTime.UtcNow;
+        var today = DateTime.UtcNow.Date;
+        var dayChanged = _lastLoadDate.Date != today;
+        var isStale = (now - _lastLoadTimestamp) > StalenessThreshold;
+        
+        if (dayChanged || isStale)
+        {
+            Log($"[BriefingViewModel] OnSurfaceActivated: reasserting Today scope (dayChanged={dayChanged}, isStale={isStale})");
+            
+            // Reset scope to Today unless user explicitly chose in this session AND day hasn't changed
+            if (!_userExplicitlyChoseScope || dayChanged)
+            {
+                CurrentScope = BriefingScope.Today;
+                _userExplicitlyChoseScope = false;
+            }
+            
+            // Trigger background refresh
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            Log("[BriefingViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        Log("[BriefingViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when tasks, goals, or metrics are edited elsewhere.
+    /// </summary>
+    public void MarkDirty()
+    {
+        Log("[BriefingViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+            
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+        
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    #endregion
+
+    #region Constructor
 
     public BriefingViewModel()
     {
         Log("[BriefingViewModel] Constructor called");
+        
+        // Initialize action repository with RPC service
+        var rpcService = new InsightRpcService();
+        _insightActionRepository = new InsightActionRepository(rpcService);
         
         // Register all AI analyzers (one-time setup)
         RegisterAnalyzers();
@@ -485,6 +744,14 @@ public partial class BriefingViewModel : ViewModelBase
             return;
         }
 
+        // Cancel any pending status timer
+        _updateDelayTokenSource?.Cancel();
+        _updateDelayTokenSource = new CancellationTokenSource();
+        var delayToken = _updateDelayTokenSource.Token;
+        
+        // Start 400ms delay timer for "Updating..." status (avoid flicker on fast loads)
+        _ = ShowUpdatingStatusAfterDelayAsync(delayToken);
+
         try
         {
             IsLoading = true;
@@ -501,13 +768,20 @@ public partial class BriefingViewModel : ViewModelBase
                 WelcomeMessage = $"Welcome back, {ToTitleCase(firstName)}";
             }
 
-            // Load dashboard data
-            Log("[BriefingViewModel] Calling DashboardService.LoadDashboardDataAsync...");
-            var data = await DashboardService.Instance.LoadDashboardDataAsync();
-            Log($"[BriefingViewModel] Data loaded: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks, {data.Goals.Count} goals, {data.Meetings.Count} meetings");
+            // Load dashboard data, team members, and weekly load IN PARALLEL
+            Log("[BriefingViewModel] Starting parallel data load...");
+            var dashboardTask = DashboardService.Instance.LoadDashboardDataAsync();
+            var visibleMembersTask = TeamService.Instance.GetVisibleTeamMembersAsync();
+            var weeklyLoadTask = DashboardService.Instance.GetWeeklyLoadAsync();
             
-            // Load visible team members (excludes self)
-            var visibleMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
+            await Task.WhenAll(dashboardTask, visibleMembersTask, weeklyLoadTask);
+            
+            var data = await dashboardTask;
+            var visibleMembers = await visibleMembersTask;
+            var weeklyLoadData = await weeklyLoadTask;
+            
+            Log($"[BriefingViewModel] Parallel load complete: {data.TeamMembers.Count} members, {data.Tasks.Count} tasks, {data.Goals.Count} goals, {data.Meetings.Count} meetings");
+            
             var teamMembersExcludingSelf = visibleMembers.Where(m => m.Relation != "self").ToList();
             
             // === ROLE DETECTION (from AuthService, not inferred) ===
@@ -561,10 +835,7 @@ public partial class BriefingViewModel : ViewModelBase
             Log($"[BriefingViewModel] *** IsManager = {IsManager} (role: '{roleName}', normalized: '{normalizedRole}') ***");
             Log($"[BriefingViewModel] *** IsIndividualContributor = {IsIndividualContributor} ***");
 
-            // === LOAD WEEKLY SPARKLINE DATA ===
-            Log("[BriefingViewModel] Loading weekly load sparkline data...");
-            var weeklyLoadData = await DashboardService.Instance.GetWeeklyLoadAsync();
-            
+            // === PROCESS WEEKLY SPARKLINE DATA (already loaded in parallel above) ===
             // Calculate max first so we can set it on each item
             var maxLoad = weeklyLoadData.Count > 0 ? weeklyLoadData.Max(d => d.TotalLoad) : 0;
             MaxWeeklyLoad = maxLoad;
@@ -632,12 +903,9 @@ public partial class BriefingViewModel : ViewModelBase
                 TeamMembers.Add(member);
             }
 
-            UpcomingTasks.Clear();
-            foreach (var task in data.UpcomingTasks)
-            {
-                UpcomingTasks.Add(task);
-            }
-
+            // Cache all tasks for scope filtering without reload
+            _allTasks = data.Tasks.ToList();
+            
             // Update goals collection - prioritize those needing attention
             // Per GOALS_SPEC: Sort by DerivedHealth (OffTrack first, then AtRisk)
             Goals.Clear();
@@ -651,17 +919,19 @@ public partial class BriefingViewModel : ViewModelBase
                 Goals.Add(goal);
             }
 
-            // Load upcoming meetings (placeholder for now - will need MeetingDetail model)
-            UpcomingMeetings.Clear();
-            // TODO: Load actual meetings when meeting service is implemented
+            // Cache all meetings for scope filtering without reload
+            _allMeetings = data.Meetings.ToList();
+            
+            // Apply scope filter to populate UpcomingTasks and UpcomingMeetings from cache
+            ApplyScopeFilter();
 
-            Log($"[BriefingViewModel] Collections updated: {TeamMembers.Count} members, {UpcomingTasks.Count} tasks, {Goals.Count} goals");
+            Log($"[BriefingViewModel] Collections updated: {TeamMembers.Count} members, {UpcomingTasks.Count} tasks, {Goals.Count} goals, {UpcomingMeetings.Count} meetings");
 
-            // Load project signals (passive awareness indicators)
-            await LoadProjectSignalsAsync();
-
-            // Load AI insights (run analysis and get results)
-            await LoadAIInsightsAsync();
+            // Load project signals and AI insights IN PARALLEL (non-blocking for main UI)
+            // These are secondary features that shouldn't delay the core briefing
+            var projectSignalsTask = LoadProjectSignalsAsync();
+            var aiInsightsTask = LoadAIInsightsAsync();
+            await Task.WhenAll(projectSignalsTask, aiInsightsTask);
 
             // Check for errors
             if (!string.IsNullOrEmpty(DashboardService.Instance.LastError))
@@ -680,6 +950,16 @@ public partial class BriefingViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            _lastLoadTimestamp = DateTime.UtcNow;
+            _lastLoadDate = DateTime.UtcNow.Date;
+            
+            // Cancel the "Updating..." delay timer if still pending
+            _updateDelayTokenSource?.Cancel();
+            
+            // Show "Updated" status briefly, then fade to Idle
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
+            
             Log("[BriefingViewModel] LoadDataAsync complete, IsLoading = false");
         }
     }
@@ -728,6 +1008,8 @@ public partial class BriefingViewModel : ViewModelBase
             }
 
             OnPropertyChanged(nameof(HasAIInsights));
+            OnPropertyChanged(nameof(CriticalInsightCount));
+            OnPropertyChanged(nameof(HasCriticalInsights));
         }
         catch (Exception ex)
         {
@@ -744,6 +1026,8 @@ public partial class BriefingViewModel : ViewModelBase
     {
         await LoadDataAsync();
     }
+
+    #endregion
 
     #region Insight Actions
 
@@ -763,20 +1047,21 @@ public partial class BriefingViewModel : ViewModelBase
         {
             Log($"[BriefingViewModel] Dismissing insight: {insight.Id} - {insight.Title}");
             
-            var teamMember = AuthService.Instance.CurrentTeamMember;
-            if (teamMember == null)
+            if (string.IsNullOrEmpty(insight.SignatureHash))
             {
-                Log("[BriefingViewModel] No current team member, cannot dismiss insight");
-                ErrorMessage = "You must be logged in to dismiss insights.";
+                Log("[BriefingViewModel] Insight has no signature hash, cannot dismiss");
+                ErrorMessage = "Cannot dismiss this insight (no signature).";
                 HasError = true;
                 return;
             }
             
-            await _insightRepository.DismissInsightAsync(insight.Id, teamMember.Id);
+            await _insightActionRepository.DismissAsync(insight.SignatureHash);
             
             // Remove from UI immediately for responsive UX
             AIInsights.Remove(insight);
             OnPropertyChanged(nameof(HasAIInsights));
+            OnPropertyChanged(nameof(CriticalInsightCount));
+            OnPropertyChanged(nameof(HasCriticalInsights));
             
             Log($"[BriefingViewModel] Insight dismissed successfully");
         }
@@ -805,16 +1090,26 @@ public partial class BriefingViewModel : ViewModelBase
         {
             Log($"[BriefingViewModel] Snoozing insight: {insight.Id} - {insight.Title}");
             
-            // Snooze for 24 hours from now
-            var snoozeUntil = DateTime.UtcNow.AddDays(1);
+            if (string.IsNullOrEmpty(insight.SignatureHash))
+            {
+                Log("[BriefingViewModel] Insight has no signature hash, cannot snooze");
+                ErrorMessage = "Cannot snooze this insight (no signature).";
+                HasError = true;
+                return;
+            }
             
-            await _insightRepository.SnoozeInsightAsync(insight.Id, snoozeUntil);
+            // Snooze for 24 hours from now
+            var snoozeDuration = TimeSpan.FromDays(1);
+            
+            await _insightActionRepository.SnoozeAsync(insight.SignatureHash, snoozeDuration);
             
             // Remove from UI immediately for responsive UX
             AIInsights.Remove(insight);
             OnPropertyChanged(nameof(HasAIInsights));
+            OnPropertyChanged(nameof(CriticalInsightCount));
+            OnPropertyChanged(nameof(HasCriticalInsights));
             
-            Log($"[BriefingViewModel] Insight snoozed until {snoozeUntil:yyyy-MM-dd HH:mm} UTC");
+            Log($"[BriefingViewModel] Insight snoozed for {snoozeDuration}");
         }
         catch (Exception ex)
         {
@@ -838,20 +1133,25 @@ public partial class BriefingViewModel : ViewModelBase
 
         try
         {
-            Log($"[BriefingViewModel] Viewing insight entity: {insight.EntityType}/{insight.EntityId} - {insight.Title}");
+            Log($"[BriefingViewModel] Viewing insight entity: {insight.SourceType}/{insight.SourceId} - {insight.Title}");
             
-            // Mark as acted on first
-            await _insightRepository.MarkInsightActionedAsync(insight.Id);
+            // Mark as acted on first (if has signature)
+            if (!string.IsNullOrEmpty(insight.SignatureHash))
+            {
+                await _insightActionRepository.MarkActedAsync(insight.SignatureHash);
+            }
             
             // Navigate based on entity type
-            if (insight.EntityId.HasValue && !string.IsNullOrEmpty(insight.EntityType))
+            if (insight.SourceId.HasValue && !string.IsNullOrEmpty(insight.SourceType))
             {
-                RaiseNavigationEvent(insight.EntityType, insight.EntityId.Value);
+                RaiseNavigationEvent(insight.SourceType, insight.SourceId.Value);
             }
             
             // Remove from UI after navigation is initiated
             AIInsights.Remove(insight);
             OnPropertyChanged(nameof(HasAIInsights));
+            OnPropertyChanged(nameof(CriticalInsightCount));
+            OnPropertyChanged(nameof(HasCriticalInsights));
             
             Log($"[BriefingViewModel] Insight marked as acted on, navigation initiated");
         }
@@ -1173,6 +1473,34 @@ public partial class BriefingViewModel : ViewModelBase
     }
     
     /// <summary>
+    /// Called by the View when a goal is saved from the dialog.
+    /// </summary>
+    public void OnGoalSaved(GoalDetail goal)
+    {
+        Log($"[BriefingViewModel] Goal saved: {goal.Title}");
+        
+        // Add to the goals collection if it's active
+        var existing = Goals.FirstOrDefault(g => g.Id == goal.Id);
+        if (existing == null)
+        {
+            // Only add active goals
+            if (goal.Lifecycle == GoalLifecycle.Active || goal.Lifecycle == GoalLifecycle.Evolving)
+            {
+                Goals.Add(goal);
+                ActiveGoalsCount++;
+                Log($"[BriefingViewModel] Added new goal to collection");
+            }
+        }
+        else
+        {
+            // Update existing goal in place
+            var index = Goals.IndexOf(existing);
+            Goals[index] = goal;
+            Log($"[BriefingViewModel] Updated existing goal in collection");
+        }
+    }
+    
+    /// <summary>
     /// Event raised when user clicks a project signal.
     /// The shell should navigate to Projects tab.
     /// </summary>
@@ -1199,6 +1527,11 @@ public partial class BriefingViewModel : ViewModelBase
     public event EventHandler<Guid>? NavigateToMeetingRequested;
     
     /// <summary>
+    /// Event raised when user wants to view all insights (navigate to Me > Insights tab).
+    /// </summary>
+    public event EventHandler? ViewAllInsightsRequested;
+    
+    /// <summary>
     /// Command to handle clicking on a project signal.
     /// Navigates to the Projects tab (no flyout - just navigation).
     /// </summary>
@@ -1208,6 +1541,16 @@ public partial class BriefingViewModel : ViewModelBase
         if (signal == null) return;
         Log($"[BriefingViewModel] Project signal clicked: {signal.ProjectName} ({signal.SignalType})");
         NavigateToProjectRequested?.Invoke(this, signal.ProjectId);
+    }
+    
+    /// <summary>
+    /// Command to navigate to Me > Insights tab when user clicks the insights badge.
+    /// </summary>
+    [RelayCommand]
+    private void ViewAllInsights()
+    {
+        Log($"[BriefingViewModel] View all insights requested - {AIInsights.Count} insights");
+        ViewAllInsightsRequested?.Invoke(this, EventArgs.Empty);
     }
 
     #endregion

@@ -107,8 +107,11 @@ public class MeetingCadenceAnalyzer : IInsightAnalyzer
             Type = InsightType.MeetingOverdue,
             Title = $"Overdue Meeting: \"{meetingTitle}\"",
             Content = $"Meeting was scheduled {daysOverdue} day{(daysOverdue != 1 ? "s" : "")} ago and not marked complete. Consider rescheduling or marking as done.",
-            EntityType = "meeting",
-            EntityId = meeting.Id,
+            SubjectType = "meeting",
+            SubjectId = meeting.Id,
+            SourceType = "meeting",
+            SourceId = meeting.Id,
+            SeverityLevel = SeverityToLevel(severity),
             RelevanceScore = daysOverdue >= 14 ? 0.75m : 0.55m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -131,14 +134,29 @@ public class MeetingCadenceAnalyzer : IInsightAnalyzer
             Type = InsightType.MeetingUpcoming,
             Title = $"Upcoming: \"{meetingTitle}\"",
             Content = $"Meeting scheduled {timeframe}. Consider reviewing agenda and preparing topics.",
-            EntityType = "meeting",
-            EntityId = meeting.Id,
+            SubjectType = "meeting",
+            SubjectId = meeting.Id,
+            SourceType = "meeting",
+            SourceId = meeting.Id,
+            SeverityLevel = 2, // Low for upcoming
             RelevanceScore = 0.35m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             IsDeleted = false
         };
     }
+    
+    /// <summary>
+    /// Converts InsightSeverity enum to database severity level (1-5).
+    /// </summary>
+    private static int SeverityToLevel(InsightSeverity severity) => severity switch
+    {
+        InsightSeverity.Critical => 5,
+        InsightSeverity.High => 4,
+        InsightSeverity.Medium => 3,
+        InsightSeverity.Low => 2,
+        _ => 1
+    };
 
     private static string TruncateText(string text, int maxLength)
     {

@@ -21,9 +21,21 @@ public class GeminiChatService : IChatProvider, IDisposable
     #region Constants
 
     private const string BaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private const string DefaultModel = "gemini-1.5-flash";
     private const int TimeoutSeconds = 30;
     private const int MaxSystemContextLength = 4000;
+    
+    /// <summary>
+    /// Ordered list of Gemini models to try. First available model wins.
+    /// When Google deprecates a model, it falls back to the next one.
+    /// </summary>
+    private static readonly string[] FallbackModels = new[]
+    {
+        "gemini-2.5-flash",      // Current preferred (as of Feb 2026)
+        "gemini-2.0-flash",      // Fallback
+        "gemini-1.5-flash",      // Legacy fallback
+        "gemini-1.5-pro",        // Pro tier fallback
+        "gemini-pro"             // Oldest stable
+    };
 
     #endregion
 
@@ -31,6 +43,8 @@ public class GeminiChatService : IChatProvider, IDisposable
 
     private readonly HttpClient _httpClient;
     private readonly string? _apiKey;
+    private string _model;
+    private int _currentModelIndex;
     private bool _disposed;
 
     #endregion
@@ -45,6 +59,14 @@ public class GeminiChatService : IChatProvider, IDisposable
         _apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? 
                   AppSettingsService.Instance.GetGeminiApiKey() ??
                   string.Empty;
+        
+        // Load model from settings, or use first fallback model
+        var aiSettings = AppSettingsService.Instance.GetAISettings();
+        _model = !string.IsNullOrEmpty(aiSettings.GeminiModel) ? aiSettings.GeminiModel : FallbackModels[0];
+        _currentModelIndex = Array.IndexOf(FallbackModels, _model);
+        if (_currentModelIndex < 0) _currentModelIndex = 0;
+        
+        System.Diagnostics.Debug.WriteLine($"[GeminiChat] Initialized with model: {_model}, API key present: {!string.IsNullOrEmpty(_apiKey)}");
     }
 
     #endregion
@@ -86,13 +108,27 @@ public class GeminiChatService : IChatProvider, IDisposable
             });
 
             var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-            var url = $"{BaseUrl}/{DefaultModel}:generateContent?key={_apiKey}";
+            var url = $"{BaseUrl}/{_model}:generateContent?key={_apiKey}";
+            
+            System.Diagnostics.Debug.WriteLine($"[GeminiChat] Sending request to model: {_model}");
 
             var response = await _httpClient.PostAsync(url, content, cancellationToken);
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            
+            System.Diagnostics.Debug.WriteLine($"[GeminiChat] Response status: {response.StatusCode}");
 
             if (!response.IsSuccessStatusCode)
             {
+                // Check if this is a model-related error (404 = model not found/deprecated)
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    var fallbackResult = await TryFallbackModelAsync(messages, systemContext, cancellationToken);
+                    if (fallbackResult != null)
+                    {
+                        return fallbackResult;
+                    }
+                }
+                
                 var errorMessage = HandleApiError(response.StatusCode, responseBody);
                 return errorMessage;
             }
@@ -168,10 +204,72 @@ public class GeminiChatService : IChatProvider, IDisposable
 
     #region Private Methods
 
-    private string? LoadApiKeyFromSettings()
+    /// <summary>
+    /// Attempts to use fallback models when the current model returns 404.
+    /// This handles Google deprecating models without breaking production.
+    /// </summary>
+    private async Task<string?> TryFallbackModelAsync(IEnumerable<ChatMessage> messages, string? systemContext, CancellationToken cancellationToken)
     {
-        // TODO: Load from ProCohere settings system
-        // For now, return null - will be implemented with settings integration
+        var originalModel = _model;
+        
+        // Try each fallback model starting from current position
+        for (int i = _currentModelIndex + 1; i < FallbackModels.Length; i++)
+        {
+            var fallbackModel = FallbackModels[i];
+            System.Diagnostics.Debug.WriteLine($"[GeminiChat] Model '{_model}' failed (404). Trying fallback: {fallbackModel}");
+            
+            try
+            {
+                // Update model for this attempt
+                _model = fallbackModel;
+                _currentModelIndex = i;
+                
+                var request = BuildRequest(messages, systemContext);
+                var jsonContent = JsonSerializer.Serialize(request, new JsonSerializerOptions 
+                { 
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                });
+
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                var url = $"{BaseUrl}/{_model}:generateContent?key={_apiKey}";
+                
+                var response = await _httpClient.PostAsync(url, content, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[GeminiChat] Fallback to '{fallbackModel}' succeeded!");
+                    
+                    var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(responseBody, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    
+                    var text = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        // Track usage
+                        AIUsageTracker.Instance.RecordRequest(jsonContent.Length / 4, text.Length / 4);
+                        return text;
+                    }
+                }
+                else if (response.StatusCode != System.Net.HttpStatusCode.NotFound)
+                {
+                    // Different error, stop trying
+                    break;
+                }
+                // 404 = model not found, continue to next fallback
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GeminiChat] Fallback '{fallbackModel}' failed: {ex.Message}");
+            }
+        }
+        
+        // Restore original model if all fallbacks failed
+        _model = originalModel;
+        System.Diagnostics.Debug.WriteLine($"[GeminiChat] All fallback models exhausted. Restored to: {_model}");
         return null;
     }
 
@@ -228,7 +326,6 @@ public class GeminiChatService : IChatProvider, IDisposable
             });
         }
 
-        // TODO: Add function calling tools in Phase 2
         request.Tools = BuildTools();
 
         return request;
@@ -310,6 +407,35 @@ public class GeminiChatService : IChatProvider, IDisposable
                                 }
                             },
                             Required = new List<string> { "title" }
+                        }
+                    },
+
+                    new GeminiFunctionDeclaration
+                    {
+                        Name = "search_meetings",
+                        Description = "Searches for meetings by attendee name, including past meetings. Use this to find when you last met with someone.",
+                        Parameters = new GeminiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, GeminiProperty>
+                            {
+                                ["attendee_name"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Name of the attendee to search for (e.g., 'Janet', 'John Smith')"
+                                },
+                                ["upcoming_only"] = new GeminiProperty
+                                {
+                                    Type = "boolean",
+                                    Description = "If true, only return upcoming meetings. If false (default), include past meetings."
+                                },
+                                ["limit"] = new GeminiProperty
+                                {
+                                    Type = "integer",
+                                    Description = "Maximum number of meetings to return (default 10)"
+                                }
+                            },
+                            Required = new List<string>()
                         }
                     },
 
@@ -517,6 +643,122 @@ public class GeminiChatService : IChatProvider, IDisposable
                         }
                     },
 
+                    // Feedback function
+                    new GeminiFunctionDeclaration
+                    {
+                        Name = "create_feedback",
+                        Description = "Creates feedback for a team member",
+                        Parameters = new GeminiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, GeminiProperty>
+                            {
+                                ["team_member_name"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Name of the team member receiving feedback"
+                                },
+                                ["title"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Brief title/summary of the feedback"
+                                },
+                                ["content"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Detailed feedback content"
+                                },
+                                ["type"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Type of feedback: 'praise', 'constructive', 'coaching', 'recognition'",
+                                    Enum = new List<string> { "praise", "constructive", "coaching", "recognition" }
+                                }
+                            },
+                            Required = new List<string> { "team_member_name", "title", "content" }
+                        }
+                    },
+
+                    // Metric function
+                    new GeminiFunctionDeclaration
+                    {
+                        Name = "create_metric",
+                        Description = "Creates a new metric/KPI to track",
+                        Parameters = new GeminiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, GeminiProperty>
+                            {
+                                ["name"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Name of the metric"
+                                },
+                                ["target_value"] = new GeminiProperty
+                                {
+                                    Type = "number",
+                                    Description = "Target value to achieve"
+                                },
+                                ["unit"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Unit of measurement (e.g., '%', 'hours', 'count')"
+                                },
+                                ["current_value"] = new GeminiProperty
+                                {
+                                    Type = "number",
+                                    Description = "Current value (defaults to 0)"
+                                },
+                                ["description"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Optional description of what this metric measures"
+                                }
+                            },
+                            Required = new List<string> { "name", "target_value" }
+                        }
+                    },
+
+                    // Insights functions
+                    new GeminiFunctionDeclaration
+                    {
+                        Name = "get_insights",
+                        Description = "Gets proactive AI insights - alerts about meeting gaps, goals at risk, metrics off target, and tasks that need attention",
+                        Parameters = new GeminiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, GeminiProperty>
+                            {
+                                ["severity"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "Optional filter by severity: 'critical', 'high', 'medium', 'low', or 'all' (default)",
+                                    Enum = new List<string> { "all", "critical", "high", "medium", "low" }
+                                }
+                            },
+                            Required = new List<string>()
+                        }
+                    },
+
+                    new GeminiFunctionDeclaration
+                    {
+                        Name = "dismiss_insight",
+                        Description = "Dismisses/acknowledges a specific insight so it no longer appears",
+                        Parameters = new GeminiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, GeminiProperty>
+                            {
+                                ["insight_id"] = new GeminiProperty
+                                {
+                                    Type = "string",
+                                    Description = "The ID of the insight to dismiss"
+                                }
+                            },
+                            Required = new List<string> { "insight_id" }
+                        }
+                    },
+
                     // Utility functions
                     new GeminiFunctionDeclaration
                     {
@@ -548,12 +790,34 @@ public class GeminiChatService : IChatProvider, IDisposable
 
     private string HandleApiError(System.Net.HttpStatusCode statusCode, string responseBody)
     {
+        // Log the full error for debugging
+        System.Diagnostics.Debug.WriteLine($"[GeminiChat] API Error: {statusCode}");
+        System.Diagnostics.Debug.WriteLine($"[GeminiChat] Response body: {responseBody}");
+        
+        // Try to extract error message from response
+        string? errorDetail = null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("error", out var errorObj))
+            {
+                if (errorObj.TryGetProperty("message", out var msgProp))
+                {
+                    errorDetail = msgProp.GetString();
+                }
+            }
+        }
+        catch { /* Ignore JSON parsing errors */ }
+        
         return statusCode switch
         {
             System.Net.HttpStatusCode.Unauthorized => "Invalid API key. Please check your Gemini API key in Settings.",
+            System.Net.HttpStatusCode.Forbidden => $"Access denied. {errorDetail ?? "Check your API key permissions."}",
             System.Net.HttpStatusCode.TooManyRequests => "Rate limit exceeded. Please try again in a few moments.",
-            System.Net.HttpStatusCode.BadRequest => "Invalid request. Please try rephrasing your message.",
-            _ => $"API error ({statusCode}). Please try again later."
+            System.Net.HttpStatusCode.BadRequest => $"Invalid request: {errorDetail ?? "Please try rephrasing your message."}",
+            System.Net.HttpStatusCode.NotFound => "API endpoint not found. The model may not be available.",
+            System.Net.HttpStatusCode.ServiceUnavailable => "Gemini service is temporarily unavailable. Please try again later.",
+            _ => $"API error ({(int)statusCode} {statusCode}): {errorDetail ?? "Please try again later."}"
         };
     }
 

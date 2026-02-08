@@ -75,6 +75,7 @@ public class InsightRepository : IInsightRepository
         }
     }
 
+    [Obsolete("Use IInsightRpcService.CreateInsightAsync instead. Direct INSERT blocked by RLS.")]
     public async Task<Guid> CreateInsightAsync(Insight insight)
     {
         try
@@ -83,9 +84,10 @@ public class InsightRepository : IInsightRepository
             dto.Id = Guid.NewGuid();
             dto.CreatedAt = DateTime.UtcNow;
             dto.UpdatedAt = DateTime.UtcNow;
+            dto.GeneratedAt = DateTime.UtcNow;
             
             // Debug logging
-            Log($"[InsightRepository] INSERT: org={dto.OrganizationId}, generatedFor={dto.GeneratedFor}, type={dto.InsightType}");
+            Log($"[InsightRepository] LEGACY INSERT (will fail with RLS): org={dto.OrganizationId}, generatedFor={dto.GeneratedFor}, type={dto.InsightType}");
             
             var response = await Client
                 .From<InsightDto>()
@@ -94,7 +96,7 @@ public class InsightRepository : IInsightRepository
             var created = response.Models.FirstOrDefault();
             if (created == null)
             {
-                throw new InvalidOperationException("Failed to create insight");
+                throw new InvalidOperationException("Failed to create insight - use IInsightRpcService instead");
             }
 
             return created.Id;
@@ -123,6 +125,7 @@ public class InsightRepository : IInsightRepository
         }
     }
 
+    [Obsolete("Use IInsightActionRepository.DismissAsync instead")]
     public async Task DismissInsightAsync(Guid id, Guid userId)
     {
         try
@@ -146,16 +149,22 @@ public class InsightRepository : IInsightRepository
         }
     }
 
+    [Obsolete("Use IInsightActionRepository.SnoozeAsync instead")]
     public async Task SnoozeInsightAsync(Guid id, DateTime until)
     {
         // Snooze not supported in existing schema - just dismiss for now
+#pragma warning disable CS0618
         await DismissInsightAsync(id, Guid.Empty);
+#pragma warning restore CS0618
     }
 
+    [Obsolete("Use IInsightActionRepository.MarkActedAsync instead")]
     public async Task MarkInsightActionedAsync(Guid id)
     {
         // ActedOn not in schema - just dismiss
+#pragma warning disable CS0618
         await DismissInsightAsync(id, Guid.Empty);
+#pragma warning restore CS0618
     }
 
     public async Task<int> GetActiveCountAsync(Guid teamMemberId)
@@ -222,6 +231,75 @@ public class InsightRepository : IInsightRepository
         }
     }
 
+    public async Task<Insight?> GetInsightBySignatureAsync(Guid organizationId, string signatureHash)
+    {
+        try
+        {
+            var response = await Client
+                .From<InsightDto>()
+                .Where(x => x.OrganizationId == organizationId)
+                .Where(x => x.SignatureHash == signatureHash)
+                .Where(x => x.IsDeleted == false)
+                .Order("generated_at", Ordering.Descending)
+                .Limit(1)
+                .Get();
+
+            var dto = response.Models.FirstOrDefault();
+            return dto == null ? null : MapToModel(dto);
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    public async Task<bool> SignatureExistsAsync(Guid organizationId, Guid teamMemberId, string signatureHash)
+    {
+        try
+        {
+            var response = await Client
+                .From<InsightDto>()
+                .Where(x => x.OrganizationId == organizationId)
+                .Where(x => x.GeneratedFor == teamMemberId)
+                .Where(x => x.SignatureHash == signatureHash)
+                .Where(x => x.IsDeleted == false)
+                .Limit(1)
+                .Get();
+
+            return response.Models.Count > 0;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    public async Task<List<Insight>> GetTopInsightsAsync(Guid teamMemberId, int count, int minSeverity = 4)
+    {
+        try
+        {
+            var response = await Client
+                .From<InsightDto>()
+                .Where(x => x.GeneratedFor == teamMemberId)
+                .Where(x => x.IsDeleted == false)
+                .Where(x => x.IsDismissed == false)
+                .Where(x => x.Severity >= minSeverity)
+                .Order("severity", Ordering.Descending)
+                .Order("generated_at", Ordering.Descending)
+                .Limit(count)
+                .Get();
+
+            return response.Models.Select(MapToModel).ToList();
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    #region Legacy Methods
+
+    [Obsolete("Use SignatureExistsAsync instead")]
     public async Task<bool> InsightExistsAsync(Guid organizationId, Guid teamMemberId, InsightType type, Guid? entityId)
     {
         try
@@ -249,6 +327,8 @@ public class InsightRepository : IInsightRepository
         }
     }
 
+    #endregion
+
     /// <summary>
     /// Maps DTO to domain model.
     /// </summary>
@@ -259,13 +339,22 @@ public class InsightRepository : IInsightRepository
             Id = dto.Id,
             OrganizationId = dto.OrganizationId,
             GeneratedFor = dto.GeneratedFor,
+#pragma warning disable CS0618 // Type or member is obsolete
             TeamMemberId = dto.TeamMemberId,
-            Type = Enum.Parse<InsightType>(dto.InsightType, true),
+#pragma warning restore CS0618
+            SubjectType = dto.SubjectType,
+            SubjectId = dto.SubjectId,
+            Type = ParseInsightType(dto.InsightType),
             Title = dto.Title,
             Content = dto.Content,
-            EntityType = dto.SourceType,
-            EntityId = dto.SourceId,
+            RuleKey = dto.RuleKey,
+            SignatureHash = dto.SignatureHash,
+            SourceType = dto.SourceType,
+            SourceId = dto.SourceId,
+            SeverityLevel = dto.Severity,
             RelevanceScore = dto.RelevanceScore,
+            GeneratedAt = dto.GeneratedAt,
+            ExpiresAt = dto.ExpiresAt,
             IsDismissed = dto.IsDismissed,
             DismissedAt = dto.DismissedAt,
             CreatedAt = dto.CreatedAt,
@@ -286,13 +375,22 @@ public class InsightRepository : IInsightRepository
             Id = model.Id,
             OrganizationId = model.OrganizationId,
             GeneratedFor = model.GeneratedFor,
+#pragma warning disable CS0618 // Type or member is obsolete
             TeamMemberId = model.TeamMemberId,
+#pragma warning restore CS0618
+            SubjectType = model.SubjectType,
+            SubjectId = model.SubjectId,
             InsightType = model.Type.ToString().ToLowerInvariant(),
             Title = model.Title,
             Content = model.Content,
-            SourceType = model.EntityType,
-            SourceId = model.EntityId,
+            RuleKey = model.RuleKey,
+            SignatureHash = model.SignatureHash,
+            SourceType = model.SourceType,
+            SourceId = model.SourceId,
+            Severity = model.SeverityLevel,
             RelevanceScore = model.RelevanceScore,
+            GeneratedAt = model.GeneratedAt,
+            ExpiresAt = model.ExpiresAt,
             IsDismissed = model.IsDismissed,
             DismissedAt = model.DismissedAt,
             CreatedAt = model.CreatedAt,
@@ -301,5 +399,26 @@ public class InsightRepository : IInsightRepository
             DeletedAt = model.DeletedAt,
             DeletedBy = model.DeletedBy
         };
+    }
+    
+    /// <summary>
+    /// Parses insight type from snake_case database value to enum.
+    /// </summary>
+    private static InsightType ParseInsightType(string dbValue)
+    {
+        if (string.IsNullOrEmpty(dbValue))
+            return InsightType.TaskOverdue; // Default fallback
+            
+        // Convert snake_case to PascalCase: "metric_declining" -> "MetricDeclining"
+        var parts = dbValue.Split('_');
+        var pascalCase = string.Concat(parts.Select(p => 
+            string.IsNullOrEmpty(p) ? p : char.ToUpperInvariant(p[0]) + p.Substring(1).ToLowerInvariant()));
+        
+        if (Enum.TryParse<InsightType>(pascalCase, true, out var result))
+            return result;
+            
+        // Log warning and return default
+        System.Diagnostics.Debug.WriteLine($"[InsightRepository] Unknown insight type: {dbValue}");
+        return InsightType.TaskOverdue;
     }
 }

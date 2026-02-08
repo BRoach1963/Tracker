@@ -5,9 +5,12 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using ProCohere.Avalonia.Dialogs;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.ViewModels.Dialogs;
+using ProCohere.Avalonia.Views.Dialogs;
 using ProCohere.Avalonia.Attributes;
 using System;
 using System.ComponentModel;
@@ -40,6 +43,8 @@ public partial class MeView : UserControl
         _viewModel.EditTaskDialogRequested += OnEditTaskDialogRequested;
         _viewModel.CreateGoalDialogRequested += OnCreateGoalDialogRequested;
         _viewModel.CreateNoteDialogRequested += OnCreateNoteDialogRequested;
+        _viewModel.CreateDevelopmentPlanDialogRequested += OnCreateDevelopmentPlanDialogRequested;
+        _viewModel.EditDevelopmentPlanDialogRequested += OnEditDevelopmentPlanDialogRequested;
         
         // Initial population after control is loaded
         Loaded += MeView_Loaded;
@@ -161,8 +166,7 @@ public partial class MeView : UserControl
         
         if (result.Success && result.Goal != null)
         {
-            // Refresh to include the new goal
-            _viewModel.RefreshCommand.Execute(null);
+            _viewModel.OnGoalSaved(result.Goal);
         }
         else if (result.Error != null)
         {
@@ -171,12 +175,68 @@ public partial class MeView : UserControl
     }
 
     /// <summary>
-    /// Show the create note dialog (placeholder for now).
+    /// Show the create note dialog.
     /// </summary>
-    private void OnCreateNoteDialogRequested(object? sender, EventArgs e)
+    private async void OnCreateNoteDialogRequested(object? sender, EventArgs e)
     {
-        // TODO: Implement note creation dialog when available
-        NotificationService.Instance.ShowInfo("Coming Soon", "Note creation will be available soon.");
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var dialog = new AddNoteDialog();
+        var result = await dialog.ShowDialog<AddNoteResult?>(window);
+
+        if (result != null && !string.IsNullOrWhiteSpace(result.Content))
+        {
+            var note = new Note
+            {
+                Title = result.Title,
+                Content = result.Content
+            };
+
+            var created = await NotesService.Instance.CreateNoteAsync(note);
+            if (created != null)
+            {
+                NotificationService.Instance.ShowSuccess("Note Created", "Your note has been saved.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Show the create development plan dialog.
+    /// </summary>
+    private async void OnCreateDevelopmentPlanDialogRequested(object? sender, EventArgs e)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var viewModel = new EditDevelopmentPlanDialogViewModel();
+        var dialog = new EditDevelopmentPlanDialog(viewModel);
+        
+        var result = await dialog.ShowDialog<DevelopmentPlan?>(window);
+        
+        if (result != null)
+        {
+            _viewModel.OnDevelopmentPlanSaved(result);
+        }
+    }
+
+    /// <summary>
+    /// Show the edit development plan dialog for an existing plan.
+    /// </summary>
+    private async void OnEditDevelopmentPlanDialogRequested(object? sender, DevelopmentPlan plan)
+    {
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var viewModel = new EditDevelopmentPlanDialogViewModel(plan);
+        var dialog = new EditDevelopmentPlanDialog(viewModel);
+        
+        var result = await dialog.ShowDialog<DevelopmentPlan?>(window);
+        
+        if (result != null)
+        {
+            _viewModel.OnDevelopmentPlanSaved(result);
+        }
     }
 
     #endregion
@@ -566,4 +626,180 @@ public partial class MeView : UserControl
             _viewModel.OpenFeedbackFlyoutCommand.Execute(feedback);
         }
     }
+
+    private void DevelopmentPlan_Tapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is DevelopmentPlan plan && _viewModel != null)
+        {
+            _viewModel.OpenDevelopmentPlanFlyoutCommand.Execute(plan);
+        }
+    }
+
+    #region Flyout Action Handlers
+
+    private async void EditGoal_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.SelectedGoal == null) return;
+
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null) return;
+
+        var result = await AppDialogService.ShowEditGoalAsync(window, _viewModel.SelectedGoal);
+        
+        if (result.Success)
+        {
+            _viewModel.RefreshCommand.Execute(null);
+        }
+    }
+
+    private async void DeleteGoal_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.SelectedGoal == null) return;
+
+        var parent = TopLevel.GetTopLevel(this);
+        if (parent is not Window window) return;
+
+        var dialogService = new DialogService(window);
+        var confirmed = await dialogService.ShowConfirmationAsync(
+            "Delete Goal",
+            $"Are you sure you want to delete '{_viewModel.SelectedGoal.Title}'?",
+            "Delete",
+            "Cancel");
+
+        if (confirmed)
+        {
+            var goalsService = Services.GoalsService.Instance;
+            await goalsService.DeleteGoalAsync(_viewModel.SelectedGoal.Id);
+            _viewModel.CloseFlyoutCommand.Execute(null);
+            _viewModel.RefreshCommand.Execute(null);
+        }
+    }
+
+    private async void EditFeedback_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.SelectedFeedback == null) return;
+        
+        var feedback = _viewModel.SelectedFeedback;
+        
+        // Only the author can edit their feedback
+        var currentMember = AuthService.Instance.CurrentTeamMember;
+        if (currentMember == null || feedback.FromMemberId != currentMember.Id)
+        {
+            NotificationService.Instance.ShowWarning("Cannot Edit", "You can only edit feedback you created.");
+            return;
+        }
+        
+        // Determine recipient name
+        var recipientName = feedback.RecipientInitials ?? "Team Member";
+        
+        var viewModel = new ViewModels.Dialogs.EditFeedbackDialogViewModel();
+        
+        var parent = TopLevel.GetTopLevel(this);
+        if (parent is Window window)
+        {
+            viewModel.SetDialogService(new DialogService(window));
+            
+            var dialog = new Dialogs.EditFeedbackDialog
+            {
+                DataContext = viewModel
+            };
+            
+            // Load the feedback data
+            await viewModel.LoadFeedbackAsync(feedback.Id, recipientName);
+            
+            await dialog.ShowDialog(window);
+            
+            if (viewModel.WasSaved)
+            {
+                // Refresh to show updated data
+                _viewModel.RefreshCommand.Execute(null);
+                NotificationService.Instance.ShowSuccess("Success", "Feedback updated successfully.");
+            }
+        }
+    }
+
+    private async void DeleteFeedback_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.SelectedFeedback == null) return;
+        
+        var feedback = _viewModel.SelectedFeedback;
+        
+        // Only the author can delete their feedback
+        var currentMember = AuthService.Instance.CurrentTeamMember;
+        if (currentMember == null || feedback.FromMemberId != currentMember.Id)
+        {
+            NotificationService.Instance.ShowWarning("Cannot Delete", "You can only delete feedback you created.");
+            return;
+        }
+        
+        var parent = TopLevel.GetTopLevel(this);
+        if (parent is Window window)
+        {
+            var dialogService = new DialogService(window);
+            var confirmed = await dialogService.ShowConfirmationAsync(
+                "Delete Feedback",
+                "Are you sure you want to delete this feedback? This action cannot be undone.",
+                "Delete",
+                "Cancel");
+
+            if (confirmed)
+            {
+                var success = await FeedbackService.Instance.DeleteFeedbackAsync(feedback.Id);
+                
+                if (success)
+                {
+                    _viewModel.CloseFlyoutCommand?.Execute(null);
+                    _viewModel.RefreshCommand.Execute(null);
+                    NotificationService.Instance.ShowSuccess("Success", "Feedback deleted successfully.");
+                }
+                else
+                {
+                    NotificationService.Instance.ShowError("Error", FeedbackService.Instance.LastError ?? "Failed to delete feedback.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the Add Feedback dialog for creating new feedback.
+    /// Uses team member selection mode since no recipient is pre-selected.
+    /// </summary>
+    private async void GiveFeedback_Click(object? sender, RoutedEventArgs e)
+    {
+        var parent = TopLevel.GetTopLevel(this);
+        if (parent is not Window window) return;
+
+        var viewModel = new ViewModels.Dialogs.AddFeedbackDialogViewModel();
+        
+        // Initialize for team member selection mode (no pre-selected recipient)
+        await viewModel.InitializeForTeamMemberSelectionAsync();
+        
+        // Set dialog service for confirmation
+        viewModel.SetDialogService(new DialogService(window));
+        
+        var dialog = new AddFeedbackDialog
+        {
+            DataContext = viewModel
+        };
+
+        await dialog.ShowDialog(window);
+
+        // If user saved, refresh the view
+        if (viewModel.WasSaved)
+        {
+            _viewModel?.RefreshCommand.Execute(null);
+            NotificationService.Instance.ShowSuccess("Success", "Feedback created successfully.");
+        }
+    }
+
+    private void AddPrepItem_Click(object? sender, RoutedEventArgs e)
+    {
+        // Use the meeting context from the button to add prep item
+        if (sender is Button button && button.DataContext is MeetingDetail meeting)
+        {
+            _viewModel?.AddPrepItemCommand.Execute(meeting);
+        }
+    }
+
+    #endregion
 }

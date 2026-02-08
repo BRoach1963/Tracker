@@ -5,6 +5,7 @@
         xmlns:models="using:ProCohere.Avalonia.Models"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="700"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditMetricDialog"
         x:DataType="vm:EditMetricDialogViewModel"
@@ -34,7 +35,7 @@
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding DialogTitle}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Text="Configure your measurement" FontSize="12" Foreground="#FFFFFFCC"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_Subtitle}" FontSize="12" Foreground="#FFFFFFCC"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -47,16 +48,16 @@
                 
                 <!-- Name -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Name *" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_Metric_Name}" FontSize="12" />
                     <TextBox Text="{Binding Name}"
-                             Watermark="What are you measuring?" />
+                             Watermark="{markup:Localize Key=Dialog_Metric_NameWatermark}" />
                 </StackPanel>
                 
                 <!-- Description -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Description" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Label_Description}" FontSize="12" />
                     <TextBox Text="{Binding Description}"
-                             Watermark="What does this metric tell us? Why does it matter?"
+                             Watermark="{markup:Localize Key=Dialog_Metric_DescriptionWatermark}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              Height="60" />
@@ -64,44 +65,44 @@
                 
                 <!-- Category -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Category" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_Metric_Category}" FontSize="12" />
                     <TextBox Text="{Binding Category}"
-                             Watermark="e.g., Performance, Engagement, Revenue" />
+                             Watermark="{markup:Localize Key=Dialog_Metric_CategoryWatermark}" />
                 </StackPanel>
                 
                 <!-- Values Row -->
                 <Grid ColumnDefinitions="*,12,*,12,*">
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Current Value" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_CurrentValue}" FontSize="12" />
                         <TextBox Text="{Binding CurrentValueText}"
                                  Watermark="0" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
-                        <TextBlock Text="Target Value" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_TargetValue}" FontSize="12" />
                         <TextBox Text="{Binding TargetValueText}"
-                                 Watermark="Optional" />
+                                 Watermark="{markup:Localize Key=Dialog_Metric_Optional}" />
                     </StackPanel>
                     <StackPanel Grid.Column="4" Spacing="4">
-                        <TextBlock Text="Baseline" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_Baseline}" FontSize="12" />
                         <TextBox Text="{Binding BaselineValueText}"
-                                 Watermark="Optional" />
+                                 Watermark="{markup:Localize Key=Dialog_Metric_Optional}" />
                     </StackPanel>
                 </Grid>
                 
                 <!-- Unit and Direction -->
                 <Grid ColumnDefinitions="*,12,*">
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Unit" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_Unit}" FontSize="12" />
                         <TextBox Text="{Binding Unit}"
-                                 Watermark="%, count, $, etc." />
+                                 Watermark="{markup:Localize Key=Dialog_Metric_UnitWatermark}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
-                        <TextBlock Text="Direction" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_Direction}" FontSize="12" />
                         <ComboBox SelectedIndex="{Binding DirectionIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Higher is better" Tag="higher_is_better" />
-                            <ComboBoxItem Content="Lower is better" Tag="lower_is_better" />
-                            <ComboBoxItem Content="Neutral" Tag="neutral" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_HigherBetter}" Tag="higher_is_better" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_LowerBetter}" Tag="lower_is_better" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_Neutral}" Tag="neutral" />
                         </ComboBox>
                     </StackPanel>
                 </Grid>
@@ -109,44 +110,44 @@
                 <!-- Source and Scope -->
                 <Grid ColumnDefinitions="*,12,*">
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Data Source" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_DataSource}" FontSize="12" />
                         <ComboBox SelectedIndex="{Binding SourceIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="System" Tag="system" />
-                            <ComboBoxItem Content="Survey" Tag="survey" />
-                            <ComboBoxItem Content="Manual" Tag="manual" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_SourceSystem}" Tag="system" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_SourceSurvey}" Tag="survey" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_SourceManual}" Tag="manual" />
                         </ComboBox>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
-                        <TextBlock Text="Scope" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_Metric_Scope}" FontSize="12" />
                         <ComboBox SelectedIndex="{Binding ScopeIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Individual" Tag="individual" />
-                            <ComboBoxItem Content="Team" Tag="team" />
-                            <ComboBoxItem Content="Organization" Tag="organization" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_ScopeIndividual}" Tag="individual" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_ScopeTeam}" Tag="team" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_ScopeOrganization}" Tag="organization" />
                         </ComboBox>
                     </StackPanel>
                 </Grid>
                 
                 <!-- Frequency -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Update Frequency" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_Metric_UpdateFrequency}" FontSize="12" />
                     <ComboBox SelectedIndex="{Binding FrequencyIndex}"
                               HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="Daily" Tag="daily" />
-                        <ComboBoxItem Content="Weekly" Tag="weekly" />
-                        <ComboBoxItem Content="Monthly" Tag="monthly" />
-                        <ComboBoxItem Content="Quarterly" Tag="quarterly" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_FrequencyDaily}" Tag="daily" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_FrequencyWeekly}" Tag="weekly" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_FrequencyMonthly}" Tag="monthly" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_FrequencyQuarterly}" Tag="quarterly" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Owner/Steward -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Steward" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_Metric_Steward}" FontSize="12" />
                     <ComboBox ItemsSource="{Binding TeamMembers}"
                               SelectedItem="{Binding SelectedOwner}"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="Select steward">
+                              PlaceholderText="{markup:Localize Key=Dialog_Metric_SelectSteward}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:TeamMemberDetail">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -176,29 +177,29 @@
                 
                 <!-- Lifecycle (only in edit mode) -->
                 <StackPanel Spacing="4" IsVisible="{Binding IsLifecycleVisible}">
-                    <TextBlock Text="Lifecycle" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_Metric_Lifecycle}" FontSize="12" />
                     <ComboBox SelectedIndex="{Binding LifecycleIndex}"
                               HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="Active" Tag="active" />
-                        <ComboBoxItem Content="Dormant" Tag="dormant" />
-                        <ComboBoxItem Content="Retired" Tag="retired" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_LifecycleActive}" Tag="active" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_LifecycleDormant}" Tag="dormant" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Metric_LifecycleRetired}" Tag="retired" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Visibility and Sensitivity -->
                 <Grid ColumnDefinitions="*,12,Auto">
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Visibility" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Label_Visibility}" FontSize="12" />
                         <ComboBox SelectedIndex="{Binding VisibilityIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Private (only me)" Tag="private" />
-                            <ComboBoxItem Content="Team" Tag="team" />
-                            <ComboBoxItem Content="Organization" Tag="organization" />
+                            <ComboBoxItem Content="{markup:Localize Key=Visibility_PrivateOnlyMe}" Tag="private" />
+                            <ComboBoxItem Content="{markup:Localize Key=Visibility_Team}" Tag="team" />
+                            <ComboBoxItem Content="{markup:Localize Key=Visibility_Organization}" Tag="organization" />
                         </ComboBox>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Bottom">
                         <CheckBox IsChecked="{Binding IsSensitive}"
-                                  Content="Sensitive data" />
+                                  Content="{markup:Localize Key=Dialog_Metric_SensitiveData}" />
                     </StackPanel>
                 </Grid>
                 
@@ -209,7 +210,7 @@
             <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <Button Grid.Column="0"
-                            Content="Delete"
+                            Content="{markup:Localize Key=Button_Delete}"
                             Background="Transparent"
                             Foreground="#E74C3C"
                             BorderBrush="#E74C3C"
@@ -227,7 +228,7 @@
                         </Button.Styles>
                     </Button>
                     <Button Grid.Column="2"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderBrush="White"

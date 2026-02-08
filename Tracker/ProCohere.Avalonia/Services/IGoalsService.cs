@@ -24,14 +24,9 @@ public interface IGoalsService
     Task<List<GoalDetail>> GetMyGoalsAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Gets goals visible to the user's team (team + organization visibility).
+    /// Gets goals visible to the user's team (visibility_scope='team').
     /// </summary>
     Task<List<GoalDetail>> GetTeamGoalsAsync(CancellationToken ct = default);
-
-    /// <summary>
-    /// Gets goals shared with the current user (participates but doesn't own).
-    /// </summary>
-    Task<List<GoalDetail>> GetSharedGoalsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets a single goal by ID.

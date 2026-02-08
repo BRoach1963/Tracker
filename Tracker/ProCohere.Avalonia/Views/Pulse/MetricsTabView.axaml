@@ -5,6 +5,7 @@
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:converters="using:ProCohere.Avalonia.Converters"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.Pulse.MetricsTabView"
              x:DataType="vm:MetricsViewModel">
@@ -131,7 +132,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding TotalMetricsCount}" FontSize="18" FontWeight="Bold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <TextBlock Text="All" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_All}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -142,13 +143,13 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding ActiveMetricsCount}" FontSize="18" FontWeight="Bold"
                                    Foreground="#10B981"/>
-                        <TextBlock Text="Active" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_Active}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
                 
                 <!-- Trending Up -->
-                <Border Classes="filter-stat" Classes.selected="False"
+                <Border Classes="filter-stat" Classes.selected="{Binding IsTrendUp}"
                         Tapped="FilterTrendingUp_Tapped">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding TrendingUpCount}" FontSize="18" FontWeight="Bold"
@@ -159,7 +160,7 @@
                 </Border>
                 
                 <!-- Trending Down -->
-                <Border Classes="filter-stat" Classes.selected="False"
+                <Border Classes="filter-stat" Classes.selected="{Binding IsTrendDown}"
                         Tapped="FilterTrendingDown_Tapped">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding TrendingDownCount}" FontSize="18" FontWeight="Bold"
@@ -176,7 +177,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                               Width="14" Height="14"/>
-                    <TextBlock Text="New Metric" VerticalAlignment="Center"/>
+                    <TextBlock Text="{markup:Localize Key=MetricsTab_NewMetric}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
         </Grid>
@@ -188,19 +189,19 @@
                 <StackPanel Orientation="Horizontal" Spacing="2">
                     <Border Classes="scope-btn" Classes.selected="{Binding IsScopeIndividual}"
                             Tapped="ScopeIndividual_Tapped">
-                        <TextBlock Text="Individual" FontSize="12"/>
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_Individual}" FontSize="12"/>
                     </Border>
                     <Border Classes="scope-btn" Classes.selected="{Binding IsScopeTeam}"
                             Tapped="ScopeTeam_Tapped">
-                        <TextBlock Text="Team" FontSize="12"/>
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_Team}" FontSize="12"/>
                     </Border>
                     <Border Classes="scope-btn" Classes.selected="{Binding IsScopeOrganization}"
                             Tapped="ScopeOrg_Tapped">
-                        <TextBlock Text="Organization" FontSize="12"/>
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_Organization}" FontSize="12"/>
                     </Border>
                     <Border Classes="scope-btn" Classes.selected="{Binding IsScopeAll}"
                             Tapped="ScopeAll_Tapped">
-                        <TextBlock Text="All" FontSize="12"/>
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_AllScope}" FontSize="12"/>
                     </Border>
                 </StackPanel>
             </Border>
@@ -208,7 +209,7 @@
             <!-- Search Box -->
             <TextBox Grid.Column="2" 
                      Text="{Binding SearchQuery}"
-                     Watermark="Search metrics..."
+                     Watermark="{markup:Localize Key=MetricsTab_SearchMetrics}"
                      Width="220"
                      Margin="16,0,0,0">
                 <TextBox.InnerLeftContent>
@@ -236,7 +237,7 @@
                                       Width="20" Height="20" Foreground="{DynamicResource BrushPrimary}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="Loading metrics..." FontSize="13" 
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_LoadingMetrics}" FontSize="13" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </StackPanel>
                     
@@ -251,9 +252,9 @@
                         <PathIcon Data="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z" 
                                   Width="48" Height="48" 
                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBlock Text="No metrics found" FontSize="16" FontWeight="SemiBold"
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_NoMetricsFound}" FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Create your first metric to start tracking signals" 
+                        <TextBlock Text="{markup:Localize Key=MetricsTab_CreateFirstMetricHint}" 
                                    FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" 
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
@@ -392,15 +393,15 @@
                         <StackPanel Orientation="Horizontal">
                             <Border Classes="tab-btn" Classes.selected="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=0}"
                                     Tapped="TabDetails_Tapped">
-                                <TextBlock Text="Details" FontSize="13"/>
+                                <TextBlock Text="{markup:Localize Key=MetricsTab_Details}" FontSize="13"/>
                             </Border>
                             <Border Classes="tab-btn" Classes.selected="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=1}"
                                     Tapped="TabHistory_Tapped">
-                                <TextBlock Text="History" FontSize="13"/>
+                                <TextBlock Text="{markup:Localize Key=MetricsTab_History}" FontSize="13"/>
                             </Border>
                             <Border Classes="tab-btn" Classes.selected="{Binding DetailTab, Converter={x:Static converters:EqualityConverter.Instance}, ConverterParameter=2}"
                                     Tapped="TabTrend_Tapped">
-                                <TextBlock Text="Trend Analysis" FontSize="13"/>
+                                <TextBlock Text="{markup:Localize Key=MetricsTab_TrendAnalysis}" FontSize="13"/>
                             </Border>
                         </StackPanel>
                     </Border>
@@ -414,7 +415,7 @@
                                 
                                 <!-- Current Value -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Current Value" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_CurrentValue}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                         <TextBlock Text="{Binding SelectedMetric.CurrentValue, StringFormat={}{0:N2}}" 
@@ -429,7 +430,7 @@
                                 
                                 <!-- Target Value (if set) -->
                                 <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.TargetValue, Converter={StaticResource NullToBool}}">
-                                    <TextBlock Text="Target" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_Target}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                         <TextBlock Text="{Binding SelectedMetric.TargetValue, StringFormat={}{0:N2}}" 
@@ -444,7 +445,7 @@
                                 
                                 <!-- Direction -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Direction" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_Direction}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <TextBlock Text="{Binding SelectedMetric.TargetDirection}" 
                                                FontSize="13"
@@ -453,7 +454,7 @@
                                 
                                 <!-- Frequency -->
                                 <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.Frequency, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                    <TextBlock Text="Update Frequency" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_UpdateFrequency}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <TextBlock Text="{Binding SelectedMetric.Frequency}" 
                                                FontSize="13"
@@ -462,7 +463,7 @@
                                 
                                 <!-- Steward -->
                                 <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.StewardName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                    <TextBlock Text="Steward" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_Steward}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <TextBlock Text="{Binding SelectedMetric.StewardName}" 
                                                FontSize="13"
@@ -471,7 +472,7 @@
                                 
                                 <!-- Project Link -->
                                 <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.HasProject}">
-                                    <TextBlock Text="Linked Project" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_LinkedProject}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <Border Background="#E0F2FE" CornerRadius="6" Padding="10,8">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -485,7 +486,7 @@
                                 
                                 <!-- Description -->
                                 <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                    <TextBlock Text="Description" FontSize="11" 
+                                    <TextBlock Text="{markup:Localize Key=Label_Description}" FontSize="11" 
                                                Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                     <TextBlock Text="{Binding SelectedMetric.Description}" 
                                                FontSize="13"
@@ -501,7 +502,7 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                                         <PathIcon Data="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z" 
                                                   Width="14" Height="14"/>
-                                        <TextBlock Text="Update Value"/>
+                                        <TextBlock Text="{markup:Localize Key=MetricsTab_UpdateValue}"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -516,7 +517,7 @@
                                     <PathIcon Data="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3" 
                                               Width="32" Height="32" 
                                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                                    <TextBlock Text="No history yet" FontSize="13" 
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_NoHistoryYet}" FontSize="13" 
                                                Foreground="{DynamicResource BrushTextSecondary}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -563,7 +564,7 @@
                                     <PathIcon Data="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" 
                                               Width="32" Height="32"
                                               Foreground="{DynamicResource BrushAccent}"/>
-                                    <TextBlock Text="Analyzing trend..." FontSize="13"
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_AnalyzingTrend}" FontSize="13"
                                                Foreground="{DynamicResource BrushTextSecondary}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -575,10 +576,10 @@
                                     <PathIcon Data="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"
                                               Width="32" Height="32"
                                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                                    <TextBlock Text="Not enough data for trend analysis" FontSize="13"
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_NotEnoughData}" FontSize="13"
                                                Foreground="{DynamicResource BrushTextSecondary}"
                                                HorizontalAlignment="Center"/>
-                                    <TextBlock Text="At least 3 data points are required" FontSize="12"
+                                    <TextBlock Text="{markup:Localize Key=MetricsTab_AtLeast3DataPoints}" FontSize="12"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -588,7 +589,7 @@
                                     
                                     <!-- Trend Direction -->
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Trend Direction" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=MetricsTab_TrendDirection}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <TextBlock Text="{Binding TrendAnalysis.TrendArrow}"
@@ -608,14 +609,14 @@
                                     
                                     <!-- Statistics -->
                                     <StackPanel Spacing="12">
-                                        <TextBlock Text="Statistics" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=MetricsTab_Statistics}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                         
                                         <!-- Confidence -->
                                         <Border Background="{DynamicResource BrushSurfaceAlt}"
                                                 CornerRadius="8" Padding="12">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="Confidence" FontSize="13"
+                                                <TextBlock Grid.Column="0" Text="{markup:Localize Key=MetricsTab_Confidence}" FontSize="13"
                                                            Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding TrendConfidenceDescription}"
                                                            FontSize="13" FontWeight="SemiBold"
@@ -627,7 +628,7 @@
                                         <Border Background="{DynamicResource BrushSurfaceAlt}"
                                                 CornerRadius="8" Padding="12">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="Rate of Change" FontSize="13"
+                                                <TextBlock Grid.Column="0" Text="{markup:Localize Key=MetricsTab_RateOfChange}" FontSize="13"
                                                            Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource BrushTextPrimary}">
@@ -644,7 +645,7 @@
                                         <Border Background="{DynamicResource BrushSurfaceAlt}"
                                                 CornerRadius="8" Padding="12">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="Data Points Analyzed" FontSize="13"
+                                                <TextBlock Grid.Column="0" Text="{markup:Localize Key=MetricsTab_DataPointsAnalyzed}" FontSize="13"
                                                            Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding TrendAnalysis.DataPointCount}"
                                                            FontSize="13" FontWeight="SemiBold"
@@ -655,7 +656,7 @@
                                     
                                     <!-- Projection -->
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="30-Day Projection" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=MetricsTab_30DayProjection}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                         <Border Background="{DynamicResource BrushSurface}"
                                                 BorderBrush="{DynamicResource BrushBorder}"
@@ -670,11 +671,11 @@
                                     
                                     <!-- Value Range -->
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Value Range" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=MetricsTab_ValueRange}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}" FontWeight="Medium"/>
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0" Spacing="4">
-                                                <TextBlock Text="First Value" FontSize="11"
+                                                <TextBlock Text="{markup:Localize Key=MetricsTab_FirstValue}" FontSize="11"
                                                            Foreground="{DynamicResource BrushTextTertiary}"/>
                                                 <TextBlock FontSize="16" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource BrushTextPrimary}">
@@ -698,7 +699,7 @@
                                                       Foreground="{DynamicResource BrushTextTertiary}"
                                                       VerticalAlignment="Center" Margin="8,0"/>
                                             <StackPanel Grid.Column="2" Spacing="4">
-                                                <TextBlock Text="Latest Value" FontSize="11"
+                                                <TextBlock Text="{markup:Localize Key=MetricsTab_LatestValue}" FontSize="11"
                                                            Foreground="{DynamicResource BrushTextTertiary}"/>
                                                 <TextBlock FontSize="16" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource BrushTextPrimary}">
@@ -737,7 +738,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" 
                                               Width="14" Height="14"/>
-                                    <TextBlock Text="Edit"/>
+                                    <TextBlock Text="{markup:Localize Key=Button_Edit}"/>
                                 </StackPanel>
                             </Button>
                             <Button Background="#FEE2E2" 
@@ -748,7 +749,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
                                               Width="14" Height="14" Foreground="#DC2626"/>
-                                    <TextBlock Text="Delete" Foreground="#DC2626"/>
+                                    <TextBlock Text="{markup:Localize Key=Button_Delete}" Foreground="#DC2626"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>

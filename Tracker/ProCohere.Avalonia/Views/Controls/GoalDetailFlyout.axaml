@@ -7,6 +7,7 @@
              xmlns:services="using:ProCohere.Avalonia.Services"
              xmlns:local="using:ProCohere.Avalonia.Converters"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.Controls.GoalDetailFlyout"
              x:DataType="vm:CircleViewModel">
@@ -38,7 +39,7 @@
             
             <!-- Header -->
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Background="{DynamicResource BrushSecondary}">
-                <TextBlock Text="Goal" FontSize="14" FontWeight="SemiBold"
+                <TextBlock Text="{markup:Localize Key=GoalDetail_Header}" FontSize="14" FontWeight="SemiBold"
                            Foreground="White" VerticalAlignment="Center" Margin="16,12"/>
                 <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Close"
                         Command="{Binding CloseGoalDetailCommand}" Margin="0,0,8,0">
@@ -71,7 +72,7 @@
                                Foreground="{DynamicResource BrushTextPrimary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                     
                     <!-- Health Section - Derived from linked metric signals per GOALS_SPEC -->
-                    <TextBlock Text="DERIVED HEALTH" Classes="detail-section-header"/>
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_DerivedHealthHeader}" Classes="detail-section-header"/>
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <!-- Health badge with color -->
                         <Border CornerRadius="6" Padding="12,8" HorizontalAlignment="Left">
@@ -84,7 +85,7 @@
                         <!-- Metrics count context -->
                         <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}">
                             <Run Text="{Binding LinkedMetricsCount}"/>
-                            <Run Text=" metric(s) linked"/>
+                            <Run Text="{markup:Localize Key=GoalDetail_MetricsLinked}"/>
                         </TextBlock>
                     </StackPanel>
                     
@@ -93,7 +94,7 @@
                         <StackPanel Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <PathIcon Data="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                <TextBlock Text="Reflection Prompt" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=GoalDetail_ReflectionPrompt}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                             </StackPanel>
                             <TextBlock Text="{Binding DerivedHealth, Converter={StaticResource GoalDerivedHealthToPromptConverter}}" 
                                        FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
@@ -101,7 +102,7 @@
                     </Border>
                     
                     <!-- Owner Section -->
-                    <TextBlock Text="OWNER" Classes="detail-section-header"/>
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_OwnerHeader}" Classes="detail-section-header"/>
                     <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
                         <Border Width="32" Height="32" CornerRadius="16" ClipToBounds="True">
                             <Panel>
@@ -120,30 +121,30 @@
                     </Grid>
                     
                     <!-- Timeline Section -->
-                    <TextBlock Text="TIME PERIOD" Classes="detail-section-header"/>
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_TimePeriodHeader}" Classes="detail-section-header"/>
                     <Grid RowDefinitions="Auto,Auto" Margin="0,0,0,4">
                         <Grid Grid.Row="0" ColumnDefinitions="70,*">
-                            <TextBlock Text="From" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
-                            <TextBlock Grid.Column="1" Text="{Binding StartDate, StringFormat='{}{0:MMM d, yyyy}'}" 
+                            <TextBlock Text="{markup:Localize Key=GoalDetail_From}" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding StartDate, StringFormat='{}{0:MMM d, yyyy}'}"
                                        FontSize="11" FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"/>
                         </Grid>
                         <Grid Grid.Row="1" ColumnDefinitions="70,*" Margin="0,4,0,0">
-                            <TextBlock Text="To" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                            <TextBlock Text="{markup:Localize Key=GoalDetail_To}" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
                             <TextBlock Grid.Column="1" Text="{Binding DueDate, StringFormat='{}{0:MMM d, yyyy}'}" 
                                        FontSize="11" FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"/>
                         </Grid>
                     </Grid>
                     
                     <!-- Description Section -->
-                    <TextBlock Text="DESCRIPTION" Classes="detail-section-header"/>
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_DescriptionHeader}" Classes="detail-section-header"/>
                     <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap"
                                Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,0,8"/>
-                    <TextBlock Text="No description provided." FontSize="12" FontStyle="Italic"
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_NoDescription}" FontSize="12" FontStyle="Italic"
                                Foreground="{DynamicResource BrushTextTertiary}"
                                IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
                     
                     <!-- Linked Metrics Section (Signal-first per CIRCLE_METRICS_SPEC) -->
-                    <TextBlock Text="LINKED METRICS" Classes="detail-section-header"/>
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_LinkedMetricsHeader}" Classes="detail-section-header"/>
                     <StackPanel Spacing="6" DataContext="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext)}">
                         <!-- Linked metrics list -->
                         <ItemsControl ItemsSource="{Binding GoalLinkedMetrics}">
@@ -167,7 +168,7 @@
                                                        VerticalAlignment="Center"
                                                        Foreground="{Binding Trend, Converter={StaticResource MetricTrendToColorConverter}}"/>
                                             <!-- Unlink button -->
-                                            <Button Grid.Column="3" Classes="icon-button" ToolTip.Tip="Unlink metric"
+                                            <Button Grid.Column="3" Classes="icon-button" ToolTip.Tip="{markup:Localize Key=GoalDetail_UnlinkMetric}"
                                                     Command="{Binding $parent[ItemsControl].((vm:CircleViewModel)DataContext).UnlinkMetricCommand}"
                                                     CommandParameter="{Binding}">
                                                 <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
@@ -183,12 +184,12 @@
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
                                     IsVisible="{Binding IsLoadingLinkedMetrics}">
                             <ProgressBar IsIndeterminate="True" Width="60" Height="4"/>
-                            <TextBlock Text="Loading..." FontSize="11" FontStyle="Italic"
+                            <TextBlock Text="{markup:Localize Key=GoalDetail_Loading}" FontSize="11" FontStyle="Italic"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                         </StackPanel>
                         
                         <!-- Empty state (only show when not loading) -->
-                        <TextBlock Text="No metrics linked yet" FontSize="11" FontStyle="Italic"
+                        <TextBlock Text="{markup:Localize Key=GoalDetail_NoMetricsLinked}" FontSize="11" FontStyle="Italic"
                                    Foreground="{DynamicResource BrushTextTertiary}" Margin="0,4,0,0">
                             <TextBlock.IsVisible>
                                 <MultiBinding Converter="{x:Static BoolConverters.And}">
@@ -209,20 +210,20 @@
                                 Command="{Binding OpenMetricPickerCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="10" Height="10"/>
-                                <TextBlock Text="Link Metric" FontSize="11"/>
+                                <TextBlock Text="{markup:Localize Key=GoalDetail_LinkMetric}" FontSize="11"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
                     
                     <!-- Recent Discussions Section (per GOALS_SPEC: Goal drill-in shows recent discussions) -->
-                    <TextBlock Text="RECENT DISCUSSIONS" Classes="detail-section-header" 
+                    <TextBlock Text="{markup:Localize Key=GoalDetail_RecentDiscussionsHeader}" Classes="detail-section-header" 
                                DataContext="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext)}"/>
                     <StackPanel Spacing="6" DataContext="{Binding $parent[UserControl].((vm:CircleViewModel)DataContext)}">
                         <!-- Loading state -->
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
                                     IsVisible="{Binding IsLoadingDiscussions}">
                             <ProgressBar IsIndeterminate="True" Width="60" Height="4"/>
-                            <TextBlock Text="Loading..." FontSize="11" FontStyle="Italic"
+                            <TextBlock Text="{markup:Localize Key=Message_Loading}" FontSize="11" FontStyle="Italic"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                         </StackPanel>
                         
@@ -259,7 +260,7 @@
                         </ItemsControl>
                         
                         <!-- Empty state -->
-                        <TextBlock Text="No discussions yet" FontSize="11" FontStyle="Italic"
+                        <TextBlock Text="{markup:Localize Key=GoalDetail_NoDiscussions}" FontSize="11" FontStyle="Italic"
                                    Foreground="{DynamicResource BrushTextTertiary}" Margin="0,4,0,0">
                             <TextBlock.IsVisible>
                                 <MultiBinding Converter="{x:Static BoolConverters.And}">
@@ -277,7 +278,7 @@
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" Width="12" Height="12"/>
-                                <TextBlock Text="Edit Goal" FontSize="12"/>
+                                <TextBlock Text="{markup:Localize Key=GoalDetail_EditGoal}" FontSize="12"/>
                             </StackPanel>
                         </Button>
                         <Button Classes="secondary-button" HorizontalAlignment="Stretch"
@@ -285,7 +286,7 @@
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" Width="12" Height="12" Foreground="#DC2626"/>
-                                <TextBlock Text="Delete Goal" FontSize="12" Foreground="#DC2626"/>
+                                <TextBlock Text="{markup:Localize Key=GoalDetail_DeleteGoal}" FontSize="12" Foreground="#DC2626"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

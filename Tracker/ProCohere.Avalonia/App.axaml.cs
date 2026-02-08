@@ -11,7 +11,9 @@ using ProCohere.Avalonia.Services.AI;
 using ProCohere.Avalonia.Services.Insights;
 using ProCohere.Avalonia.Services.Insights.Analyzers;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.ViewModels.Insights;
 using ProCohere.Avalonia.Views;
+using ProCohere.Avalonia.Views.Dialogs;
 
 namespace ProCohere.Avalonia;
 
@@ -199,9 +201,11 @@ public partial class App : Application
                 
                 // Auto-login succeeded and has product access - go to main window
                 System.Diagnostics.Debug.WriteLine("[App] Creating MainWindow...");
+                var mainViewModel = new MainWindowViewModel();
+                
                 var mainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel()
+                    DataContext = mainViewModel
                 };
                 desktop.MainWindow = mainWindow;
                 
@@ -211,6 +215,7 @@ public partial class App : Application
                 // Start the reminder scheduler
                 ReminderSchedulerService.Instance.Start();
                 
+                // Show window IMMEDIATELY - data loads in background per-view
                 mainWindow.Show();
                 splashWindow.Close();
                 
@@ -219,8 +224,18 @@ public partial class App : Application
                 
                 System.Diagnostics.Debug.WriteLine("[App] MainWindow shown, splash closed");
                 
+                // Load data in background (non-blocking) - each view handles its own loading state
+                _ = mainViewModel.InitializeAsync();
+                
                 // Show welcome toast
                 NotificationService.Instance.ShowSuccess("Welcome Back", "You have been signed in successfully.");
+                
+                // Show critical insights popup after a short delay (non-blocking)
+                _ = global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await Task.Delay(1000); // Let the window settle first
+                    await ShowInsightPopupIfNeededAsync(mainWindow);
+                });
             }
             else
             {
@@ -252,11 +267,13 @@ public partial class App : Application
         };
 
         // When login succeeds, show main window
-        loginViewModel.LoginSuccessful += () =>
+        loginViewModel.LoginSuccessful += async () =>
         {
+            var mainViewModel = new MainWindowViewModel();
+            
             var mainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel()
+                DataContext = mainViewModel
             };
             desktop.MainWindow = mainWindow;
             
@@ -266,12 +283,24 @@ public partial class App : Application
             // Start the reminder scheduler
             ReminderSchedulerService.Instance.Start();
             
+            // Show window IMMEDIATELY - data loads in background per-view
             mainWindow.Show();
             
             // Initialize system tray
             InitializeSystemTray(desktop);
             
             loginWindow.Close();
+            
+            // Load data in background (non-blocking)
+            System.Diagnostics.Debug.WriteLine("[App] Loading application data after login (background)...");
+            _ = mainViewModel.InitializeAsync();
+            
+            // Show critical insights popup after login (non-blocking)
+            _ = global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await Task.Delay(1000); // Let the window settle first
+                await ShowInsightPopupIfNeededAsync(mainWindow);
+            });
         };
 
         desktop.MainWindow = loginWindow;
@@ -313,6 +342,102 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[App] Failed to register insight analyzers: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Shows the critical insights popup if there are insights requiring attention.
+    /// Non-blocking - fires and forgets to avoid delaying app startup.
+    /// </summary>
+    private static async Task ShowInsightPopupIfNeededAsync(MainWindow mainWindow)
+    {
+        try
+        {
+            var session = AuthService.Instance.CurrentSession_ProCohere;
+            var userId = session?.User?.Id ?? Guid.Empty;
+            var orgId = session?.TeamMember?.OrganizationId ?? Guid.Empty;
+            
+            if (userId == Guid.Empty || orgId == Guid.Empty)
+            {
+                System.Diagnostics.Debug.WriteLine("[App] No valid session, skipping insight popup");
+                return;
+            }
+            
+            // Check for existing critical insights first (fast)
+            var hasCritical = await InsightPopupViewModel.HasCriticalInsightsAsync();
+            
+            // If no critical insights exist, run analyzers to generate them
+            if (!hasCritical)
+            {
+                System.Diagnostics.Debug.WriteLine("[App] No existing critical insights, running analyzers...");
+                await InsightEngine.Instance.RunAnalysisAsync(userId, orgId);
+                System.Diagnostics.Debug.WriteLine("[App] Analyzers completed");
+                
+                // Check again after running analyzers
+                hasCritical = await InsightPopupViewModel.HasCriticalInsightsAsync();
+            }
+            
+            if (!hasCritical)
+            {
+                System.Diagnostics.Debug.WriteLine("[App] No critical insights, skipping popup");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[App] Critical insights found, showing popup");
+            
+            var viewModel = new InsightPopupViewModel();
+            var dialog = new InsightPopupDialog
+            {
+                DataContext = viewModel
+            };
+            
+            // Wire close event
+            viewModel.CloseRequested += (_, _) => dialog.Close();
+            
+            // Wire View All to navigate to Pulse
+            viewModel.ViewAllRequested += (_, _) =>
+            {
+                dialog.Close();
+                if (mainWindow.DataContext is MainWindowViewModel mainVm)
+                {
+                    mainVm.SelectedNavigation = NavigationItem.Pulse;
+                }
+            };
+            
+            // Wire entity navigation
+            viewModel.NavigateRequested += (_, args) =>
+            {
+                dialog.Close();
+                if (mainWindow.DataContext is MainWindowViewModel mainVm)
+                {
+                    // Navigate to appropriate page based on entity type
+                    switch (args.EntityType.ToLowerInvariant())
+                    {
+                        case "goal":
+                            mainVm.SelectedNavigation = NavigationItem.Goals;
+                            break;
+                        case "metric":
+                            mainVm.SelectedNavigation = NavigationItem.Metrics;
+                            break;
+                        case "task":
+                        case "actionitem":
+                            mainVm.SelectedNavigation = NavigationItem.Tasks;
+                            break;
+                        case "meeting":
+                            mainVm.SelectedNavigation = NavigationItem.Me;
+                            break;
+                    }
+                }
+            };
+            
+            // Load data and show dialog
+            _ = viewModel.LoadAsync();
+            await dialog.ShowDialog(mainWindow);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[App] Failed to show insight popup: {ex.Message}");
+            // Non-critical - don't fail the app
         }
     }
 

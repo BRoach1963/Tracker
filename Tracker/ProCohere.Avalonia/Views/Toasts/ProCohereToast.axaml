@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:markup="using:ProCohere.Avalonia.Markup"
         x:Class="ProCohere.Avalonia.Views.Toasts.ProCohereToast"
         Title="Toast"
         Width="400"
@@ -76,14 +77,14 @@
                         VerticalAlignment="Center"
                         Margin="10,14,10,14">
                 <TextBlock x:Name="ToastTitle"
-                           Text="Notification"
+                           Text="{markup:Localize Key=Toast_Notification}"
                            Foreground="{DynamicResource BrushTextPrimary}"
                            FontWeight="SemiBold"
                            FontSize="{DynamicResource FontSizeBody}"
                            FontFamily="{DynamicResource FontFamilyDefault}"
                            TextWrapping="Wrap"/>
                 <TextBlock x:Name="ToastMessage"
-                           Text="This is a toast notification message."
+                           Text="{markup:Localize Key=Toast_DefaultMessage}"
                            Foreground="{DynamicResource BrushTextSecondary}"
                            FontSize="{DynamicResource FontSizeCaption}"
                            FontFamily="{DynamicResource FontFamilyDefault}"

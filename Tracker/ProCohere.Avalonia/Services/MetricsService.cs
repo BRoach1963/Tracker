@@ -57,6 +57,21 @@ public class MetricsService : IMetricsService
     /// <inheritdoc />
     public string? LastError { get; private set; }
 
+    /// <summary>
+    /// Raised when metrics are created, updated, or deleted.
+    /// Subscribe to this to know when to refresh metric-dependent views.
+    /// </summary>
+    public event EventHandler? MetricsChanged;
+
+    /// <summary>
+    /// Raises the MetricsChanged event.
+    /// </summary>
+    private void OnMetricsChanged()
+    {
+        Log("MetricsChanged event raised");
+        MetricsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     #endregion
 
     private MetricsService() { }
@@ -363,6 +378,7 @@ public class MetricsService : IMetricsService
 
             var created = result.Models?.FirstOrDefault();
             Log($"Metric created: {created?.Id}");
+            if (created != null) OnMetricsChanged();
             return created;
         }
         catch (Exception ex)
@@ -411,6 +427,7 @@ public class MetricsService : IMetricsService
 
             var updated = result.Models?.FirstOrDefault();
             Log($"Metric updated: {updated?.Id}");
+            if (updated != null) OnMetricsChanged();
             return updated;
         }
         catch (Exception ex)
@@ -447,6 +464,7 @@ public class MetricsService : IMetricsService
                 .Update();
 
             Log($"Metric deleted: {metricId}");
+            OnMetricsChanged();
             return true;
         }
         catch (Exception ex)

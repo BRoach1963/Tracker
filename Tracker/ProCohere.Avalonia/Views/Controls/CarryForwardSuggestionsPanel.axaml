@@ -5,6 +5,7 @@
              xmlns:local="clr-namespace:ProCohere.Avalonia.Views.Controls"
              xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels.Controls"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="ProCohere.Avalonia.Views.Controls.CarryForwardSuggestionsPanel"
              x:DataType="vm:CarryForwardSuggestionsPanelViewModel"
@@ -57,7 +58,7 @@
                               Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"
                               Margin="0,0,8,0" />
                     <TextBlock Grid.Column="1"
-                               Text="Pending Items to Discuss"
+                               Text="{markup:Localize Key=CarryForward_Header}"
                                FontWeight="SemiBold"
                                FontSize="14"
                                VerticalAlignment="Center" />
@@ -72,7 +73,7 @@
                                    Foreground="White" />
                     </Border>
                 </Grid>
-                <TextBlock Text="These items were deferred from previous meetings and are waiting to be discussed."
+                <TextBlock Text="{markup:Localize Key=CarryForward_Description}"
                            TextWrapping="Wrap"
                            FontSize="12"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -110,19 +111,19 @@
                                                 Spacing="8"
                                                 Margin="0,8,0,0">
                                         <Button Classes="accent"
-                                                Content="Add to Meeting"
+                                                Content="{markup:Localize Key=CarryForward_AddToMeeting}"
                                                 FontSize="11"
                                                 Padding="10,4"
                                                 Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).AddToMeetingCommand}"
                                                 CommandParameter="{Binding}" />
                                         <Button Classes="cancel-btn"
-                                                Content="Skip This Time"
+                                                Content="{markup:Localize Key=CarryForward_SkipThisTime}"
                                                 FontSize="11"
                                                 Padding="10,4"
                                                 Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).SkipCommand}"
                                                 CommandParameter="{Binding}" />
                                         <Button Classes="cancel-btn"
-                                                Content="Mark Resolved"
+                                                Content="{markup:Localize Key=CarryForward_MarkResolved}"
                                                 FontSize="11"
                                                 Padding="10,4"
                                                 Command="{Binding #Root.((vm:CarryForwardSuggestionsPanelViewModel)DataContext).MarkResolvedCommand}"
@@ -145,11 +146,11 @@
                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                           Data="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4V14Z"
                           HorizontalAlignment="Center" />
-                <TextBlock Text="No pending items"
+                <TextBlock Text="{markup:Localize Key=CarryForward_NoPendingItems}"
                            FontSize="13"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="All carry-forward items have been addressed."
+                <TextBlock Text="{markup:Localize Key=CarryForward_AllAddressed}"
                            FontSize="11"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                            HorizontalAlignment="Center" />

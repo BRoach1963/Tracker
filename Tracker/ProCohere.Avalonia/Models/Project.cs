@@ -145,6 +145,32 @@ public class Project : BaseModel
     public bool HasOwner => !string.IsNullOrEmpty(OwnerDisplayName) && !IsOrphaned;
 
     #endregion
+
+    #region Signal Counts (populated by batch RPC)
+
+    /// <summary>
+    /// Count of overdue tasks linked to this project.
+    /// Populated by GetProjectSignalsBatchAsync.
+    /// </summary>
+    public int OverdueTaskCount { get; set; }
+
+    /// <summary>
+    /// Count of goals needing attention (at_risk, needs_attention, blocked).
+    /// Populated by GetProjectSignalsBatchAsync.
+    /// </summary>
+    public int GoalsNeedingAttention { get; set; }
+
+    /// <summary>
+    /// Whether this project has any signals that need attention.
+    /// </summary>
+    public bool HasSignals => OverdueTaskCount > 0 || GoalsNeedingAttention > 0;
+
+    /// <summary>
+    /// Total count of signals for badge display.
+    /// </summary>
+    public int TotalSignalCount => OverdueTaskCount + GoalsNeedingAttention;
+
+    #endregion
 }
 
 /// <summary>
@@ -333,6 +359,22 @@ public class ProjectLink : BaseModel
     public bool IsCompanyLink => EntityType == ProjectLinkEntityType.Company;
     public bool IsReminderLink => EntityType == ProjectLinkEntityType.Reminder;
     public bool IsTaskLink => EntityType == ProjectLinkEntityType.Task;
+
+    /// <summary>
+    /// Display-friendly title for the linked entity.
+    /// Returns the snapshot if available, otherwise a fallback based on entity type.
+    /// </summary>
+    public string DisplayTitle => !string.IsNullOrWhiteSpace(EntityTitleSnapshot)
+        ? EntityTitleSnapshot
+        : EntityType switch
+        {
+            ProjectLinkEntityType.Goal => "(Untitled Goal)",
+            ProjectLinkEntityType.Task => "(Untitled Task)",
+            ProjectLinkEntityType.Meeting => "(Untitled Meeting)",
+            ProjectLinkEntityType.ChronicleNote => "(Untitled Note)",
+            ProjectLinkEntityType.Metric => "(Untitled Metric)",
+            _ => $"({EntityTypeDisplay})"
+        };
 
     public string EntityTypeDisplay => EntityType switch
     {

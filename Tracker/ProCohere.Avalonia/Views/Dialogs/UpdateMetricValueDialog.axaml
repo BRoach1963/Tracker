@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="380"
         x:Class="ProCohere.Avalonia.Views.Dialogs.UpdateMetricValueDialog"
         x:DataType="vm:UpdateMetricValueDialogViewModel"
@@ -33,8 +34,8 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Update Metric Value" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Text="Record a new measurement" FontSize="12" Foreground="#FFFFFFCC"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_UpdateMetric_Title}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_UpdateMetric_Subtitle}" FontSize="12" Foreground="#FFFFFFCC"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -50,31 +51,31 @@
                             Padding="12"
                             IsVisible="{Binding ShowCurrentValue}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="Current:" FontSize="13" Opacity="0.7" VerticalAlignment="Center"/>
+                            <TextBlock Text="{markup:Localize Key=Dialog_UpdateMetric_Current}" FontSize="13" Opacity="0.7" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding CurrentValue}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
             
                     <!-- New Value -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="New Value" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_UpdateMetric_NewValue}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox x:Name="NewValueTextBox"
                                  Text="{Binding NewValue}"
-                                 Watermark="Enter value..."
+                                 Watermark="{markup:Localize Key=Dialog_UpdateMetric_EnterValue}"
                                  FontSize="14"/>
                     </StackPanel>
             
                     <!-- What Changed Note -->
                     <StackPanel Spacing="6">
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="What Changed?" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                            <TextBlock Text="(required)" 
+                            <TextBlock Text="{markup:Localize Key=Dialog_UpdateMetric_WhatChanged}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Dialog_UpdateMetric_Required}" 
                                        FontSize="12" 
                                        Opacity="0.5"
                                        IsVisible="{Binding IsManualMetric}"/>
                         </StackPanel>
                         <TextBox Text="{Binding WhatChanged}"
-                                 Watermark="Describe what caused this change..."
+                                 Watermark="{markup:Localize Key=Dialog_UpdateMetric_DescribeChange}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  MinHeight="80"
@@ -87,7 +88,7 @@
             <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
                     Padding="20,12">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                    <Button Content="Cancel" 
+                    <Button Content="{markup:Localize Key=Button_Cancel}" 
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="1"
@@ -104,7 +105,7 @@
                             </Style>
                         </Button.Styles>
                     </Button>
-                    <Button Content="Update" 
+                    <Button Content="{markup:Localize Key=Dialog_UpdateMetric_Update}" 
                             Foreground="{DynamicResource BrushPrimary}"
                             FontWeight="SemiBold"
                             BorderThickness="1"

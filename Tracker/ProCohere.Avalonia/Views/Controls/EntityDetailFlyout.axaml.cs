@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 
 namespace ProCohere.Avalonia.Views.Controls;
 
@@ -26,6 +27,25 @@ public partial class EntityDetailFlyout : UserControl
     private TranslateTransform? _slideTransform;
     private TextBlock? _headerTitle;
     private bool _isAnimating;
+    
+    #region Events for Meeting Actions
+    
+    /// <summary>
+    /// Raised when the Add Agenda Item button is clicked for a meeting.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? AddAgendaItemRequested;
+    
+    /// <summary>
+    /// Raised when the Add Attendee button is clicked for a meeting.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? AddAttendeeRequested;
+    
+    /// <summary>
+    /// Raised when the Edit Notes button is clicked for a meeting.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? EditNotesRequested;
+    
+    #endregion
     
     #region Styled Properties
     
@@ -243,4 +263,47 @@ public partial class EntityDetailFlyout : UserControl
             _isAnimating = false;
         }
     }
+
+    #region Meeting Action Handlers
+
+    private void JoinVideoCall_Click(object? sender, RoutedEventArgs e)
+    {
+        if (FlyoutContent is MeetingDetail meeting && !string.IsNullOrEmpty(meeting.VideoLink))
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(meeting.VideoLink) { UseShellExecute = true });
+            }
+            catch
+            {
+                // Silently fail if browser can't be opened
+            }
+        }
+    }
+
+    private void AddAgendaItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (FlyoutContent is MeetingDetail meeting)
+        {
+            AddAgendaItemRequested?.Invoke(this, meeting);
+        }
+    }
+
+    private void AddAttendee_Click(object? sender, RoutedEventArgs e)
+    {
+        if (FlyoutContent is MeetingDetail meeting)
+        {
+            AddAttendeeRequested?.Invoke(this, meeting);
+        }
+    }
+
+    private void EditNotes_Click(object? sender, RoutedEventArgs e)
+    {
+        if (FlyoutContent is MeetingDetail meeting)
+        {
+            EditNotesRequested?.Invoke(this, meeting);
+        }
+    }
+
+    #endregion
 }

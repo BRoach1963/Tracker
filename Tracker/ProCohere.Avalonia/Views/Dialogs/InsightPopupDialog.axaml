@@ -1,0 +1,241 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Insights"
+        xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
+        mc:Ignorable="d"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.InsightPopupDialog"
+        x:DataType="vm:InsightPopupViewModel"
+        Title="{markup:Localize Key=Dialog_Insight_Title}"
+        Width="500"
+        MinHeight="200"
+        MaxHeight="550"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+    
+    <!-- 
+    ============================================================================
+    INSIGHT POPUP DIALOG
+    ============================================================================
+    Shows top critical insights on startup.
+    MVVM: All state in InsightPopupViewModel, commands for actions.
+    ============================================================================
+    -->
+    
+    <Window.Resources>
+        <StreamGeometry x:Key="AlertIcon">M13 14H11V10H13M13 18H11V16H13M1 21H23L12 2L1 21Z</StreamGeometry>
+        <StreamGeometry x:Key="ViewIcon">M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z</StreamGeometry>
+        <StreamGeometry x:Key="DismissIcon">M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z</StreamGeometry>
+        <StreamGeometry x:Key="CloseIcon">M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z</StreamGeometry>
+    </Window.Resources>
+    
+    <Window.Styles>
+        <!-- Insight card style -->
+        <Style Selector="Border.insight-card">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        
+        <!-- Severity indicators -->
+        <Style Selector="Border.severity-critical">
+            <Setter Property="Background" Value="#E53935"/>
+        </Style>
+        <Style Selector="Border.severity-high">
+            <Setter Property="Background" Value="#FB8C00"/>
+        </Style>
+        <Style Selector="Border.severity-medium">
+            <Setter Property="Background" Value="#FDD835"/>
+        </Style>
+        
+        <!-- Action button style -->
+        <Style Selector="Button.insight-action">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.insight-action:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+    </Window.Styles>
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorderStrong}"
+            BorderThickness="1"
+            CornerRadius="12"
+            BoxShadow="0 8 32 0 #40000000">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <!-- Header - Draggable -->
+            <Border Grid.Row="0"
+                    Name="HeaderBorder"
+                    Background="{DynamicResource BrushPrimary}"
+                    CornerRadius="12,12,0,0"
+                    Padding="16,14"
+                    Cursor="Hand"
+                    PointerPressed="OnHeaderPointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <PathIcon Grid.Column="0"
+                              Data="{StaticResource AlertIcon}"
+                              Foreground="White"
+                              Width="22" Height="22"
+                              Margin="0,0,14,0"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Insight_Title}"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"/>
+                        <TextBlock Text="{Binding CountText}"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"
+                                   Margin="0,2,0,0"
+                                   IsVisible="{Binding HasInsights}"/>
+                    </StackPanel>
+                    <Button Grid.Column="2"
+                            Command="{Binding CloseCommand}"
+                            Background="Transparent"
+                            Foreground="White"
+                            Padding="4"
+                            ToolTip.Tip="Close">
+                        <PathIcon Data="{StaticResource CloseIcon}" Width="14" Height="14"/>
+                    </Button>
+                </Grid>
+            </Border>
+            
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="16">
+                <Grid>
+                    <!-- Loading state -->
+                    <StackPanel IsVisible="{Binding IsLoading}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="0,24">
+                        <ProgressBar IsIndeterminate="True" Width="100"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Insight_Loading}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Empty state -->
+                    <StackPanel IsVisible="{Binding ShowEmptyState}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="0,24">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Insight_NoCriticalItems}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Insight_AllCaughtUp}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource BrushTextTertiary}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Insights list -->
+                    <ItemsControl ItemsSource="{Binding Insights}"
+                                  IsVisible="{Binding HasInsights}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:Insight">
+                            <Border Classes="insight-card">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
+                                    <!-- Row 0: Severity + Title -->
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                                        <!-- Severity indicator -->
+                                        <Border Grid.Column="0"
+                                                Width="4"
+                                                CornerRadius="2"
+                                                Margin="0,0,10,0"
+                                                Classes.severity-critical="{Binding IsCritical}"
+                                                Classes.severity-high="{Binding IsHighSeverity}"
+                                                Classes.severity-medium="{Binding IsMediumSeverity}"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Title}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                   TextWrapping="Wrap"/>
+                                    </Grid>
+                                    
+                                    <!-- Row 1: Content -->
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Content}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Margin="14,6,0,8"
+                                               MaxLines="3"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    
+                                    <!-- Row 2: Actions -->
+                                    <StackPanel Grid.Row="2"
+                                                Orientation="Horizontal"
+                                                Spacing="8"
+                                                Margin="14,0,0,0">
+                                        <Button Classes="insight-action"
+                                                Command="{Binding $parent[ItemsControl].((vm:InsightPopupViewModel)DataContext).ViewInsightCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsVisible="{Binding SourceId, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource ViewIcon}" Width="12" Height="12"/>
+                                                <TextBlock Text="{markup:Localize Key=Dialog_Insight_View}"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="insight-action"
+                                                Command="{Binding $parent[ItemsControl].((vm:InsightPopupViewModel)DataContext).DismissInsightCommand}"
+                                                CommandParameter="{Binding}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <PathIcon Data="{StaticResource DismissIcon}" Width="12" Height="12"/>
+                                                <TextBlock Text="{markup:Localize Key=Dialog_Insight_Dismiss}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                </Grid>
+            </ScrollViewer>
+            
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0,1,0,0"
+                    Padding="16,12"
+                    CornerRadius="0,0,8,8">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Button Grid.Column="0"
+                            Content="{markup:Localize Key=Dialog_Insight_ViewAllInPulse}"
+                            Command="{Binding ViewAllCommand}"
+                            Classes="text-button"
+                            HorizontalAlignment="Left"/>
+                    <Button Grid.Column="1"
+                            Content="{markup:Localize Key=Dialog_Insight_Close}"
+                            Command="{Binding CloseCommand}"
+                            Classes="secondary"
+                            MinWidth="80"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

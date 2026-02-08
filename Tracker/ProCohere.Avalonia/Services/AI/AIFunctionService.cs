@@ -67,13 +67,18 @@ public sealed class AIFunctionService
                 "create_goal" => await CreateGoalAsync(arguments),
                 "create_project" => await CreateProjectAsync(arguments),
                 "create_note" => await CreateNoteAsync(arguments),
+                "create_feedback" => await CreateFeedbackAsync(arguments),
+                "create_metric" => await CreateMetricAsync(arguments),
                 
                 // Information retrieval functions
                 "search_team_members" => await SearchTeamMembersAsync(arguments),
                 "get_upcoming_meetings" => await GetUpcomingMeetingsAsync(arguments),
+                "search_meetings" => await SearchMeetingsAsync(arguments),
                 "get_projects" => await GetProjectsAsync(arguments),
                 "get_notes" => await GetNotesAsync(arguments),
                 "get_tasks" => await GetTasksAsync(arguments),
+                "get_insights" => await GetInsightsAsync(arguments),
+                "dismiss_insight" => await DismissInsightAsync(arguments),
                 
                 // Helper functions
                 "get_current_time" => GetCurrentTime(),
@@ -231,6 +236,48 @@ public sealed class AIFunctionService
         }
     }
 
+    private async Task<string> SearchMeetingsAsync(JsonElement args)
+    {
+        try
+        {
+            var attendeeName = GetStringProperty(args, "attendee_name");
+            var includePast = !args.TryGetProperty("upcoming_only", out var upcomingProp) || !upcomingProp.GetBoolean();
+            var limit = args.TryGetProperty("limit", out var limitProp) ? limitProp.GetInt32() : 10;
+
+            var meetings = await _meetingService.SearchMeetingsAsync(attendeeName, includePast, limit);
+            
+            if (meetings == null || meetings.Count == 0)
+            {
+                if (!string.IsNullOrEmpty(attendeeName))
+                {
+                    return $"📅 No meetings found with '{attendeeName}'.";
+                }
+                return "📅 No meetings found.";
+            }
+
+            var now = DateTime.Now;
+            var meetingList = meetings.Select(m =>
+            {
+                var isPast = m.ScheduledAt < now;
+                var icon = isPast ? "📋" : "📅";
+                var dateStr = m.ScheduledAt?.ToString("MMM dd, yyyy h:mm tt") ?? "Unscheduled";
+                var attendeeStr = m.Attendees?.Any() == true 
+                    ? $" with {string.Join(", ", m.Attendees.Select(a => a.Name).Where(n => !string.IsNullOrEmpty(n)).Take(3))}"
+                    : "";
+                return $"{icon} **{m.Title}** - {dateStr}{attendeeStr}";
+            });
+
+            var header = !string.IsNullOrEmpty(attendeeName) 
+                ? $"📅 Found {meetings.Count} meeting(s) with '{attendeeName}':"
+                : $"📅 Found {meetings.Count} meeting(s):";
+            return $"{header}\n\n" + string.Join("\n", meetingList);
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Error searching meetings: {ex.Message}";
+        }
+    }
+
     private async Task<string> GetProjectsAsync(JsonElement args)
     {
         try
@@ -316,6 +363,209 @@ public sealed class AIFunctionService
         }
     }
 
+    private async Task<string> CreateFeedbackAsync(JsonElement args)
+    {
+        try
+        {
+            var teamMemberName = GetStringProperty(args, "team_member_name", required: true);
+            var title = GetStringProperty(args, "title", required: true);
+            var content = GetStringProperty(args, "content", required: true);
+            var feedbackType = GetStringProperty(args, "type", defaultValue: "praise");
+            
+            // Find the team member by name
+            var teamMembers = await _teamService.SearchTeamMembersAsync(teamMemberName);
+            var matchingMember = teamMembers?.FirstOrDefault(m =>
+                m.FullName.Contains(teamMemberName, StringComparison.OrdinalIgnoreCase) ||
+                (m.FirstName?.Contains(teamMemberName, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (m.LastName?.Contains(teamMemberName, StringComparison.OrdinalIgnoreCase) ?? false));
+            
+            if (matchingMember == null)
+            {
+                return $"❌ Could not find team member matching '{teamMemberName}'. Please check the name and try again.";
+            }
+            
+            // Create the feedback using FeedbackService
+            var feedback = await FeedbackService.Instance.CreateFeedbackAsync(
+                recipientId: matchingMember.Id,
+                content: content,
+                feedbackType: feedbackType.ToLower(),
+                title: title
+            );
+            
+            if (feedback == null)
+            {
+                return $"❌ Failed to create feedback: {FeedbackService.Instance.LastError ?? "Unknown error"}";
+            }
+            
+            return $"✅ Feedback created successfully!\n\n" +
+                   $"📝 **{title}**\n" +
+                   $"👤 To: {matchingMember.FullName}\n" +
+                   $"📋 Type: {feedbackType}\n" +
+                   $"💬 {content}";
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Error creating feedback: {ex.Message}";
+        }
+    }
+
+    private async Task<string> CreateMetricAsync(JsonElement args)
+    {
+        try
+        {
+            var name = GetStringProperty(args, "name", required: true);
+            var targetValue = args.TryGetProperty("target_value", out var tv) ? tv.GetDecimal() : 0;
+            var unit = GetStringProperty(args, "unit", defaultValue: "");
+            var currentValue = args.TryGetProperty("current_value", out var cv) ? cv.GetDecimal() : 0;
+            var description = GetStringProperty(args, "description", defaultValue: "");
+            
+            // Create the metric
+            var metric = new Models.MetricDetail
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Description = description,
+                TargetValue = targetValue,
+                CurrentValue = currentValue,
+                Unit = unit,
+                OrganizationId = AuthService.Instance.CurrentTeamMember?.OrganizationId ?? Guid.Empty,
+                OwnerTeamMemberId = AuthService.Instance.CurrentTeamMember?.Id
+            };
+            
+            var created = await MetricsService.Instance.CreateMetricAsync(metric);
+            
+            if (created == null)
+            {
+                return $"❌ Failed to create metric. Please try again.";
+            }
+            
+            return $"✅ Metric created successfully!\n\n" +
+                   $"📊 **{name}**\n" +
+                   $"🎯 Target: {targetValue}{unit}\n" +
+                   $"📈 Current: {currentValue}{unit}\n" +
+                   (!string.IsNullOrEmpty(description) ? $"📝 {description}" : "");
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Error creating metric: {ex.Message}";
+        }
+    }
+
+    private async Task<string> GetInsightsAsync(JsonElement args)
+    {
+        try
+        {
+            var severityFilter = GetStringProperty(args, "severity", defaultValue: "all").ToLower();
+            
+            var currentTeamMemberId = AuthService.Instance.CurrentTeamMember?.Id;
+            if (!currentTeamMemberId.HasValue)
+            {
+                return "❌ Not logged in. Please log in to view insights.";
+            }
+            
+            var insightRepository = new Insights.InsightRepository();
+            var insights = await insightRepository.GetActiveInsightsAsync(currentTeamMemberId.Value);
+            
+            if (insights == null || !insights.Any())
+            {
+                return "✅ No active insights at this time. Great job keeping things on track!";
+            }
+            
+            // Filter by severity if specified
+            if (severityFilter != "all")
+            {
+                insights = severityFilter switch
+                {
+                    "critical" => insights.Where(i => i.Severity == Models.InsightSeverity.Critical).ToList(),
+                    "high" => insights.Where(i => i.Severity == Models.InsightSeverity.High).ToList(),
+                    "medium" => insights.Where(i => i.Severity == Models.InsightSeverity.Medium).ToList(),
+                    "low" => insights.Where(i => i.Severity == Models.InsightSeverity.Low).ToList(),
+                    _ => insights
+                };
+            }
+            
+            if (!insights.Any())
+            {
+                return $"✅ No {severityFilter} severity insights at this time.";
+            }
+            
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"🔔 **{insights.Count} Active Insight(s):**\n");
+            
+            var critical = insights.Where(i => i.Severity == Models.InsightSeverity.Critical).ToList();
+            var high = insights.Where(i => i.Severity == Models.InsightSeverity.High).ToList();
+            var medium = insights.Where(i => i.Severity == Models.InsightSeverity.Medium).ToList();
+            var low = insights.Where(i => i.Severity == Models.InsightSeverity.Low).ToList();
+            
+            if (critical.Any())
+            {
+                sb.AppendLine("🔴 **Critical:**");
+                foreach (var insight in critical.Take(5))
+                {
+                    sb.AppendLine($"  • {insight.Title} (ID: {insight.Id})");
+                }
+            }
+            if (high.Any())
+            {
+                sb.AppendLine("🟠 **High:**");
+                foreach (var insight in high.Take(5))
+                {
+                    sb.AppendLine($"  • {insight.Title} (ID: {insight.Id})");
+                }
+            }
+            if (medium.Any())
+            {
+                sb.AppendLine("🟡 **Medium:**");
+                foreach (var insight in medium.Take(5))
+                {
+                    sb.AppendLine($"  • {insight.Title} (ID: {insight.Id})");
+                }
+            }
+            if (low.Any())
+            {
+                sb.AppendLine("🟢 **Low:**");
+                foreach (var insight in low.Take(5))
+                {
+                    sb.AppendLine($"  • {insight.Title} (ID: {insight.Id})");
+                }
+            }
+            
+            sb.AppendLine("\n💡 Use `dismiss_insight` with the insight ID to acknowledge an insight.");
+            
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Error getting insights: {ex.Message}";
+        }
+    }
+
+    private async Task<string> DismissInsightAsync(JsonElement args)
+    {
+        try
+        {
+            var insightIdStr = GetStringProperty(args, "insight_id", required: true);
+            
+            if (!Guid.TryParse(insightIdStr, out var insightId))
+            {
+                return $"❌ Invalid insight ID: '{insightIdStr}'. Please provide a valid insight ID.";
+            }
+            
+            var currentUserId = AuthService.Instance.CurrentTeamMember?.Id ?? Guid.Empty;
+            
+            var insightRepository = new Insights.InsightRepository();
+            #pragma warning disable CS0618 // Using obsolete method as it's the only available option
+            await insightRepository.DismissInsightAsync(insightId, currentUserId);
+            #pragma warning restore CS0618
+            
+            return $"✅ Insight dismissed successfully. It will no longer appear in your active insights.";
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Error dismissing insight: {ex.Message}";
+        }
+    }
+
     private string GetCurrentTime()
     {
         var now = DateTime.Now;
@@ -333,19 +583,26 @@ public sealed class AIFunctionService
 • `create_goal` - Set up a new goal with targets and timeline
 • `create_project` - Start a new project with scope and milestones
 • `create_note` - Document insights and meeting notes
+• `create_feedback` - Give feedback to a team member
+• `create_metric` - Create a new metric/KPI to track
 
 🔍 **Information Functions:**
 • `search_team_members` - Find team members by name or role
+• `search_meetings` - Search for meetings by attendee name
 • `get_upcoming_meetings` - Show scheduled meetings
 • `get_projects` - List your active projects
 • `get_notes` - Browse recent notes and documentation
 • `get_tasks` - View your task list with filters
+• `get_insights` - Get AI insights about items needing attention
+
+🔔 **Insight Functions:**
+• `dismiss_insight` - Dismiss/acknowledge an AI insight
 
 ⚙️ **Utility Functions:**
 • `get_current_time` - Get current date and time
 • `help` - Show this function reference
 
-💡 **Usage:** Simply ask me to do something like ""Create a task to review the quarterly reports"" or ""Schedule a 1:1 with Sarah for next Tuesday""";
+💡 **Usage:** Simply ask me to do something like ""Create a task to review the quarterly reports"" or ""Who is overdue for a 1:1?""";
     }
 
     #endregion

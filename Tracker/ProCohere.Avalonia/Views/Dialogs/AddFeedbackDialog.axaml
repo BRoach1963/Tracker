@@ -3,11 +3,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
-        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="580"
+        xmlns:models="using:ProCohere.Avalonia.Models"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="620"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AddFeedbackDialog"
         x:DataType="vm:AddFeedbackDialogViewModel"
         Title="Give Feedback"
-        Width="520" Height="580"
+        Width="520" Height="620"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False"
@@ -31,7 +33,7 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Give Feedback" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Feedback_GiveFeedback}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
                         <TextBlock Text="{Binding RecipientDisplayName, StringFormat='For {0}'}" FontSize="12" Foreground="#FFFFFFCC"/>
                     </StackPanel>
                 </StackPanel>
@@ -43,31 +45,58 @@
                       Padding="20,16">
             <StackPanel Spacing="16">
                 
+                <!-- Team Member Selector (shown when no pre-selected recipient) -->
+                <StackPanel Spacing="4" IsVisible="{Binding ShowRecipientSelector}">
+                    <TextBlock Text="{markup:Localize Key=Dialog_Feedback_GiveFeedbackTo}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox ItemsSource="{Binding AvailableTeamMembers}"
+                              SelectedItem="{Binding SelectedTeamMember}"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="{markup:Localize Key=Dialog_Feedback_SelectTeamMember}"
+                              IsEnabled="{Binding !IsLoadingTeamMembers}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamMemberDetail">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding FullName}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding JobTitle, StringFormat='({0})'}" 
+                                               FontSize="11" 
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding JobTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <!-- Loading indicator -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsLoadingTeamMembers}">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Feedback_LoadingTeamMembers}" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                </StackPanel>
+                
                 <!-- Feedback Type -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Type" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Label_Type}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox SelectedIndex="{Binding FeedbackTypeIndex}"
                               HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="General" Tag="general" />
-                        <ComboBoxItem Content="Praise" Tag="praise" />
-                        <ComboBoxItem Content="Constructive" Tag="constructive" />
-                        <ComboBoxItem Content="Coaching" Tag="coaching" />
-                        <ComboBoxItem Content="Recognition" Tag="recognition" />
+                        <ComboBoxItem Content="{markup:Localize Key=FeedbackType_General}" Tag="general" />
+                        <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Praise}" Tag="praise" />
+                        <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Constructive}" Tag="constructive" />
+                        <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Coaching}" Tag="coaching" />
+                        <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Recognition}" Tag="recognition" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Title (Optional) -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Title (Optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_Feedback_TitleOptional}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox Text="{Binding Title}"
-                             Watermark="Brief summary..." />
+                             Watermark="{markup:Localize Key=Dialog_Feedback_BriefSummary}" />
                 </StackPanel>
                 
                 <!-- Content -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Feedback *" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_Feedback_FeedbackLabel}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox Text="{Binding Content}"
-                             Watermark="Share your feedback..."
+                             Watermark="{markup:Localize Key=Dialog_Feedback_ShareFeedback}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              Height="150" />
@@ -75,33 +104,33 @@
                 
                 <!-- Rating (Optional) -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Rating (Optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_Feedback_RatingOptional}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox SelectedIndex="{Binding Rating}"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="No rating">
-                        <ComboBoxItem Content="⭐ 1 - Needs Improvement" />
-                        <ComboBoxItem Content="⭐⭐ 2 - Below Expectations" />
-                        <ComboBoxItem Content="⭐⭐⭐ 3 - Meets Expectations" />
-                        <ComboBoxItem Content="⭐⭐⭐⭐ 4 - Exceeds Expectations" />
-                        <ComboBoxItem Content="⭐⭐⭐⭐⭐ 5 - Outstanding" />
+                              PlaceholderText="{markup:Localize Key=Dialog_Feedback_NoRating}">
+                        <ComboBoxItem Content="{markup:Localize Key=Rating_1_NeedsImprovement}" />
+                        <ComboBoxItem Content="{markup:Localize Key=Rating_2_BelowExpectations}" />
+                        <ComboBoxItem Content="{markup:Localize Key=Rating_3_MeetsExpectations}" />
+                        <ComboBoxItem Content="{markup:Localize Key=Rating_4_ExceedsExpectations}" />
+                        <ComboBoxItem Content="{markup:Localize Key=Rating_5_Outstanding}" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Visibility -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Visibility" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Label_Visibility}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox SelectedIndex="{Binding VisibilityIndex}"
                               HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="Private (manager only)" Tag="private" />
-                        <ComboBoxItem Content="Shared (recipient can see)" Tag="shared" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Feedback_PrivateManager}" Tag="private" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Feedback_SharedRecipient}" Tag="shared" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Anonymous Option -->
                 <StackPanel Spacing="4">
                     <CheckBox IsChecked="{Binding IsAnonymous}"
-                              Content="Give this feedback anonymously" />
-                    <TextBlock Text="Anonymous feedback hides your identity from the recipient"
+                              Content="{markup:Localize Key=Dialog_Feedback_GiveAnonymously}" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_Feedback_AnonymousNote}"
                                FontSize="11"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                Margin="28,0,0,0" />
@@ -114,7 +143,7 @@
             <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
                 <Grid ColumnDefinitions="*,Auto,Auto">
                     <Button Grid.Column="1"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderBrush="White"
@@ -133,7 +162,7 @@
                         </Button.Styles>
                     </Button>
                     <Button Grid.Column="2"
-                            Content="Give Feedback"
+                            Content="{markup:Localize Key=Dialog_Feedback_GiveFeedback}"
                             Foreground="{DynamicResource BrushPrimary}"
                             FontWeight="SemiBold"
                             BorderBrush="{DynamicResource BrushPrimary}"

@@ -36,6 +36,181 @@ public partial class CircleViewModel : ViewModelBase
         catch { }
     }
 
+    #region Surface Activation (CR Fix Plan Phase 4)
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
+
+    /// <summary>
+    /// Timestamp of the last successful data load.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Whether the surface has been marked dirty by external edits.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, trigger refresh.
+    /// Circle uses 5 minutes (team visibility changes are less frequent).
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Called when the Circle surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        Log("[CircleViewModel] OnSurfaceActivated called");
+
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            Log("[CircleViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            Log("[CircleViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadDataAsync();
+            return;
+        }
+
+        // Check for staleness
+        var now = DateTime.UtcNow;
+        var isStale = (now - _lastLoadTimestamp) > StalenessThreshold;
+
+        if (isStale)
+        {
+            Log($"[CircleViewModel] OnSurfaceActivated: data is stale ({(now - _lastLoadTimestamp).TotalMinutes:F0} min old), triggering refresh");
+            _ = LoadDataAsync();
+            return;
+        }
+
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            Log("[CircleViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadDataAsync();
+            return;
+        }
+
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        Log("[CircleViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when team members, goals, meetings, or feedback are edited elsewhere.
+    /// </summary>
+    public void MarkDirty()
+    {
+        Log("[CircleViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    /// <summary>
+    /// Logs hierarchy diagnostics for debugging RPC visibility issues.
+    /// Called after loading team members to validate RPC results.
+    /// </summary>
+    private void LogHierarchyDiagnostics(List<TeamMemberDetail> visibleMembers)
+    {
+        var relationCounts = visibleMembers
+            .GroupBy(m => m.Relation ?? "unknown")
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var depthCounts = visibleMembers
+            .GroupBy(m => m.HierarchyDepth)
+            .OrderBy(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        Log($"[CircleViewModel] Hierarchy Diagnostics:");
+        Log($"  Total visible: {visibleMembers.Count}");
+        Log($"  Relations: {string.Join(", ", relationCounts.Select(kv => $"{kv.Key}={kv.Value}"))}");
+        Log($"  Depths: {string.Join(", ", depthCounts.Select(kv => $"depth{kv.Key}={kv.Value}"))}");
+
+        // Log any members without valid relations (potential RPC issues)
+        var invalidRelations = visibleMembers.Where(m => string.IsNullOrEmpty(m.Relation)).ToList();
+        if (invalidRelations.Count > 0)
+        {
+            Log($"  WARNING: {invalidRelations.Count} members have null/empty relation");
+            foreach (var m in invalidRelations.Take(5))
+            {
+                Log($"    - {m.FullName} (id={m.Id})");
+            }
+        }
+    }
+
+    #endregion
+
     #region Tab Navigation
 
     /// <summary>
@@ -744,7 +919,9 @@ public partial class CircleViewModel : ViewModelBase
             meeting.DeleteCommand = new AsyncRelayCommand(() => DeleteMeetingAsync(meeting));
             meeting.SetMeetingDetailTabCommand = new RelayCommand<MeetingDetailTab>(tab => meeting.MeetingDetailTab = tab);
             
-            // Load linked tasks and prep items for this meeting
+            // Load authoritative data for this meeting on drill-in
+            // This avoids relying on cached/repaired data from the list
+            await LoadAuthoritativeAttendeesForMeetingAsync(meeting);
             await LoadLinkedTasksForMeetingAsync(meeting);
             await LoadPrepItemsForMeetingAsync(meeting);
             
@@ -753,6 +930,29 @@ public partial class CircleViewModel : ViewModelBase
             
             SelectedMeeting = meeting;
             IsMeetingDetailOpen = true;
+        }
+    }
+
+    /// <summary>
+    /// Loads authoritative attendees from the database for the selected meeting.
+    /// This ensures we have fresh data on drill-in rather than relying on cached list data.
+    /// </summary>
+    private async Task LoadAuthoritativeAttendeesForMeetingAsync(MeetingDetail meeting)
+    {
+        try
+        {
+            var freshMeeting = await MeetingService.Instance.GetMeetingAsync(meeting.Id);
+            if (freshMeeting != null)
+            {
+                // Replace attendees with authoritative data
+                meeting.Attendees = freshMeeting.Attendees;
+                Log($"[CircleViewModel] Loaded {meeting.Attendees?.Count ?? 0} authoritative attendees for meeting: {meeting.Title}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"[CircleViewModel] Error loading authoritative attendees for meeting: {ex.Message}");
+            // Non-fatal: continue with cached attendees
         }
     }
 
@@ -811,8 +1011,8 @@ public partial class CircleViewModel : ViewModelBase
 
     private void EditMeeting(MeetingDetail meeting)
     {
-        // TODO: Implement edit meeting dialog
         Log($"[CircleViewModel] Edit meeting requested: {meeting.Title}");
+        EditMeetingDialogRequested?.Invoke(this, meeting);
     }
 
     private async Task DeleteMeetingAsync(MeetingDetail meeting)
@@ -846,6 +1046,57 @@ public partial class CircleViewModel : ViewModelBase
             Log($"[CircleViewModel] Delete meeting failed: {ex.Message}");
             NotificationService.Instance.ShowError("Delete Failed", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Requests showing the Add Agenda Item dialog for the selected meeting.
+    /// </summary>
+    public void RequestAddAgendaItem()
+    {
+        if (SelectedMeeting == null) return;
+        AddAgendaItemDialogRequested?.Invoke(this, SelectedMeeting);
+    }
+
+    /// <summary>
+    /// Called when a new agenda item has been created. Adds it to the UI.
+    /// </summary>
+    public void OnAgendaItemAdded(MeetingAgendaItem newItem)
+    {
+        if (SelectedMeeting == null) return;
+        
+        SelectedMeeting.AgendaItems.Add(newItem);
+        Log($"Agenda item added: {newItem.Title}");
+    }
+
+    /// <summary>
+    /// Requests showing the Add Attendee picker for the selected meeting.
+    /// </summary>
+    public void RequestAddAttendee()
+    {
+        if (SelectedMeeting == null) return;
+        AddAttendeeDialogRequested?.Invoke(this, SelectedMeeting);
+    }
+
+    /// <summary>
+    /// Called when an attendee has been added to the meeting. Updates the UI.
+    /// </summary>
+    public void OnAttendeeAdded(MeetingAttendee newAttendee)
+    {
+        if (SelectedMeeting == null) return;
+        
+        SelectedMeeting.Attendees ??= new List<MeetingAttendee>();
+        SelectedMeeting.Attendees.Add(newAttendee);
+        OnPropertyChanged(nameof(SelectedMeeting));
+        Log($"Attendee added: {newAttendee.Name}");
+    }
+
+    /// <summary>
+    /// Requests opening the Edit Meeting dialog to the Notes tab.
+    /// </summary>
+    public void RequestEditMeetingNotes()
+    {
+        if (SelectedMeeting == null) return;
+        EditMeetingNotesRequested?.Invoke(this, SelectedMeeting);
     }
 
     /// <summary>
@@ -1198,15 +1449,38 @@ public partial class CircleViewModel : ViewModelBase
 
     /// <summary>
     /// Event to request showing the Create Meeting dialog.
-    /// The TeamMemberDetail parameter is the pre-selected attendee (for "Schedule Meeting with [Person]").
-    /// Pass null for a general meeting creation without pre-selection.
     /// </summary>
     public event EventHandler<TeamMemberDetail?>? CreateMeetingDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Edit Meeting dialog.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? EditMeetingDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Add Agenda Item dialog for the selected meeting.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? AddAgendaItemDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Add Attendee picker for the selected meeting.
+    /// </summary>
+    public event EventHandler<MeetingDetail>? AddAttendeeDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Edit Meeting Notes (opens EditMeetingDialog to Notes tab).
+    /// </summary>
+    public event EventHandler<MeetingDetail>? EditMeetingNotesRequested;
 
     /// <summary>
     /// Event to request showing the Add/Create Goal dialog.
     /// </summary>
     public event EventHandler? AddGoalDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Edit Goal dialog.
+    /// </summary>
+    public event EventHandler<GoalDetail>? EditGoalDialogRequested;
 
     public event EventHandler<TeamMemberDetail>? GiveFeedbackDialogRequested;
 
@@ -1376,6 +1650,59 @@ public partial class CircleViewModel : ViewModelBase
         // Refresh calendar views
         RefreshWeekDays();
         RefreshCalendarDays();
+    }
+
+    #endregion
+
+    #region Goal Dialog Callbacks
+
+    /// <summary>
+    /// Called by the View when a goal is saved from the dialog.
+    /// </summary>
+    public void OnGoalSaved(GoalDetail goal)
+    {
+        Log($"[CircleViewModel] Goal saved: {goal.Title}");
+        
+        var existing = Goals.FirstOrDefault(g => g.Id == goal.Id);
+        if (existing == null)
+        {
+            Goals.Add(goal);
+        }
+        else
+        {
+            var index = Goals.IndexOf(existing);
+            Goals[index] = goal;
+        }
+        
+        // Update selected goal if it's the same one
+        if (SelectedGoal?.Id == goal.Id)
+        {
+            SelectedGoal = goal;
+        }
+        
+        ApplyGoalFilters();
+    }
+
+    /// <summary>
+    /// Called by the View when a goal is deleted from the dialog.
+    /// </summary>
+    public void OnGoalDeleted(Guid goalId)
+    {
+        Log($"[CircleViewModel] Goal deleted: {goalId}");
+        
+        var existing = Goals.FirstOrDefault(g => g.Id == goalId);
+        if (existing != null)
+        {
+            Goals.Remove(existing);
+        }
+        
+        if (SelectedGoal?.Id == goalId)
+        {
+            SelectedGoal = null;
+            IsGoalDetailOpen = false;
+        }
+        
+        ApplyGoalFilters();
     }
 
     #endregion
@@ -1677,8 +2004,8 @@ public partial class CircleViewModel : ViewModelBase
     private void EditGoal(GoalDetail? goal)
     {
         if (goal == null) return;
-        // TODO: Open goal edit dialog
         Log($"Edit goal: {goal.Title}");
+        EditGoalDialogRequested?.Invoke(this, goal);
     }
 
     [RelayCommand]
@@ -2273,6 +2600,11 @@ public partial class CircleViewModel : ViewModelBase
             ErrorMessage = string.Empty;
             Log("[CircleViewModel] LoadDataAsync started");
 
+            // Start the 400ms delay timer for refresh status
+            _updateDelayTokenSource?.Cancel();
+            _updateDelayTokenSource = new CancellationTokenSource();
+            _ = ShowUpdatingStatusAfterDelayAsync(_updateDelayTokenSource.Token);
+
             var profile = AuthService.Instance.CurrentProfile;
             if (profile == null)
             {
@@ -2283,6 +2615,9 @@ public partial class CircleViewModel : ViewModelBase
             // Load visible team members using TeamService (hierarchy-aware)
             var visibleMembers = await TeamService.Instance.GetVisibleTeamMembersAsync();
             Log($"[CircleViewModel] Got {visibleMembers.Count} visible team members");
+
+            // Log hierarchy diagnostics for debugging RPC visibility issues
+            LogHierarchyDiagnostics(visibleMembers);
             
             // Also load dashboard data for goals, meetings, feedback
             LoadingStatus = "Loading dashboard data...";
@@ -2430,8 +2765,16 @@ public partial class CircleViewModel : ViewModelBase
 
             Log("[CircleViewModel] LoadDataAsync completed - starting background health computation");
             
+            // Update load timestamp for staleness tracking
+            _lastLoadTimestamp = DateTime.UtcNow;
+            
             // Mark main load as complete so UI is responsive
             IsLoading = false;
+            
+            // Cancel the delay timer and show "Updated" status
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
             
             // Apply goal filters now (they'll show Unknown health initially)
             ApplyGoalFilters();
@@ -2473,6 +2816,8 @@ public partial class CircleViewModel : ViewModelBase
             HasError = true;
             ErrorMessage = $"Failed to load data: {ex.Message}";
             IsLoading = false;
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Idle;
         }
     }
 }

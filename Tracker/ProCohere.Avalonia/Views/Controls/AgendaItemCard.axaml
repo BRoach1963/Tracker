@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:Class="ProCohere.Avalonia.Views.Controls.AgendaItemCard"
              x:DataType="models:MeetingAgendaItem">
@@ -115,7 +116,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <PathIcon Data="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z" 
                                           Width="10" Height="10" Foreground="#92400E"/>
-                                <TextBlock Text="Carried Forward" FontSize="9" Foreground="#92400E"/>
+                                <TextBlock Text="{markup:Localize Key=AgendaCard_CarriedForward}" FontSize="9" Foreground="#92400E"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -156,7 +157,7 @@
                         IsVisible="{Binding HasLinkedEntity}">
                 <PathIcon Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" 
                           Width="10" Height="10" Foreground="{DynamicResource BrushSuccess}"/>
-                <TextBlock Text="Linked to " FontSize="10" Foreground="{DynamicResource BrushTextSecondary}"/>
+                <TextBlock Text="{markup:Localize Key=AgendaCard_LinkedTo}" FontSize="10" Foreground="{DynamicResource BrushTextSecondary}"/>
                 <TextBlock Text="{Binding LinkedEntityTypeDisplay}" FontSize="10" Foreground="{DynamicResource BrushSuccess}" FontWeight="SemiBold"/>
             </StackPanel>
             
@@ -173,19 +174,19 @@
                 
                 <!-- Status change buttons -->
                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,12">
-                    <TextBlock Text="Status:" FontSize="10" Foreground="{DynamicResource BrushTextTertiary}" 
+                    <TextBlock Text="{markup:Localize Key=AgendaCard_StatusLabel}" FontSize="10" Foreground="{DynamicResource BrushTextTertiary}" 
                                VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <Button Classes="status-chip" ToolTip.Tip="Mark as Open" Click="OnSetOpen">
-                        <TextBlock Text="Open" FontSize="10"/>
+                    <Button Classes="status-chip" ToolTip.Tip="{markup:Localize Key=AgendaCard_MarkAsOpen}" Click="OnSetOpen">
+                        <TextBlock Text="{markup:Localize Key=AgendaCard_StatusOpen}" FontSize="10"/>
                     </Button>
-                    <Button Classes="status-chip" ToolTip.Tip="Mark as Discussed" Click="OnSetDiscussed">
-                        <TextBlock Text="Discussed" FontSize="10"/>
+                    <Button Classes="status-chip" ToolTip.Tip="{markup:Localize Key=AgendaCard_MarkAsDiscussed}" Click="OnSetDiscussed">
+                        <TextBlock Text="{markup:Localize Key=AgendaCard_StatusDiscussed}" FontSize="10"/>
                     </Button>
-                    <Button Classes="status-chip" ToolTip.Tip="Defer to future meeting" Click="OnSetDeferred">
-                        <TextBlock Text="Defer" FontSize="10"/>
+                    <Button Classes="status-chip" ToolTip.Tip="{markup:Localize Key=AgendaCard_DeferToFuture}" Click="OnSetDeferred">
+                        <TextBlock Text="{markup:Localize Key=AgendaCard_StatusDefer}" FontSize="10"/>
                     </Button>
-                    <Button Classes="status-chip" ToolTip.Tip="Drop this item" Click="OnSetDropped">
-                        <TextBlock Text="Drop" FontSize="10"/>
+                    <Button Classes="status-chip" ToolTip.Tip="{markup:Localize Key=AgendaCard_DropItem}" Click="OnSetDropped">
+                        <TextBlock Text="{markup:Localize Key=AgendaCard_StatusDrop}" FontSize="10"/>
                     </Button>
                 </StackPanel>
                 
@@ -194,7 +195,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="0">
                         <Button Classes="tab-button" x:Name="OutcomesTabButton" Click="OnOutcomesTabClick">
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="Outcomes" FontSize="11"/>
+                                <TextBlock Text="{markup:Localize Key=AgendaCard_TabOutcomes}" FontSize="11"/>
                                 <Border CornerRadius="8" Background="{DynamicResource BrushPrimary}" Padding="6,1"
                                         x:Name="OutcomesCountBadge" IsVisible="False">
                                     <TextBlock x:Name="OutcomesCountText" Text="0" FontSize="9" Foreground="White"/>
@@ -203,7 +204,7 @@
                         </Button>
                         <Button Classes="tab-button" x:Name="NotesTabButton" Click="OnNotesTabClick">
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="Notes" FontSize="11"/>
+                                <TextBlock Text="{markup:Localize Key=AgendaCard_TabNotes}" FontSize="11"/>
                                 <Border CornerRadius="8" Background="{DynamicResource BrushPrimary}" Padding="6,1"
                                         x:Name="NotesCountBadge" IsVisible="False">
                                     <TextBlock x:Name="NotesCountText" Text="0" FontSize="9" Foreground="White"/>
@@ -223,21 +224,21 @@
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <PathIcon Data="M9,5H7A2,2 0 0,0 5,7V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V7A2,2 0 0,0 17,5H15V7H17V19H7V7H9V5M12,2A2,2 0 0,1 14,4V6H10V4A2,2 0 0,1 12,2M11,11H13V14H16V16H13V19H11V16H8V14H11V11Z" 
                                           Width="11" Height="11" Foreground="{DynamicResource BrushPrimary}"/>
-                                <TextBlock Text="Create Task" FontSize="10" Foreground="{DynamicResource BrushPrimary}"/>
+                                <TextBlock Text="{markup:Localize Key=AgendaCard_CreateTask}" FontSize="10" Foreground="{DynamicResource BrushPrimary}"/>
                             </StackPanel>
                         </Button>
                         <Button Classes="status-chip" Margin="0,0,6,4" Click="OnRecordDecision">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10Z" 
                                           Width="11" Height="11" Foreground="#F59E0B"/>
-                                <TextBlock Text="Record Decision" FontSize="10" Foreground="#F59E0B"/>
+                                <TextBlock Text="{markup:Localize Key=AgendaCard_RecordDecision}" FontSize="10" Foreground="#F59E0B"/>
                             </StackPanel>
                         </Button>
                         <Button Classes="status-chip" Margin="0,0,6,4" Click="OnCaptureFeedback">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
                                           Width="11" Height="11" Foreground="#E91E63"/>
-                                <TextBlock Text="Capture Feedback" FontSize="10" Foreground="#E91E63"/>
+                                <TextBlock Text="{markup:Localize Key=AgendaCard_CaptureFeedback}" FontSize="10" Foreground="#E91E63"/>
                             </StackPanel>
                         </Button>
                     </WrapPanel>
@@ -278,7 +279,7 @@
                     
                     <!-- Empty state -->
                     <TextBlock x:Name="NoOutcomesText"
-                               Text="No outcomes recorded yet" 
+                               Text="{markup:Localize Key=AgendaCard_NoOutcomes}" 
                                FontSize="11" 
                                Foreground="{DynamicResource BrushTextTertiary}"
                                HorizontalAlignment="Center"
@@ -293,7 +294,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="4">
                             <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                                       Width="11" Height="11" Foreground="{DynamicResource BrushPrimary}"/>
-                            <TextBlock Text="Add Note" FontSize="10" Foreground="{DynamicResource BrushPrimary}"/>
+                            <TextBlock Text="{markup:Localize Key=AgendaCard_AddNote}" FontSize="10" Foreground="{DynamicResource BrushPrimary}"/>
                         </StackPanel>
                     </Button>
                     
@@ -324,7 +325,7 @@
                     
                     <!-- Empty state -->
                     <TextBlock x:Name="NoNotesText"
-                               Text="No notes added yet" 
+                               Text="{markup:Localize Key=AgendaCard_NoNotes}" 
                                FontSize="11" 
                                Foreground="{DynamicResource BrushTextTertiary}"
                                HorizontalAlignment="Center"

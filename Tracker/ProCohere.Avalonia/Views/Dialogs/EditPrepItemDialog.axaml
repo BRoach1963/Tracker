@@ -4,10 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="clr-namespace:ProCohere.Avalonia.Models"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="650"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditPrepItemDialog"
         x:DataType="vm:EditPrepItemDialogViewModel"
-        Title="Edit Prep Item"
+        Title="{markup:Localize Key=Dialog_EditPrep_Title}"
         Width="500" Height="650"
         MinWidth="400" MinHeight="450"
         WindowStartupLocation="CenterOwner"
@@ -34,8 +35,8 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Edit Prep Item" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Text="Configure your preparation for this meeting" FontSize="12" Foreground="#FFFFFFCC"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_Title}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_Subtitle}" FontSize="12" Foreground="#FFFFFFCC"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -61,9 +62,9 @@
                 
                 <!-- Title -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="TITLE" FontSize="11" FontWeight="SemiBold" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_TitleLabel}" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBox Text="{Binding Title}" Watermark="What needs to be prepared?"/>
+                    <TextBox Text="{Binding Title}" Watermark="{markup:Localize Key=Dialog_EditPrep_TitleWatermark}"/>
                 </StackPanel>
                 
                 <!-- Prep Prompt -->
@@ -72,30 +73,30 @@
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z"
                                       Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,4,0"/>
-                            <TextBlock Text="PREP PROMPT" FontSize="11" FontWeight="SemiBold" 
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_PrepPrompt}" FontSize="11" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Text="What to think about" FontSize="10" 
+                        <TextBlock Grid.Column="1" Text="{markup:Localize Key=Dialog_EditPrep_WhatToThinkAbout}" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
                     <TextBox Text="{Binding PrepPrompt}"
-                             Watermark="What questions should be considered? What's the framing?"
+                             Watermark="{markup:Localize Key=Dialog_EditPrep_PrepPromptWatermark}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="70" MaxHeight="120"/>
-                    <TextBlock Text="This prompt guides your thinking before the meeting" FontSize="11" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_PrepPromptHint}" FontSize="11" 
                                Foreground="{DynamicResource BrushTextTertiary}"/>
                 </StackPanel>
                 
                 <!-- Body/Details -->
                 <StackPanel Spacing="4">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="DETAILS" FontSize="11" FontWeight="SemiBold" 
+                        <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_Details}" FontSize="11" FontWeight="SemiBold" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBlock Grid.Column="1" Text="Optional" FontSize="10" 
+                        <TextBlock Grid.Column="1" Text="{markup:Localize Key=Dialog_EditPrep_Optional}" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
                     <TextBox Text="{Binding Body}"
-                             Watermark="Additional context, background, or notes..."
+                             Watermark="{markup:Localize Key=Dialog_EditPrep_DetailsWatermark}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="60" MaxHeight="100"/>
                 </StackPanel>
@@ -106,44 +107,44 @@
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
                                       Width="12" Height="12" Foreground="#10B981" Margin="0,0,4,0"/>
-                            <TextBlock Text="YOUR PREPARATION" FontSize="11" FontWeight="SemiBold" 
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_YourPreparation}" FontSize="11" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
                         <TextBlock Text="{Binding PreparedStatusText}" Grid.Column="1" FontSize="10" 
                                    Foreground="#10B981" FontStyle="Italic"/>
                     </Grid>
                     <TextBox Text="{Binding PrepResponse}"
-                             Watermark="Capture your thoughts, decisions, and prepared points..."
+                             Watermark="{markup:Localize Key=Dialog_EditPrep_PreparationWatermark}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="100" MaxHeight="200"/>
-                    <TextBlock Text="Record your preparation - filling this in marks the item as 'prepared'" FontSize="11" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_PreparationHint}" FontSize="11" 
                                Foreground="{DynamicResource BrushTextTertiary}"/>
                 </StackPanel>
                 
                 <!-- Scope -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="SCOPE" FontSize="11" FontWeight="SemiBold" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_Scope}" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox SelectedIndex="{Binding ScopeIndex}" HorizontalAlignment="Stretch">
                         <ComboBoxItem Tag="meeting">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Meeting – everyone can see"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_ScopeMeeting}"/>
                             </StackPanel>
                         </ComboBoxItem>
                         <ComboBoxItem Tag="assigned">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Assigned – one person"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_ScopeAssigned}"/>
                             </StackPanel>
                         </ComboBoxItem>
                         <ComboBoxItem Tag="personal" IsSelected="True">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Personal – just me"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_ScopePersonal}"/>
                             </StackPanel>
                         </ComboBoxItem>
                     </ComboBox>
@@ -151,19 +152,19 @@
                 
                 <!-- Assignee Picker (when assigned scope) -->
                 <StackPanel Spacing="4" IsVisible="{Binding IsAssigneePanelVisible}">
-                    <TextBlock Text="ASSIGN TO" FontSize="11" FontWeight="SemiBold" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_AssignTo}" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox ItemsSource="{Binding Attendees}" 
                               SelectedItem="{Binding SelectedAttendee}"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="Select attendee">
+                              PlaceholderText="{markup:Localize Key=Dialog_EditPrep_SelectAttendee}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:MeetingAttendee">
                                 <TextBlock Text="{Binding Name}"/>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBlock Text="This person will see the item as 'Requested by you'" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_AssigneeHint}" 
                                FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
                 </StackPanel>
                 
@@ -173,39 +174,39 @@
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"
                                       Width="12" Height="12" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,0,4,0"/>
-                            <TextBlock Text="NOTES FOR ASSIGNEE" FontSize="11" FontWeight="SemiBold" 
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_NotesForAssignee}" FontSize="11" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Text="Optional" FontSize="10" 
+                        <TextBlock Grid.Column="1" Text="{markup:Localize Key=Dialog_EditPrep_Optional}" FontSize="10" 
                                    Foreground="{DynamicResource BrushTextTertiary}" FontStyle="Italic"/>
                     </Grid>
                     <TextBox Text="{Binding AssigneeNotes}"
-                             Watermark="Instructions or context for the person assigned..."
+                             Watermark="{markup:Localize Key=Dialog_EditPrep_AssigneeNotesWatermark}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              MinHeight="50" MaxHeight="100"/>
                 </StackPanel>
                 
                 <!-- Status -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="STATUS" FontSize="11" FontWeight="SemiBold" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_Status}" FontSize="11" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox SelectedIndex="{Binding StatusIndex}" HorizontalAlignment="Stretch">
                         <ComboBoxItem Tag="open">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="8" Height="8" Fill="{DynamicResource BrushTextTertiary}"/>
-                                <TextBlock Text="Open"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_StatusOpen}"/>
                             </StackPanel>
                         </ComboBoxItem>
                         <ComboBoxItem Tag="pending">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="8" Height="8" Fill="#F59E0B"/>
-                                <TextBlock Text="In Progress"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_StatusInProgress}"/>
                             </StackPanel>
                         </ComboBoxItem>
                         <ComboBoxItem Tag="completed">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="8" Height="8" Fill="#10B981"/>
-                                <TextBlock Text="Completed"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditPrep_StatusCompleted}"/>
                             </StackPanel>
                         </ComboBoxItem>
                     </ComboBox>
@@ -218,7 +219,7 @@
             <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" 
                     Padding="20,12">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                    <Button Content="Cancel" 
+                    <Button Content="{markup:Localize Key=Button_Cancel}" 
                             Command="{Binding CancelCommand}">
                         <Button.Styles>
                             <Style Selector="Button">
@@ -236,7 +237,7 @@
                             </Style>
                         </Button.Styles>
                     </Button>
-                    <Button Content="Save Changes" 
+                    <Button Content="{markup:Localize Key=Dialog_EditPrep_SaveChanges}" 
                             Command="{Binding SaveCommand}">
                         <Button.Styles>
                             <Style Selector="Button">

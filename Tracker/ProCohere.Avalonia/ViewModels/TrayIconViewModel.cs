@@ -68,8 +68,6 @@ public partial class TrayIconViewModel : ObservableObject
     {
         // Persist to settings
         LocalSettingsService.Instance.EnableReminders = value;
-        
-        // TODO: Start/stop reminder service when implemented
         System.Diagnostics.Debug.WriteLine($"Reminders enabled: {value}");
     }
 

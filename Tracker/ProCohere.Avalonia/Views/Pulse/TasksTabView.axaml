@@ -5,6 +5,7 @@
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
              xmlns:local="using:ProCohere.Avalonia.Views.Pulse"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.Pulse.TasksTabView"
              x:DataType="vm:TasksViewModel">
@@ -90,7 +91,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding TotalCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <TextBlock Text="All" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=TasksTab_FilterAll}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -101,7 +102,18 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding TodayCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="#3B82F6"/>
-                        <TextBlock Text="Today" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=TasksTab_FilterToday}" FontSize="12" 
+                                   Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Upcoming -->
+                <Border Classes="filter-stat" Classes.selected="{Binding IsFilterUpcoming}"
+                        Tapped="FilterUpcoming_Tapped">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding UpcomingCountText}" FontSize="18" FontWeight="Bold"
+                                   Foreground="#8B5CF6"/>
+                        <TextBlock Text="{markup:Localize Key=TasksTab_FilterUpcoming}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -112,7 +124,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding OverdueCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="#EF4444"/>
-                        <TextBlock Text="Overdue" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=TasksTab_FilterOverdue}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -123,7 +135,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding CompletedCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="#10B981"/>
-                        <TextBlock Text="Completed" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=TasksTab_FilterCompleted}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -135,7 +147,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                               Width="14" Height="14"/>
-                    <TextBlock Text="New Task" VerticalAlignment="Center"/>
+                    <TextBlock Text="{markup:Localize Key=TasksTab_NewTask}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
         </Grid>
@@ -148,19 +160,23 @@
                           Padding="0,0,12,0">
                 <Grid>
                     <!-- Loading State -->
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12"
-                                IsVisible="{Binding IsLoading}">
-                        <PathIcon Data="M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.25,13.97 6,13 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,11 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z" 
-                                  Width="32" Height="32" 
-                                  Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBlock Text="Loading tasks..." 
-                                   FontSize="14"
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                    </StackPanel>
+                    <Border IsVisible="{Binding ShowLoading, FallbackValue=True}"
+                            Background="{DynamicResource BrushSurface}" 
+                            CornerRadius="8" 
+                            Padding="24"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ProgressBar IsIndeterminate="True" Width="200"/>
+                            <TextBlock Text="{markup:Localize Key=TasksTab_Loading}" 
+                                       Foreground="{DynamicResource BrushTextSecondary}" 
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                     
                     <!-- Error State -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12"
-                                IsVisible="{Binding HasError}">
+                                IsVisible="{Binding HasError, FallbackValue=False}">
                         <PathIcon Data="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" 
                                   Width="32" Height="32" 
                                   Foreground="#EF4444"/>
@@ -172,26 +188,20 @@
                                    TextAlignment="Center"/>
                         <Button Classes="button-secondary" Command="{Binding RefreshCommand}"
                                 HorizontalAlignment="Center">
-                            <TextBlock Text="Retry"/>
+                            <TextBlock Text="{markup:Localize Key=TasksTab_Retry}"/>
                         </Button>
                     </StackPanel>
                     
                     <!-- Empty State (only when not loading, no error, and no tasks) -->
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
-                        <StackPanel.IsVisible>
-                            <MultiBinding Converter="{x:Static BoolConverters.And}">
-                                <Binding Path="!IsLoading"/>
-                                <Binding Path="!HasError"/>
-                                <Binding Path="!FilteredTasks.Count"/>
-                            </MultiBinding>
-                        </StackPanel.IsVisible>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12"
+                                IsVisible="{Binding ShowEmptyState, FallbackValue=False}">
                         <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9,13V19H7V13H9M15,15V19H13V15H15M11,11V19H9V11H11M13,13V19H11V13H13" 
                                   Width="48" Height="48" 
                                   Foreground="{DynamicResource BrushTextTertiary}"/>
-                        <TextBlock Text="No tasks found" 
+                        <TextBlock Text="{markup:Localize Key=TasksTab_NoTasksFound}" 
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBlock Text="Create your first task to get started" 
+                        <TextBlock Text="{markup:Localize Key=TasksTab_CreateFirstTask}" 
                                    FontSize="13"
                                    Foreground="{DynamicResource BrushTextTertiary}"/>
                         <Button Classes="button-primary" Margin="0,8,0,0"
@@ -199,20 +209,14 @@
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Create Task"/>
+                                <TextBlock Text="{markup:Localize Key=TasksTab_CreateTask}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
                     
                     <!-- Task List (only when not loading, no error, and has tasks) -->
-                    <ItemsControl ItemsSource="{Binding FilteredTasks}">
-                        <ItemsControl.IsVisible>
-                            <MultiBinding Converter="{x:Static BoolConverters.And}">
-                                <Binding Path="!IsLoading"/>
-                                <Binding Path="!HasError"/>
-                                <Binding Path="!!FilteredTasks.Count"/>
-                            </MultiBinding>
-                        </ItemsControl.IsVisible>
+                    <ItemsControl ItemsSource="{Binding FilteredTasks}"
+                                  IsVisible="{Binding ShowTaskList, FallbackValue=False}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Classes="task-card" 

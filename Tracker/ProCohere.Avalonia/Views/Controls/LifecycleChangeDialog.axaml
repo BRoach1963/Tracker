@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="600"
              x:Class="ProCohere.Avalonia.Views.Controls.LifecycleChangeDialog"
              x:DataType="vm:GoalsViewModel">
@@ -41,7 +42,7 @@
                 <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="12,12,0,0" Padding="20,16">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Update Lifecycle" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_Title}" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
                             <TextBlock Text="{Binding SelectedGoal.Title}" FontSize="12" Foreground="#94A3B8"
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
@@ -60,16 +61,16 @@
                         <!-- Philosophy Banner -->
                         <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="🔄 Goal Evolution" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_BannerTitle}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource BrushPrimary}"/>
-                                <TextBlock Text="Goals evolve. This captures where the goal is in its journey, not whether it 'succeeded' or 'failed'." 
+                                <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_BannerDescription}" 
                                            FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
                             </StackPanel>
                         </Border>
                         
                         <!-- Lifecycle Options -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="SELECT LIFECYCLE STATE" FontSize="10" FontWeight="SemiBold"
+                            <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_SelectHeader}" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                             
                             <!-- Active -->
@@ -80,9 +81,9 @@
                                     <PathIcon Data="M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7Z"
                                               Width="20" Height="20" Foreground="#3B82F6" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Active" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_Active}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Being actively worked on" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_ActiveDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -96,9 +97,9 @@
                                     <PathIcon Data="M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.25,13.97 6,13 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,11 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z"
                                               Width="20" Height="20" Foreground="#6366F1" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Evolving" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_Evolving}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Scope or direction is changing" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_EvolvingDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -112,9 +113,9 @@
                                     <PathIcon Data="M14,19H18V5H14M6,19H10V5H6V19Z"
                                               Width="20" Height="20" Foreground="#94A3B8" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Paused" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_Paused}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Temporarily on hold" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_PausedDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -128,9 +129,9 @@
                                     <PathIcon Data="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"
                                               Width="20" Height="20" Foreground="#A855F7" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Superseded" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_Superseded}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Replaced by another goal" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_SupersededDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -144,9 +145,9 @@
                                     <PathIcon Data="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M16.5,16.25C16.5,14.75 13.5,14 12,14C10.5,14 7.5,14.75 7.5,16.25V17H16.5M12,12.25A2.25,2.25 0 0,0 14.25,10A2.25,2.25 0 0,0 12,7.75A2.25,2.25 0 0,0 9.75,10A2.25,2.25 0 0,0 12,12.25Z"
                                               Width="20" Height="20" Foreground="#64748B" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Retired" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_Retired}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="No longer relevant, kept for history" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_RetiredDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -155,26 +156,26 @@
                         
                         <!-- Superseded By Picker (only visible when Superseded is selected) -->
                         <StackPanel Spacing="8" IsVisible="{Binding ShowSupersededByPicker}">
-                            <TextBlock Text="SUPERSEDED BY" FontSize="10" FontWeight="SemiBold"
+                            <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_SupersededByHeader}" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                             <ComboBox ItemsSource="{Binding AvailableGoalsForSupersede}"
                                       SelectedValue="{Binding SupersededById}"
                                       SelectedValueBinding="{Binding Id}"
                                       DisplayMemberBinding="{Binding Title}"
-                                      PlaceholderText="Select the replacement goal..."
+                                      PlaceholderText="{markup:Localize Key=Dialog_Lifecycle_SupersededByPlaceholder}"
                                       HorizontalAlignment="Stretch"/>
                         </StackPanel>
                         
                         <!-- Reflection Prompt -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="REFLECTION" FontSize="10" FontWeight="SemiBold"
+                            <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_ReflectionHeader}" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                             <Border Background="{DynamicResource BrushPrimarySoft}" CornerRadius="6" Padding="10,8">
                                 <TextBlock Text="{Binding LifecycleReflectionPrompt}" FontSize="12" FontStyle="Italic"
                                            TextWrapping="Wrap" Foreground="{DynamicResource BrushPrimary}"/>
                             </Border>
                             <TextBox Text="{Binding LifecycleReason}" 
-                                     Watermark="What led to this change..."
+                                     Watermark="{markup:Localize Key=Dialog_Lifecycle_ReflectionPlaceholder}"
                                      AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="80" MaxHeight="120"/>
                         </StackPanel>
@@ -185,12 +186,12 @@
                 <!-- Actions -->
                 <Border Grid.Row="2" Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="0,0,12,12" Padding="20,16">
                     <Grid ColumnDefinitions="*,Auto,Auto">
-                        <TextBlock Text="This change will be recorded in the goal's history."
+                        <TextBlock Text="{markup:Localize Key=Dialog_Lifecycle_HistoryNote}"
                                    FontSize="10" Foreground="{DynamicResource BrushTextTertiary}"
                                    VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" Classes="secondary-button" Content="Cancel" Margin="0,0,8,0"
+                        <Button Grid.Column="1" Classes="secondary-button" Content="{markup:Localize Key=Button_Cancel}" Margin="0,0,8,0"
                                 Command="{Binding CancelLifecycleDialogCommand}"/>
-                        <Button Grid.Column="2" Classes="action-button" Content="Save Lifecycle"
+                        <Button Grid.Column="2" Classes="action-button" Content="{markup:Localize Key=Dialog_Lifecycle_SaveButton}"
                                 Command="{Binding SaveLifecycleChangeCommand}"/>
                     </Grid>
                 </Border>

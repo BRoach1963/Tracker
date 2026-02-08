@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         x:Class="ProCohere.Avalonia.Views.Dialogs.ConfirmationDialog"
         Title="Confirm"
         Width="420"
@@ -39,7 +40,7 @@
                                   Foreground="White"/>
                     </Viewbox>
                     <TextBlock x:Name="TitleText"
-                               Text="Confirm Action"
+                               Text="{markup:Localize Key=Dialog_ConfirmAction_Title}"
                                FontSize="18"
                                FontWeight="SemiBold"
                                FontFamily="{DynamicResource FontFamilyDefault}"
@@ -51,7 +52,7 @@
             <!-- Message -->
             <Border Grid.Row="1" Padding="24,20">
                 <TextBlock x:Name="MessageText"
-                           Text="Are you sure you want to proceed?"
+                           Text="{markup:Localize Key=Dialog_ConfirmAction_Message}"
                            FontSize="{DynamicResource FontSizeBody}"
                            FontFamily="{DynamicResource FontFamilyDefault}"
                            Foreground="{DynamicResource BrushTextSecondary}"
@@ -66,7 +67,7 @@
                 <Grid ColumnDefinitions="*,Auto,Auto">
                     <Button Grid.Column="1"
                             x:Name="CancelButton"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="1"
@@ -92,7 +93,7 @@
                             BorderBrush="{DynamicResource BrushPrimary}"
                             Padding="16,8"
                             Click="ConfirmButton_Click">
-                        <TextBlock x:Name="ConfirmButtonText" Text="Confirm"/>
+                        <TextBlock x:Name="ConfirmButtonText" Text="{markup:Localize Key=Button_Confirm}"/>
                         <Button.Styles>
                             <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
                                 <Setter Property="Background" Value="White"/>

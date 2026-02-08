@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:conv="using:ProCohere.Avalonia.Converters"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
              x:Class="ProCohere.Avalonia.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
@@ -27,7 +28,7 @@
                     <!-- Header with Edit button -->
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
                         <TextBlock Grid.Column="0"
-                                   Text="Profile"
+                                   Text="{markup:Localize Key=Settings_Profile}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="#2E3A5A" />
@@ -46,7 +47,7 @@
                                 <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6.02 20.71,5.63L18.37,3.29C17.98,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z"
                                           Width="14" Height="14"
                                           Foreground="#64748B" />
-                                <TextBlock Text="Edit"
+                                <TextBlock Text="{markup:Localize Key=Button_Edit}"
                                            FontSize="13"
                                            Foreground="#2E3A5A" />
                             </StackPanel>
@@ -64,7 +65,7 @@
                                     Padding="12,6"
                                     CornerRadius="6"
                                     Cursor="Hand">
-                                <TextBlock Text="Cancel"
+                                <TextBlock Text="{markup:Localize Key=Button_Cancel}"
                                            FontSize="13"
                                            Foreground="#64748B" />
                             </Button>
@@ -143,7 +144,7 @@
                                     <PathIcon Data="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"
                                               Width="20" Height="20"
                                               Foreground="White" />
-                                    <TextBlock Text="Change"
+                                    <TextBlock Text="{markup:Localize Key=Settings_Change}"
                                                FontSize="10"
                                                Foreground="White"
                                                HorizontalAlignment="Center" />
@@ -193,7 +194,7 @@
                                     <TextBlock Text="{Binding JobTitle}"
                                                FontSize="14"
                                                Foreground="#475569" />
-                                    <TextBlock Text="at"
+                                    <TextBlock Text="{markup:Localize Key=Settings_At}"
                                                FontSize="14"
                                                Foreground="#94A3B8"
                                                IsVisible="{Binding Company, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -233,21 +234,21 @@
                                 <!-- First/Last Name Row -->
                                 <Grid ColumnDefinitions="*,12,*">
                                     <StackPanel Grid.Column="0" Spacing="4">
-                                        <TextBlock Text="First Name" 
+                                        <TextBlock Text="{markup:Localize Key=Settings_FirstName}" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
                                         <TextBox Text="{Binding FirstName, Mode=TwoWay}"
-                                                 Watermark="First name"
+                                                 Watermark="{markup:Localize Key=Placeholder_FirstName}"
                                                  FontSize="14"
                                                  Padding="12,10"
                                                  CornerRadius="6" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Spacing="4">
-                                        <TextBlock Text="Last Name" 
+                                        <TextBlock Text="{markup:Localize Key=Settings_LastName}" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
                                         <TextBox Text="{Binding LastName, Mode=TwoWay}"
-                                                 Watermark="Last name"
+                                                 Watermark="{markup:Localize Key=Placeholder_LastName}"
                                                  FontSize="14"
                                                  Padding="12,10"
                                                  CornerRadius="6" />
@@ -256,11 +257,11 @@
                                 
                                 <!-- Job Title -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Job Title" 
+                                    <TextBlock Text="{markup:Localize Key=Settings_JobTitle}" 
                                                FontSize="12" 
                                                Foreground="#64748B" />
                                     <TextBox Text="{Binding JobTitle, Mode=TwoWay}"
-                                             Watermark="e.g. Product Manager"
+                                             Watermark="{markup:Localize Key=Placeholder_JobTitleExample}"
                                              FontSize="14"
                                              Padding="12,10"
                                              CornerRadius="6" />
@@ -268,11 +269,11 @@
                                 
                                 <!-- Company -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Company" 
+                                    <TextBlock Text="{markup:Localize Key=Settings_Company}" 
                                                FontSize="12" 
                                                Foreground="#64748B" />
                                     <TextBox Text="{Binding Company, Mode=TwoWay}"
-                                             Watermark="e.g. Acme Corp"
+                                             Watermark="{markup:Localize Key=Placeholder_CompanyExample}"
                                              FontSize="14"
                                              Padding="12,10"
                                              CornerRadius="6" />
@@ -280,11 +281,11 @@
                                 
                                 <!-- Phone -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Phone" 
+                                    <TextBlock Text="{markup:Localize Key=Settings_Phone}" 
                                                FontSize="12" 
                                                Foreground="#64748B" />
                                     <TextBox Text="{Binding Phone, Mode=TwoWay}"
-                                             Watermark="e.g. +1 (555) 123-4567"
+                                             Watermark="{markup:Localize Key=Placeholder_PhoneExample}"
                                              FontSize="14"
                                              Padding="12,10"
                                              CornerRadius="6" />
@@ -293,21 +294,21 @@
                                 <!-- Birthday and Hire Date Row -->
                                 <Grid ColumnDefinitions="*,12,*">
                                     <StackPanel Grid.Column="0" Spacing="4">
-                                        <TextBlock Text="Birthday" 
+                                        <TextBlock Text="{markup:Localize Key=Settings_Birthday}" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
                                         <CalendarDatePicker SelectedDate="{Binding BirthdayOffset, Mode=TwoWay}"
                                                             HorizontalAlignment="Stretch"
-                                                            Watermark="Select date"
+                                                            Watermark="{markup:Localize Key=Placeholder_SelectDate}"
                                                             IsTodayHighlighted="True"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Spacing="4">
-                                        <TextBlock Text="Hire Date" 
+                                        <TextBlock Text="{markup:Localize Key=Settings_HireDate}" 
                                                    FontSize="12" 
                                                    Foreground="#64748B" />
                                         <CalendarDatePicker SelectedDate="{Binding HireDateOffset, Mode=TwoWay}"
                                                             HorizontalAlignment="Stretch"
-                                                            Watermark="Select date"
+                                                            Watermark="{markup:Localize Key=Placeholder_SelectDate}"
                                                             IsTodayHighlighted="True"/>
                                     </StackPanel>
                                 </Grid>
@@ -324,7 +325,7 @@
                     Padding="24"
                     BoxShadow="0 2 8 0 #10000000">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="Account"
+                    <TextBlock Text="{markup:Localize Key=Settings_Account}"
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="#2E3A5A" />
@@ -346,10 +347,10 @@
                                       Foreground="#64748B"
                                       Margin="0,0,12,0" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="Edit Full Profile"
+                                <TextBlock Text="{markup:Localize Key=Settings_EditFullProfile}"
                                            FontSize="14"
                                            Foreground="#2E3A5A" />
-                                <TextBlock Text="Includes timezone and more options"
+                                <TextBlock Text="{markup:Localize Key=Settings_EditFullProfileDesc}"
                                            FontSize="12"
                                            Foreground="#94A3B8" />
                             </StackPanel>
@@ -378,7 +379,7 @@
                                       Foreground="#64748B"
                                       Margin="0,0,12,0" />
                             <TextBlock Grid.Column="1"
-                                       Text="Change Password"
+                                       Text="{markup:Localize Key=Settings_ChangePassword}"
                                        FontSize="14"
                                        Foreground="#2E3A5A"
                                        VerticalAlignment="Center" />
@@ -397,7 +398,7 @@
                     Padding="24"
                     BoxShadow="0 2 8 0 #10000000">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="Appearance"
+                    <TextBlock Text="{markup:Localize Key=Settings_Appearance}"
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="#2E3A5A" />
@@ -405,11 +406,11 @@
                     <!-- Theme Toggle -->
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Dark Theme"
+                            <TextBlock Text="{markup:Localize Key=Settings_DarkTheme}"
                                        FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#2E3A5A" />
-                            <TextBlock Text="Switch between light and dark appearance"
+                            <TextBlock Text="{markup:Localize Key=Settings_DarkThemeDesc}"
                                        FontSize="13"
                                        Foreground="#64748B" />
                         </StackPanel>
@@ -429,7 +430,7 @@
                     Padding="24"
                     BoxShadow="0 2 8 0 #10000000">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="Notifications &amp; Reminders"
+                    <TextBlock Text="{markup:Localize Key=Settings_NotificationsReminders}"
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="#2E3A5A" />
@@ -437,11 +438,11 @@
                     <!-- Master Toggle -->
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Enable Reminders"
+                            <TextBlock Text="{markup:Localize Key=Settings_EnableRemindersTitle}"
                                        FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#2E3A5A" />
-                            <TextBlock Text="Receive notifications for meetings, tasks, and goals"
+                            <TextBlock Text="{markup:Localize Key=Settings_EnableRemindersDesc}"
                                        FontSize="13"
                                        Foreground="#64748B" />
                         </StackPanel>
@@ -460,12 +461,12 @@
                         <!-- Meeting Reminders -->
                         <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0,0,0">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Meeting Reminders"
+                                <TextBlock Text="{markup:Localize Key=Settings_MeetingReminders}"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            Foreground="#2E3A5A" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="Remind"
+                                    <TextBlock Text="{markup:Localize Key=Settings_Remind}"
                                                FontSize="13"
                                                Foreground="#64748B" />
                                     <NumericUpDown Value="{Binding MeetingReminderMinutes}"
@@ -476,7 +477,7 @@
                                                    FontSize="12"
                                                    IsVisible="{Binding ShowMeetingReminders}"
                                                    VerticalAlignment="Center" />
-                                    <TextBlock Text="minutes before"
+                                    <TextBlock Text="{markup:Localize Key=Settings_MinutesBefore}"
                                                FontSize="13"
                                                Foreground="#64748B"
                                                IsVisible="{Binding ShowMeetingReminders}" />
@@ -493,12 +494,12 @@
                         <!-- Task Reminders -->
                         <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0,0,0">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Task Reminders"
+                                <TextBlock Text="{markup:Localize Key=Settings_TaskReminders}"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            Foreground="#2E3A5A" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="Remind"
+                                    <TextBlock Text="{markup:Localize Key=Settings_Remind}"
                                                FontSize="13"
                                                Foreground="#64748B" />
                                     <NumericUpDown Value="{Binding TaskReminderDays}"
@@ -509,7 +510,7 @@
                                                    FontSize="12"
                                                    IsVisible="{Binding ShowTaskReminders}"
                                                    VerticalAlignment="Center" />
-                                    <TextBlock Text="days before deadline"
+                                    <TextBlock Text="{markup:Localize Key=Settings_DaysBeforeDeadline}"
                                                FontSize="13"
                                                Foreground="#64748B"
                                                IsVisible="{Binding ShowTaskReminders}" />
@@ -526,12 +527,12 @@
                         <!-- Goal Reminders -->
                         <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0,0,0">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Goal Reminders"
+                                <TextBlock Text="{markup:Localize Key=Settings_GoalReminders}"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            Foreground="#2E3A5A" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="Remind"
+                                    <TextBlock Text="{markup:Localize Key=Settings_Remind}"
                                                FontSize="13"
                                                Foreground="#64748B" />
                                     <NumericUpDown Value="{Binding GoalReminderDays}"
@@ -542,7 +543,7 @@
                                                    FontSize="12"
                                                    IsVisible="{Binding ShowGoalReminders}"
                                                    VerticalAlignment="Center" />
-                                    <TextBlock Text="days before deadline"
+                                    <TextBlock Text="{markup:Localize Key=Settings_DaysBeforeDeadline}"
                                                FontSize="13"
                                                Foreground="#64748B"
                                                IsVisible="{Binding ShowGoalReminders}" />
@@ -561,12 +562,12 @@
                         <!-- Snooze Duration -->
                         <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,0">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Default Snooze"
+                                <TextBlock Text="{markup:Localize Key=Settings_DefaultSnooze}"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            Foreground="#2E3A5A" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="Snooze for"
+                                    <TextBlock Text="{markup:Localize Key=Settings_SnoozeFor}"
                                                FontSize="13"
                                                Foreground="#64748B" />
                                     <NumericUpDown Value="{Binding SnoozeDurationMinutes}"
@@ -576,7 +577,7 @@
                                                    Width="70"
                                                    FontSize="12"
                                                    VerticalAlignment="Center" />
-                                    <TextBlock Text="minutes"
+                                    <TextBlock Text="{markup:Localize Key=Settings_Minutes}"
                                                FontSize="13"
                                                Foreground="#64748B" />
                                 </StackPanel>
@@ -586,11 +587,11 @@
                         <!-- Sound Toggle -->
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Play Sound"
+                                <TextBlock Text="{markup:Localize Key=Settings_PlaySound}"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            Foreground="#2E3A5A" />
-                                <TextBlock Text="Play a sound when reminders appear"
+                                <TextBlock Text="{markup:Localize Key=Settings_PlaySoundDesc}"
                                            FontSize="13"
                                            Foreground="#64748B" />
                             </StackPanel>
@@ -611,7 +612,7 @@
                     Padding="24"
                     BoxShadow="0 2 8 0 #10000000">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="Security"
+                    <TextBlock Text="{markup:Localize Key=Settings_Security}"
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="#2E3A5A" />
@@ -619,11 +620,11 @@
                     <!-- Stay Signed In -->
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Stay Signed In"
+                            <TextBlock Text="{markup:Localize Key=Settings_StaySignedIn}"
                                        FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#2E3A5A" />
-                            <TextBlock Text="Automatically sign in when you open the app"
+                            <TextBlock Text="{markup:Localize Key=Settings_StaySignedInDesc}"
                                        FontSize="13"
                                        Foreground="#64748B" />
                         </StackPanel>
@@ -660,13 +661,51 @@
                 </StackPanel>
             </Border>
             
+            <!-- Support Card -->
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24"
+                    BoxShadow="0 2 8 0 #10000000">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{markup:Localize Key=Settings_Support}"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E3A5A" />
+                    
+                    <TextBlock Text="{markup:Localize Key=Settings_SupportDesc}"
+                               FontSize="13"
+                               Foreground="#64748B"
+                               TextWrapping="Wrap" />
+                    
+                    <!-- Report Issue Button -->
+                    <Button Command="{Binding ReportIssueCommand}"
+                            HorizontalAlignment="Left"
+                            Background="#EEF2FF"
+                            BorderBrush="#C7D2FE"
+                            BorderThickness="1"
+                            Padding="16,10"
+                            CornerRadius="8"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2ZM13,17H11V15H13V17ZM13,13H11V7H13V13Z"
+                                      Width="18" Height="18"
+                                      Foreground="#4338CA" />
+                            <TextBlock Text="{markup:Localize Key=Settings_ReportIssue}"
+                                       Foreground="#4338CA"
+                                       FontSize="14"
+                                       FontWeight="Medium" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
             <!-- About Card -->
             <Border Background="White"
                     CornerRadius="12"
                     Padding="24"
                     BoxShadow="0 2 8 0 #10000000">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="About"
+                    <TextBlock Text="{markup:Localize Key=Settings_About}"
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="#2E3A5A" />
@@ -674,7 +713,7 @@
                     <!-- Version -->
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0"
-                                   Text="Version"
+                                   Text="{markup:Localize Key=Settings_Version}"
                                    FontSize="14"
                                    Foreground="#475569" />
                         <TextBlock Grid.Column="1"
@@ -691,7 +730,7 @@
                                 Background="Transparent"
                                 Padding="0"
                                 Cursor="Hand">
-                            <TextBlock Text="Privacy Policy"
+                            <TextBlock Text="{markup:Localize Key=Settings_PrivacyPolicy}"
                                        FontSize="14"
                                        Foreground="#3C6248"
                                        TextDecorations="Underline" />
@@ -701,7 +740,7 @@
                                 Background="Transparent"
                                 Padding="0"
                                 Cursor="Hand">
-                            <TextBlock Text="Terms of Service"
+                            <TextBlock Text="{markup:Localize Key=Settings_TermsOfService}"
                                        FontSize="14"
                                        Foreground="#3C6248"
                                        TextDecorations="Underline" />
@@ -709,7 +748,7 @@
                     </StackPanel>
                     
                     <!-- Copyright -->
-                    <TextBlock Text="© 2025 Pro Cohere. All rights reserved."
+                    <TextBlock Text="{markup:Localize Key=Settings_Copyright}"
                                FontSize="12"
                                Foreground="#94A3B8"
                                Margin="0,8,0,0" />

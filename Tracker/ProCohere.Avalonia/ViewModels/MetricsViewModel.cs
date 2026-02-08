@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -55,10 +56,53 @@ public partial class MetricsViewModel : ViewModelBase
     #region Loading State
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(ShowMetricsList))]
     private bool _isLoading;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(ShowMetricsList))]
     private string? _errorMessage;
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
+    
+    /// <summary>
+    /// True when not loading, no error, and Metrics collection is empty.
+    /// </summary>
+    public bool ShowEmptyState => !IsLoading && string.IsNullOrEmpty(ErrorMessage) && Metrics.Count == 0;
+    
+    /// <summary>
+    /// True when not loading, no error, and Metrics collection has items.
+    /// </summary>
+    public bool ShowMetricsList => !IsLoading && string.IsNullOrEmpty(ErrorMessage) && Metrics.Count > 0;
 
     #endregion
 
@@ -148,6 +192,35 @@ public partial class MetricsViewModel : ViewModelBase
             "system" => MetricSource.System,
             "survey" => MetricSource.Survey,
             "manual" => MetricSource.Manual,
+            _ => null
+        };
+        await LoadMetricsAsync();
+    }
+
+    #endregion
+
+    #region Trend Filter
+
+    /// <summary>
+    /// Trend filter: null=All, otherwise specific trend direction
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTrendAll))]
+    [NotifyPropertyChangedFor(nameof(IsTrendUp))]
+    [NotifyPropertyChangedFor(nameof(IsTrendDown))]
+    private MetricTrend? _trendFilter;
+
+    public bool IsTrendAll => TrendFilter == null;
+    public bool IsTrendUp => TrendFilter == MetricTrend.TrendingUp;
+    public bool IsTrendDown => TrendFilter == MetricTrend.TrendingDown;
+
+    [RelayCommand]
+    private async Task SetTrendFilter(string? trend)
+    {
+        TrendFilter = trend switch
+        {
+            "up" => MetricTrend.TrendingUp,
+            "down" => MetricTrend.TrendingDown,
             _ => null
         };
         await LoadMetricsAsync();
@@ -327,6 +400,154 @@ public partial class MetricsViewModel : ViewModelBase
 
     #endregion
 
+    #region Surface Activation
+
+    /// <summary>
+    /// Timestamp of last data load to support staleness checks.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Whether the surface has been marked dirty by external edits.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, force refresh.
+    /// Browse pages use 30 minutes (same as Me).
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Called when the Metrics surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        System.Diagnostics.Debug.WriteLine("[MetricsViewModel] OnSurfaceActivated called");
+        
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            System.Diagnostics.Debug.WriteLine("[MetricsViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+        
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            System.Diagnostics.Debug.WriteLine("[MetricsViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // Check for staleness
+        var now = DateTime.UtcNow;
+        var isStale = (now - _lastLoadTimestamp) > StalenessThreshold;
+        
+        if (isStale)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MetricsViewModel] OnSurfaceActivated: data is stale, triggering background refresh");
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            System.Diagnostics.Debug.WriteLine("[MetricsViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        System.Diagnostics.Debug.WriteLine("[MetricsViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when metrics are edited elsewhere (e.g., flyouts, other surfaces).
+    /// </summary>
+    public void MarkDirty()
+    {
+        System.Diagnostics.Debug.WriteLine("[MetricsViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Internal load method with RefreshStatus integration.
+    /// </summary>
+    private async Task LoadDataAsync()
+    {
+        // Cancel any pending update delay timer
+        _updateDelayTokenSource?.Cancel();
+        _updateDelayTokenSource = new CancellationTokenSource();
+        
+        // Start the 400ms delay timer for showing "Updating..." status
+        _ = ShowUpdatingStatusAfterDelayAsync(_updateDelayTokenSource.Token);
+        
+        try
+        {
+            await LoadMetricsAsync();
+            
+            // Update timestamp on successful load
+            _lastLoadTimestamp = DateTime.UtcNow;
+            
+            // Cancel the delay timer (if load completed quickly)
+            _updateDelayTokenSource.Cancel();
+            
+            // Show "Updated" briefly, then fade to Idle
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MetricsViewModel] LoadDataAsync error: {ex.Message}");
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+            
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+        
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    #endregion
+
     public MetricsViewModel()
     {
         // Don't load in constructor - let the View trigger load when visible
@@ -387,12 +608,22 @@ public partial class MetricsViewModel : ViewModelBase
                 metrics = metrics.Where(m => m.SourceEnum == SourceFilter.Value).ToList();
             }
 
+            // Apply trend filter client-side
+            if (TrendFilter.HasValue)
+            {
+                metrics = metrics.Where(m => m.Trend == TrendFilter.Value).ToList();
+            }
+
             // Update collection
             Metrics.Clear();
             foreach (var metric in metrics)
             {
                 Metrics.Add(metric);
             }
+            
+            // Notify computed state properties
+            OnPropertyChanged(nameof(ShowEmptyState));
+            OnPropertyChanged(nameof(ShowMetricsList));
 
             // Update stats
             TotalMetricsCount = metrics.Count;
@@ -447,6 +678,19 @@ public partial class MetricsViewModel : ViewModelBase
         var historyTask = LoadMetricHistoryAsync();
         var trendTask = LoadTrendAnalysisAsync();
         await Task.WhenAll(historyTask, trendTask);
+    }
+
+    /// <summary>
+    /// Selects a metric by its ID, opening the detail flyout.
+    /// Used for cross-tab navigation.
+    /// </summary>
+    public async Task SelectMetricByIdAsync(Guid metricId)
+    {
+        var metric = Metrics.FirstOrDefault(m => m.Id == metricId);
+        if (metric != null)
+        {
+            await SelectMetric(metric);
+        }
     }
 
     [RelayCommand]
@@ -651,15 +895,28 @@ public partial class MetricsViewModel : ViewModelBase
 
             if (EditingMetric.Id == Guid.Empty)
             {
-                await MetricsService.Instance.CreateMetricAsync(EditingMetric);
+                var created = await MetricsService.Instance.CreateMetricAsync(EditingMetric);
+                if (created != null)
+                {
+                    Metrics.Insert(0, created);
+                    OnPropertyChanged(nameof(ShowEmptyState));
+                    OnPropertyChanged(nameof(ShowMetricsList));
+                }
             }
             else
             {
-                await MetricsService.Instance.UpdateMetricAsync(EditingMetric);
+                var updated = await MetricsService.Instance.UpdateMetricAsync(EditingMetric);
+                if (updated != null)
+                {
+                    var index = Metrics.IndexOf(Metrics.FirstOrDefault(m => m.Id == updated.Id)!);
+                    if (index >= 0)
+                    {
+                        Metrics[index] = updated;
+                    }
+                }
             }
 
             CloseEditorFlyout();
-            await LoadMetricsAsync();
         }
         catch (Exception ex)
         {

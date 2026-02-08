@@ -1,0 +1,176 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="580"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.EditFeedbackDialog"
+        x:DataType="vm:EditFeedbackDialogViewModel"
+        Title="Edit Feedback"
+        Width="520" Height="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header (green with icon) -->
+            <Border Grid.Row="0" Background="{DynamicResource BrushPrimary}" Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Edit/pencil icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Feedback_EditFeedback}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{Binding RecipientDisplayName, StringFormat='For {0}'}" FontSize="12" Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="20,16">
+                <StackPanel Spacing="16">
+                    
+                    <!-- Loading Indicator -->
+                    <StackPanel IsVisible="{Binding IsLoading}" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Center"
+                                Spacing="8">
+                        <ProgressBar IsIndeterminate="True" Width="200"/>
+                        <TextBlock Text="{markup:Localize Key=Message_Loading}" HorizontalAlignment="Center" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+                    
+                    <!-- Error Message -->
+                    <Border IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="#FFF0F0"
+                            BorderBrush="#FFD0D0"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12,8">
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#D32F2F" TextWrapping="Wrap"/>
+                    </Border>
+                    
+                    <!-- Feedback Type -->
+                    <StackPanel Spacing="4" IsVisible="{Binding !IsLoading}">
+                        <TextBlock Text="{markup:Localize Key=Label_Type}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox SelectedIndex="{Binding FeedbackTypeIndex}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="{markup:Localize Key=FeedbackType_General}" Tag="general" />
+                            <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Praise}" Tag="praise" />
+                            <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Constructive}" Tag="constructive" />
+                            <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Coaching}" Tag="coaching" />
+                            <ComboBoxItem Content="{markup:Localize Key=FeedbackType_Recognition}" Tag="recognition" />
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <!-- Title (Optional) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding !IsLoading}">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Feedback_TitleOptional}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox Text="{Binding Title}"
+                                 Watermark="{markup:Localize Key=Dialog_Feedback_BriefSummary}" />
+                    </StackPanel>
+                    
+                    <!-- Content -->
+                    <StackPanel Spacing="4" IsVisible="{Binding !IsLoading}">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Feedback_FeedbackLabel}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox Text="{Binding Content}"
+                                 Watermark="{markup:Localize Key=Dialog_Feedback_ShareFeedback}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Height="150" />
+                    </StackPanel>
+                    
+                    <!-- Rating (Optional) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding !IsLoading}">
+                        <TextBlock Text="{markup:Localize Key=Dialog_Feedback_RatingOptional}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox SelectedIndex="{Binding Rating}"
+                                  HorizontalAlignment="Stretch"
+                                  PlaceholderText="{markup:Localize Key=Dialog_Feedback_NoRating}">
+                            <ComboBoxItem Content="{markup:Localize Key=Rating_1_NeedsImprovement}" />
+                            <ComboBoxItem Content="{markup:Localize Key=Rating_2_BelowExpectations}" />
+                            <ComboBoxItem Content="{markup:Localize Key=Rating_3_MeetsExpectations}" />
+                            <ComboBoxItem Content="{markup:Localize Key=Rating_4_ExceedsExpectations}" />
+                            <ComboBoxItem Content="{markup:Localize Key=Rating_5_Outstanding}" />
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <!-- Visibility -->
+                    <StackPanel Spacing="4" IsVisible="{Binding !IsLoading}">
+                        <TextBlock Text="{markup:Localize Key=Label_Visibility}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <ComboBox SelectedIndex="{Binding VisibilityIndex}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Feedback_PrivateManager}" Tag="private" />
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Feedback_SharedRecipient}" Tag="shared" />
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <!-- Note about anonymous -->
+                    <TextBlock IsVisible="{Binding !IsLoading}"
+                               Text="{markup:Localize Key=Dialog_Feedback_AnonymousCannotChange}"
+                               FontSize="11"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource BrushTextSecondary}" />
+                    
+                </StackPanel>
+            </ScrollViewer>
+        
+            <!-- Footer (blue) -->
+            <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Button Grid.Column="1"
+                            Content="{markup:Localize Key=Button_Cancel}"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            MinWidth="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Content="{markup:Localize Key=Dialog_Feedback_SaveChanges}"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            BorderThickness="1"
+                            MinWidth="120"
+                            Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding !IsLoading}">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

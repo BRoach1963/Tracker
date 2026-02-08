@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="using:ProCohere.Avalonia.Models"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="680"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditTeamMemberDialog"
         Title="Team Member"
@@ -21,7 +22,7 @@
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                 Padding="20,16">
             <TextBlock x:Name="DialogTitle"
-                       Text="Add Team Member"
+                       Text="{markup:Localize Key=Dialog_TeamMember_AddTitle}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -61,10 +62,10 @@
                     </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                         <Button x:Name="UploadAvatarButton"
-                                Content="Upload Photo"
+                                Content="{markup:Localize Key=Dialog_TeamMember_UploadPhoto}"
                                 Click="UploadAvatarButton_Click" />
                         <Button x:Name="RemoveAvatarButton"
-                                Content="Remove"
+                                Content="{markup:Localize Key=Dialog_TeamMember_Remove}"
                                 IsVisible="False"
                                 Click="RemoveAvatarButton_Click" />
                     </StackPanel>
@@ -73,46 +74,46 @@
                 <!-- Name Row -->
                 <Grid ColumnDefinitions="*,12,*">
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="First Name *" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_FirstName}" FontSize="12" />
                         <TextBox x:Name="FirstNameTextBox"
-                                 Watermark="First name"
+                                 Watermark="{markup:Localize Key=Dialog_TeamMember_FirstNameWatermark}"
                                  TextChanged="NameTextBox_TextChanged" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
-                        <TextBlock Text="Last Name *" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_LastName}" FontSize="12" />
                         <TextBox x:Name="LastNameTextBox"
-                                 Watermark="Last name"
+                                 Watermark="{markup:Localize Key=Dialog_TeamMember_LastNameWatermark}"
                                  TextChanged="NameTextBox_TextChanged" />
                     </StackPanel>
                 </Grid>
                 
                 <!-- Email -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Email *" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_Email}" FontSize="12" />
                     <TextBox x:Name="EmailTextBox"
-                             Watermark="email@example.com" />
+                             Watermark="{markup:Localize Key=Dialog_TeamMember_EmailWatermark}" />
                 </StackPanel>
                 
                 <!-- Job Title -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Job Title" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_JobTitle}" FontSize="12" />
                     <TextBox x:Name="JobTitleTextBox"
-                             Watermark="Position or role" />
+                             Watermark="{markup:Localize Key=Dialog_TeamMember_JobTitleWatermark}" />
                 </StackPanel>
                 
                 <!-- Phone -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Phone" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_Phone}" FontSize="12" />
                     <TextBox x:Name="PhoneTextBox"
-                             Watermark="+1 (555) 123-4567" />
+                             Watermark="{markup:Localize Key=Dialog_TeamMember_PhoneWatermark}" />
                 </StackPanel>
                 
                 <!-- Manager -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Manager" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_Manager}" FontSize="12" />
                     <ComboBox x:Name="ManagerComboBox"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="Select manager (optional)">
+                              PlaceholderText="{markup:Localize Key=Dialog_TeamMember_SelectManager}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:TeamMemberDetail">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -143,33 +144,33 @@
                 <!-- Dates Row -->
                 <Grid ColumnDefinitions="*,12,*">
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Birthday" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_Birthday}" FontSize="12" />
                         <CalendarDatePicker x:Name="BirthdayPicker"
                                             HorizontalAlignment="Stretch"
-                                            Watermark="Select date"
+                                            Watermark="{markup:Localize Key=Dialog_TeamMember_SelectDate}"
                                             IsTodayHighlighted="True"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
-                        <TextBlock Text="Hire Date" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_HireDate}" FontSize="12" />
                         <CalendarDatePicker x:Name="HireDatePicker"
                                             HorizontalAlignment="Stretch"
-                                            Watermark="Select date"
+                                            Watermark="{markup:Localize Key=Dialog_TeamMember_SelectDate}"
                                             IsTodayHighlighted="True"/>
                     </StackPanel>
                 </Grid>
                 
                 <!-- Social Links -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="LinkedIn URL" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_LinkedIn}" FontSize="12" />
                     <TextBox x:Name="LinkedInTextBox"
-                             Watermark="https://linkedin.com/in/username" />
+                             Watermark="{markup:Localize Key=Dialog_TeamMember_LinkedInWatermark}" />
                 </StackPanel>
                 
                 <!-- Notes Section -->
                 <StackPanel x:Name="NotesSection" Spacing="8" IsVisible="False">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Notes" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button x:Name="AddNoteButton" Grid.Column="1" Content="+ Add Note" 
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_Notes}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="AddNoteButton" Grid.Column="1" Content="{markup:Localize Key=Dialog_TeamMember_AddNote}" 
                                 Classes="accent" Padding="8,4" FontSize="11"
                                 Click="AddNoteButton_Click" />
                     </Grid>
@@ -205,14 +206,14 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     
-                    <TextBlock x:Name="NoNotesText" Text="No notes yet" FontSize="11" FontStyle="Italic"
+                    <TextBlock x:Name="NoNotesText" Text="{markup:Localize Key=Dialog_TeamMember_NoNotes}" FontSize="11" FontStyle="Italic"
                                Foreground="{DynamicResource BrushTextTertiary}" IsVisible="False" />
                 </StackPanel>
                 
                 <!-- Active Status (only in edit mode) -->
                 <StackPanel x:Name="StatusSection" IsVisible="False">
                     <CheckBox x:Name="IsActiveCheckBox"
-                              Content="Active team member"
+                              Content="{markup:Localize Key=Dialog_TeamMember_ActiveMember}"
                               IsChecked="True" />
                 </StackPanel>
                 
@@ -226,19 +227,19 @@
             <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                 <Button x:Name="DeleteButton"
                         Grid.Column="0"
-                        Content="Delete"
+                        Content="{markup:Localize Key=Button_Delete}"
                         Foreground="#E74C3C"
                         IsVisible="False"
                         Click="DeleteButton_Click" />
                 <Button Grid.Column="2"
-                        Content="Cancel"
+                        Content="{markup:Localize Key=Button_Cancel}"
                         Classes="cancel-btn"
                         MinWidth="80"
                         Margin="0,0,8,0"
                         Click="CancelButton_Click" />
                 <Button Grid.Column="3"
                         x:Name="SaveButton"
-                        Content="Add Member"
+                        Content="{markup:Localize Key=Dialog_TeamMember_AddMember}"
                         Classes="accent"
                         MinWidth="100"
                         Click="SaveButton_Click" />

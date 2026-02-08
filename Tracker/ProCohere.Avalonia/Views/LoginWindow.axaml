@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels"
+        xmlns:markup="using:ProCohere.Avalonia.Markup"
         xmlns:material="using:Material.Styles.Controls"
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
         x:Class="ProCohere.Avalonia.Views.LoginWindow"
@@ -158,7 +159,7 @@
 
                             <!-- App Name with accent underline -->
                             <StackPanel HorizontalAlignment="Center" Margin="0,0,0,6">
-                                <TextBlock Text="Pro Cohere"
+                                <TextBlock Text="{markup:Localize Key=Login_AppName}"
                                            FontSize="40"
                                            FontWeight="Bold"
                                            Foreground="#1F2937"
@@ -170,7 +171,7 @@
                             </StackPanel>
 
                             <!-- Tagline -->
-                            <TextBlock Text="Team Performance, Simplified"
+                            <TextBlock Text="{markup:Localize Key=Login_Tagline}"
                                        FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#6B7280"
@@ -181,22 +182,22 @@
                             <StackPanel Margin="0,16,0,0" HorizontalAlignment="Center">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                                     <Ellipse Width="10" Height="10" Fill="#C7A450" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Track team goals &amp; metrics"
+                                    <TextBlock Text="{markup:Localize Key=Login_Feature_Goals}"
                                                Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                                     <Ellipse Width="10" Height="10" Fill="#1F2937" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Streamline team meetings"
+                                    <TextBlock Text="{markup:Localize Key=Login_Feature_Meetings}"
                                                Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                                     <Ellipse Width="10" Height="10" Fill="#C7A450" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Give meaningful feedback"
+                                    <TextBlock Text="{markup:Localize Key=Login_Feature_Feedback}"
                                                Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="10" Height="10" Fill="#1F2937" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Develop your people"
+                                    <TextBlock Text="{markup:Localize Key=Login_Feature_Develop}"
                                                Foreground="#6B7280" FontSize="14" FontWeight="Medium"/>
                                 </StackPanel>
                             </StackPanel>
@@ -205,7 +206,7 @@
                         <!-- Version at bottom -->
                         <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20">
                             <Border Width="30" Height="2" Background="#C7A450" CornerRadius="1" Margin="0,0,0,8"/>
-                            <TextBlock Text="Version 3.0"
+                            <TextBlock Text="{markup:Localize Key=Login_Version}"
                                        FontSize="11"
                                        Foreground="#9CA3AF"
                                        HorizontalAlignment="Center"/>
@@ -247,7 +248,7 @@
                     <StackPanel IsVisible="{Binding !IsPasswordResetMode}">
                         <!-- Welcome Text -->
                         <StackPanel Margin="0,0,0,6">
-                            <TextBlock Text="Welcome back"
+                            <TextBlock Text="{markup:Localize Key=Login_WelcomeBack}"
                                        FontSize="30"
                                        FontWeight="Bold"
                                        Foreground="#1F2937"/>
@@ -257,26 +258,26 @@
                                     HorizontalAlignment="Left"
                                     Margin="0,8,0,0"/>
                         </StackPanel>
-                        <TextBlock Text="Sign in to continue to Pro Cohere"
+                        <TextBlock Text="{markup:Localize Key=Login_SignInContinue}"
                                    FontSize="14"
                                    Foreground="#6B7280"
                                    Margin="0,8,0,36"/>
 
                     <!-- Email -->
                     <StackPanel Margin="0,0,0,20">
-                        <TextBlock Text="Email"
+                        <TextBlock Text="{markup:Localize Key=Login_Email}"
                                    FontSize="13"
                                    FontWeight="Medium"
                                    Foreground="#6B7280"
                                    Margin="0,0,0,8"/>
                         <TextBox Classes="modern"
                                  Text="{Binding Email}"
-                                 Watermark="Enter your email"/>
+                                 Watermark="{markup:Localize Key=Login_EnterEmail}"/>
                     </StackPanel>
 
                     <!-- Password -->
                     <StackPanel Margin="0,0,0,20">
-                        <TextBlock Text="Password"
+                        <TextBlock Text="{markup:Localize Key=Login_Password}"
                                    FontSize="13"
                                    FontWeight="Medium"
                                    Foreground="#6B7280"
@@ -286,7 +287,7 @@
                                      Text="{Binding Password}"
                                      PasswordChar="•"
                                      RevealPassword="{Binding IsPasswordVisible}"
-                                     Watermark="Enter your password"/>
+                                     Watermark="{markup:Localize Key=Login_EnterPassword}"/>
                             <Button HorizontalAlignment="Right"
                                     VerticalAlignment="Center"
                                     Width="36" Height="36"
@@ -295,7 +296,7 @@
                                     BorderThickness="0"
                                     Cursor="Hand"
                                     Command="{Binding TogglePasswordVisibilityCommand}"
-                                    ToolTip.Tip="Show/Hide password">
+                                    ToolTip.Tip="{markup:Localize Key=Login_ShowHidePassword}">
                                 <PathIcon Data="M12,4.5C7,4.5 2.73,7.61 1,12c1.73,4.39 6,7.5 11,7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12,17c-2.76,0-5-2.24-5-5s2.24-5 5-5 5,2.24 5,5-2.24,5-5,5m0-8c-1.66,0-3,1.34-3,3s1.34,3 3,3 3-1.34 3-3-1.34-3-3-3"
                                           Foreground="#9CA3AF"
                                           Width="18" Height="18"/>
@@ -306,12 +307,12 @@
                     <!-- Keep Me Signed In & Forgot Password -->
                     <Grid Margin="0,0,0,28">
                         <CheckBox Classes="modern"
-                                  Content="Keep me signed in"
+                                  Content="{markup:Localize Key=Login_KeepSignedIn}"
                                   IsChecked="{Binding KeepMeSignedIn}"
-                                  ToolTip.Tip="Stay signed in on this Windows account. Only use on your personal machine."
+                                  ToolTip.Tip="{markup:Localize Key=Login_KeepSignedInTooltip}"
                                   HorizontalAlignment="Left"/>
                         <Button Classes="link"
-                                Content="Forgot password?"
+                                Content="{markup:Localize Key=Login_ForgotPassword}"
                                 Command="{Binding ShowPasswordResetCommand}"
                                 HorizontalAlignment="Right"/>
                     </Grid>
@@ -339,7 +340,7 @@
 
                     <!-- Sign In Button -->
                     <Button Classes="primary"
-                            Content="Sign In"
+                            Content="{markup:Localize Key=Login_SignIn}"
                             Command="{Binding SignInCommand}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
@@ -350,7 +351,7 @@
                                 HorizontalAlignment="Center"
                                 IsVisible="{Binding IsLoading}"
                                 Margin="0,0,0,16">
-                        <TextBlock Text="Signing in..."
+                        <TextBlock Text="{markup:Localize Key=Login_SigningIn}"
                                    Foreground="#6B7280"
                                    FontSize="13"
                                    VerticalAlignment="Center"/>
@@ -361,7 +362,7 @@
                     <StackPanel IsVisible="{Binding IsPasswordResetMode}">
                         <!-- Title -->
                         <StackPanel Margin="0,0,0,6">
-                            <TextBlock Text="Reset Password"
+                            <TextBlock Text="{markup:Localize Key=Login_ResetPassword}"
                                        FontSize="30"
                                        FontWeight="Bold"
                                        Foreground="#1F2937"/>
@@ -371,7 +372,7 @@
                                     HorizontalAlignment="Left"
                                     Margin="0,8,0,0"/>
                         </StackPanel>
-                        <TextBlock Text="Enter your email address and we'll send you a link to reset your password"
+                        <TextBlock Text="{markup:Localize Key=Login_ResetPasswordDesc}"
                                    FontSize="14"
                                    Foreground="#6B7280"
                                    Margin="0,8,0,36"
@@ -379,14 +380,14 @@
 
                         <!-- Email -->
                         <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Email"
+                            <TextBlock Text="{markup:Localize Key=Login_Email}"
                                        FontSize="13"
                                        FontWeight="Medium"
                                        Foreground="#6B7280"
                                        Margin="0,0,0,8"/>
                             <TextBox Classes="modern"
                                      Text="{Binding ResetEmail}"
-                                     Watermark="Enter your email"/>
+                                     Watermark="{markup:Localize Key=Login_EnterEmail}"/>
                         </StackPanel>
 
                         <!-- Success Message -->
@@ -435,7 +436,7 @@
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,0,0,16">
                             <Button Grid.Column="0"
                                     Classes="link"
-                                    Content="← Back to Sign In"
+                                    Content="{markup:Localize Key=Login_BackToSignInArrow}"
                                     Command="{Binding CancelPasswordResetCommand}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
@@ -446,7 +447,7 @@
                                     CornerRadius="8"/>
                             <Button Grid.Column="1"
                                     Classes="primary"
-                                    Content="Send Reset Link"
+                                    Content="{markup:Localize Key=Login_SendResetLink}"
                                     Command="{Binding SendPasswordResetCommand}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"/>
@@ -457,7 +458,7 @@
                                     HorizontalAlignment="Center"
                                     IsVisible="{Binding IsLoading}"
                                     Margin="0,0,0,16">
-                            <TextBlock Text="Sending email..."
+                            <TextBlock Text="{markup:Localize Key=Login_SendingEmail}"
                                        Foreground="#6B7280"
                                        FontSize="13"
                                        VerticalAlignment="Center"/>
@@ -470,9 +471,9 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             Margin="0,16,0,8">
-                    <Button Classes="link" Content="Help" Margin="0,0,20,0"/>
-                    <Button Classes="link" Content="Privacy" Margin="0,0,20,0"/>
-                    <Button Classes="link" Content="Terms"/>
+                    <Button Classes="link" Content="{markup:Localize Key=Login_Help}" Margin="0,0,20,0" Click="Help_Click"/>
+                    <Button Classes="link" Content="{markup:Localize Key=Login_Privacy}" Margin="0,0,20,0" Click="Privacy_Click"/>
+                    <Button Classes="link" Content="{markup:Localize Key=Login_Terms}" Click="Terms_Click"/>
                 </StackPanel>
             </Grid>
         </Grid>

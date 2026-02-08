@@ -18,6 +18,8 @@ public class InsightEngine
 
     private readonly List<IInsightAnalyzer> _analyzers;
     private readonly IInsightRepository _repository;
+    private readonly IInsightRpcService _rpcService;
+    private readonly IInsightActionRepository _actionRepository;
     private bool _isRunning;
     private static readonly string _logPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
@@ -37,6 +39,8 @@ public class InsightEngine
     {
         _analyzers = new List<IInsightAnalyzer>();
         _repository = new InsightRepository();
+        _rpcService = new InsightRpcService();
+        _actionRepository = new InsightActionRepository(_rpcService);
         Log("[InsightEngine] Constructor called");
     }
 
@@ -76,26 +80,27 @@ public class InsightEngine
             _isRunning = true;
             Log($"[InsightEngine] Starting analysis for user {userId} org {organizationId} with {_analyzers.Count} analyzers");
 
-            var allInsights = new List<Insight>();
             var startTime = DateTime.UtcNow;
 
-            // Run each analyzer
-            foreach (var analyzer in _analyzers)
+            // Run all analyzers in PARALLEL for speed
+            var analyzerTasks = _analyzers.Select(async analyzer =>
             {
                 try
                 {
                     Log($"[InsightEngine] Running analyzer: {analyzer.Name}");
                     var insights = await analyzer.AnalyzeAsync(userId, organizationId);
-                    
                     Log($"[InsightEngine] {analyzer.Name} generated {insights.Count} insights");
-                    allInsights.AddRange(insights);
+                    return insights;
                 }
                 catch (Exception ex)
                 {
                     Log($"[InsightEngine] ERROR in {analyzer.Name}: {ex.Message}\n{ex.StackTrace}");
-                    // Continue with other analyzers
+                    return new List<Insight>();
                 }
-            }
+            }).ToList();
+
+            var results = await Task.WhenAll(analyzerTasks);
+            var allInsights = results.SelectMany(r => r).ToList();
 
             // Deduplicate and persist
             Log($"[InsightEngine] Total insights generated: {allInsights.Count}, now persisting...");
@@ -129,30 +134,30 @@ public class InsightEngine
     }
 
     /// <summary>
-    /// Dismisses an insight.
+    /// Dismisses an insight by signature hash.
     /// </summary>
-    public async Task DismissInsightAsync(Guid insightId, Guid userId)
+    public async Task DismissInsightAsync(string signatureHash)
     {
-        Log($"[InsightEngine] Dismissing insight {insightId}");
-        await _repository.DismissInsightAsync(insightId, userId);
+        Log($"[InsightEngine] Dismissing insight with signature {signatureHash}");
+        await _actionRepository.DismissAsync(signatureHash);
     }
 
     /// <summary>
-    /// Marks an insight as acted upon.
+    /// Marks an insight as acted upon by signature hash.
     /// </summary>
-    public async Task ActOnInsightAsync(Guid insightId)
+    public async Task ActOnInsightAsync(string signatureHash)
     {
-        Log($"[InsightEngine] Acting on insight {insightId}");
-        await _repository.MarkInsightActionedAsync(insightId);
+        Log($"[InsightEngine] Acting on insight with signature {signatureHash}");
+        await _actionRepository.MarkActedAsync(signatureHash);
     }
 
     /// <summary>
-    /// Snoozes an insight until a specific time.
+    /// Snoozes an insight for a duration by signature hash.
     /// </summary>
-    public async Task SnoozeInsightAsync(Guid insightId, DateTime until)
+    public async Task SnoozeInsightAsync(string signatureHash, TimeSpan duration)
     {
-        Log($"[InsightEngine] Snoozing insight {insightId}");
-        await _repository.SnoozeInsightAsync(insightId, until);
+        Log($"[InsightEngine] Snoozing insight with signature {signatureHash} for {duration}");
+        await _actionRepository.SnoozeAsync(signatureHash, duration);
     }
 
     /// <summary>
@@ -168,39 +173,89 @@ public class InsightEngine
 
     private async Task<int> DeduplicateAndPersistAsync(List<Insight> insights, Guid userId)
     {
-        var createdCount = 0;
+        if (insights.Count == 0)
+            return 0;
+
+        // First pass: Generate signatures and filter duplicates locally
+        var uniqueInsights = new List<Insight>();
+        var seenSignatures = new HashSet<string>();
 
         foreach (var insight in insights)
         {
-            try
+            // Need SubjectId to generate signature
+            if (!insight.SubjectId.HasValue)
             {
-                // Check for duplicate
-                var isDuplicate = await _repository.InsightExistsAsync(
-                    insight.OrganizationId,
-                    userId,
-                    insight.Type,
-                    insight.EntityId
-                );
-
-                if (isDuplicate)
-                {
-                    Log($"[InsightEngine] Skipping duplicate: {insight.Type} for entity {insight.EntityId}");
-                    continue;
-                }
-
-                // Create new insight
-                Log($"[InsightEngine] Persisting insight: {insight.Type} - {insight.Title}");
-                await _repository.CreateInsightAsync(insight);
-                createdCount++;
+                Log($"[InsightEngine] Skipping insight without SubjectId: {insight.Type}");
+                continue;
             }
-            catch (Exception ex)
+            
+            // Generate signature for each insight
+            insight.SignatureHash = InsightSignature.Generate(
+                insight.Type,
+                insight.SubjectType ?? "",
+                insight.SubjectId.Value,
+                insight.RuleKey ?? ""
+            );
+            insight.GeneratedAt = DateTime.UtcNow;
+
+            // Skip local duplicates
+            if (seenSignatures.Contains(insight.SignatureHash))
             {
-                Log($"[InsightEngine] ERROR persisting insight: {ex.Message}\n{ex.StackTrace}");
-                // Continue with other insights
+                Log($"[InsightEngine] Skipping local duplicate: {insight.Type} - {insight.SignatureHash}");
+                continue;
             }
+            seenSignatures.Add(insight.SignatureHash);
+
+            // Check if already exists in database
+            var exists = await _repository.SignatureExistsAsync(
+                insight.OrganizationId,
+                userId,
+                insight.SignatureHash
+            );
+
+            if (exists)
+            {
+                Log($"[InsightEngine] Skipping existing: {insight.Type} - {insight.SignatureHash}");
+                continue;
+            }
+
+            uniqueInsights.Add(insight);
         }
 
-        return createdCount;
+        if (uniqueInsights.Count == 0)
+        {
+            Log("[InsightEngine] No new unique insights to persist");
+            return 0;
+        }
+
+        // Batch create via RPC
+        Log($"[InsightEngine] Persisting {uniqueInsights.Count} unique insights via RPC batch");
+        try
+        {
+            var createdCount = await _rpcService.CreateInsightsBatchAsync(userId, uniqueInsights);
+            Log($"[InsightEngine] RPC batch created {createdCount} insights");
+            return createdCount;
+        }
+        catch (Exception ex)
+        {
+            Log($"[InsightEngine] ERROR in batch create: {ex.Message}\n{ex.StackTrace}");
+            
+            // Fallback: try one at a time
+            var createdCount = 0;
+            foreach (var insight in uniqueInsights)
+            {
+                try
+                {
+                    await _rpcService.CreateInsightAsync(userId, insight);
+                    createdCount++;
+                }
+                catch (Exception innerEx)
+                {
+                    Log($"[InsightEngine] ERROR persisting insight: {innerEx.Message}");
+                }
+            }
+            return createdCount;
+        }
     }
 
     #endregion

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -51,6 +52,35 @@ public partial class ProjectsViewModel : ViewModelBase
 
     [ObservableProperty]
     private string? _errorMessage;
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
 
     #endregion
 
@@ -453,10 +483,157 @@ public partial class ProjectsViewModel : ViewModelBase
 
     #endregion
 
+    #region Surface Activation
+
+    /// <summary>
+    /// Timestamp of last data load to support staleness checks.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Whether the surface has been marked dirty by external edits.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, force refresh.
+    /// Projects use 30 minutes (same as browse pages).
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Called when the Projects surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        System.Diagnostics.Debug.WriteLine("[ProjectsViewModel] OnSurfaceActivated called");
+        
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            System.Diagnostics.Debug.WriteLine("[ProjectsViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+        
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            System.Diagnostics.Debug.WriteLine("[ProjectsViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadDataWithStatusAsync();
+            return;
+        }
+        
+        // Check for staleness
+        var now = DateTime.UtcNow;
+        var isStale = (now - _lastLoadTimestamp) > StalenessThreshold;
+        
+        if (isStale)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ProjectsViewModel] OnSurfaceActivated: data is stale, triggering background refresh");
+            _ = LoadDataWithStatusAsync();
+            return;
+        }
+        
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            System.Diagnostics.Debug.WriteLine("[ProjectsViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadDataWithStatusAsync();
+            return;
+        }
+        
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        System.Diagnostics.Debug.WriteLine("[ProjectsViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when projects, tasks, goals, or meetings change elsewhere.
+    /// </summary>
+    public void MarkDirty()
+    {
+        System.Diagnostics.Debug.WriteLine("[ProjectsViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Internal load method with RefreshStatus integration.
+    /// </summary>
+    private async Task LoadDataWithStatusAsync()
+    {
+        // Cancel any pending update delay timer
+        _updateDelayTokenSource?.Cancel();
+        _updateDelayTokenSource = new CancellationTokenSource();
+        
+        // Start the 400ms delay timer for showing "Updating..." status
+        _ = ShowUpdatingStatusAfterDelayAsync(_updateDelayTokenSource.Token);
+        
+        try
+        {
+            await LoadProjectsAsync();
+            
+            // Update timestamp on successful load
+            _lastLoadTimestamp = DateTime.UtcNow;
+            
+            // Cancel the delay timer (if load completed quickly)
+            _updateDelayTokenSource.Cancel();
+            
+            // Show "Updated" briefly, then fade to Idle
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ProjectsViewModel] LoadDataWithStatusAsync error: {ex.Message}");
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+            
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+        
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    #endregion
+
     public ProjectsViewModel()
     {
-        // Load projects on initialization
-        _ = LoadProjectsAsync();
+        // Don't load in constructor - let OnSurfaceActivated trigger load when visible
     }
 
     #region Load Commands
@@ -477,6 +654,9 @@ public partial class ProjectsViewModel : ViewModelBase
                 return;
             }
 
+            // Load batch signals for all projects in one RPC call
+            await LoadProjectSignalsAsync();
+
             ApplyFilters();
             UpdateStats();
         }
@@ -487,6 +667,47 @@ public partial class ProjectsViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads signal counts (overdue tasks, goals needing attention) for all projects
+    /// using the batch RPC to avoid N+1 queries.
+    /// </summary>
+    private async Task LoadProjectSignalsAsync()
+    {
+        if (_allProjects.Count == 0) return;
+
+        try
+        {
+            var projectIds = _allProjects.Select(p => p.Id).ToList();
+            var signals = await ProjectService.Instance.GetProjectSignalsBatchAsync(projectIds);
+
+            // Create lookup for fast assignment
+            var signalLookup = signals.ToDictionary(s => s.ProjectId);
+
+            // Assign signals to projects
+            foreach (var project in _allProjects)
+            {
+                if (signalLookup.TryGetValue(project.Id, out var signal))
+                {
+                    project.OverdueTaskCount = signal.OverdueTaskCount;
+                    project.GoalsNeedingAttention = signal.GoalsNeedingAttention;
+                }
+                else
+                {
+                    // Reset to zero if no signal data returned
+                    project.OverdueTaskCount = 0;
+                    project.GoalsNeedingAttention = 0;
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[ProjectsViewModel] Loaded signals for {signals.Count} projects");
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the whole load if signals fail - just log
+            System.Diagnostics.Debug.WriteLine($"[ProjectsViewModel] LoadProjectSignalsAsync error: {ex.Message}");
         }
     }
 
@@ -523,6 +744,19 @@ public partial class ProjectsViewModel : ViewModelBase
     #endregion
 
     #region Selection Commands
+
+    /// <summary>
+    /// Selects a project by its ID, opening the detail flyout.
+    /// Used for cross-tab navigation.
+    /// </summary>
+    public async Task SelectProjectByIdAsync(Guid projectId)
+    {
+        var project = _allProjects.FirstOrDefault(p => p.Id == projectId);
+        if (project != null)
+        {
+            await SelectProject(project);
+        }
+    }
 
     [RelayCommand]
     private async Task SelectProject(Project? project)
@@ -722,7 +956,10 @@ public partial class ProjectsViewModel : ViewModelBase
             IsEditorFlyoutOpen = false;
             NotificationService.Instance.ShowSuccess("Project Created", $"'{project.Name}' has been created.");
             
-            await LoadProjectsAsync();
+            // Add directly to collection - no full refresh needed
+            _allProjects.Insert(0, project);
+            ApplyFilters();
+            UpdateStats();
             await SelectProject(project);
         }
         catch (Exception ex)

@@ -18,4 +18,9 @@ public class EditGoalResult
     public Guid? OwnerTeamMemberId { get; set; }
     public string? Status { get; set; }
     public string? Priority { get; set; }
+    
+    /// <summary>
+    /// Visibility scope: personal, team, or shared.
+    /// </summary>
+    public string VisibilityScope { get; set; } = "personal";
 }

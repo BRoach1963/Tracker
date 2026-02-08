@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="480"
         x:Class="ProCohere.Avalonia.Views.Dialogs.QuickMessageDialog"
         x:DataType="vm:QuickMessageDialogViewModel"
@@ -27,7 +28,7 @@
                 
                 <!-- Title -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="Quick Message" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_QuickMessage_Title}" FontSize="16" FontWeight="Bold" Foreground="White"/>
                     <TextBlock Text="{Binding RecipientName}" FontSize="13" Foreground="#BFDBFE" Margin="0,2,0,0"/>
                 </StackPanel>
             </Grid>
@@ -49,12 +50,12 @@
 
                 <!-- Message Input -->
                 <StackPanel Spacing="8">
-                    <TextBlock Text="MESSAGE" FontSize="10" FontWeight="SemiBold" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_QuickMessage_Message}" FontSize="10" FontWeight="SemiBold" 
                                Foreground="{DynamicResource BrushTextTertiary}"/>
                     <TextBox Text="{Binding Message}" 
                              AcceptsReturn="True" 
                              TextWrapping="Wrap"
-                             Watermark="Type your message..."
+                             Watermark="{markup:Localize Key=Dialog_QuickMessage_TypeMessage}"
                              Height="180"
                              VerticalContentAlignment="Top"
                              Padding="12,10"
@@ -64,7 +65,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <TextBlock FontSize="11" Foreground="{DynamicResource BrushTextTertiary}">
                             <Run Text="{Binding MessageCharacterCount}"/>
-                            <Run Text="/ 500 characters"/>
+                            <Run Text="{markup:Localize Key=Dialog_QuickMessage_CharacterLimit}"/>
                         </TextBlock>
                     </StackPanel>
                 </StackPanel>
@@ -105,7 +106,7 @@
                             <PathIcon Data="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" 
                                       Width="16" Height="16" Foreground="{DynamicResource BrushPrimary}"/>
                         </Border>
-                        <TextBlock Text="Sending message..." FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=Dialog_QuickMessage_Sending}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -119,12 +120,12 @@
                 Padding="20,12">
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <Button Content="Cancel" 
+                    <Button Content="{markup:Localize Key=Button_Cancel}" 
                             Command="{Binding CancelCommand}"
                             Classes="secondary-button"
                             Width="100"
                             IsEnabled="{Binding !IsSending}"/>
-                    <Button Content="Send" 
+                    <Button Content="{markup:Localize Key=Dialog_QuickMessage_Send}" 
                             Command="{Binding SendCommand}"
                             Classes="primary-button"
                             Width="100"

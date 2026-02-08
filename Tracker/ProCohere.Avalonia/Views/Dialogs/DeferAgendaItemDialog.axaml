@@ -5,10 +5,11 @@
         xmlns:models="using:ProCohere.Avalonia.Models"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="520"
         x:Class="ProCohere.Avalonia.Views.Dialogs.DeferAgendaItemDialog"
         x:DataType="vm:DeferAgendaItemDialogViewModel"
-        Title="Defer Agenda Item"
+        Title="{markup:Localize Key=Dialog_DeferAgenda_Title}"
         Width="450"
         Height="520"
         WindowStartupLocation="CenterOwner"
@@ -37,11 +38,11 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Defer Agenda Item"
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_Title}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Carry forward to a future meeting"
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_Subtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC"/>
                     </StackPanel>
@@ -54,7 +55,7 @@
                     
                     <!-- Header with agenda item context -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Deferring:" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_Deferring}" FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
                         <TextBlock Text="{Binding AgendaItemTitle}" 
                                    FontSize="14" 
                                    FontWeight="SemiBold"
@@ -69,9 +70,9 @@
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z" 
                                           Width="14" Height="14" Foreground="{DynamicResource BrushPrimary}"/>
-                                <TextBlock Text="Carry Forward" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_CarryForward}" FontSize="12" FontWeight="SemiBold"/>
                             </StackPanel>
-                            <TextBlock Text="This item will be suggested in the next meeting with the selected person. It will expire after 30 days or 2 meeting opportunities."
+                            <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_CarryForwardDesc}"
                                        FontSize="11" 
                                        Foreground="{DynamicResource BrushTextSecondary}"
                                        TextWrapping="Wrap"/>
@@ -80,13 +81,13 @@
                     
                     <!-- Anchor Person Selection -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Anchor to Person" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBlock Text="This item will appear when you have meetings with this person."
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_AnchorToPerson}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_AnchorHint}"
                                    FontSize="11" Foreground="{DynamicResource BrushTextTertiary}"/>
                         <ComboBox ItemsSource="{Binding TeamMembers}"
                                   SelectedItem="{Binding SelectedTeamMember}"
                                   HorizontalAlignment="Stretch"
-                                  PlaceholderText="Select team member...">
+                                  PlaceholderText="{markup:Localize Key=Dialog_DeferAgenda_SelectTeamMember}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:TeamMemberDetail">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -115,21 +116,21 @@
                     
                     <!-- Custom Expiration (optional) -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Expiration (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_Expiration}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox HorizontalAlignment="Stretch"
                                   SelectedIndex="{Binding SelectedExpirationIndex}">
-                            <ComboBoxItem Content="1 week"/>
-                            <ComboBoxItem Content="30 days (default)"/>
-                            <ComboBoxItem Content="60 days"/>
-                            <ComboBoxItem Content="90 days"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_DeferAgenda_1Week}"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_DeferAgenda_30Days}"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_DeferAgenda_60Days}"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_DeferAgenda_90Days}"/>
                         </ComboBox>
                     </StackPanel>
                     
                     <!-- Optional note -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Note (optional)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_DeferAgenda_Note}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox Text="{Binding Note}"
-                                 Watermark="Add context for when this resurfaces..."
+                                 Watermark="{markup:Localize Key=Dialog_DeferAgenda_NoteWatermark}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  MinHeight="60"
@@ -144,7 +145,7 @@
                     Background="{DynamicResource BrushSecondary}"
                     Padding="20,12">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                    <Button Content="Cancel" 
+                    <Button Content="{markup:Localize Key=Button_Cancel}" 
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="1"
@@ -161,7 +162,7 @@
                             </Style>
                         </Button.Styles>
                     </Button>
-                    <Button Content="Defer Item" 
+                    <Button Content="{markup:Localize Key=Dialog_DeferAgenda_DeferItem}" 
                             Foreground="{DynamicResource BrushPrimary}"
                             FontWeight="SemiBold"
                             BorderThickness="1"

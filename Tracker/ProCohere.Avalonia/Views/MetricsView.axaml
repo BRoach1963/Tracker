@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:pulse="using:ProCohere.Avalonia.Views.Pulse"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="ProCohere.Avalonia.Views.MetricsView"
              x:DataType="vm:MetricsViewModel">
@@ -36,23 +37,40 @@
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" 
                               Width="16" Height="16"/>
-                    <TextBlock Text="Back to Pulse" VerticalAlignment="Center"/>
+                    <TextBlock Text="{markup:Localize Key=Metrics_BackToPulse}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <StackPanel Grid.Column="1">
-                <TextBlock Text="Metrics"
-                           FontSize="24"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource BrushTextPrimary}"/>
-                <TextBlock Text="Track and observe your key metrics"
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="{markup:Localize Key=Nav_Metrics}"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <!-- Refresh Status Chip (Updating.../Updated) -->
+                    <Border Background="{DynamicResource BrushSurfaceSecondary}" 
+                            CornerRadius="10" 
+                            Padding="8,4"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding ShowRefreshStatus}">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                            </Transitions>
+                        </Border.Transitions>
+                        <TextBlock Text="{Binding RefreshStatusText}" 
+                                   FontSize="11" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="{markup:Localize Key=Metrics_BrowseAndManage}"
                            FontSize="13"
                            Foreground="{DynamicResource BrushTextSecondary}"
                            Margin="0,4,0,0"/>
             </StackPanel>
         </Grid>
         
-        <!-- Metrics Content (embedded tab view) -->
-        <pulse:MetricsTabView Grid.Row="1" x:Name="MetricsContent" />
+        <!-- Metrics Content (embedded tab view) - inherits DataContext from parent -->
+        <pulse:MetricsTabView Grid.Row="1" x:Name="MetricsContent" DataContext="{Binding}" />
         
     </Grid>
 </UserControl>

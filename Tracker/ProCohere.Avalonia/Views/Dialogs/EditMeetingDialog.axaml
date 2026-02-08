@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:meeting="using:ProCohere.Avalonia.Views.Controls.Meeting"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="700"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditMeetingDialog"
         x:DataType="vm:EditMeetingDialogViewModel"
@@ -68,7 +69,7 @@
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="White" />
-                    <TextBlock Text="Schedule and prepare for your meeting"
+                    <TextBlock Text="{markup:Localize Key=Dialog_Meeting_Subtitle}"
                                FontSize="12"
                                Foreground="#FFFFFFCC"/>
                 </StackPanel>
@@ -96,7 +97,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4V14Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Prep"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_Meeting_Tab_Prep}"/>
                             </StackPanel>
                         </Button>
                         <Button Classes="dialog-tab"
@@ -105,7 +106,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Agenda"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_Meeting_Tab_Agenda}"/>
                             </StackPanel>
                         </Button>
                         <Button Classes="dialog-tab"
@@ -114,7 +115,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="M14,10H19.5L14,4.5V10M5,3H15L21,9V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3M5,5V19H19V12H12V5H5Z" 
                                           Width="14" Height="14"/>
-                                <TextBlock Text="Notes"/>
+                                <TextBlock Text="{markup:Localize Key=Dialog_Meeting_Tab_Notes}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -136,7 +137,7 @@
                 Padding="20,12">
             <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                 <Button Grid.Column="0"
-                        Content="Delete"
+                        Content="{markup:Localize Key=Button_Delete}"
                         Background="{DynamicResource BrushError}"
                         Foreground="White"
                         BorderThickness="0"
@@ -144,13 +145,13 @@
                         Command="{Binding DeleteCommand}" />
                 
                 <Button Grid.Column="2"
-                        Content="Cancel"
+                        Content="{markup:Localize Key=Button_Cancel}"
                         Classes="cancel-btn"
                         Margin="0,0,8,0"
                         Command="{Binding CancelCommand}"/>
                 
                 <Button Grid.Column="3"
-                        Content="Save"
+                        Content="{markup:Localize Key=Button_Save}"
                         Classes="accent"
                         Command="{Binding SaveCommand}"/>
             </Grid>

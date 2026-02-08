@@ -5,10 +5,11 @@
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="using:ProCohere.Avalonia.Models"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="700"
         x:Class="ProCohere.Avalonia.Views.Dialogs.TeamMemberDetailsDialog"
         x:DataType="vm:TeamMemberDetailsDialogViewModel"
-        Title="Team Member Details"
+        Title="{markup:Localize Key=Dialog_TeamMember_Title}"
         Width="520" Height="700"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
@@ -68,7 +69,7 @@
                 
                 <!-- Personal Info Section (View Only) -->
                 <StackPanel Spacing="12">
-                    <TextBlock Text="PERSONAL INFO"
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_PersonalInfo}"
                                FontSize="11"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -80,21 +81,21 @@
                         <StackPanel Spacing="12">
                             <!-- Phone -->
                             <Grid ColumnDefinitions="100,*" IsVisible="{Binding HasPhone}">
-                                <TextBlock Grid.Column="0" Text="Phone" FontSize="12"
+                                <TextBlock Grid.Column="0" Text="{markup:Localize Key=Dialog_TeamMember_Phone}" FontSize="12"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 <TextBlock Grid.Column="1" Text="{Binding Phone}" FontSize="12" />
                             </Grid>
                             
                             <!-- Birthday -->
                             <Grid ColumnDefinitions="100,*">
-                                <TextBlock Grid.Column="0" Text="Birthday" FontSize="12"
+                                <TextBlock Grid.Column="0" Text="{markup:Localize Key=Dialog_TeamMember_Birthday}" FontSize="12"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 <TextBlock Grid.Column="1" Text="{Binding BirthdayDisplay}" FontSize="12" />
                             </Grid>
                             
                             <!-- LinkedIn -->
                             <Grid ColumnDefinitions="100,*" IsVisible="{Binding HasLinkedIn}">
-                                <TextBlock Grid.Column="0" Text="LinkedIn" FontSize="12"
+                                <TextBlock Grid.Column="0" Text="{markup:Localize Key=Dialog_TeamMember_LinkedIn}" FontSize="12"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 <Button Grid.Column="1" 
                                         Content="{Binding LinkedInUrl}"
@@ -106,7 +107,7 @@
                         </StackPanel>
                     </Border>
                     
-                    <TextBlock Text="Personal information is managed by the team member in their profile settings."
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_PersonalInfoNote}"
                                FontSize="11"
                                FontStyle="Italic"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -115,7 +116,7 @@
                 
                 <!-- Organization Details Section (Editable) -->
                 <StackPanel Spacing="12">
-                    <TextBlock Text="ORGANIZATION DETAILS"
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_OrgDetails}"
                                FontSize="11"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -123,18 +124,18 @@
                     
                     <!-- Job Title -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Job Title" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_JobTitle}" FontSize="12" />
                         <TextBox Text="{Binding JobTitle}"
-                                 Watermark="Position or role" />
+                                 Watermark="{markup:Localize Key=Dialog_TeamMember_JobTitleWatermark}" />
                     </StackPanel>
                     
                     <!-- Manager -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Manager" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_Manager}" FontSize="12" />
                         <ComboBox ItemsSource="{Binding AvailableManagers}"
                                   SelectedItem="{Binding SelectedManager}"
                                   HorizontalAlignment="Stretch"
-                                  PlaceholderText="Select manager (optional)">
+                                  PlaceholderText="{markup:Localize Key=Dialog_TeamMember_SelectManager}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:TeamMemberDetail">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -164,36 +165,36 @@
                     
                     <!-- Hire Date -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Hire Date" FontSize="12" />
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_HireDate}" FontSize="12" />
                         <CalendarDatePicker x:Name="HireDatePicker"
                                             HorizontalAlignment="Stretch"
-                                            Watermark="Select date"
+                                            Watermark="{markup:Localize Key=Dialog_TeamMember_SelectDate}"
                                             IsTodayHighlighted="True"/>
                     </StackPanel>
                     
                     <!-- Active Status -->
                     <CheckBox IsChecked="{Binding IsActive}"
-                              Content="Active team member"
+                              Content="{markup:Localize Key=Dialog_TeamMember_ActiveMember}"
                               Margin="0,4,0,0" />
                 </StackPanel>
                 
                 <!-- Manager Notes Section -->
                 <StackPanel Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="MANAGER NOTES (PRIVATE)"
+                        <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_ManagerNotes}"
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                    VerticalAlignment="Center" />
                         <Button Grid.Column="1" 
-                                Content="+ Add Note"
+                                Content="{markup:Localize Key=Dialog_TeamMember_AddNote}"
                                 Classes="accent" 
                                 Padding="8,4" 
                                 FontSize="11"
                                 Click="AddNoteButton_Click" />
                     </Grid>
                     
-                    <TextBlock Text="Only you can see these notes. They are not visible to the team member."
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_ManagerNotesHint}"
                                FontSize="11"
                                FontStyle="Italic"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -230,7 +231,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     
-                    <TextBlock Text="No notes yet"
+                    <TextBlock Text="{markup:Localize Key=Dialog_TeamMember_NoNotes}"
                                FontSize="11"
                                FontStyle="Italic"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -251,7 +252,7 @@
             <Border Grid.Row="2" Background="{DynamicResource BrushSecondary}" Padding="20,12">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <Button Grid.Column="0"
-                            Content="Deactivate"
+                            Content="{markup:Localize Key=Dialog_TeamMember_Deactivate}"
                             Background="Transparent"
                             Foreground="#E74C3C"
                             BorderBrush="#E74C3C"
@@ -268,7 +269,7 @@
                         </Button.Styles>
                     </Button>
                     <Button Grid.Column="2"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderBrush="White"
@@ -287,7 +288,7 @@
                         </Button.Styles>
                     </Button>
                     <Button Grid.Column="3"
-                            Content="Save Changes"
+                            Content="{markup:Localize Key=Dialog_TeamMember_SaveChanges}"
                             Foreground="{DynamicResource BrushPrimary}"
                             FontWeight="SemiBold"
                             BorderBrush="{DynamicResource BrushPrimary}"

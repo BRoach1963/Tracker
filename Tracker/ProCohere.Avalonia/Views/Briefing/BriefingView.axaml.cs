@@ -1,6 +1,8 @@
 using Avalonia.Controls;
+using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
+using ProCohere.Avalonia.Views.Dialogs;
 using ProCohere.Avalonia.Attributes;
 using System;
 
@@ -9,25 +11,31 @@ namespace ProCohere.Avalonia.Views.Briefing;
 [HelpContext("briefing", ContextName = "BriefingView")]
 public partial class BriefingView : UserControl
 {
-    private readonly BriefingViewModel _viewModel;
-    
     public BriefingView()
     {
         InitializeComponent();
-        _viewModel = new BriefingViewModel();
-        DataContext = _viewModel;
         
-        // Subscribe to dialog events
-        _viewModel.CreateTaskDialogRequested += OnCreateTaskDialogRequested;
-        _viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
-        _viewModel.CreateGoalDialogRequested += OnCreateGoalDialogRequested;
-        _viewModel.CreateNoteDialogRequested += OnCreateNoteDialogRequested;
+        // DataContext is set via binding in MainWindow.axaml to MainWindowViewModel.BriefingViewModel
+        // Subscribe to dialog events when DataContext is set
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is BriefingViewModel viewModel)
+        {
+            // Subscribe to dialog events
+            viewModel.CreateTaskDialogRequested += OnCreateTaskDialogRequested;
+            viewModel.CreateMeetingDialogRequested += OnCreateMeetingDialogRequested;
+            viewModel.CreateGoalDialogRequested += OnCreateGoalDialogRequested;
+            viewModel.CreateNoteDialogRequested += OnCreateNoteDialogRequested;
+        }
     }
 
     /// <summary>
     /// Exposes ViewModel for event subscriptions (e.g., navigation events).
     /// </summary>
-    public BriefingViewModel GetViewModel() => _viewModel;
+    public BriefingViewModel? GetViewModel() => DataContext as BriefingViewModel;
 
     private async void OnCreateTaskDialogRequested(object? sender, EventArgs e)
     {
@@ -36,9 +44,9 @@ public partial class BriefingView : UserControl
 
         var result = await AppDialogService.ShowCreateTaskAsync(window);
         
-        if (result.Success && result.Task != null)
+        if (result.Success && result.Task != null && DataContext is BriefingViewModel viewModel)
         {
-            _viewModel.OnTaskSaved(result.Task);
+            viewModel.OnTaskSaved(result.Task);
         }
     }
 
@@ -49,9 +57,9 @@ public partial class BriefingView : UserControl
 
         var result = await AppDialogService.ShowCreateMeetingAsync(window);
         
-        if (result.Success && result.Meeting != null)
+        if (result.Success && result.Meeting != null && DataContext is BriefingViewModel viewModel)
         {
-            _viewModel.OnMeetingSaved(result.Meeting);
+            viewModel.OnMeetingSaved(result.Meeting);
         }
     }
 
@@ -62,10 +70,9 @@ public partial class BriefingView : UserControl
 
         var result = await AppDialogService.ShowCreateGoalAsync(window);
         
-        if (result.Success && result.Goal != null)
+        if (result.Success && result.Goal != null && DataContext is BriefingViewModel viewModel)
         {
-            // Refresh goals list to include the new goal
-            _viewModel.RefreshCommand.Execute(null);
+            viewModel.OnGoalSaved(result.Goal);
         }
     }
 
@@ -74,8 +81,22 @@ public partial class BriefingView : UserControl
         var window = TopLevel.GetTopLevel(this) as Window;
         if (window == null) return;
 
-        // TODO: Implement note creation dialog when available
-        // For now, show a notification that this feature is coming
-        NotificationService.Instance.ShowInfo("Coming Soon", "Note creation will be available soon.");
+        var dialog = new AddNoteDialog();
+        var result = await dialog.ShowDialog<AddNoteResult?>(window);
+
+        if (result != null && !string.IsNullOrWhiteSpace(result.Content))
+        {
+            var note = new Note
+            {
+                Title = result.Title,
+                Content = result.Content
+            };
+
+            var created = await NotesService.Instance.CreateNoteAsync(note);
+            if (created != null)
+            {
+                NotificationService.Instance.ShowSuccess("Note Created", "Your note has been saved.");
+            }
+        }
     }
 }

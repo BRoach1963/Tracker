@@ -3,10 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="560"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AddKudosDialog"
         x:DataType="vm:AddKudosDialogViewModel"
-        Title="Give Kudos"
+        Title="{markup:Localize Key=Dialog_Kudos_Title}"
         Width="520" Height="560"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
@@ -31,7 +32,7 @@
                                   Width="20" Height="20" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Give Kudos" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Kudos_Title}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
                         <TextBlock Text="{Binding RecipientDisplayName, StringFormat='Recognize {0}'}" FontSize="12" Foreground="#FFFFFFCC"/>
                     </StackPanel>
                 </StackPanel>
@@ -45,23 +46,23 @@
                 
                 <!-- Category -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Category" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_Kudos_Category}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <ComboBox SelectedIndex="{Binding CategoryIndex}"
                               HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="🤝 Teamwork" Tag="teamwork" />
-                        <ComboBoxItem Content="💡 Innovation" Tag="innovation" />
-                        <ComboBoxItem Content="👑 Leadership" Tag="leadership" />
-                        <ComboBoxItem Content="👥 Customer Focus" Tag="customer_focus" />
-                        <ComboBoxItem Content="✨ Quality" Tag="quality" />
-                        <ComboBoxItem Content="🚀 Above &amp; Beyond" Tag="above_and_beyond" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Kudos_Teamwork}" Tag="teamwork" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Kudos_Innovation}" Tag="innovation" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Kudos_Leadership}" Tag="leadership" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Kudos_CustomerFocus}" Tag="customer_focus" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Kudos_Quality}" Tag="quality" />
+                        <ComboBoxItem Content="{markup:Localize Key=Dialog_Kudos_AboveAndBeyond}" Tag="above_and_beyond" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Message -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Recognition Message *" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_Kudos_Message}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox Text="{Binding Message}"
-                             Watermark="What do you want to recognize them for?"
+                             Watermark="{markup:Localize Key=Dialog_Kudos_MessageWatermark}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              Height="180" />
@@ -73,9 +74,9 @@
                 
                 <!-- Visibility -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Visibility" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBlock Text="{markup:Localize Key=Dialog_Kudos_Visibility}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                     <StackPanel Spacing="8">
-                        <RadioButton Content="Public (visible to entire organization)" 
+                        <RadioButton Content="{markup:Localize Key=Dialog_Kudos_Public}" 
                                      IsChecked="{Binding IsPublic}"
                                      GroupName="Visibility">
                             <RadioButton.Styles>
@@ -84,7 +85,7 @@
                                 </Style>
                             </RadioButton.Styles>
                         </RadioButton>
-                        <RadioButton Content="Private (only visible to recipient and you)" 
+                        <RadioButton Content="{markup:Localize Key=Dialog_Kudos_Private}" 
                                      IsChecked="{Binding !IsPublic}"
                                      GroupName="Visibility">
                             <RadioButton.Styles>
@@ -119,14 +120,14 @@
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <!-- Left: Character limit info -->
                 <TextBlock Grid.Column="0"
-                           Text="Share a genuine, specific recognition"
+                           Text="{markup:Localize Key=Dialog_Kudos_ShareTip}"
                            FontSize="11"
                            Foreground="{DynamicResource BrushTextSecondary}"
                            VerticalAlignment="Center"/>
                            
                 <!-- Cancel -->
                 <Button Grid.Column="1"
-                        Content="Cancel"
+                        Content="{markup:Localize Key=Button_Cancel}"
                         Command="{Binding CancelCommand}"
                         Classes="Secondary"
                         Width="100"
@@ -134,7 +135,7 @@
                         
                 <!-- Submit -->
                 <Button Grid.Column="2"
-                        Content="Give Kudos"
+                        Content="{markup:Localize Key=Dialog_Kudos_GiveKudos}"
                         Command="{Binding SubmitCommand}"
                         Classes="Primary"
                         Width="120"

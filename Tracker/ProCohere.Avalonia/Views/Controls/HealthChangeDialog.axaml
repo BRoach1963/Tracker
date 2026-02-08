@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
              x:Class="ProCohere.Avalonia.Views.Controls.HealthChangeDialog"
              x:DataType="vm:GoalsViewModel">
@@ -41,7 +42,7 @@
                 <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="12,12,0,0" Padding="20,16">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Update Health" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Text="{markup:Localize Key=Dialog_Health_Title}" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
                             <TextBlock Text="{Binding SelectedGoal.Title}" FontSize="12" Foreground="#94A3B8"
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
@@ -60,16 +61,16 @@
                         <!-- Philosophy Banner -->
                         <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="12">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Reflection-Based Health" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{markup:Localize Key=Dialog_Health_BannerTitle}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource BrushPrimary}"/>
-                                <TextBlock Text="Health describes current state, not a judgment. Choose what best reflects your situation now." 
+                                <TextBlock Text="{markup:Localize Key=Dialog_Health_BannerDescription}" 
                                            FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}"/>
                             </StackPanel>
                         </Border>
                         
                         <!-- Health Options -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="SELECT HEALTH STATUS" FontSize="10" FontWeight="SemiBold"
+                            <TextBlock Text="{markup:Localize Key=Dialog_Health_SelectHeader}" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                             
                             <!-- On Track -->
@@ -80,9 +81,9 @@
                                     <Border Width="8" Height="8" CornerRadius="4" Background="#3B82F6" 
                                             VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="On Track" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_OnTrack}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Progressing well, team feels aligned" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_OnTrackDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -96,9 +97,9 @@
                                     <Border Width="8" Height="8" CornerRadius="4" Background="#6366F1" 
                                             VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Needs Attention" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_NeedsAttention}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Some concerns worth discussing" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_NeedsAttentionDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -112,9 +113,9 @@
                                     <Border Width="8" Height="8" CornerRadius="4" Background="#8B5CF6" 
                                             VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="At Risk" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_AtRisk}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Significant challenges present" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_AtRiskDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -128,9 +129,9 @@
                                     <Border Width="8" Height="8" CornerRadius="4" Background="#A855F7" 
                                             VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="Reframing Needed" FontSize="13" FontWeight="SemiBold"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_ReframingNeeded}" FontSize="13" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="Goal intent may need reconsideration" FontSize="11"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Health_ReframingNeededDescription}" FontSize="11"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                 </Grid>
@@ -139,14 +140,14 @@
                         
                         <!-- Reflection Prompt -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="REFLECTION" FontSize="10" FontWeight="SemiBold"
+                            <TextBlock Text="{markup:Localize Key=Dialog_Health_ReflectionHeader}" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                             <Border Background="{DynamicResource BrushPrimarySoft}" CornerRadius="6" Padding="10,8">
                                 <TextBlock Text="{Binding HealthReflectionPrompt}" FontSize="12" FontStyle="Italic"
                                            TextWrapping="Wrap" Foreground="{DynamicResource BrushPrimary}"/>
                             </Border>
                             <TextBox Text="{Binding HealthReason}" 
-                                     Watermark="Share your thoughts on why this status..."
+                                     Watermark="{markup:Localize Key=Dialog_Health_ReflectionPlaceholder}"
                                      AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="80" MaxHeight="120"/>
                         </StackPanel>
@@ -157,12 +158,12 @@
                 <!-- Actions -->
                 <Border Grid.Row="2" Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="0,0,12,12" Padding="20,16">
                     <Grid ColumnDefinitions="*,Auto,Auto">
-                        <TextBlock Text="This change will be recorded in the goal's history."
+                        <TextBlock Text="{markup:Localize Key=Dialog_Health_HistoryNote}"
                                    FontSize="10" Foreground="{DynamicResource BrushTextTertiary}"
                                    VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" Classes="secondary-button" Content="Cancel" Margin="0,0,8,0"
+                        <Button Grid.Column="1" Classes="secondary-button" Content="{markup:Localize Key=Button_Cancel}" Margin="0,0,8,0"
                                 Command="{Binding CancelHealthDialogCommand}"/>
-                        <Button Grid.Column="2" Classes="action-button" Content="Save Health"
+                        <Button Grid.Column="2" Classes="action-button" Content="{markup:Localize Key=Dialog_Health_SaveButton}"
                                 Command="{Binding SaveHealthChangeCommand}"/>
                     </Grid>
                 </Border>

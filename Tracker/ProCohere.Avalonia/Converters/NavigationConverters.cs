@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using ProCohere.Avalonia.Models;
@@ -72,7 +73,7 @@ public class NavWidthConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -101,7 +102,7 @@ public class ThemeIconConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -123,7 +124,7 @@ public class ThemeTextConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -151,7 +152,7 @@ public class CollapseIconConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -236,7 +237,7 @@ public class BoolToWidthConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -259,7 +260,7 @@ public class BoolToHighlightBackgroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -283,7 +284,7 @@ public class BoolToForegroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -312,7 +313,7 @@ public class GoalStatusToBackgroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -341,7 +342,7 @@ public class GoalDerivedHealthToBackgroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -370,7 +371,7 @@ public class GoalDerivedHealthToDisplayConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -399,7 +400,7 @@ public class GoalDerivedHealthToPromptConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -429,7 +430,7 @@ public class TreeDepthToMarginConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -452,7 +453,7 @@ public class GreaterThanZeroConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -479,7 +480,7 @@ public class TopOffsetToMarginConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -501,7 +502,7 @@ public class BoolToStrikethroughConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -523,7 +524,7 @@ public class BoolToOverdueColorConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -546,7 +547,7 @@ public class BoolToErrorColorConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -930,7 +931,7 @@ public class TaskStatusToBackgroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -949,7 +950,7 @@ public class TaskStatusToForegroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -978,7 +979,7 @@ public class PriorityToBrushConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -1006,7 +1007,7 @@ public class RecurrencePatternToUnitConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -1031,7 +1032,7 @@ public class PrepItemStatusToBackgroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -1049,7 +1050,7 @@ public class PrepItemStatusToForegroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -1074,7 +1075,7 @@ public class PrepItemStatusToTextConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -1099,7 +1100,7 @@ public class PrepItemVisibilityToIconConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -1124,7 +1125,7 @@ public class PrepItemVisibilityToTextConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 

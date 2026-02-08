@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:local="using:ProCohere.Avalonia.Views.Controls"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="160"
              x:Class="ProCohere.Avalonia.Views.Controls.NoteCard"
              x:DataType="models:Note">
@@ -86,7 +87,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <PathIcon Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" 
                                   Width="10" Height="10" Foreground="{DynamicResource BrushSecondary}"/>
-                        <TextBlock Text="Pinned" FontSize="10" 
+                        <TextBlock Text="{markup:Localize Key=Note_Pinned}" FontSize="10" 
                                    Foreground="{DynamicResource BrushSecondary}"/>
                     </StackPanel>
                 </Border>

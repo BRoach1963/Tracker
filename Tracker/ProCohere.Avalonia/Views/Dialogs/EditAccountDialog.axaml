@@ -4,10 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:models="using:ProCohere.Avalonia.Models.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="640"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditAccountDialog"
         x:DataType="vm:EditAccountDialogViewModel"
-        Title="Edit Profile"
+        Title="{markup:Localize Key=Dialog_EditProfile_Title}"
         Width="480" 
         MinWidth="400"
         MinHeight="500"
@@ -118,11 +119,11 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                        <TextBlock Text="Edit Profile"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Title}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Update your personal information"
+                        <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Subtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC" />
                     </StackPanel>
@@ -207,7 +208,7 @@
                                                 </Style>
                                             </TextBlock.Styles>
                                         </TextBlock>
-                                        <TextBlock Text="Uploading..."
+                                        <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Uploading}"
                                                    FontSize="10"
                                                    Foreground="White"
                                                    HorizontalAlignment="Center" />
@@ -221,21 +222,21 @@
                                     VerticalAlignment="Center"
                                     Margin="16,0,0,0"
                                     Spacing="6">
-                            <TextBlock Text="Profile Photo"
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_ProfilePhoto}"
                                        FontWeight="SemiBold"
                                        FontSize="14"
                                        Foreground="#1E293B" />
-                            <TextBlock Text="JPG, PNG, GIF or WebP. Max 5MB."
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_PhotoFormats}"
                                        FontSize="11"
                                        Foreground="#94A3B8" />
                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
                                 <Button x:Name="UploadAvatarButton"
-                                        Content="Upload"
+                                        Content="{markup:Localize Key=Dialog_EditProfile_Upload}"
                                         Classes="small"
                                         Command="{Binding UploadAvatarCommand}"
                                         IsEnabled="{Binding !IsUploadingAvatar}" />
                                 <Button x:Name="RemoveAvatarButton"
-                                        Content="Remove"
+                                        Content="{markup:Localize Key=Dialog_EditProfile_Remove}"
                                         Classes="small"
                                         Command="{Binding RemoveAvatarCommand}"
                                         IsEnabled="{Binding !IsUploadingAvatar}" />
@@ -245,7 +246,7 @@
                 </Border>
                 
                 <!-- Personal Information -->
-                <TextBlock Text="PERSONAL INFORMATION" Classes="section-header" />
+                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_PersonalInfo}" Classes="section-header" />
                 
                 <Border Background="White"
                         CornerRadius="8"
@@ -256,31 +257,31 @@
                         <!-- Name Row -->
                         <Grid ColumnDefinitions="*,12,*">
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="First Name" Classes="field-label" />
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_FirstName}" Classes="field-label" />
                                 <TextBox Text="{Binding FirstName}" Watermark="First name" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="Last Name" Classes="field-label" />
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_LastName}" Classes="field-label" />
                                 <TextBox Text="{Binding LastName}" Watermark="Last name" />
                             </StackPanel>
                         </Grid>
                         
                         <!-- Display Name -->
                         <StackPanel>
-                            <TextBlock Text="Display Name" Classes="field-label" />
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_DisplayName}" Classes="field-label" />
                             <TextBox Text="{Binding DisplayName}" Watermark="How you want to appear" />
                         </StackPanel>
                         
                         <!-- Email (Read-only) -->
                         <StackPanel>
-                            <TextBlock Text="Email" Classes="field-label" />
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Email}" Classes="field-label" />
                             <TextBox Text="{Binding Email}" IsReadOnly="True" IsEnabled="False" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
                 
                 <!-- Work Information -->
-                <TextBlock Text="WORK INFORMATION" Classes="section-header" />
+                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_WorkInfo}" Classes="section-header" />
                 
                 <Border Background="White"
                         CornerRadius="8"
@@ -289,24 +290,24 @@
                         Padding="16">
                     <StackPanel Spacing="12">
                         <StackPanel>
-                            <TextBlock Text="Job Title" Classes="field-label" />
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_JobTitle}" Classes="field-label" />
                             <TextBox Text="{Binding JobTitle}" Watermark="e.g., Engineering Manager" />
                         </StackPanel>
                         
                         <StackPanel>
-                            <TextBlock Text="Company" Classes="field-label" />
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Company}" Classes="field-label" />
                             <TextBox Text="{Binding Company}" Watermark="Your company name" />
                         </StackPanel>
                         
                         <StackPanel>
-                            <TextBlock Text="Phone" Classes="field-label" />
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Phone}" Classes="field-label" />
                             <TextBox Text="{Binding Phone}" Watermark="+1 (555) 123-4567" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
                 
                 <!-- Dates & Location -->
-                <TextBlock Text="DATES &amp; LOCATION" Classes="section-header" />
+                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_DatesLocation}" Classes="section-header" />
                 
                 <Border Background="White"
                         CornerRadius="8"
@@ -316,7 +317,7 @@
                     <StackPanel Spacing="12">
                         <Grid ColumnDefinitions="*,12,*">
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="Birthday" Classes="field-label" />
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Birthday}" Classes="field-label" />
                                 <CalendarDatePicker x:Name="BirthdayPicker" 
                                                     SelectedDate="{Binding Birthday}"
                                                     HorizontalAlignment="Stretch"
@@ -324,7 +325,7 @@
                                                     IsTodayHighlighted="True" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="Hire Date" Classes="field-label" />
+                                <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_HireDate}" Classes="field-label" />
                                 <CalendarDatePicker x:Name="HireDatePicker" 
                                                     SelectedDate="{Binding HireDate}"
                                                     HorizontalAlignment="Stretch"
@@ -334,7 +335,7 @@
                         </Grid>
                         
                         <StackPanel>
-                            <TextBlock Text="Timezone" Classes="field-label" />
+                            <TextBlock Text="{markup:Localize Key=Dialog_EditProfile_Timezone}" Classes="field-label" />
                             <ComboBox x:Name="TimezoneComboBox" 
                                       ItemsSource="{Binding Timezones}"
                                       SelectedItem="{Binding SelectedTimezone}"
@@ -370,7 +371,7 @@
                     </TextBlock>
                     
                     <Button Grid.Column="1"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderBrush="White"
@@ -390,7 +391,7 @@
                     </Button>
                     <Button Grid.Column="2"
                             x:Name="SaveButton"
-                            Content="Save Changes"
+                            Content="{markup:Localize Key=Dialog_EditProfile_SaveChanges}"
                             Foreground="{DynamicResource BrushPrimary}"
                             FontWeight="SemiBold"
                             BorderBrush="{DynamicResource BrushPrimary}"

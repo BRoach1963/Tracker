@@ -1,0 +1,158 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
+        mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="500"
+        x:Class="ProCohere.Avalonia.Dialogs.ReportIssueDialog"
+        x:DataType="vm:ReportIssueDialogViewModel"
+        Title="Report an Issue"
+        Width="550"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        Background="{DynamicResource SystemChromeMediumColor}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Title Bar -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource SystemAccentColor}"
+                Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon Data="{StaticResource alert_circle_regular}" 
+                              Foreground="White"
+                              Width="20" Height="20"/>
+                    <TextBlock Text="Report an Issue" 
+                               FontSize="16" 
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="✕"
+                        Classes="transparent"
+                        Foreground="White"
+                        Command="{Binding CancelCommand}"
+                        Width="32" Height="32"/>
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" Padding="20">
+            <StackPanel Spacing="16">
+                <!-- Info Panel -->
+                <Border Background="{DynamicResource SystemAccentColorLight3}"
+                        CornerRadius="8"
+                        Padding="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <PathIcon Data="{StaticResource info_regular}" 
+                                  Width="16" Height="16"
+                                  Foreground="{DynamicResource SystemAccentColor}"/>
+                        <TextBlock Text="Your feedback helps us improve ProCohere. Logs help us diagnose the issue faster."
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Subject -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Subject" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Subject}"
+                             Watermark="Brief summary of the issue..."
+                             IsEnabled="{Binding !IsSubmitting}"/>
+                </StackPanel>
+
+                <!-- Description -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Description" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Description}"
+                             Watermark="Please describe what happened, what you expected, and steps to reproduce..."
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             Height="150"
+                             IsEnabled="{Binding !IsSubmitting}"/>
+                </StackPanel>
+
+                <!-- Include Logs Checkbox -->
+                <CheckBox IsChecked="{Binding IncludeLogs}"
+                          IsEnabled="{Binding !IsSubmitting}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Include application logs"/>
+                        <TextBlock Text="(recommended)"
+                                   Foreground="{DynamicResource TextTertiaryColor}"
+                                   FontStyle="Italic"/>
+                    </StackPanel>
+                </CheckBox>
+
+                <!-- Log Info -->
+                <Border IsVisible="{Binding IncludeLogs}"
+                        Background="{DynamicResource CardBackgroundColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="What's included in logs:"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="• Application events and errors"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                        <TextBlock Text="• System information (OS, app version)"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                        <TextBlock Text="• No personal data or passwords"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Status Message -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           IsVisible="{Binding HasStatusMessage}"
+                           Foreground="{Binding StatusMessageColor}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundColor}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,1,0,0"
+                Padding="20,12">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <!-- Progress Indicator -->
+                <StackPanel Orientation="Horizontal" 
+                            Spacing="10"
+                            IsVisible="{Binding IsSubmitting}">
+                    <PathIcon Data="{StaticResource spinner_ios_regular}"
+                              Width="16" Height="16"
+                              Foreground="{DynamicResource SystemAccentColor}"
+                              Classes="spinning"/>
+                    <TextBlock Text="{Binding ProgressMessage}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryColor}"/>
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                        IsEnabled="{Binding !IsSubmitting}"
+                        Margin="0,0,10,0"
+                        MinWidth="80"/>
+                <Button Grid.Column="2"
+                        Content="Submit"
+                        Command="{Binding SubmitCommand}"
+                        Classes="accent"
+                        IsEnabled="{Binding CanSubmit}"
+                        MinWidth="100"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

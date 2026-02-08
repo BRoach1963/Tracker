@@ -141,7 +141,7 @@ public class AISettings
     public string Provider { get; set; } = "Gemini";
     public string? GeminiApiKey { get; set; }
     public string? GroqApiKey { get; set; }
-    public string GeminiModel { get; set; } = "gemini-2.5-pro";
+    public string GeminiModel { get; set; } = "gemini-2.5-flash";
     public int MaxResponseTokens { get; set; } = 1024;
 }
 

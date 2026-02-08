@@ -4,6 +4,7 @@ using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.Views;
 using ProCohere.Avalonia.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -19,9 +20,24 @@ public partial class MainWindowViewModel : ViewModelBase
     #region Child ViewModels
     
     /// <summary>
+    /// ViewModel for the Briefing page.
+    /// </summary>
+    public BriefingViewModel BriefingViewModel { get; }
+    
+    /// <summary>
     /// ViewModel for the Pulse page.
     /// </summary>
     public PulseViewModel PulseViewModel { get; }
+    
+    /// <summary>
+    /// ViewModel for the Me page (personal workspace).
+    /// </summary>
+    public MeViewModel MeViewModel { get; }
+    
+    /// <summary>
+    /// ViewModel for the Circle page (team visibility).
+    /// </summary>
+    public CircleViewModel CircleViewModel { get; }
     
     /// <summary>
     /// ViewModel for the standalone Goals browse page.
@@ -48,6 +64,11 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     public ReportsViewModel ReportsViewModel { get; }
     
+    /// <summary>
+    /// ViewModel for the Projects page (project organization).
+    /// </summary>
+    public ProjectsViewModel ProjectsViewModel { get; }
+    
     #endregion
     
     #region Navigation
@@ -56,6 +77,42 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(PageTitle))]
     [NotifyPropertyChangedFor(nameof(PageIconData))]
     private NavigationItem _selectedNavigation = NavigationItem.Briefing;
+
+    /// <summary>
+    /// Called when SelectedNavigation changes. Notifies the target surface.
+    /// </summary>
+    partial void OnSelectedNavigationChanged(NavigationItem value)
+    {
+        // Notify the activated surface
+        switch (value)
+        {
+            case NavigationItem.Briefing:
+                BriefingViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Pulse:
+                PulseViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Me:
+                MeViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Circle:
+                CircleViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Goals:
+                GoalsViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Metrics:
+                MetricsViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Tasks:
+                TasksViewModel.OnSurfaceActivated();
+                break;
+            case NavigationItem.Projects:
+                ProjectsViewModel.OnSurfaceActivated();
+                break;
+            // Additional surfaces will be added in subsequent phases
+        }
+    }
 
     [ObservableProperty]
     private string _selectedSubNavigation = string.Empty;
@@ -194,26 +251,106 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         // Initialize child ViewModels
+        BriefingViewModel = new BriefingViewModel();
         PulseViewModel = new PulseViewModel();
+        MeViewModel = new MeViewModel();
+        CircleViewModel = new CircleViewModel();
         GoalsViewModel = new GoalsViewModel();
         MetricsViewModel = new MetricsViewModel();
         TasksViewModel = new TasksViewModel();
         ChatViewModel = new ChatViewModel();
         ReportsViewModel = new ReportsViewModel();
+        ProjectsViewModel = new ProjectsViewModel();
         
         // Wire up Quick Access navigation events from Pulse
         PulseViewModel.NavigateToGoalsRequested += (_, _) => SelectedNavigation = NavigationItem.Goals;
         PulseViewModel.NavigateToMetricsRequested += (_, _) => SelectedNavigation = NavigationItem.Metrics;
         PulseViewModel.NavigateToTasksRequested += (_, _) => SelectedNavigation = NavigationItem.Tasks;
         
+        // Wire up entity navigation from Pulse insights
+        PulseViewModel.NavigateToEntityRequested += (_, args) => NavigateToEntity(args.EntityType, args.EntityId);
+        
         // Wire up back navigation from browse pages
         GoalsViewModel.NavigateBackRequested += (_, _) => SelectedNavigation = NavigationItem.Pulse;
         MetricsViewModel.NavigateBackRequested += (_, _) => SelectedNavigation = NavigationItem.Pulse;
         TasksViewModel.NavigateBackRequested += (_, _) => SelectedNavigation = NavigationItem.Pulse;
         
+        // Wire up dirty triggers for Briefing (Step 5 of CR Fix Plan)
+        // When tasks, goals, or metrics change, mark Briefing dirty for refresh on next activation
+        TaskService.Instance.TasksChanged += (_, _) => BriefingViewModel.MarkDirty();
+        GoalsService.Instance.GoalsChanged += (_, _) => BriefingViewModel.MarkDirty();
+        MetricsService.Instance.MetricsChanged += (_, _) => BriefingViewModel.MarkDirty();
+        
+        // Wire up dirty triggers for Pulse (Phase 2 of CR Fix Plan)
+        // Pulse also cares about tasks, goals, and metrics changes
+        TaskService.Instance.TasksChanged += (_, _) => PulseViewModel.MarkDirty();
+        GoalsService.Instance.GoalsChanged += (_, _) => PulseViewModel.MarkDirty();
+        MetricsService.Instance.MetricsChanged += (_, _) => PulseViewModel.MarkDirty();
+        
+        // Wire up dirty triggers for Me (Phase 3 of CR Fix Plan)
+        // Me cares about tasks, goals, and meetings changes (personal workspace)
+        TaskService.Instance.TasksChanged += (_, _) => MeViewModel.MarkDirty();
+        GoalsService.Instance.GoalsChanged += (_, _) => MeViewModel.MarkDirty();
+        MeetingService.Instance.MeetingsChanged += (_, _) => MeViewModel.MarkDirty();
+        
+        // Wire up dirty triggers for Circle (Phase 4 of CR Fix Plan)
+        // Circle cares about goals, meetings, and team changes (visibility context)
+        GoalsService.Instance.GoalsChanged += (_, _) => CircleViewModel.MarkDirty();
+        MeetingService.Instance.MeetingsChanged += (_, _) => CircleViewModel.MarkDirty();
+        
+        // Wire up dirty triggers for Browse Pages (Phase 5 of CR Fix Plan)
+        // Browse pages are sources of truth - edits in flyouts mark parent browse dirty
+        // Goals: marked dirty when goals change elsewhere
+        GoalsService.Instance.GoalsChanged += (_, _) => GoalsViewModel.MarkDirty();
+        // Metrics: marked dirty when metrics change elsewhere
+        MetricsService.Instance.MetricsChanged += (_, _) => MetricsViewModel.MarkDirty();
+        // Tasks: marked dirty when tasks change elsewhere
+        TaskService.Instance.TasksChanged += (_, _) => TasksViewModel.MarkDirty();
+        
+        // Wire up dirty triggers for Projects (Phase 6 of CR Fix Plan)
+        // Projects care about tasks, goals, and project changes (linked items affect signals)
+        TaskService.Instance.TasksChanged += (_, _) => ProjectsViewModel.MarkDirty();
+        GoalsService.Instance.GoalsChanged += (_, _) => ProjectsViewModel.MarkDirty();
+        
         LoadUserInfo();
-        // Load profile from database async
-        _ = LoadProfileFromDatabaseAsync();
+        // Load profile from database async - InitializeAsync will handle the rest
+    }
+
+    /// <summary>
+    /// Initializes all data asynchronously. Call this before showing the MainWindow.
+    /// Loads all child ViewModels in parallel for instant navigation.
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] InitializeAsync starting...");
+        IsLoading = true;
+        
+        try
+        {
+            // Load user profile and all view data in parallel
+            // These are independent loads that don't depend on each other
+            var loadTasks = new List<Task>
+            {
+                LoadProfileFromDatabaseAsync(),
+                TasksViewModel.RefreshAsync(),
+                GoalsViewModel.RefreshAsync(),
+                MetricsViewModel.RefreshAsync(),
+                PulseViewModel.RefreshAsync(),
+            };
+            
+            await Task.WhenAll(loadTasks);
+            
+            System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] InitializeAsync complete - all data loaded");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] InitializeAsync error: {ex.Message}");
+            // Individual ViewModels handle their own errors - don't fail the whole app
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     /// <summary>
@@ -471,6 +608,41 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ToggleChat()
     {
         IsChatOpen = !IsChatOpen;
+    }
+    
+    #endregion
+    
+    #region Entity Navigation
+    
+    /// <summary>
+    /// Navigates to the appropriate page for an entity type.
+    /// </summary>
+    private void NavigateToEntity(string entityType, Guid entityId)
+    {
+        System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] NavigateToEntity: {entityType} / {entityId}");
+        
+        // Navigate to the browse page for the entity type
+        // Future: Could also select/highlight the specific entity
+        switch (entityType.ToLowerInvariant())
+        {
+            case "goal":
+                SelectedNavigation = NavigationItem.Goals;
+                break;
+            case "metric":
+                SelectedNavigation = NavigationItem.Metrics;
+                break;
+            case "task":
+            case "actionitem":
+                SelectedNavigation = NavigationItem.Tasks;
+                break;
+            case "meeting":
+                // Meetings are shown in Me view
+                SelectedNavigation = NavigationItem.Me;
+                break;
+            default:
+                System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Unknown entity type: {entityType}");
+                break;
+        }
     }
     
     #endregion

@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditProjectDialog"
         Title="Project"
@@ -34,11 +35,11 @@
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock x:Name="DialogTitle"
-                                   Text="New Project"
+                                   Text="{markup:Localize Key=Dialog_Project_NewProject}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Organize your work"
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_EditSubtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC"/>
                     </StackPanel>
@@ -54,23 +55,23 @@
                     
                     <!-- Project Name -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Project Name *" 
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_Name}" 
                                    FontSize="13" 
                                    FontWeight="Medium" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox x:Name="NameTextBox"
-                                 Watermark="What's this project about?"
+                                 Watermark="{markup:Localize Key=Dialog_Project_NameWatermark}"
                                  FontSize="14"/>
                     </StackPanel>
                     
                     <!-- Description -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Description" 
+                        <TextBlock Text="{markup:Localize Key=Label_Description}" 
                                    FontSize="13" 
                                    FontWeight="Medium" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox x:Name="DescriptionTextBox"
-                                 Watermark="What is this project trying to accomplish?"
+                                 Watermark="{markup:Localize Key=Dialog_Project_DescriptionWatermark}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  MinHeight="80"
@@ -79,26 +80,26 @@
                     
                     <!-- Status -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Status" 
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_Status}" 
                                    FontSize="13" 
                                    FontWeight="Medium" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox x:Name="StatusComboBox"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Active" Tag="active"/>
-                            <ComboBoxItem Content="Paused" Tag="paused"/>
-                            <ComboBoxItem Content="Completed" Tag="completed"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Project_StatusActive}" Tag="active"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Project_StatusPaused}" Tag="paused"/>
+                            <ComboBoxItem Content="{markup:Localize Key=Dialog_Project_StatusCompleted}" Tag="completed"/>
                         </ComboBox>
                     </StackPanel>
                     
                     <!-- Due Date -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Due Date (optional)" 
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_DueDateOptional}" 
                                    FontSize="13" 
                                    FontWeight="Medium" 
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                         <CalendarDatePicker x:Name="DueDatePicker"
-                                            Watermark="Select due date..."
+                                            Watermark="{markup:Localize Key=Dialog_Project_SelectDueDate}"
                                             HorizontalAlignment="Stretch"/>
                     </StackPanel>
                     
@@ -119,12 +120,12 @@
                 <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             Spacing="8">
-                    <Button Content="Cancel"
+                    <Button Content="{markup:Localize Key=Button_Cancel}"
                             Classes="cancel-btn"
                             MinWidth="80"
                             Click="CancelButton_Click"/>
                     <Button x:Name="SaveButton"
-                            Content="Create Project"
+                            Content="{markup:Localize Key=Dialog_Project_CreateProject}"
                             Classes="accent"
                             MinWidth="100"
                             Click="SaveButton_Click"/>

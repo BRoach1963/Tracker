@@ -87,14 +87,16 @@ public partial class MetricsTabView : UserControl
 
     private void FilterTrendingUp_Tapped(object? sender, TappedEventArgs e)
     {
-        // TODO: Add trending filter to ViewModel if needed
-        // For now, this is informational only
+        // Toggle: if already filtering up, clear filter; otherwise set to up
+        var current = ViewModel?.TrendFilter;
+        ViewModel?.SetTrendFilterCommand.Execute(current == MetricTrend.TrendingUp ? null : "up");
     }
 
     private void FilterTrendingDown_Tapped(object? sender, TappedEventArgs e)
     {
-        // TODO: Add trending filter to ViewModel if needed
-        // For now, this is informational only
+        // Toggle: if already filtering down, clear filter; otherwise set to down
+        var current = ViewModel?.TrendFilter;
+        ViewModel?.SetTrendFilterCommand.Execute(current == MetricTrend.TrendingDown ? null : "down");
     }
 
     #endregion

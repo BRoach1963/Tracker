@@ -95,7 +95,7 @@ public partial class EditGoalDialogViewModel : ObservableObject
     private static readonly string[] GoalTypeTags = { "growth", "execution", "operational", "directional" };
     private static readonly string[] HealthTags = { "on_track", "needs_attention", "at_risk", "reframing_needed" };
     private static readonly string[] LifecycleTags = { "active", "evolving", "paused", "superseded", "retired" };
-    private static readonly string[] VisibilityTags = { "private", "team", "organization" };
+    private static readonly string[] VisibilityTags = { "personal", "team" };
     
     public EditGoalDialogViewModel()
     {
@@ -155,6 +155,12 @@ public partial class EditGoalDialogViewModel : ObservableObject
         if (!string.IsNullOrEmpty(goal.Status))
         {
             HealthIndex = GetIndexByTag(HealthTags, goal.Status);
+        }
+        
+        // Set visibility scope
+        if (!string.IsNullOrEmpty(goal.VisibilityScope))
+        {
+            VisibilityIndex = GetIndexByTag(VisibilityTags, goal.VisibilityScope);
         }
         
         // Owner is set in SetTeamMembers if called after LoadGoal
@@ -274,6 +280,7 @@ public partial class EditGoalDialogViewModel : ObservableObject
             DueDate = EndDate,
             OwnerTeamMemberId = SelectedOwner?.Id,
             Status = GetTagByIndex(HealthTags, HealthIndex),
+            VisibilityScope = GetTagByIndex(VisibilityTags, VisibilityIndex) ?? "personal",
             IsDeleted = false
         };
         

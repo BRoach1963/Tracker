@@ -60,13 +60,23 @@ public partial class ReportsViewModel : ViewModelBase
     /// Start date for report range.
     /// </summary>
     [ObservableProperty]
-    private DateTimeOffset _startDate = DateTimeOffset.Now.AddDays(-30);
+    private DateTime? _startDate = DateTime.Now.AddDays(-30);
 
     /// <summary>
     /// End date for report range.
     /// </summary>
     [ObservableProperty]
-    private DateTimeOffset _endDate = DateTimeOffset.Now;
+    private DateTime? _endDate = DateTime.Now;
+
+    /// <summary>
+    /// Gets the effective start date (never null).
+    /// </summary>
+    private DateTime EffectiveStartDate => StartDate ?? DateTime.Now.AddDays(-30);
+    
+    /// <summary>
+    /// Gets the effective end date (never null).
+    /// </summary>
+    private DateTime EffectiveEndDate => EndDate ?? DateTime.Now;
 
     /// <summary>
     /// Whether data is currently loading.
@@ -169,15 +179,15 @@ public partial class ReportsViewModel : ViewModelBase
     [RelayCommand]
     private void SetDateRange(string preset)
     {
-        EndDate = DateTimeOffset.Now;
+        EndDate = DateTime.Now;
         StartDate = preset switch
         {
-            "7d" => DateTimeOffset.Now.AddDays(-7),
-            "30d" => DateTimeOffset.Now.AddDays(-30),
-            "90d" => DateTimeOffset.Now.AddDays(-90),
-            "ytd" => new DateTimeOffset(DateTime.Now.Year, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            "1y" => DateTimeOffset.Now.AddYears(-1),
-            _ => DateTimeOffset.Now.AddDays(-30)
+            "7d" => DateTime.Now.AddDays(-7),
+            "30d" => DateTime.Now.AddDays(-30),
+            "90d" => DateTime.Now.AddDays(-90),
+            "ytd" => new DateTime(DateTime.Now.Year, 1, 1),
+            "1y" => DateTime.Now.AddYears(-1),
+            _ => DateTime.Now.AddDays(-30)
         };
         Log($"Date range set to {preset}: {StartDate:d} - {EndDate:d}");
         _ = LoadReportDataAsync();
@@ -193,12 +203,12 @@ public partial class ReportsViewModel : ViewModelBase
         _ = LoadReportDataAsync();
     }
 
-    partial void OnStartDateChanged(DateTimeOffset value)
+    partial void OnStartDateChanged(DateTime? value)
     {
         Log($"Start date changed to {value:d}");
     }
 
-    partial void OnEndDateChanged(DateTimeOffset value)
+    partial void OnEndDateChanged(DateTime? value)
     {
         Log($"End date changed to {value:d}");
     }
@@ -244,8 +254,8 @@ public partial class ReportsViewModel : ViewModelBase
         {
             Log($"Exporting all data to: {filePath}");
 
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
 
             // Load all data for export
             var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
@@ -301,8 +311,8 @@ public partial class ReportsViewModel : ViewModelBase
         {
             Log($"Exporting current tab ({SelectedReportIndex}) to: {filePath}");
 
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
             var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
 
             bool success = SelectedReportIndex switch
@@ -391,8 +401,8 @@ public partial class ReportsViewModel : ViewModelBase
         {
             Log($"Exporting all data to PDF: {filePath}");
 
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
 
             var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
             var metrics = await MetricsService.Instance.GetAllMetricsAsync();
@@ -447,8 +457,8 @@ public partial class ReportsViewModel : ViewModelBase
         {
             Log($"Exporting current tab ({SelectedReportIndex}) to PDF: {filePath}");
 
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
             var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
 
             bool success = SelectedReportIndex switch
@@ -522,8 +532,8 @@ public partial class ReportsViewModel : ViewModelBase
         {
             Log($"Exporting all data to CSV ZIP: {filePath}");
 
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
 
             var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
             var metrics = await MetricsService.Instance.GetAllMetricsAsync();
@@ -574,8 +584,8 @@ public partial class ReportsViewModel : ViewModelBase
         {
             Log($"Exporting current tab ({SelectedReportIndex}) to CSV: {filePath}");
 
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
             var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
 
             bool success = SelectedReportIndex switch
@@ -628,8 +638,8 @@ public partial class ReportsViewModel : ViewModelBase
 
         try
         {
-            var start = StartDate.DateTime;
-            var end = EndDate.DateTime;
+            var start = EffectiveStartDate;
+            var end = EffectiveEndDate;
 
             Log($"Loading report data: Type={SelectedReportIndex}, Range={start:d}-{end:d}");
 

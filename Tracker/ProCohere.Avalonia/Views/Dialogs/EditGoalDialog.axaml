@@ -5,6 +5,7 @@
         xmlns:models="using:ProCohere.Avalonia.Models"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="650"
         x:Class="ProCohere.Avalonia.Views.Dialogs.EditGoalDialog"
         x:DataType="vm:EditGoalDialogViewModel"
@@ -39,7 +40,7 @@
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Define and track your objectives"
+                        <TextBlock Text="{markup:Localize Key=Dialog_Goal_Subtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC"/>
                     </StackPanel>
@@ -54,16 +55,16 @@
                     
                     <!-- Title -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Title *" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Task_TitleLabel}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox Text="{Binding Title}"
-                                 Watermark="What do you want to achieve?" />
+                                 Watermark="{markup:Localize Key=Dialog_Goal_TitlePlaceholder}" />
                     </StackPanel>
                     
                     <!-- Description -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Description" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Label_Description}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox Text="{Binding Description}"
-                                 Watermark="Why is this goal important? What does success look like?"
+                                 Watermark="{markup:Localize Key=Dialog_Goal_DescriptionPlaceholder}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  Height="80" />
@@ -71,20 +72,20 @@
                     
                     <!-- Goal Type -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Goal Type" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Goal_GoalType}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox SelectedIndex="{Binding GoalTypeIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Growth" Tag="growth" />
-                            <ComboBoxItem Content="Execution" Tag="execution" />
-                            <ComboBoxItem Content="Operational" Tag="operational" />
-                            <ComboBoxItem Content="Directional" Tag="directional" />
+                            <ComboBoxItem Content="{markup:Localize Key=GoalType_Growth}" Tag="growth" />
+                            <ComboBoxItem Content="{markup:Localize Key=GoalType_Execution}" Tag="execution" />
+                            <ComboBoxItem Content="{markup:Localize Key=GoalType_Operational}" Tag="operational" />
+                            <ComboBoxItem Content="{markup:Localize Key=GoalType_Directional}" Tag="directional" />
                         </ComboBox>
                     </StackPanel>
                     
                     <!-- Time Period Row -->
                     <Grid ColumnDefinitions="*,12,Auto">
                         <StackPanel Grid.Column="0" Spacing="4">
-                            <TextBlock Text="Time Period" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Dialog_Goal_TimePeriod}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                             <ComboBox SelectedIndex="{Binding TimePeriodIndex}"
                                       HorizontalAlignment="Stretch">
                                 <ComboBoxItem Content="Q1" Tag="Q1" />
@@ -93,11 +94,11 @@
                                 <ComboBoxItem Content="Q4" Tag="Q4" />
                                 <ComboBoxItem Content="H1" Tag="H1" />
                                 <ComboBoxItem Content="H2" Tag="H2" />
-                                <ComboBoxItem Content="Annual" Tag="Annual" />
+                                <ComboBoxItem Content="{markup:Localize Key=TimePeriod_Annual}" Tag="Annual" />
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Spacing="4">
-                            <TextBlock Text="Year" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Dialog_Goal_Year}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                             <ComboBox ItemsSource="{Binding Years}"
                                       SelectedIndex="{Binding SelectedYearIndex}"
                                       MinWidth="100" />
@@ -107,28 +108,28 @@
                     <!-- Date Range -->
                     <Grid ColumnDefinitions="*,12,*">
                         <StackPanel Grid.Column="0" Spacing="4">
-                            <TextBlock Text="Start Date" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Label_StartDate}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                             <CalendarDatePicker SelectedDate="{Binding StartDate}"
                                                 HorizontalAlignment="Stretch"
-                                                Watermark="Select date"
+                                                Watermark="{markup:Localize Key=Dialog_Task_SelectDate}"
                                                 IsTodayHighlighted="True"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Spacing="4">
-                            <TextBlock Text="End Date" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            <TextBlock Text="{markup:Localize Key=Label_EndDate}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                             <CalendarDatePicker SelectedDate="{Binding EndDate}"
                                                 HorizontalAlignment="Stretch"
-                                                Watermark="Select date"
+                                                Watermark="{markup:Localize Key=Dialog_Task_SelectDate}"
                                                 IsTodayHighlighted="True"/>
                         </StackPanel>
                     </Grid>
                     
                     <!-- Owner -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Owner" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Label_Owner}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox ItemsSource="{Binding TeamMembers}"
                                   SelectedItem="{Binding SelectedOwner}"
                                   HorizontalAlignment="Stretch"
-                                  PlaceholderText="Select owner">
+                                  PlaceholderText="{markup:Localize Key=Dialog_Goal_SelectOwner}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:TeamMemberDetail">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -160,40 +161,39 @@
                     
                     <!-- Health (only in edit mode) -->
                     <StackPanel Spacing="4" IsVisible="{Binding IsEditMode}">
-                        <TextBlock Text="Health Status" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Goal_HealthStatus}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox SelectedIndex="{Binding HealthIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="On Track" Tag="on_track" />
-                            <ComboBoxItem Content="Needs Attention" Tag="needs_attention" />
-                            <ComboBoxItem Content="At Risk" Tag="at_risk" />
-                            <ComboBoxItem Content="Reframing Needed" Tag="reframing_needed" />
+                            <ComboBoxItem Content="{markup:Localize Key=Health_OnTrack}" Tag="on_track" />
+                            <ComboBoxItem Content="{markup:Localize Key=Health_NeedsAttention}" Tag="needs_attention" />
+                            <ComboBoxItem Content="{markup:Localize Key=Health_AtRisk}" Tag="at_risk" />
+                            <ComboBoxItem Content="{markup:Localize Key=Health_ReframingNeeded}" Tag="reframing_needed" />
                         </ComboBox>
                         <TextBox Text="{Binding HealthReason}"
-                                 Watermark="What has changed?"
+                                 Watermark="{markup:Localize Key=Health_WhatChanged}"
                                  Margin="0,4,0,0" />
                     </StackPanel>
                     
                     <!-- Lifecycle (only in edit mode) -->
                     <StackPanel Spacing="4" IsVisible="{Binding IsEditMode}">
-                        <TextBlock Text="Lifecycle" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Goal_Lifecycle}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox SelectedIndex="{Binding LifecycleIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Active" Tag="active" />
-                            <ComboBoxItem Content="Evolving" Tag="evolving" />
-                            <ComboBoxItem Content="Paused" Tag="paused" />
-                            <ComboBoxItem Content="Superseded" Tag="superseded" />
-                            <ComboBoxItem Content="Retired" Tag="retired" />
+                            <ComboBoxItem Content="{markup:Localize Key=Lifecycle_Active}" Tag="active" />
+                            <ComboBoxItem Content="{markup:Localize Key=Lifecycle_Evolving}" Tag="evolving" />
+                            <ComboBoxItem Content="{markup:Localize Key=Lifecycle_Paused}" Tag="paused" />
+                            <ComboBoxItem Content="{markup:Localize Key=Lifecycle_Superseded}" Tag="superseded" />
+                            <ComboBoxItem Content="{markup:Localize Key=Lifecycle_Retired}" Tag="retired" />
                         </ComboBox>
                     </StackPanel>
                     
                     <!-- Visibility -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Visibility" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBlock Text="{markup:Localize Key=Label_Visibility}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
                         <ComboBox SelectedIndex="{Binding VisibilityIndex}"
                                   HorizontalAlignment="Stretch">
-                            <ComboBoxItem Content="Private (only me)" Tag="private" />
-                            <ComboBoxItem Content="Team" Tag="team" />
-                            <ComboBoxItem Content="Organization" Tag="organization" />
+                            <ComboBoxItem Content="{markup:Localize Key=Visibility_PersonalOnlyMe}" Tag="personal" />
+                            <ComboBoxItem Content="{markup:Localize Key=Visibility_Team}" Tag="team" />
                         </ComboBox>
                     </StackPanel>
                     
@@ -206,7 +206,7 @@
                     Padding="20,12">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <Button Grid.Column="0"
-                            Content="Delete"
+                            Content="{markup:Localize Key=Button_Delete}"
                             Background="Transparent"
                             Foreground="{DynamicResource BrushError}"
                             BorderBrush="{DynamicResource BrushError}"
@@ -225,7 +225,7 @@
                     </Button>
                     
                     <Button Grid.Column="2"
-                            Content="Cancel"
+                            Content="{markup:Localize Key=Button_Cancel}"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="1"

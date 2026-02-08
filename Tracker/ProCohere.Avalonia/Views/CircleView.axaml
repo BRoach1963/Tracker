@@ -6,6 +6,7 @@
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="ProCohere.Avalonia.Views.CircleView"
              x:DataType="vm:CircleViewModel">
@@ -45,14 +46,26 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Border.member-card:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
             <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+            <Setter Property="RenderTransform" Value="translateY(-2px)"/>
+            <Setter Property="BoxShadow" Value="0 4 12 0 #15000000"/>
         </Style>
         <Style Selector="Border.member-card.selected">
             <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
             <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Background" Value="{DynamicResource BrushPrimarySubtle}"/>
+            <Setter Property="BoxShadow" Value="0 0 0 3 #3322C55E"/>
         </Style>
         
         <!-- Compact Member Card (Tree View) -->
@@ -63,6 +76,13 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Border.member-card-compact:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource BrushHighlight}"/>
@@ -71,6 +91,8 @@
         <Style Selector="Border.member-card-compact.selected">
             <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
             <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Background" Value="{DynamicResource BrushPrimarySubtle}"/>
+            <Setter Property="BoxShadow" Value="0 0 0 3 #3322C55E"/>
         </Style>
         
         <!-- Detail Panel Style - with slide animation -->
@@ -198,6 +220,10 @@
         </Style>
         <Style Selector="Button.view-team-button:pointerover TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource BrushTextOnPrimary}"/>
+        </Style>
+        <Style Selector="Button.view-team-button:pressed">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryDark}"/>
+            <Setter Property="RenderTransform" Value="scale(0.97)"/>
         </Style>
         
         <!-- Meeting Card Style -->
@@ -336,9 +362,9 @@
             </Grid.ColumnDefinitions>
             
             <TextBlock Grid.Column="0" FontSize="13" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center">
-                <Run Text="Your team of"/>
+                <Run Text="{markup:Localize Key=Circle_YourTeamOf}"/>
                 <Run Text="{Binding TotalMemberCount}" FontWeight="SemiBold"/>
-                <Run Text="people"/>
+                <Run Text="{markup:Localize Key=Circle_People}"/>
             </TextBlock>
             
             <!-- Add Member Button -->
@@ -346,69 +372,89 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <PathIcon Data="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12M5,9.59L7.12,7.46L8.54,8.88L6.41,11L8.54,13.12L7.12,14.54L5,12.41L2.88,14.54L1.46,13.12L3.59,11L1.46,8.88L2.88,7.46L5,9.59Z" 
                               Width="16" Height="16"/>
-                    <TextBlock Text="Add Member" VerticalAlignment="Center"/>
+                    <TextBlock Text="{markup:Localize Key=Circle_AddMember}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
         </Grid>
         
         <!-- Row 1: Tab Bar -->
         <Border Grid.Row="1" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1" Margin="0,0,0,16">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Team}}"
-                        Command="{Binding SelectTabCommand}"
-                        CommandParameter="{x:Static vm:CircleTab.Team}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Team"/>
-                    </StackPanel>
-                </Button>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Team}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:CircleTab.Team}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_Team}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Goals}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:CircleTab.Goals}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="{markup:Localize Key=Nav_Goals}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Metrics}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:CircleTab.Metrics}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="{markup:Localize Key=Nav_Metrics}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Feedback}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:CircleTab.Feedback}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_Feedback}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Classes="tab-button"
+                            Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Meetings}}"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="{x:Static vm:CircleTab.Meetings}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" 
+                                      Width="16" Height="16"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_Meetings}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
                 
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Goals}}"
-                        Command="{Binding SelectTabCommand}"
-                        CommandParameter="{x:Static vm:CircleTab.Goals}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Goals"/>
-                    </StackPanel>
-                </Button>
-                
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Metrics}}"
-                        Command="{Binding SelectTabCommand}"
-                        CommandParameter="{x:Static vm:CircleTab.Metrics}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Metrics"/>
-                    </StackPanel>
-                </Button>
-                
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Feedback}}"
-                        Command="{Binding SelectTabCommand}"
-                        CommandParameter="{x:Static vm:CircleTab.Feedback}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Feedback"/>
-                    </StackPanel>
-                </Button>
-                
-                <Button Classes="tab-button"
-                        Classes.selected="{Binding SelectedTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:CircleTab.Meetings}}"
-                        Command="{Binding SelectTabCommand}"
-                        CommandParameter="{x:Static vm:CircleTab.Meetings}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" 
-                                  Width="16" Height="16"/>
-                        <TextBlock Text="Meetings"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
+                <!-- Refresh Status Chip (Updating.../Updated) -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource BrushSurfaceSecondary}" 
+                            CornerRadius="10" 
+                            Padding="8,4"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding ShowRefreshStatus}">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                            </Transitions>
+                        </Border.Transitions>
+                        <TextBlock Text="{Binding RefreshStatusText}" 
+                                   FontSize="11" 
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <!-- Row 2: Search & Filters (Team tab only) -->
@@ -450,7 +496,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding TotalMemberCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <TextBlock Text="All" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=Circle_All}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -462,7 +508,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding ActiveMemberCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="#10B981"/>
-                        <TextBlock Text="Active" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=Circle_Active}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -474,7 +520,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding MeetingsOverdueCountText}" FontSize="18" FontWeight="Bold"
                                    Foreground="#EF4444"/>
-                        <TextBlock Text="Needs Attention" FontSize="12" 
+                        <TextBlock Text="{markup:Localize Key=Circle_NeedsAttention}" FontSize="12" 
                                    Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
@@ -508,9 +554,9 @@
                 <!-- Showing count -->
                 <TextBlock VerticalAlignment="Center"
                            Foreground="{DynamicResource BrushTextTertiary}" FontSize="12">
-                    <Run Text="Showing"/>
+                    <Run Text="{markup:Localize Key=Circle_Showing}"/>
                     <Run Text="{Binding FilteredMemberCount}" FontWeight="SemiBold"/>
-                    <Run Text="of"/>
+                    <Run Text="{markup:Localize Key=Circle_Of}"/>
                     <Run Text="{Binding TotalMemberCount}" FontWeight="SemiBold"/>
                 </TextBlock>
             </StackPanel>
@@ -532,13 +578,13 @@
                     
                     <!-- Filter Text -->
                     <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center">
-                        <TextBlock Text="Filtered View" FontSize="11" FontWeight="Medium" 
+                        <TextBlock Text="{markup:Localize Key=Circle_FilteredView}" FontSize="11" FontWeight="Medium" 
                                    Foreground="{DynamicResource BrushTextTertiary}"/>
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="Showing" Foreground="{DynamicResource BrushTextOnSecondary}" FontSize="14"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_Showing}" Foreground="{DynamicResource BrushTextOnSecondary}" FontSize="14"/>
                             <TextBlock Text="{Binding FilterByManagerName}" Foreground="{DynamicResource BrushHighlight}" 
                                        FontWeight="Bold" FontSize="14"/>
-                            <TextBlock Text="and their direct reports" Foreground="{DynamicResource BrushTextOnSecondary}" FontSize="14"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_AndTheirDirectReports}" Foreground="{DynamicResource BrushTextOnSecondary}" FontSize="14"/>
                         </StackPanel>
                     </StackPanel>
                     
@@ -553,7 +599,7 @@
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
                                                   Width="12" Height="12" Foreground="{DynamicResource BrushSecondary}"/>
-                                        <TextBlock Text="Show All Team" Foreground="{DynamicResource BrushSecondary}" 
+                                        <TextBlock Text="{markup:Localize Key=Circle_ShowAllTeam}" Foreground="{DynamicResource BrushSecondary}" 
                                                    FontWeight="SemiBold" FontSize="13"/>
                                     </StackPanel>
                                 </Border>
@@ -576,7 +622,7 @@
                   ColumnDefinitions="*,Auto" ClipToBounds="True">
                 
                 <!-- Cards Grid - add right margin when panel is open -->
-                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" 
+                <ScrollViewer x:Name="TeamCardsScrollViewer" Grid.Column="0" VerticalScrollBarVisibility="Auto" 
                               Padding="0,0,12,0">
                     <Grid>
                         <!-- FLAT VIEW: Card Grid -->
@@ -628,7 +674,7 @@
                                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0" Spacing="8">
                                                         <TextBlock FontSize="10" Foreground="{DynamicResource BrushTextTertiary}"
                                                                    IsVisible="{Binding ManagerName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                                            <Run Text="Reports to: "/><Run Text="{Binding ManagerName}" FontWeight="Medium"/>
+                                                            <Run Text="{markup:Localize Key=Circle_ReportsTo}"/><Run Text="{Binding ManagerName}" FontWeight="Medium"/>
                                                         </TextBlock>
                                                         <!-- Clickable View Team Button -->
                                                         <Button Classes="view-team-button"
@@ -636,13 +682,13 @@
                                                                 Tapped="ManagerBadge_Tapped"
                                                                 Tag="{Binding}">
                                                             <ToolTip.Tip>
-                                                                <TextBlock Text="View this person's team" Foreground="#1F2937"/>
+                                                                <TextBlock Text="{markup:Localize Key=Circle_ViewThisPersonsTeam}" Foreground="#1F2937"/>
                                                             </ToolTip.Tip>
                                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                                 <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"
                                                                           Width="12" Height="12" Foreground="{DynamicResource BrushPrimary}"/>
                                                                 <TextBlock FontSize="10" Foreground="{DynamicResource BrushPrimary}" FontWeight="SemiBold">
-                                                                    <Run Text="{Binding DirectReportCount}"/><Run Text=" team"/>
+                                                                    <Run Text="{Binding DirectReportCount}"/><Run Text="{markup:Localize Key=Circle_TeamCount}"/>
                                                                 </TextBlock>
                                                                 <PathIcon Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
                                                                           Width="10" Height="10" Foreground="{DynamicResource BrushPrimary}"/>
@@ -669,7 +715,7 @@
                                                     <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                                         <TextBlock Text="{Binding Tenure}" FontSize="12" FontWeight="SemiBold"
                                                                    Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="Tenure" FontSize="9"
+                                                        <TextBlock Text="{markup:Localize Key=Circle_Tenure}" FontSize="9"
                                                                    Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                     
@@ -678,7 +724,7 @@
                                                     <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                                         <TextBlock Text="{Binding OpenTaskCount}" FontSize="12" FontWeight="SemiBold"
                                                                    Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="Tasks" FontSize="9"
+                                                        <TextBlock Text="{markup:Localize Key=Circle_Tasks}" FontSize="9"
                                                                    Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                     
@@ -687,7 +733,7 @@
                                                     <StackPanel Grid.Column="4" HorizontalAlignment="Center">
                                                         <TextBlock Text="{Binding ActiveGoalCount}" FontSize="12" FontWeight="SemiBold"
                                                                    Foreground="{DynamicResource BrushTextPrimary}" HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="Goals" FontSize="9"
+                                                        <TextBlock Text="{markup:Localize Key=Nav_Goals}" FontSize="9"
                                                                    Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Grid>
@@ -696,12 +742,12 @@
                                             <!-- Meeting Status -->
                                             <Grid Grid.Row="2" Margin="0,0,0,12" ColumnDefinitions="*,*">
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="Last Meeting" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                                    <TextBlock Text="{markup:Localize Key=Circle_LastMeeting}" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}"/>
                                                     <TextBlock Text="{Binding LastMeetingText}" FontSize="12" FontWeight="Medium"
                                                                Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                                    <TextBlock Text="Next Meeting" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Right"/>
+                                                    <TextBlock Text="{markup:Localize Key=Circle_NextMeeting}" FontSize="9" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Right"/>
                                                     <TextBlock Text="{Binding NextMeetingText}" FontSize="12" FontWeight="Medium"
                                                                HorizontalAlignment="Right">
                                                         <TextBlock.Foreground>
@@ -798,7 +844,7 @@
                                                     Tapped="ManagerBadge_Tapped"
                                                     Tag="{Binding}">
                                                 <ToolTip.Tip>
-                                                    <TextBlock Text="View this person's team" Foreground="#1F2937"/>
+                                                    <TextBlock Text="{markup:Localize Key=Circle_ViewThisPersonsTeam}" Foreground="#1F2937"/>
                                                 </ToolTip.Tip>
                                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                                     <PathIcon Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"
@@ -848,7 +894,7 @@
                                 Classes.selected="{Binding GoalFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:GoalFilter.All}}"
                                 Tapped="GoalFilter_All_Tapped">
                             <StackPanel>
-                                <TextBlock Text="ALL GOALS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_AllGoals}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding TotalGoalsCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BrushTextPrimary}"/>
                             </StackPanel>
                         </Border>
@@ -858,7 +904,7 @@
                                 Classes.selected="{Binding GoalFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:GoalFilter.OnTrack}}"
                                 Tapped="GoalFilter_OnTrack_Tapped">
                             <StackPanel>
-                                <TextBlock Text="ON TRACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_OnTrack}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding OnTrackGoalsCount}" FontSize="20" FontWeight="Bold" Foreground="#10B981"/>
                             </StackPanel>
                         </Border>
@@ -868,7 +914,7 @@
                                 Classes.selected="{Binding GoalFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:GoalFilter.AtRisk}}"
                                 Tapped="GoalFilter_AtRisk_Tapped">
                             <StackPanel>
-                                <TextBlock Text="AT RISK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_AtRisk}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding AtRiskGoalsCount}" FontSize="20" FontWeight="Bold" Foreground="#F59E0B"/>
                             </StackPanel>
                         </Border>
@@ -878,7 +924,7 @@
                                 Classes.selected="{Binding GoalFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:GoalFilter.OffTrack}}"
                                 Tapped="GoalFilter_OffTrack_Tapped">
                             <StackPanel>
-                                <TextBlock Text="OFF TRACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_OffTrack}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding OffTrackGoalsCount}" FontSize="20" FontWeight="Bold" Foreground="#EF4444"/>
                             </StackPanel>
                         </Border>
@@ -888,7 +934,7 @@
                     <Button Grid.Column="1" Command="{Binding AddGoalCommand}" Classes="action-button">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="14" Height="14"/>
-                            <TextBlock Text="Add Goal"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_AddGoal}"/>
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -932,7 +978,7 @@
                                                           Width="14" Height="14" Foreground="{DynamicResource BrushTextTertiary}"/>
                                                 <TextBlock FontSize="12" Foreground="{DynamicResource BrushTextTertiary}">
                                                     <Run Text="{Binding LinkedMetricsCount}"/>
-                                                    <Run Text=" metric(s) linked"/>
+                                                    <Run Text="{markup:Localize Key=Circle_MetricsLinked}"/>
                                                 </TextBlock>
                                             </StackPanel>
                                         </Grid>
@@ -967,7 +1013,7 @@
                                 Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.All}}"
                                 Tapped="MetricFilter_All_Tapped">
                             <StackPanel>
-                                <TextBlock Text="ALL METRICS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_AllMetrics}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding TotalMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BrushTextPrimary}"/>
                             </StackPanel>
                         </Border>
@@ -977,7 +1023,7 @@
                                 Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.OnTrack}}"
                                 Tapped="MetricFilter_OnTrack_Tapped">
                             <StackPanel>
-                                <TextBlock Text="ON TRACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_OnTrack}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding OnTrackMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="#10B981"/>
                             </StackPanel>
                         </Border>
@@ -987,7 +1033,7 @@
                                 Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.NeedsAttention}}"
                                 Tapped="MetricFilter_NeedsAttention_Tapped">
                             <StackPanel>
-                                <TextBlock Text="NEEDS ATTENTION" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_NeedsAttentionUpper}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding NeedsAttentionMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="#F59E0B"/>
                             </StackPanel>
                         </Border>
@@ -997,7 +1043,7 @@
                                 Classes.selected="{Binding MetricFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MetricFilter.OffTrack}}"
                                 Tapped="MetricFilter_OffTrack_Tapped">
                             <StackPanel>
-                                <TextBlock Text="OFF TRACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_OffTrack}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding OffTrackMetricsCount}" FontSize="20" FontWeight="Bold" Foreground="#EF4444"/>
                             </StackPanel>
                         </Border>
@@ -1072,28 +1118,28 @@
                                             <TextBlock Text="{Binding SelectedMetric.TrendDisplay}" FontSize="48" FontWeight="Bold"
                                                        HorizontalAlignment="Center"
                                                        Foreground="{Binding SelectedMetric.Trend, Converter={StaticResource MetricTrendToColorConverter}}"/>
-                                            <TextBlock Text="Trend Direction" FontSize="12" HorizontalAlignment="Center"
+                                            <TextBlock Text="{markup:Localize Key=Circle_TrendDirection}" FontSize="12" HorizontalAlignment="Center"
                                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                                         </StackPanel>
                                     </Border>
                                     
                                     <!-- Owner -->
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="OWNER" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_Owner}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         <TextBlock Text="{Binding SelectedMetric.StewardName, TargetNullValue='Unassigned'}" FontSize="14"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
                                     </StackPanel>
                                     
                                     <!-- Description -->
                                     <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                        <TextBlock Text="DESCRIPTION" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_Description}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         <TextBlock Text="{Binding SelectedMetric.Description}" FontSize="13" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
                                     
                                     <!-- Current Value (shown on expand per CIRCLE_METRICS_SPEC) -->
                                     <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.CurrentValue, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                        <TextBlock Text="CURRENT VALUE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_CurrentValue}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{Binding SelectedMetric.CurrentValue}" FontSize="20" FontWeight="Bold"
                                                        Foreground="{DynamicResource BrushTextPrimary}"/>
@@ -1104,7 +1150,7 @@
                                     
                                     <!-- Target (if defined, shown on expand) -->
                                     <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.TargetValue, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                        <TextBlock Text="TARGET" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_Target}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{Binding SelectedMetric.TargetValue}" FontSize="16"
                                                        Foreground="{DynamicResource BrushTextPrimary}"/>
@@ -1115,21 +1161,21 @@
                                     
                                     <!-- Frequency -->
                                     <StackPanel Spacing="4" IsVisible="{Binding SelectedMetric.Frequency, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                        <TextBlock Text="UPDATE FREQUENCY" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_UpdateFrequency}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         <TextBlock Text="{Binding SelectedMetric.Frequency}" FontSize="14"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
                                     </StackPanel>
                                     
                                     <!-- Last Updated -->
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="LAST UPDATED" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_LastUpdated}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         <TextBlock Text="{Binding SelectedMetric.UpdatedAt, StringFormat='MMM d, yyyy'}" FontSize="14"
                                                    Foreground="{DynamicResource BrushTextPrimary}"/>
                                     </StackPanel>
                                     
                                     <!-- Linked Goals Section -->
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="LINKED GOALS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                        <TextBlock Text="{markup:Localize Key=Circle_LinkedGoals}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                         
                                         <!-- Linked goals list -->
                                         <ItemsControl ItemsSource="{Binding MetricLinkedGoals}" Margin="0,4,0,0">
@@ -1162,12 +1208,12 @@
                                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
                                                     IsVisible="{Binding IsLoadingLinkedGoals}">
                                             <ProgressBar IsIndeterminate="True" Width="60" Height="4"/>
-                                            <TextBlock Text="Loading..." FontSize="11" FontStyle="Italic"
+                                            <TextBlock Text="{markup:Localize Key=Message_Loading}" FontSize="11" FontStyle="Italic"
                                                        Foreground="{DynamicResource BrushTextTertiary}"/>
                                         </StackPanel>
                                         
                                         <!-- Empty state (only show when not loading) -->
-                                        <TextBlock Text="Not linked to any goals" FontSize="11" FontStyle="Italic"
+                                        <TextBlock Text="{markup:Localize Key=Circle_NotLinkedToAnyGoals}" FontSize="11" FontStyle="Italic"
                                                    Foreground="{DynamicResource BrushTextTertiary}" Margin="0,4,0,0">
                                             <TextBlock.IsVisible>
                                                 <MultiBinding Converter="{x:Static BoolConverters.And}">
@@ -1198,7 +1244,7 @@
                                 Classes.selected="{Binding FeedbackFilter, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:FeedbackFilter.All}}"
                                 Tapped="FeedbackFilter_All_Tapped">
                             <StackPanel>
-                                <TextBlock Text="ALL FEEDBACK" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_AllFeedback}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 <TextBlock Text="{Binding TotalFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BrushTextPrimary}"/>
                             </StackPanel>
                         </Border>
@@ -1210,7 +1256,7 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                     <PathIcon Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                    <TextBlock Text="PRAISE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <TextBlock Text="{markup:Localize Key=Circle_Praise}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding PraiseFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="#10B981"/>
                             </StackPanel>
@@ -1223,7 +1269,7 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                     <PathIcon Data="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                    <TextBlock Text="CONSTRUCTIVE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <TextBlock Text="{markup:Localize Key=Circle_Constructive}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding ConstructiveFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="#F59E0B"/>
                             </StackPanel>
@@ -1236,7 +1282,7 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                     <PathIcon Data="M19,2L14,6.5V17.5L19,13V2M6.5,5C4.55,5 2.45,5.4 1,6.5V21.16C1,21.41 1.25,21.66 1.5,21.66C1.6,21.66 1.65,21.59 1.75,21.59C3.1,20.94 5.05,20.5 6.5,20.5C8.45,20.5 10.55,20.9 12,22C13.35,21.15 15.8,20.5 17.5,20.5C19.15,20.5 20.85,20.81 22.25,21.56C22.35,21.61 22.4,21.59 22.5,21.59C22.75,21.59 23,21.34 23,21.09V6.5C22.4,6.05 21.75,5.75 21,5.5V19C19.9,18.65 18.7,18.5 17.5,18.5C15.8,18.5 13.35,19.15 12,20V6.5C10.55,5.4 8.45,5 6.5,5Z" Width="10" Height="10" Foreground="{DynamicResource BrushTextTertiary}"/>
-                                    <TextBlock Text="COACHING" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
+                                    <TextBlock Text="{markup:Localize Key=Circle_Coaching}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextTertiary}"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding CoachingFeedbackCount}" FontSize="20" FontWeight="Bold" Foreground="#6366F1"/>
                             </StackPanel>
@@ -1247,7 +1293,7 @@
                     <Button Grid.Column="1" Command="{Binding GiveFeedbackCommand}" Classes="action-button">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="14" Height="14"/>
-                            <TextBlock Text="Give Feedback"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_GiveFeedback}"/>
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -1312,7 +1358,7 @@
                                 <!-- Header - Navy bar matching other flyouts -->
                                 <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="8,8,0,0" Padding="16,12">
                                     <Grid ColumnDefinitions="*,Auto">
-                                        <TextBlock Grid.Column="0" Text="Feedback" FontSize="14" FontWeight="SemiBold" 
+                                        <TextBlock Grid.Column="0" Text="{markup:Localize Key=Circle_Feedback}" FontSize="14" FontWeight="SemiBold" 
                                                    Foreground="White" VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Close"
                                                 Command="{Binding CloseFeedbackDetailCommand}">
@@ -1331,7 +1377,7 @@
                                            Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,16"/>
                                 
                                 <!-- TO Section - showing recipient -->
-                                <TextBlock Text="TO" FontSize="10" FontWeight="SemiBold" 
+                                <TextBlock Text="{markup:Localize Key=Circle_To}" FontSize="10" FontWeight="SemiBold" 
                                            Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"/>
                                 <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,12">
                                     <Border Width="40" Height="40" CornerRadius="20" ClipToBounds="True">
@@ -1351,24 +1397,24 @@
                                 </Grid>
                                 
                                 <!-- Context Section -->
-                                <TextBlock Text="CONTEXT" Classes="detail-section-header"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Context}" Classes="detail-section-header"/>
                                 <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
                                     <TextBlock Text="{Binding Context}" FontSize="13" Foreground="{DynamicResource BrushTextSecondary}"
                                                IsVisible="{Binding Context, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                 </Border>
-                                <TextBlock Text="No context provided" FontSize="13" Opacity="0.5" Margin="0,0,0,8"
+                                <TextBlock Text="{markup:Localize Key=Circle_NoContextProvided}" FontSize="13" Opacity="0.5" Margin="0,0,0,8"
                                            IsVisible="{Binding Context, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
                                 
                                 <!-- Date Section -->
-                                <TextBlock Text="DATE" Classes="detail-section-header"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Date}" Classes="detail-section-header"/>
                                 <TextBlock FontSize="13" Foreground="{DynamicResource BrushTextPrimary}" Margin="0,0,0,8">
                                     <Run Text="{Binding CreatedAt, StringFormat='{}{0:MMMM d, yyyy}'}" FontWeight="Medium"/>
-                                    <Run Text="at"/>
+                                    <Run Text="{markup:Localize Key=Circle_At}"/>
                                     <Run Text="{Binding CreatedAt, StringFormat='{}{0:h:mm tt}'}"/>
                                 </TextBlock>
                                 
                                 <!-- Feedback Content Section -->
-                                <TextBlock Text="FEEDBACK" Classes="detail-section-header"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_FeedbackLabel}" Classes="detail-section-header"/>
                                 <Border Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="8" Padding="14" Margin="0,0,0,16">
                                     <TextBlock Text="{Binding Content}" FontSize="14" TextWrapping="Wrap" LineHeight="22"
                                                Foreground="{DynamicResource BrushTextPrimary}"/>
@@ -1376,18 +1422,18 @@
                                 
                                 <!-- Actions -->
                                 <StackPanel Margin="0,8,0,0" Spacing="8">
-                                    <Button Classes="secondary-button" HorizontalContentAlignment="Left">
+                                    <Button Classes="secondary-button" HorizontalContentAlignment="Left" Click="EditFeedback_Click">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
                                             <PathIcon Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
                                                       Width="14" Height="14"/>
-                                            <TextBlock Text="Edit Feedback"/>
+                                            <TextBlock Text="{markup:Localize Key=Circle_EditFeedback}"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Classes="secondary-button" HorizontalContentAlignment="Left">
+                                    <Button Classes="secondary-button" HorizontalContentAlignment="Left" Click="DeleteFeedback_Click">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
                                             <PathIcon Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
                                                       Width="14" Height="14" Foreground="#DC2626"/>
-                                            <TextBlock Text="Delete Feedback" Foreground="#DC2626"/>
+                                            <TextBlock Text="{markup:Localize Key=Circle_DeleteFeedback}" Foreground="#DC2626"/>
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
@@ -1414,38 +1460,38 @@
                                     Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Day}}"
                                     Command="{Binding SetMeetingsViewModeCommand}"
                                     CommandParameter="{x:Static vm:MeetingsViewMode.Day}">
-                                <TextBlock Text="Day"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Day}"/>
                             </Button>
                             <Button Classes="view-mode-button"
                                     Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Week}}"
                                     Command="{Binding SetMeetingsViewModeCommand}"
                                     CommandParameter="{x:Static vm:MeetingsViewMode.Week}">
-                                <TextBlock Text="Week"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Week}"/>
                             </Button>
                             <Button Classes="view-mode-button"
                                     Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.Month}}"
                                     Command="{Binding SetMeetingsViewModeCommand}"
                                     CommandParameter="{x:Static vm:MeetingsViewMode.Month}">
-                                <TextBlock Text="Month"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Month}"/>
                             </Button>
                             <Button Classes="view-mode-button"
                                     Classes.selected="{Binding MeetingsViewMode, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:MeetingsViewMode.List}}"
                                     Command="{Binding SetMeetingsViewModeCommand}"
                                     CommandParameter="{x:Static vm:MeetingsViewMode.List}">
-                                <TextBlock Text="List"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_List}"/>
                             </Button>
                         </StackPanel>
                     </Border>
                     
                     <!-- Date Navigation -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                        <Button Classes="icon-button" Command="{Binding NavigatePreviousCommand}" ToolTip.Tip="Previous">
+                        <Button Classes="icon-button" Command="{Binding NavigatePreviousCommand}" ToolTip.Tip="{markup:Localize Key=Button_Previous}">
                             <PathIcon Data="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" Width="16" Height="16"/>
                         </Button>
                         <Button Classes="secondary-button" Command="{Binding NavigateTodayCommand}" Padding="12,6">
-                            <TextBlock Text="Today" FontSize="12"/>
+                            <TextBlock Text="{markup:Localize Key=Time_Today}" FontSize="12"/>
                         </Button>
-                        <Button Classes="icon-button" Command="{Binding NavigateNextCommand}" ToolTip.Tip="Next">
+                        <Button Classes="icon-button" Command="{Binding NavigateNextCommand}" ToolTip.Tip="{markup:Localize Key=Button_Next}">
                             <PathIcon Data="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" Width="16" Height="16"/>
                         </Button>
                         <TextBlock Text="{Binding CurrentDateHeader}" FontSize="16" FontWeight="SemiBold" 
@@ -1456,7 +1502,7 @@
                     <Button Grid.Column="3" Command="{Binding ScheduleMeetingCommand}" Classes="action-button">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" Width="14" Height="14"/>
-                            <TextBlock Text="Schedule Meeting"/>
+                            <TextBlock Text="{markup:Localize Key=Circle_ScheduleMeeting}"/>
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -1569,13 +1615,13 @@
                         <Grid RowDefinitions="Auto,*" Margin="0,0,12,0">
                             <!-- Day of Week Headers -->
                             <UniformGrid Grid.Row="0" Columns="7" Margin="0,0,0,8">
-                                <TextBlock Text="Sun" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Mon" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Tue" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Wed" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Thu" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Fri" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Sat" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Sun}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Mon}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Tue}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Wed}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Thu}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Fri}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{markup:Localize Key=Circle_Sat}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                             </UniformGrid>
                             
                             <!-- Calendar Grid -->
@@ -1612,7 +1658,7 @@
                                                 </ItemsControl>
                                                 
                                                 <!-- More indicator -->
-                                                <TextBlock IsVisible="{Binding HasMoreMeetings}" Text="+ more" FontSize="9"
+                                                <TextBlock IsVisible="{Binding HasMoreMeetings}" Text="{markup:Localize Key=Circle_MoreMeetings}" FontSize="9"
                                                            Foreground="{DynamicResource BrushTextTertiary}" Margin="2,2,0,0"/>
                                             </StackPanel>
                                         </Border>
@@ -1628,7 +1674,10 @@
                         <controls:EntityDetailFlyout
                             Width="320" Margin="8,0,0,0"
                             FlyoutContent="{Binding SelectedMeeting}"
-                            IsOpen="{Binding IsMeetingDetailOpen}"/>
+                            IsOpen="{Binding IsMeetingDetailOpen}"
+                            AddAgendaItemRequested="OnEntityFlyout_AddAgendaItemRequested"
+                            AddAttendeeRequested="OnEntityFlyout_AddAttendeeRequested"
+                            EditNotesRequested="OnEntityFlyout_EditNotesRequested"/>
                     </Border>
                     
                 </Grid>
@@ -1650,9 +1699,9 @@
                 <StackPanel Spacing="12" HorizontalAlignment="Center">
                     <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z"
                               Width="48" Height="48" Opacity="0.2"/>
-                    <TextBlock Text="No team members found" FontSize="14" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{markup:Localize Key=Circle_NoTeamMembersFound}" FontSize="14" Foreground="{DynamicResource BrushTextTertiary}" HorizontalAlignment="Center"/>
                     <Button Command="{Binding AddTeamMemberCommand}" Classes="action-button" HorizontalAlignment="Center">
-                        <TextBlock Text="Add your first team member"/>
+                        <TextBlock Text="{markup:Localize Key=Circle_AddYourFirstTeamMember}"/>
                     </Button>
                 </StackPanel>
             </Border>

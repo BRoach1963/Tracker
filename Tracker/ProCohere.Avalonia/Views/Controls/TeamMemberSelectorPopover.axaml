@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:ProCohere.Avalonia.Models"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="350"
              x:Class="ProCohere.Avalonia.Views.Controls.TeamMemberSelectorPopover"
              x:DataType="controls:TeamMemberSelectorPopover">
@@ -41,7 +42,7 @@
                     BorderBrush="{DynamicResource BrushBorder}"
                     BorderThickness="0,0,0,1">
                 <TextBox x:Name="SearchBox"
-                         Watermark="Search team members..."
+                         Watermark="{markup:Localize Key=Team_SearchMembers}"
                          Text="{Binding SearchText, Mode=TwoWay}"
                          FontSize="13"/>
             </Border>
@@ -52,14 +53,14 @@
                           MaxHeight="280">
                 <StackPanel>
                     <!-- Loading indicator -->
-                    <TextBlock Text="Loading..."
+                    <TextBlock Text="{markup:Localize Key=Message_Loading}"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                FontSize="13"
                                Margin="12"
                                IsVisible="{Binding IsLoading}"/>
                     
                     <!-- Empty state -->
-                    <TextBlock Text="No team members found"
+                    <TextBlock Text="{markup:Localize Key=Team_NoMembersFound}"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                FontSize="13"
                                FontStyle="Italic"

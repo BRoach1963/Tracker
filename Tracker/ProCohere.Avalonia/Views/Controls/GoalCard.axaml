@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="120"
              x:Class="ProCohere.Avalonia.Views.Controls.GoalCard"
              x:DataType="models:GoalDetail">
@@ -89,28 +90,28 @@
                 <Border Grid.Column="0" 
                         Classes="health-badge health-on-track"
                         IsVisible="{Binding Health, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.OnTrack}}">
-                    <TextBlock Text="On Track" FontSize="11" FontWeight="Medium"/>
+                    <TextBlock Text="{markup:Localize Key=GoalHealth_OnTrack}" FontSize="11" FontWeight="Medium"/>
                 </Border>
                 
                 <!-- Health badge - Needs Attention -->
                 <Border Grid.Column="0" 
                         Classes="health-badge health-needs-attention"
                         IsVisible="{Binding Health, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.NeedsAttention}}">
-                    <TextBlock Text="Needs Attention" FontSize="11" FontWeight="Medium"/>
+                    <TextBlock Text="{markup:Localize Key=GoalHealth_NeedsAttention}" FontSize="11" FontWeight="Medium"/>
                 </Border>
                 
                 <!-- Health badge - At Risk -->
                 <Border Grid.Column="0" 
                         Classes="health-badge health-at-risk"
                         IsVisible="{Binding Health, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.AtRisk}}">
-                    <TextBlock Text="At Risk" FontSize="11" FontWeight="Medium"/>
+                    <TextBlock Text="{markup:Localize Key=GoalHealth_AtRisk}" FontSize="11" FontWeight="Medium"/>
                 </Border>
                 
                 <!-- Health badge - Reframing Needed -->
                 <Border Grid.Column="0" 
                         Classes="health-badge health-reframing"
                         IsVisible="{Binding Health, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static models:GoalHealth.ReframingNeeded}}">
-                    <TextBlock Text="Reframing" FontSize="11" FontWeight="Medium"/>
+                    <TextBlock Text="{markup:Localize Key=GoalHealth_Reframing}" FontSize="11" FontWeight="Medium"/>
                 </Border>
                 
                 <!-- Lifecycle badge (if not Active) -->

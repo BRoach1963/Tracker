@@ -3,6 +3,7 @@
         xmlns:vm="using:ProCohere.Avalonia.ViewModels"
         xmlns:views="using:ProCohere.Avalonia.Views"
         xmlns:briefing="using:ProCohere.Avalonia.Views.Briefing"
+        xmlns:markup="using:ProCohere.Avalonia.Markup"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
@@ -73,7 +74,7 @@
                             <ImageBrush Source="/Assets/procohere.png" Stretch="UniformToFill"/>
                         </Ellipse.Fill>
                     </Ellipse>
-                    <TextBlock Text="Pro Cohere"
+                    <TextBlock Text="{markup:Localize Key=App_Title}"
                                FontSize="13"
                                FontWeight="Medium"
                                Foreground="{DynamicResource BrushHighlight}"
@@ -91,7 +92,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Briefing}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Briefing (Ctrl+1)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Briefing}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -101,7 +102,7 @@
                                 <!-- Material: center_focus_strong - target/focus reticle (Focus/Direction) -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M5 15H3v4c0 1.1.9 2 2 2h4v-2H5v-4zM5 5h4V3H5c-1.1 0-2 .9-2 2v4h2V5zm14-2h-4v2h4v4h2V5c0-1.1-.9-2-2-2zm0 16h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                                <TextBlock Text="Briefing" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Briefing}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -113,7 +114,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Me}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Me}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Me (Ctrl+2)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Me}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -123,7 +124,7 @@
                                 <!-- Person icon -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,5.5A2.5,2.5 0 0,0 9.5,8A2.5,2.5 0 0,0 12,10.5A2.5,2.5 0 0,0 14.5,8A2.5,2.5 0 0,0 12,5.5M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14M12,15.5C8.04,15.5 5.5,17.08 5.5,18V18.5H18.5V18C18.5,17.08 15.96,15.5 12,15.5Z"/>
-                                <TextBlock Text="Me" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Me}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -136,7 +137,7 @@
                             IsVisible="{Binding HasDirectReports}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Circle}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Circle (Ctrl+3)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Circle}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -146,7 +147,7 @@
                                 <!-- Fluent: People outline -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M14.75 15c.966 0 1.75.784 1.75 1.75l-.001.962c.117 2.19-1.511 3.297-4.432 3.297-2.91 0-4.567-1.09-4.567-3.259v-1c0-.966.784-1.75 1.75-1.75h5.5Zm0 1.5h-5.5a.25.25 0 0 0-.25.25v1c0 1.176.887 1.759 3.067 1.759 2.168 0 2.995-.564 2.933-1.757V16.75a.25.25 0 0 0-.25-.25ZM12 8a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM18.5 9a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm-13 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm13 1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm-13 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/>
-                                <TextBlock Text="Circle" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Circle}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -158,7 +159,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Projects}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Projects}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Projects (Ctrl+4)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Projects}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -168,7 +169,7 @@
                                 <!-- Material: account_tree - connected nodes (Structure/Build) -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M22 11V3h-7v3H9V3H2v8h7V8h2v10H9v-3H2v8h7v-3h6v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm0 12H4v-4h3v4zm13-12h-3V5h3v4zm0 12h-3v-4h3v4z"/>
-                                <TextBlock Text="Projects" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Projects}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -180,7 +181,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Pulse}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Pulse}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Pulse (Ctrl+5)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Pulse}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -190,7 +191,7 @@
                                 <!-- Fluent: Pulse/trending outline -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M5.25 3A2.25 2.25 0 0 0 3 5.25v13.5A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V5.25A2.25 2.25 0 0 0 18.75 3H5.25ZM4.5 5.25a.75.75 0 0 1 .75-.75h13.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V5.25Zm3.22 7.47 2.25-2.25a.75.75 0 0 1 1.06 0l1.72 1.72 3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L10.5 12.06l-1.72 1.72a.75.75 0 0 1-1.06-1.06Z"/>
-                                <TextBlock Text="Pulse" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Pulse}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -202,7 +203,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Goals}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Goals}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Goals" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Goals}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -212,7 +213,7 @@
                                 <!-- Target/goal icon -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z"/>
-                                <TextBlock Text="Goals" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Goals}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -224,7 +225,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Metrics}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Metrics}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Metrics" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Metrics}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -234,7 +235,7 @@
                                 <!-- Chart/trending up icon -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/>
-                                <TextBlock Text="Metrics" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Metrics}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -246,7 +247,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Chronicle}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Chronicle}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Chronicle (Ctrl+6)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Chronicle}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -256,7 +257,7 @@
                                 <!-- Phosphor: book-open-text - open book spine (Memory/Archive) -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/>
-                                <TextBlock Text="Chronicle" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Chronicle}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -268,7 +269,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Reports}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Reports}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Reports (Ctrl+7)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Reports}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -278,7 +279,7 @@
                                 <!-- Chart bar icon for analytics -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z"/>
-                                <TextBlock Text="Reports" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Reports}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -293,7 +294,7 @@
                             CommandParameter="{x:Static vm:NavigationItem.Settings}"
                             Classes.selected="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Settings}}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Settings (Ctrl+6)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_Settings}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <Grid ColumnDefinitions="Auto,*">
                             <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="-12,2,-4,2"
@@ -303,7 +304,7 @@
                                 <!-- Fluent: Settings outline -->
                                 <PathIcon Width="18" Height="18"
                                           Data="M12.012 2.25c.734.008 1.465.093 2.182.253a.75.75 0 0 1 .582.649l.17 1.527a1.384 1.384 0 0 0 1.927 1.116l1.4-.615a.75.75 0 0 1 .85.174 9.793 9.793 0 0 1 2.204 3.792.75.75 0 0 1-.271.825l-1.242.916a1.38 1.38 0 0 0 0 2.226l1.243.916a.75.75 0 0 1 .271.826 9.798 9.798 0 0 1-2.204 3.79.75.75 0 0 1-.848.175l-1.407-.617a1.38 1.38 0 0 0-1.926 1.114l-.169 1.526a.75.75 0 0 1-.572.647 9.518 9.518 0 0 1-4.406 0 .75.75 0 0 1-.572-.647l-.168-1.524a1.382 1.382 0 0 0-1.926-1.11l-1.406.616a.75.75 0 0 1-.849-.175 9.798 9.798 0 0 1-2.204-3.796.75.75 0 0 1 .272-.826l1.243-.916a1.38 1.38 0 0 0 0-2.226l-1.243-.914a.75.75 0 0 1-.271-.826 9.793 9.793 0 0 1 2.204-3.792.75.75 0 0 1 .85-.174l1.4.615a1.387 1.387 0 0 0 1.93-1.118l.17-1.526a.75.75 0 0 1 .583-.65c.718-.159 1.45-.243 2.201-.252ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1.5 3a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"/>
-                                <TextBlock Text="Settings" VerticalAlignment="Center" FontSize="14"
+                                <TextBlock Text="{markup:Localize Key=Nav_Settings}" VerticalAlignment="Center" FontSize="14"
                                            IsVisible="{Binding IsNavigationExpanded}"/>
                             </StackPanel>
                         </Grid>
@@ -313,7 +314,7 @@
                     <Button Classes="nav-collapse"
                             Command="{Binding ToggleNavigationCommand}">
                         <ToolTip.Tip>
-                            <TextBlock Text="Toggle sidebar (Ctrl+B)" Foreground="#1F2937"/>
+                            <TextBlock Text="{markup:Localize Key=Tooltip_ToggleSidebar}" Foreground="#1F2937"/>
                         </ToolTip.Tip>
                         <PathIcon Width="14" Height="14"
                                   Data="{Binding IsNavigationExpanded, Converter={StaticResource CollapseIconConverter}}"/>
@@ -384,7 +385,7 @@
                                           Margin="0,0,8,0"/>
                                 <TextBox Grid.Column="1"
                                          Text="{Binding SearchText, Mode=TwoWay}"
-                                         Watermark="Search..."
+                                         Watermark="{markup:Localize Key=Placeholder_Search}"
                                          BorderThickness="0"
                                          Background="Transparent"
                                          Foreground="{DynamicResource BrushTextPrimary}"
@@ -397,7 +398,7 @@
                         <!-- Help Button -->
                         <Button Classes="icon-button"
                                 Command="{Binding OpenHelpCommand}"
-                                ToolTip.Tip="Help (F1)"
+                                ToolTip.Tip="{markup:Localize Key=Tooltip_Help}"
                                 AutomationProperties.Name="Help">
                             <PathIcon Data="M15.07,11.25L14.17,12.17C13.45,12.89 13,13.5 13,15H11V14.5C11,13.39 11.45,12.39 12.17,11.67L13.41,10.41C13.78,10.05 14,9.55 14,9C14,7.89 13.1,7 12,7A2,2 0 0,0 10,9H8A4,4 0 0,1 12,5A4,4 0 0,1 16,9C16,9.88 15.64,10.67 15.07,11.25M13,19H11V17H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z"
                                       Width="24" Height="24"/>
@@ -405,7 +406,7 @@
 
                         <!-- User Avatar / Account Menu -->
                         <Button Classes="user-avatar-button"
-                                ToolTip.Tip="Account"
+                                ToolTip.Tip="{markup:Localize Key=Tooltip_Account}"
                                 AutomationProperties.Name="Account menu">
                             <Button.Flyout>
                                 <Flyout Placement="BottomEdgeAlignedRight">
@@ -468,7 +469,7 @@
                                                     <PathIcon Width="16" Height="16"
                                                               Foreground="{DynamicResource BrushTextSecondary}"
                                                               Data="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 7.5c4.418 0 8 1.79 8 4v1.5a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5V17c0-2.21 3.582-4 8-4Zm0 1.5c-3.59 0-6.5 1.343-6.5 2.5v.5h13v-.5c0-1.157-2.91-2.5-6.5-2.5Z"/>
-                                                    <TextBlock Text="Edit Profile"
+                                                    <TextBlock Text="{markup:Localize Key=Menu_EditProfile}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 </StackPanel>
@@ -481,7 +482,7 @@
                                                     <PathIcon Width="16" Height="16"
                                                               Foreground="{DynamicResource BrushTextSecondary}"
                                                               Data="M12.012 2.25c.734.008 1.465.093 2.182.253a.75.75 0 0 1 .582.649l.17 1.527a1.384 1.384 0 0 0 1.927 1.116l1.4-.615a.75.75 0 0 1 .85.174 9.793 9.793 0 0 1 2.204 3.792.75.75 0 0 1-.271.825l-1.242.916a1.38 1.38 0 0 0 0 2.226l1.243.916a.75.75 0 0 1 .271.826 9.798 9.798 0 0 1-2.204 3.79.75.75 0 0 1-.848.175l-1.407-.617a1.38 1.38 0 0 0-1.926 1.114l-.169 1.526a.75.75 0 0 1-.572.647 9.518 9.518 0 0 1-4.406 0 .75.75 0 0 1-.572-.647l-.168-1.524a1.382 1.382 0 0 0-1.926-1.11l-1.406.616a.75.75 0 0 1-.849-.175 9.798 9.798 0 0 1-2.204-3.796.75.75 0 0 1 .272-.826l1.243-.916a1.38 1.38 0 0 0 0-2.226l-1.243-.914a.75.75 0 0 1-.271-.826 9.793 9.793 0 0 1 2.204-3.792.75.75 0 0 1 .85-.174l1.4.615a1.387 1.387 0 0 0 1.93-1.118l.17-1.526a.75.75 0 0 1 .583-.65c.718-.159 1.45-.243 2.201-.252ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1.5 3a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"/>
-                                                    <TextBlock Text="Settings"
+                                                    <TextBlock Text="{markup:Localize Key=Menu_Settings}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 </StackPanel>
@@ -493,7 +494,7 @@
                                                     <PathIcon Width="16" Height="16"
                                                               Foreground="{DynamicResource BrushTextSecondary}"
                                                               Data="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5H13V11H11V16.5M11,9.5H13V7.5H11V9.5Z"/>
-                                                    <TextBlock Text="About Pro Cohere"
+                                                    <TextBlock Text="{markup:Localize Key=Menu_About}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushTextPrimary}"/>
                                                 </StackPanel>
@@ -511,7 +512,7 @@
                                                     <PathIcon Width="16" Height="16"
                                                               Foreground="{DynamicResource BrushError}"
                                                               Data="M12 4.354v6.651l7.442-.001L17.72 9.28a.75.75 0 0 1-.073-.976l.073-.084a.75.75 0 0 1 .976-.073l.084.073 2.997 2.997a.75.75 0 0 1 .073.976l-.073.084-2.996 3.004a.75.75 0 0 1-1.134-.975l.072-.085 1.713-1.717-7.431.001L12 19.25a.75.75 0 0 1-.88.739l-8.5-1.502A.75.75 0 0 1 2 17.75V5.104a.75.75 0 0 1 .615-.738l8.5-1.396a.75.75 0 0 1 .885.738v.646ZM3.5 5.846v11.267l7-.001V4.604l-7 1.152v.09Z"/>
-                                                    <TextBlock Text="Sign out"
+                                                    <TextBlock Text="{markup:Localize Key=Menu_SignOut}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushError}"/>
                                                 </StackPanel>
@@ -553,12 +554,12 @@
                 
                 <!-- BRIEFING / Dashboard -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Briefing}}">
-                    <briefing:BriefingView x:Name="BriefingViewControl" />
+                    <briefing:BriefingView x:Name="BriefingViewControl" DataContext="{Binding BriefingViewModel}" />
                 </Grid>
 
                 <!-- ME (Personal Hub) -->
                 <Grid IsVisible="{Binding SelectedNavigation, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:NavigationItem.Me}}">
-                    <views:MeView />
+                    <views:MeView x:Name="MeViewControl" />
                 </Grid>
 
                 <!-- CIRCLE -->
@@ -633,7 +634,7 @@
                                     <PathIcon Width="20" Height="20" 
                                               Foreground="#FFFFFF"
                                               Data="M12 2l1.09 3.26L16.5 6.35l-3.41 1.09L12 10.7l-1.09-3.26L7.5 6.35l3.41-1.09L12 2zm0 8l.82 2.46 2.46.82-2.46.82L12 16.54l-.82-2.46-2.46-.82 2.46-.82L12 10z"/>
-                                    <TextBlock Text="AI Assistant" 
+                                    <TextBlock Text="{markup:Localize Key=AIChat_Title}" 
                                                FontSize="16" 
                                                FontWeight="SemiBold"
                                                Foreground="#FFFFFF"/>
@@ -668,7 +669,7 @@
                     ZIndex="99"
                     IsVisible="{Binding !IsChatOpen}">
                 <ToolTip.Tip>
-                    <TextBlock Text="AI Assistant (Ctrl+/)" Foreground="#1F2937"/>
+                    <TextBlock Text="{markup:Localize Key=Tooltip_AIAssistant}" Foreground="#1F2937"/>
                 </ToolTip.Tip>
                 <PathIcon Width="24" Height="24" 
                           Foreground="#FFFFFF"

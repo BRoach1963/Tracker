@@ -5,6 +5,7 @@
         xmlns:vm="clr-namespace:ProCohere.Avalonia.ViewModels.Dialogs"
         xmlns:controls="clr-namespace:ProCohere.Avalonia.Views.Controls"
         xmlns:asyncImageLoader="using:AsyncImageLoader"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="600"
         x:Class="ProCohere.Avalonia.Views.Dialogs.CreateProjectDialog"
         x:DataType="vm:CreateProjectDialogViewModel"
@@ -49,11 +50,11 @@
                                   Width="18" Height="18" Foreground="White"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Create Project"
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_CreateTitle}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White" />
-                        <TextBlock Text="Organize and track your work"
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_Subtitle}"
                                    FontSize="12"
                                    Foreground="#FFFFFFCC"/>
                     </StackPanel>
@@ -67,24 +68,24 @@
                 <StackPanel Spacing="16" Margin="24,16">
                 <!-- Project Name (required) -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Project Name *" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_Project_Name}" 
                                FontSize="13" 
                                FontWeight="Medium" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox x:Name="NameTextBox"
                              Text="{Binding Name}"
-                             Watermark="What's this project about?"
+                             Watermark="{markup:Localize Key=Dialog_Project_NameWatermark}"
                              FontSize="14"/>
                 </StackPanel>
                 
                 <!-- Description (optional) -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Description" 
+                    <TextBlock Text="{markup:Localize Key=Label_Description}" 
                                FontSize="13" 
                                FontWeight="Medium" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <TextBox Text="{Binding Description}"
-                             Watermark="What is this project trying to accomplish?"
+                             Watermark="{markup:Localize Key=Dialog_Project_DescriptionWatermark}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              MinHeight="80"
@@ -93,12 +94,12 @@
                 
                 <!-- Due Date (optional) -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Due Date" 
+                    <TextBlock Text="{markup:Localize Key=Dialog_Project_DueDate}" 
                                FontSize="13" 
                                FontWeight="Medium" 
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <CalendarDatePicker SelectedDate="{Binding DueDate}"
-                                        Watermark="Select due date..."
+                                        Watermark="{markup:Localize Key=Dialog_Project_SelectDueDate}"
                                         HorizontalAlignment="Stretch"/>
                 </StackPanel>
                 
@@ -158,29 +159,29 @@
                             <TabControl SelectedIndex="{Binding SelectedWorkTabIndex}"
                                         IsVisible="{Binding !IsLoadingAvailableItems}">
                                 <!-- Tasks Tab -->
-                                <TabItem Header="Tasks">
+                                <TabItem Header="{markup:Localize Key=Dialog_Project_Tasks}">
                                     <controls:WorkItemStagingControl x:Name="TaskStagingControl"
                                                                      NewItemTitles="{Binding NewTaskTitles}"
                                                                      AvailableItems="{Binding AvailableTasks}"
-                                                                     NewItemPlaceholder="Add task title..."
-                                                                     SearchPlaceholder="Search existing tasks..."
+                                                                     NewItemPlaceholder="{markup:Localize Key=Dialog_Project_AddTaskTitle}"
+                                                                     SearchPlaceholder="{markup:Localize Key=Dialog_Project_SearchTasks}"
                                                                      Margin="0,8,0,0"/>
                                 </TabItem>
                                 
                                 <!-- Goals Tab -->
-                                <TabItem Header="Goals">
+                                <TabItem Header="{markup:Localize Key=Dialog_Project_Goals}">
                                     <controls:WorkItemStagingControl x:Name="GoalStagingControl"
                                                                      NewItemTitles="{Binding NewGoalTitles}"
                                                                      AvailableItems="{Binding AvailableGoals}"
-                                                                     NewItemPlaceholder="Add goal title..."
-                                                                     SearchPlaceholder="Search existing goals..."
+                                                                     NewItemPlaceholder="{markup:Localize Key=Dialog_Project_AddGoalTitle}"
+                                                                     SearchPlaceholder="{markup:Localize Key=Dialog_Project_SearchGoals}"
                                                                      Margin="0,8,0,0"/>
                                 </TabItem>
                                 
                                 <!-- Members Tab -->
-                                <TabItem Header="Members">
+                                <TabItem Header="{markup:Localize Key=Dialog_Project_Members}">
                                     <StackPanel Margin="0,8,0,0" Spacing="8">
-                                        <TextBlock Text="Select team members to add"
+                                        <TextBlock Text="{markup:Localize Key=Dialog_Project_SelectMembers}"
                                                    FontSize="11"
                                                    FontWeight="Medium"
                                                    Foreground="{DynamicResource BrushTextTertiary}"/>
@@ -189,7 +190,7 @@
                                                       VerticalScrollBarVisibility="Auto">
                                             <StackPanel>
                                                 <!-- Empty state -->
-                                                <TextBlock Text="No team members available"
+                                                <TextBlock Text="{markup:Localize Key=Dialog_Project_NoMembers}"
                                                            FontSize="12"
                                                            FontStyle="Italic"
                                                            Foreground="{DynamicResource BrushTextTertiary}"
@@ -292,7 +293,7 @@
                                 <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
                             </Style>
                         </Button.Styles>
-                        <TextBlock Text="Cancel" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{markup:Localize Key=Button_Cancel}" HorizontalAlignment="Center"/>
                     </Button>
                     <Button MinWidth="100"
                             Padding="16,10"
@@ -311,7 +312,7 @@
                                 <Setter Property="TextBlock.Foreground" Value="White"/>
                             </Style>
                         </Button.Styles>
-                        <TextBlock Text="Create Project" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{markup:Localize Key=Dialog_Project_CreateProject}" HorizontalAlignment="Center"/>
                     </Button>
                 </StackPanel>
             </Border>

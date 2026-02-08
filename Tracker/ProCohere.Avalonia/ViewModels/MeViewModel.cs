@@ -2,11 +2,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.Services.Insights;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ProCohere.Avalonia.ViewModels;
@@ -19,7 +21,9 @@ public enum MeTab
     Tasks,
     Goals,
     Feedback,
-    Meetings
+    Meetings,
+    Development,
+    Insights
 }
 
 /// <summary>
@@ -31,7 +35,8 @@ public enum MeFlyoutType
     Task,
     Meeting,
     Goal,
-    Feedback
+    Feedback,
+    DevelopmentPlan
 }
 
 /// <summary>
@@ -94,6 +99,14 @@ public partial class MeViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<FeedbackDetail> _givenFeedback = new();
 
+    // My AI Insights - grouped by type for organized display
+    [ObservableProperty]
+    private ObservableCollection<Insight> _myInsights = new();
+
+    // My Development Plans - career growth tracking
+    [ObservableProperty]
+    private ObservableCollection<DevelopmentPlan> _myDevelopmentPlans = new();
+
     // Feedback tab selection
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsReceivedFeedbackTab))]
@@ -118,6 +131,7 @@ public partial class MeViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsMeetingFlyoutOpen))]
     [NotifyPropertyChangedFor(nameof(IsGoalFlyoutOpen))]
     [NotifyPropertyChangedFor(nameof(IsFeedbackFlyoutOpen))]
+    [NotifyPropertyChangedFor(nameof(IsDevelopmentPlanFlyoutOpen))]
     private MeFlyoutType _activeFlyoutType = MeFlyoutType.None;
 
     [ObservableProperty]
@@ -131,6 +145,9 @@ public partial class MeViewModel : ViewModelBase
 
     [ObservableProperty]
     private FeedbackDetail? _selectedFeedback;
+
+    [ObservableProperty]
+    private DevelopmentPlan? _selectedDevelopmentPlan;
 
     /// <summary>
     /// True if the selected feedback was from the "Given" list (shows TO/Recipient),
@@ -189,6 +206,30 @@ public partial class MeViewModel : ViewModelBase
     public int OverdueTaskCount => MyTasks.Count(t => !t.IsCompleted && t.DueDate < DateTime.Today);
     public int ActiveGoalCount => SortedGoals.Count();
     public int UpcomingMeetingCount => UpcomingMeetings.Count();
+    public int InsightCount => MyInsights.Count;
+    public bool HasInsights => MyInsights.Count > 0;
+    
+    // Development plan counts
+    public int ActivePlanCount => MyDevelopmentPlans.Count(p => p.IsActive);
+    public int TotalPlanItemCount => MyDevelopmentPlans.SelectMany(p => p.Items).Count();
+    public int CompletedPlanItemCount => MyDevelopmentPlans.SelectMany(p => p.Items).Count(i => i.IsCompleted);
+    public bool HasDevelopmentPlans => MyDevelopmentPlans.Count > 0;
+    
+    /// <summary>
+    /// Development plans sorted by status and date - active first, then by target date.
+    /// </summary>
+    public IEnumerable<DevelopmentPlan> SortedDevelopmentPlans => MyDevelopmentPlans
+        .OrderByDescending(p => p.IsActive)
+        .ThenBy(p => p.TargetDate ?? DateTime.MaxValue);
+
+    /// <summary>
+    /// Insights grouped by type for organized display
+    /// </summary>
+    public IEnumerable<InsightGroup> GroupedInsights => MyInsights
+        .GroupBy(i => i.Type)
+        .OrderByDescending(g => g.Max(i => i.Severity))
+        .ThenBy(g => g.Key.ToString())
+        .Select(g => new InsightGroup(g.Key, g.OrderByDescending(i => i.CreatedAt).ToList()));
 
     // Flyout visibility helpers
     public bool IsFlyoutOpen => ActiveFlyoutType != MeFlyoutType.None;
@@ -196,6 +237,7 @@ public partial class MeViewModel : ViewModelBase
     public bool IsMeetingFlyoutOpen => ActiveFlyoutType == MeFlyoutType.Meeting;
     public bool IsGoalFlyoutOpen => ActiveFlyoutType == MeFlyoutType.Goal;
     public bool IsFeedbackFlyoutOpen => ActiveFlyoutType == MeFlyoutType.Feedback;
+    public bool IsDevelopmentPlanFlyoutOpen => ActiveFlyoutType == MeFlyoutType.DevelopmentPlan;
 
     #endregion
 
@@ -438,6 +480,149 @@ public partial class MeViewModel : ViewModelBase
 
     #endregion
 
+    #region Surface Activation (CR Fix Plan Phase 3)
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
+
+    /// <summary>
+    /// Timestamp of the last successful data load.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Whether the surface has been marked dirty by external edits.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, trigger refresh.
+    /// Me surface uses 30 minutes (personal data should be current).
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Called when the Me surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        Log("[MeViewModel] OnSurfaceActivated called");
+
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            Log("[MeViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            Log("[MeViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadDataAsync();
+            return;
+        }
+
+        // Check for staleness
+        var now = DateTime.UtcNow;
+        var isStale = (now - _lastLoadTimestamp) > StalenessThreshold;
+
+        if (isStale)
+        {
+            Log($"[MeViewModel] OnSurfaceActivated: data is stale ({(now - _lastLoadTimestamp).TotalMinutes:F0} min old), triggering refresh");
+            _ = LoadDataAsync();
+            return;
+        }
+
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            Log("[MeViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadDataAsync();
+            return;
+        }
+
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        Log("[MeViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when tasks, goals, meetings, or feedback are edited elsewhere.
+    /// </summary>
+    public void MarkDirty()
+    {
+        Log("[MeViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    #endregion
+
     #region Constructor
 
     public MeViewModel()
@@ -489,6 +674,11 @@ public partial class MeViewModel : ViewModelBase
             StatusMessage = "Loading your data...";
             Log("[MeViewModel] LoadDataAsync started");
 
+            // Start the 400ms delay timer for refresh status
+            _updateDelayTokenSource?.Cancel();
+            _updateDelayTokenSource = new CancellationTokenSource();
+            _ = ShowUpdatingStatusAfterDelayAsync(_updateDelayTokenSource.Token);
+
             var profile = AuthService.Instance.CurrentProfile;
             if (profile == null)
             {
@@ -528,13 +718,23 @@ public partial class MeViewModel : ViewModelBase
             // Refresh calendar views
             RefreshMeetingsView();
 
+            // Update load timestamp for staleness tracking
+            _lastLoadTimestamp = DateTime.UtcNow;
+
             StatusMessage = string.Empty;
             Log("[MeViewModel] LoadDataAsync completed");
+
+            // Cancel the delay timer and show "Updated" status
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
         }
         catch (Exception ex)
         {
             Log($"[MeViewModel] ERROR: {ex.Message}");
             StatusMessage = "Failed to load data";
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Idle;
         }
         finally
         {
@@ -600,6 +800,74 @@ public partial class MeViewModel : ViewModelBase
         ReceivedFeedback = new ObservableCollection<FeedbackDetail>(received);
         GivenFeedback = new ObservableCollection<FeedbackDetail>(given);
         Log($"[MeViewModel] Loaded {ReceivedFeedback.Count} received, {GivenFeedback.Count} given feedback");
+        
+        // Load AI Insights
+        _ = LoadInsightsAsync(currentUserId);
+        
+        // Load Development Plans
+        _ = LoadDevelopmentPlansAsync();
+    }
+
+    /// <summary>
+    /// Loads development plans for the current user.
+    /// </summary>
+    private async Task LoadDevelopmentPlansAsync()
+    {
+        try
+        {
+            Log("[MeViewModel] Loading development plans...");
+            
+            var plans = await DevelopmentService.Instance.GetMyPlansAsync();
+            
+            MyDevelopmentPlans.Clear();
+            foreach (var plan in plans)
+            {
+                MyDevelopmentPlans.Add(plan);
+            }
+            
+            OnPropertyChanged(nameof(ActivePlanCount));
+            OnPropertyChanged(nameof(TotalPlanItemCount));
+            OnPropertyChanged(nameof(CompletedPlanItemCount));
+            OnPropertyChanged(nameof(HasDevelopmentPlans));
+            OnPropertyChanged(nameof(SortedDevelopmentPlans));
+            
+            Log($"[MeViewModel] Loaded {MyDevelopmentPlans.Count} development plans");
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Failed to load development plans: {ex.Message}");
+            // Non-critical, don't throw
+        }
+    }
+
+    /// <summary>
+    /// Loads AI insights for the current user.
+    /// </summary>
+    private async Task LoadInsightsAsync(Guid teamMemberId)
+    {
+        try
+        {
+            Log($"[MeViewModel] Loading insights for team member: {teamMemberId}");
+            
+            var insights = await InsightEngine.Instance.GetActiveInsightsAsync(teamMemberId);
+            
+            MyInsights.Clear();
+            foreach (var insight in insights.OrderByDescending(i => i.Severity).ThenByDescending(i => i.CreatedAt))
+            {
+                MyInsights.Add(insight);
+            }
+            
+            OnPropertyChanged(nameof(InsightCount));
+            OnPropertyChanged(nameof(HasInsights));
+            OnPropertyChanged(nameof(GroupedInsights));
+            
+            Log($"[MeViewModel] Loaded {MyInsights.Count} insights");
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Failed to load insights: {ex.Message}");
+            // Non-critical, don't throw
+        }
     }
 
     #endregion
@@ -678,6 +946,90 @@ public partial class MeViewModel : ViewModelBase
     {
         Log("[MeViewModel] CreateNote command - opening dialog");
         CreateNoteDialogRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Create a new development plan - opens the create plan dialog.
+    /// </summary>
+    [RelayCommand]
+    private void CreateDevelopmentPlan()
+    {
+        Log("[MeViewModel] CreateDevelopmentPlan command - opening dialog");
+        CreateDevelopmentPlanDialogRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Edit an existing development plan - opens the edit plan dialog with the plan loaded.
+    /// </summary>
+    [RelayCommand]
+    private void EditDevelopmentPlan(DevelopmentPlan? plan)
+    {
+        if (plan == null)
+        {
+            Log("[MeViewModel] EditDevelopmentPlan command - no plan provided");
+            return;
+        }
+        Log($"[MeViewModel] EditDevelopmentPlan command - opening dialog for: {plan.Title}");
+        EditDevelopmentPlanDialogRequested?.Invoke(this, plan);
+    }
+
+    /// <summary>
+    /// Delete a development plan after confirmation.
+    /// </summary>
+    [RelayCommand]
+    private async Task DeleteDevelopmentPlanAsync(DevelopmentPlan? plan)
+    {
+        if (plan == null)
+        {
+            Log("[MeViewModel] DeleteDevelopmentPlan command - no plan provided");
+            return;
+        }
+        
+        Log($"[MeViewModel] DeleteDevelopmentPlan command - deleting: {plan.Title}");
+        
+        var success = await DevelopmentService.Instance.DeletePlanAsync(plan.Id);
+        if (success)
+        {
+            MyDevelopmentPlans.Remove(plan);
+            if (SelectedDevelopmentPlan?.Id == plan.Id)
+            {
+                CloseFlyout();
+            }
+            OnPropertyChanged(nameof(ActivePlanCount));
+            OnPropertyChanged(nameof(TotalPlanItemCount));
+            OnPropertyChanged(nameof(CompletedPlanItemCount));
+            OnPropertyChanged(nameof(HasDevelopmentPlans));
+            OnPropertyChanged(nameof(SortedDevelopmentPlans));
+            Log($"[MeViewModel] Development plan deleted successfully");
+        }
+        else
+        {
+            Log($"[MeViewModel] Failed to delete development plan: {DevelopmentService.Instance.LastError}");
+        }
+    }
+
+    /// <summary>
+    /// Toggle item completion status.
+    /// </summary>
+    [RelayCommand]
+    private async Task TogglePlanItemStatusAsync(DevelopmentPlanItem? item)
+    {
+        if (item == null) return;
+        
+        var newStatus = item.IsCompleted ? "not_started" : "completed";
+        var success = await DevelopmentService.Instance.UpdateItemStatusAsync(item.Id, newStatus);
+        
+        if (success)
+        {
+            item.Status = newStatus;
+            item.CompletedAt = newStatus == "completed" ? DateTime.UtcNow : null;
+            
+            OnPropertyChanged(nameof(TotalPlanItemCount));
+            OnPropertyChanged(nameof(CompletedPlanItemCount));
+            OnPropertyChanged(nameof(SortedDevelopmentPlans));
+            
+            Log($"[MeViewModel] Item status toggled: {item.Title} -> {newStatus}");
+        }
     }
 
     /// <summary>
@@ -926,6 +1278,16 @@ public partial class MeViewModel : ViewModelBase
     /// </summary>
     public event EventHandler? CreateNoteDialogRequested;
 
+    /// <summary>
+    /// Event to request showing the Create Development Plan dialog.
+    /// </summary>
+    public event EventHandler? CreateDevelopmentPlanDialogRequested;
+
+    /// <summary>
+    /// Event to request showing the Edit Development Plan dialog with an existing plan.
+    /// </summary>
+    public event EventHandler<DevelopmentPlan>? EditDevelopmentPlanDialogRequested;
+
     #endregion
 
     /// <summary>
@@ -1020,6 +1382,41 @@ public partial class MeViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Called when a goal is saved (created or updated) from the dialog.
+    /// </summary>
+    public void OnGoalSaved(GoalDetail goal)
+    {
+        Log($"[MeViewModel] Goal saved: {goal.Title}");
+        
+        // Check if this goal belongs to current user
+        var currentTeamMember = AuthService.Instance.CurrentTeamMember;
+        if (currentTeamMember == null || goal.OwnerTeamMemberId != currentTeamMember.Id)
+        {
+            Log("[MeViewModel] Goal not owned by current user, skipping");
+            return;
+        }
+        
+        // Add to collection if new
+        var existing = MyGoals.FirstOrDefault(g => g.Id == goal.Id);
+        if (existing == null)
+        {
+            MyGoals.Add(goal);
+            Log("[MeViewModel] Added new goal to collection");
+        }
+        else
+        {
+            // Update existing (replace in collection)
+            var index = MyGoals.IndexOf(existing);
+            MyGoals[index] = goal;
+            Log("[MeViewModel] Updated existing goal in collection");
+        }
+
+        // Notify property changes
+        OnPropertyChanged(nameof(MyGoals));
+        OnPropertyChanged(nameof(SortedGoals));
+    }
+
+    /// <summary>
     /// Called when a task is deleted from the dialog.
     /// </summary>
     public void OnTaskDeleted(Guid taskId)
@@ -1034,6 +1431,42 @@ public partial class MeViewModel : ViewModelBase
 
         // Notify property changes for task counts
         OnPropertyChanged(nameof(MyTasks));
+    }
+
+    /// <summary>
+    /// Called when a development plan is saved (created or updated) from the dialog.
+    /// </summary>
+    public void OnDevelopmentPlanSaved(DevelopmentPlan plan)
+    {
+        Log($"[MeViewModel] Development plan saved: {plan.Title}");
+        
+        // Add to collection if new
+        var existing = MyDevelopmentPlans.FirstOrDefault(p => p.Id == plan.Id);
+        if (existing == null)
+        {
+            MyDevelopmentPlans.Add(plan);
+            Log("[MeViewModel] Added new development plan to collection");
+        }
+        else
+        {
+            // Update existing (replace in collection)
+            var index = MyDevelopmentPlans.IndexOf(existing);
+            MyDevelopmentPlans[index] = plan;
+            Log("[MeViewModel] Updated existing development plan in collection");
+        }
+
+        // Update flyout if this is the selected plan
+        if (SelectedDevelopmentPlan?.Id == plan.Id)
+        {
+            SelectedDevelopmentPlan = plan;
+        }
+
+        // Notify property changes
+        OnPropertyChanged(nameof(ActivePlanCount));
+        OnPropertyChanged(nameof(TotalPlanItemCount));
+        OnPropertyChanged(nameof(CompletedPlanItemCount));
+        OnPropertyChanged(nameof(HasDevelopmentPlans));
+        OnPropertyChanged(nameof(SortedDevelopmentPlans));
     }
 
     // ==================== Calendar Commands ====================
@@ -1210,6 +1643,19 @@ public partial class MeViewModel : ViewModelBase
 
     // ==================== Flyout Commands ====================
 
+    /// <summary>
+    /// Selects a meeting by its ID, opening the meeting flyout.
+    /// Used for cross-tab navigation.
+    /// </summary>
+    public void SelectMeetingById(Guid meetingId)
+    {
+        var meeting = MyMeetings.FirstOrDefault(m => m.Id == meetingId);
+        if (meeting != null)
+        {
+            OpenMeetingFlyout(meeting);
+        }
+    }
+
     [RelayCommand]
     private void OpenTaskFlyout(TaskDetail task)
     {
@@ -1243,6 +1689,14 @@ public partial class MeViewModel : ViewModelBase
         IsSelectedFeedbackGiven = !IsShowingReceivedFeedback;
         ActiveFlyoutType = MeFlyoutType.Feedback;
         Log($"[MeViewModel] Opened feedback flyout: {feedback.Id}, IsGiven={IsSelectedFeedbackGiven}");
+    }
+
+    [RelayCommand]
+    private void OpenDevelopmentPlanFlyout(DevelopmentPlan plan)
+    {
+        SelectedDevelopmentPlan = plan;
+        ActiveFlyoutType = MeFlyoutType.DevelopmentPlan;
+        Log($"[MeViewModel] Opened development plan flyout: {plan.Title}");
     }
 
     [RelayCommand]
@@ -1291,4 +1745,164 @@ public partial class MeViewModel : ViewModelBase
     }
 
     #endregion
+
+    #region Insight Actions
+
+    /// <summary>
+    /// Dismisses an insight (marks it as dismissed).
+    /// </summary>
+    [RelayCommand]
+    private async Task DismissInsight(Insight insight)
+    {
+        if (insight == null) return;
+
+        try
+        {
+            Log($"[MeViewModel] Dismissing insight: {insight.Id}");
+            
+            if (!string.IsNullOrEmpty(insight.SignatureHash))
+            {
+                await InsightEngine.Instance.DismissInsightAsync(insight.SignatureHash);
+            }
+            else
+            {
+                Log($"[MeViewModel] Insight has no signature hash, cannot dismiss properly");
+            }
+
+            // Remove from collection
+            MyInsights.Remove(insight);
+            OnPropertyChanged(nameof(InsightCount));
+            OnPropertyChanged(nameof(HasInsights));
+            OnPropertyChanged(nameof(GroupedInsights));
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Failed to dismiss insight: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Snoozes an insight for 24 hours.
+    /// </summary>
+    [RelayCommand]
+    private async Task SnoozeInsight(Insight insight)
+    {
+        if (insight == null) return;
+
+        try
+        {
+            Log($"[MeViewModel] Snoozing insight: {insight.Id}");
+            
+            if (!string.IsNullOrEmpty(insight.SignatureHash))
+            {
+                await InsightEngine.Instance.SnoozeInsightAsync(insight.SignatureHash, TimeSpan.FromHours(24));
+            }
+            else
+            {
+                Log($"[MeViewModel] Insight has no signature hash, cannot snooze properly");
+            }
+
+            // Remove from collection (will reappear after snooze expires)
+            MyInsights.Remove(insight);
+            OnPropertyChanged(nameof(InsightCount));
+            OnPropertyChanged(nameof(HasInsights));
+            OnPropertyChanged(nameof(GroupedInsights));
+        }
+        catch (Exception ex)
+        {
+            Log($"[MeViewModel] Failed to snooze insight: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the entity referenced by the insight.
+    /// </summary>
+    [RelayCommand]
+    private void ViewInsight(Insight insight)
+    {
+        if (insight?.SourceId == null) return;
+
+        Log($"[MeViewModel] Viewing insight entity: {insight.SourceType} {insight.SourceId}");
+
+        // Navigate based on entity type
+        switch (insight.SourceType?.ToLowerInvariant())
+        {
+            case "task":
+                NavigateToTaskRequested?.Invoke(this, insight.SourceId.Value);
+                break;
+            case "goal":
+                NavigateToGoalRequested?.Invoke(this, insight.SourceId.Value);
+                break;
+            case "meeting":
+                NavigateToMeetingRequested?.Invoke(this, insight.SourceId.Value);
+                break;
+            case "metric":
+                NavigateToMetricRequested?.Invoke(this, insight.SourceId.Value);
+                break;
+            default:
+                Log($"[MeViewModel] Unknown entity type: {insight.SourceType}");
+                break;
+        }
+    }
+
+    // Navigation events for insight entity links
+    public event EventHandler<Guid>? NavigateToTaskRequested;
+    public event EventHandler<Guid>? NavigateToGoalRequested;
+    public event EventHandler<Guid>? NavigateToMeetingRequested;
+    public event EventHandler<Guid>? NavigateToMetricRequested;
+
+    #endregion
+}
+
+/// <summary>
+/// Groups insights by type for organized display in the Me view.
+/// </summary>
+public class InsightGroup
+{
+    public InsightType Type { get; }
+    public string Title { get; }
+    public string Icon { get; }
+    public List<Insight> Insights { get; }
+    public int Count => Insights.Count;
+
+    public InsightGroup(InsightType type, List<Insight> insights)
+    {
+        Type = type;
+        Insights = insights;
+        Title = GetTitleForType(type);
+        Icon = GetIconForType(type);
+    }
+
+    private static string GetTitleForType(InsightType type) => type switch
+    {
+        InsightType.StaleActionItem => "Stale Tasks",
+        InsightType.TaskOverdue => "Overdue Tasks",
+        InsightType.GoalOffTrack => "Goals Off Track",
+        InsightType.GoalOnTrack => "Goals On Track",
+        InsightType.MeetingOverdue => "Overdue Meetings",
+        InsightType.MeetingUpcoming => "Upcoming Meetings",
+        InsightType.MetricDeclining => "Declining Metrics",
+        InsightType.MetricMissing => "Missing Metrics",
+        InsightType.PersonalDate => "Personal Dates",
+        InsightType.SentimentDeclining => "Declining Sentiment",
+        InsightType.SentimentImproving => "Improving Sentiment",
+        _ => type.ToString()
+    };
+
+    private static string GetIconForType(InsightType type) => type switch
+    {
+        InsightType.StaleActionItem or InsightType.TaskOverdue => 
+            "M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z",
+        InsightType.GoalOffTrack or InsightType.GoalOnTrack => 
+            "M5,21L7.5,13L1,9H8.5L11,1L13.5,9H21L14.5,13L17,21L11,16L5,21Z",
+        InsightType.MeetingOverdue or InsightType.MeetingUpcoming => 
+            "M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z",
+        InsightType.MetricDeclining or InsightType.MetricMissing => 
+            "M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z",
+        InsightType.PersonalDate => 
+            "M12,6A3.5,3.5 0 0,1 15.5,9.5A3.5,3.5 0 0,1 12,13A3.5,3.5 0 0,1 8.5,9.5A3.5,3.5 0 0,1 12,6M12,2A7.5,7.5 0 0,0 4.5,9.5C4.5,13.09 7.36,16 10.95,16.67L12,22L13.05,16.67C16.64,16 19.5,13.09 19.5,9.5A7.5,7.5 0 0,0 12,2Z",
+        InsightType.SentimentDeclining or InsightType.SentimentImproving => 
+            "M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2M6,9H18V11H6M14,14H6V12H14M18,8H6V6H18",
+        _ => "M12,2L1,21H23L12,2M12,6L19.53,19H4.47L12,6M11,10V14H13V10H11M11,16V18H13V16H11Z"
+    };
 }

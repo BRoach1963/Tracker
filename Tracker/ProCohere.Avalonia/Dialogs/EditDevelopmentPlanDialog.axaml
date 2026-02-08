@@ -1,0 +1,280 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="700"
+        x:Class="ProCohere.Avalonia.Dialogs.EditDevelopmentPlanDialog"
+        x:DataType="vm:EditDevelopmentPlanDialogViewModel"
+        Title="{Binding DialogTitle}"
+        Width="500"
+        MinHeight="500"
+        MaxHeight="800"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur"
+        SystemDecorations="BorderOnly">
+
+    <Border CornerRadius="8" ClipToBounds="True">
+        <DockPanel>
+            <!-- Header -->
+            <Border DockPanel.Dock="Top" 
+                    Background="#22C55E" 
+                    Padding="20,16">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- Icon -->
+                    <Border Grid.Column="0"
+                            Width="40" Height="40"
+                            Background="White"
+                            CornerRadius="8"
+                            Margin="0,0,16,0">
+                        <TextBlock Text="📈"
+                                   FontSize="20"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    
+                    <!-- Title -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DialogTitle}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"/>
+                        <TextBlock Text="Define your growth objectives and learning activities"
+                                   FontSize="12"
+                                   Foreground="#DCFCE7"
+                                   Opacity="0.9"/>
+                    </StackPanel>
+                    
+                    <!-- Close button -->
+                    <Button Grid.Column="2"
+                            Command="{Binding CancelCommand}"
+                            Background="Transparent"
+                            Padding="8"
+                            CornerRadius="4">
+                        <TextBlock Text="✕" Foreground="White" FontSize="16"/>
+                    </Button>
+                </Grid>
+            </Border>
+            
+            <!-- Footer -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="{DynamicResource CardBackground}"
+                    BorderThickness="0,1,0,0"
+                    BorderBrush="{DynamicResource CardBorder}"
+                    Padding="20,16">
+                <DockPanel>
+                    <!-- Error message -->
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="{Binding ErrorMessage}"
+                               Foreground="#EF4444"
+                               FontSize="12"
+                               Margin="0,0,0,8"
+                               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    
+                    <StackPanel Orientation="Horizontal" 
+                                HorizontalAlignment="Right"
+                                Spacing="12">
+                        <Button Content="Cancel"
+                                Command="{Binding CancelCommand}"
+                                Classes="secondary"
+                                Width="100"
+                                IsEnabled="{Binding !IsSaving}"/>
+                        <Button Content="{Binding SaveButtonText}"
+                                Command="{Binding SaveCommand}"
+                                Classes="primary"
+                                Width="140"
+                                IsEnabled="{Binding CanSave}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            
+            <!-- Content -->
+            <ScrollViewer Background="{DynamicResource CardBackground}"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20" Spacing="16">
+                    <!-- Plan Title -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Plan Title *" 
+                                   FontSize="13" 
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextSecondary}"/>
+                        <TextBox Text="{Binding Title}"
+                                 Watermark="e.g., Q2 Leadership Development"
+                                 Classes="form-input"/>
+                    </StackPanel>
+                    
+                    <!-- Description -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Description" 
+                                   FontSize="13" 
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextSecondary}"/>
+                        <TextBox Text="{Binding Description}"
+                                 Watermark="What are you hoping to achieve?"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Height="80"
+                                 Classes="form-input"/>
+                    </StackPanel>
+                    
+                    <!-- Status -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Status" 
+                                   FontSize="13" 
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextSecondary}"/>
+                        <ComboBox SelectedIndex="{Binding StatusIndex}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="Draft"/>
+                            <ComboBoxItem Content="Active"/>
+                            <ComboBoxItem Content="Completed"/>
+                            <ComboBoxItem Content="Cancelled"/>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <!-- Dates Row -->
+                    <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Start Date" 
+                                       FontSize="13" 
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"/>
+                            <DatePicker SelectedDate="{Binding StartDate}"
+                                        HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="Target Date" 
+                                       FontSize="13" 
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondary}"/>
+                            <DatePicker SelectedDate="{Binding TargetDate}"
+                                        HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- Separator -->
+                    <Border Height="1" 
+                            Background="{DynamicResource CardBorder}"
+                            Margin="0,8"/>
+                    
+                    <!-- Items Section -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Plan Items" 
+                                   FontSize="14" 
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="Add training, projects, and other activities to track"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}"/>
+                        
+                        <!-- Add Item Form -->
+                        <Border Background="{DynamicResource SurfaceBackground}"
+                                CornerRadius="6"
+                                Padding="12"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource CardBorder}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto">
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding NewItemTitle}"
+                                         Watermark="Item title..."
+                                         Classes="form-input"
+                                         Margin="0,0,8,0"/>
+                                <ComboBox Grid.Column="1"
+                                          SelectedIndex="{Binding NewItemTypeIndex}"
+                                          Width="120"
+                                          Margin="0,0,8,0">
+                                    <ComboBoxItem Content="Training"/>
+                                    <ComboBoxItem Content="Project"/>
+                                    <ComboBoxItem Content="Mentoring"/>
+                                    <ComboBoxItem Content="Reading"/>
+                                    <ComboBoxItem Content="Certification"/>
+                                    <ComboBoxItem Content="Workshop"/>
+                                </ComboBox>
+                                <Button Grid.Column="2"
+                                        Content="Add"
+                                        Command="{Binding AddItemCommand}"
+                                        Classes="primary"
+                                        Padding="16,8"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Items List -->
+                        <ItemsControl ItemsSource="{Binding Items}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DevelopmentPlanItemViewModel">
+                                    <Border Background="{DynamicResource SurfaceBackground}"
+                                            CornerRadius="6"
+                                            Padding="12"
+                                            Margin="0,4"
+                                            BorderThickness="1"
+                                            BorderBrush="{DynamicResource CardBorder}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                            <!-- Checkbox -->
+                                            <CheckBox Grid.Column="0"
+                                                      IsChecked="{Binding IsCompleted}"
+                                                      Margin="0,0,12,0"
+                                                      VerticalAlignment="Center"/>
+                                            
+                                            <!-- Title and Type -->
+                                            <StackPanel Grid.Column="1" 
+                                                        VerticalAlignment="Center"
+                                                        Spacing="2">
+                                                <TextBlock Text="{Binding Title}"
+                                                           FontWeight="Medium"
+                                                           TextDecorations="{Binding IsCompleted, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                                                <TextBlock Text="{Binding ItemTypeDisplay}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondary}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Type Badge -->
+                                            <Border Grid.Column="2"
+                                                    Background="{DynamicResource AccentSoft}"
+                                                    CornerRadius="4"
+                                                    Padding="8,2"
+                                                    Margin="8,0"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ItemTypeDisplay}"
+                                                           FontSize="10"
+                                                           Foreground="{DynamicResource AccentColor}"/>
+                                            </Border>
+                                            
+                                            <!-- Remove Button -->
+                                            <Button Grid.Column="3"
+                                                    Content="✕"
+                                                    Command="{Binding $parent[ItemsControl].((vm:EditDevelopmentPlanDialogViewModel)DataContext).RemoveItemCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="Transparent"
+                                                    Foreground="{DynamicResource TextSecondary}"
+                                                    Padding="8,4"
+                                                    FontSize="12"
+                                                    VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Empty state for items -->
+                        <Border IsVisible="{Binding !Items.Count}"
+                                Background="{DynamicResource SurfaceBackground}"
+                                CornerRadius="6"
+                                Padding="20"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="No items yet. Add activities above."
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</Window>

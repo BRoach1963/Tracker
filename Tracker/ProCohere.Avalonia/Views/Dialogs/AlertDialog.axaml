@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AlertDialog"
         Title="Alert"
         Width="420"
@@ -36,7 +37,7 @@
                               Foreground="{DynamicResource BrushInfo}"/>
                 </Viewbox>
                 <TextBlock x:Name="TitleText"
-                           Text="Information"
+                           Text="{markup:Localize Key=Dialog_Information_Title}"
                            FontSize="{DynamicResource FontSizeTitle}"
                            FontWeight="SemiBold"
                            FontFamily="{DynamicResource FontFamilyDefault}"
@@ -50,7 +51,7 @@
                           VerticalScrollBarVisibility="Auto"
                           Margin="0,0,0,24">
                 <TextBlock x:Name="MessageText"
-                           Text="Message content goes here."
+                           Text="{markup:Localize Key=Dialog_MessagePlaceholder}"
                            FontSize="{DynamicResource FontSizeBody}"
                            FontFamily="{DynamicResource FontFamilyDefault}"
                            Foreground="{DynamicResource BrushTextSecondary}"
@@ -61,7 +62,7 @@
             <!-- OK Button -->
             <Button x:Name="OkButton"
                     Grid.Row="2"
-                    Content="OK"
+                    Content="{markup:Localize Key=Button_OK}"
                     MinWidth="100"
                     HorizontalAlignment="Right"
                     Click="OkButton_Click"

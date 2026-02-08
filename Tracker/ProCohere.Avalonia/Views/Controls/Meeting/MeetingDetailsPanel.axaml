@@ -4,6 +4,7 @@
              xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
              xmlns:controls="using:ProCohere.Avalonia.Views.Controls"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              x:Class="ProCohere.Avalonia.Views.Controls.Meeting.MeetingDetailsPanel"
              x:DataType="vm:EditMeetingDialogViewModel">
 
@@ -14,7 +15,7 @@
                       HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="14" Margin="16,16,16,24">
                 
-                <TextBlock Text="DETAILS" 
+                <TextBlock Text="{markup:Localize Key=MeetingPanel_DetailsHeader}" 
                            FontSize="10"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource BrushTextTertiary}"
@@ -22,23 +23,23 @@
                 
                 <!-- Title -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Title *" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_TitleLabel}" FontSize="12" />
                     <TextBox Text="{Binding Title}"
-                             Watermark="Meeting title" />
+                             Watermark="{markup:Localize Key=MeetingPanel_TitlePlaceholder}" />
                 </StackPanel>
                 
                 <!-- Meeting Type -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Type" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_TypeLabel}" FontSize="12" />
                     <ComboBox x:Name="MeetingTypeComboBox"
                               HorizontalAlignment="Stretch"
                               SelectedIndex="0"
                               SelectionChanged="MeetingTypeComboBox_SelectionChanged">
-                        <ComboBoxItem Content="1:1 Meeting" Tag="one_on_one" />
-                        <ComboBoxItem Content="Team Meeting" Tag="team" />
-                        <ComboBoxItem Content="Project Review" Tag="project" />
-                        <ComboBoxItem Content="Performance Review" Tag="performance" />
-                        <ComboBoxItem Content="Other" Tag="other" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_TypeOneOnOne}" Tag="one_on_one" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_TypeTeam}" Tag="team" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_TypeProjectReview}" Tag="project" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_TypePerformanceReview}" Tag="performance" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_TypeOther}" Tag="other" />
                     </ComboBox>
                     <TextBlock Text="{Binding MeetingTypeDescription}" 
                                FontSize="11" FontStyle="Italic"
@@ -48,11 +49,11 @@
                 
                 <!-- Attendee (for 1:1) -->
                 <StackPanel Spacing="4" IsVisible="{Binding ShowAttendeeSelector}">
-                    <TextBlock Text="With" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_WithLabel}" FontSize="12" />
                     <ComboBox ItemsSource="{Binding SelectableAttendees}"
                               SelectedItem="{Binding SelectedAttendee}"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="Select team member">
+                              PlaceholderText="{markup:Localize Key=MeetingPanel_SelectTeamMember}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:TeamMemberDetail">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -85,11 +86,11 @@
                 <!-- Team Attendees (for team meetings) -->
                 <StackPanel Spacing="4" IsVisible="{Binding ShowTeamAttendeesSelector}">
                     <!-- Team Picker -->
-                    <TextBlock Text="Team" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_TeamLabel}" FontSize="12" />
                     <ComboBox ItemsSource="{Binding AvailableTeams}"
                               SelectedItem="{Binding SelectedTeam}"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="Select a team to auto-add members">
+                              PlaceholderText="{markup:Localize Key=MeetingPanel_SelectTeamPlaceholder}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:Team">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -108,20 +109,20 @@
                                         <TextBlock FontSize="10"
                                                    Foreground="{DynamicResource BrushTextTertiary}">
                                             <Run Text="{Binding MemberCount}"/>
-                                            <Run Text=" members"/>
+                                            <Run Text="{markup:Localize Key=MeetingPanel_Members}"/>
                                         </TextBlock>
                                     </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBlock Text="Selecting a team will add all its members as attendees"
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_TeamMembersHint}"
                                FontSize="11" FontStyle="Italic"
                                Foreground="{DynamicResource BrushTextTertiary}"
                                Margin="0,0,0,8"/>
                     
-                    <TextBlock Text="Attendees" FontSize="12" />
-                    <TextBlock Text="Team members will be pre-selected when you pick a team" FontSize="11"
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_AttendeesLabel}" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_AttendeesHint}" FontSize="11"
                                Foreground="{DynamicResource BrushTextTertiary}" Margin="0,0,0,4"/>
                     <Border Background="{DynamicResource BrushSurface}"
                             BorderBrush="{DynamicResource BrushBorder}"
@@ -170,39 +171,39 @@
                 
                 <!-- Date and Time -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="When *" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_WhenLabel}" FontSize="12" />
                     <controls:DateTimeSelector x:Name="DateTimeSelector" 
                                                SelectedDateTime="{Binding ScheduledDateTime, Mode=TwoWay}" />
                 </StackPanel>
                 
                 <!-- Duration -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Duration" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_DurationLabel}" FontSize="12" />
                     <ComboBox x:Name="DurationComboBox"
                               HorizontalAlignment="Stretch"
                               SelectedIndex="1"
                               SelectionChanged="DurationComboBox_SelectionChanged">
-                        <ComboBoxItem Content="15 minutes" Tag="15" />
-                        <ComboBoxItem Content="30 minutes" Tag="30" />
-                        <ComboBoxItem Content="45 minutes" Tag="45" />
-                        <ComboBoxItem Content="1 hour" Tag="60" />
-                        <ComboBoxItem Content="1.5 hours" Tag="90" />
-                        <ComboBoxItem Content="2 hours" Tag="120" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_Duration15}" Tag="15" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_Duration30}" Tag="30" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_Duration45}" Tag="45" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_Duration60}" Tag="60" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_Duration90}" Tag="90" />
+                        <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_Duration120}" Tag="120" />
                     </ComboBox>
                 </StackPanel>
                 
                 <!-- Location -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Location" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_LocationLabel}" FontSize="12" />
                     <TextBox Text="{Binding Location}"
-                             Watermark="Room, office, or link" />
+                             Watermark="{markup:Localize Key=MeetingPanel_LocationPlaceholder}" />
                 </StackPanel>
                 
                 <!-- Video Link -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Video Link" FontSize="12" />
+                    <TextBlock Text="{markup:Localize Key=MeetingPanel_VideoLinkLabel}" FontSize="12" />
                     <TextBox Text="{Binding VideoLink}"
-                             Watermark="Zoom, Teams, Meet URL" />
+                             Watermark="{markup:Localize Key=MeetingPanel_VideoLinkPlaceholder}" />
                 </StackPanel>
                 
                 <!-- Recurrence -->
@@ -213,25 +214,25 @@
                         Padding="12">
                     <StackPanel Spacing="10">
                         <CheckBox IsChecked="{Binding IsRecurringEnabled}"
-                                  Content="Repeat this meeting"
+                                  Content="{markup:Localize Key=MeetingPanel_RepeatMeeting}"
                                   FontSize="12"
                                   FontWeight="Medium"/>
                         
                         <StackPanel Spacing="8" IsVisible="{Binding IsRecurringEnabled}">
                             <!-- Pattern -->
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Frequency" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{markup:Localize Key=MeetingPanel_FrequencyLabel}" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
                                 <ComboBox SelectedIndex="{Binding RecurrencePatternIndex}"
                                           HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="Daily" />
-                                    <ComboBoxItem Content="Weekly" />
-                                    <ComboBoxItem Content="Monthly" />
+                                    <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_FrequencyDaily}" />
+                                    <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_FrequencyWeekly}" />
+                                    <ComboBoxItem Content="{markup:Localize Key=MeetingPanel_FrequencyMonthly}" />
                                 </ComboBox>
                             </StackPanel>
                             
                             <!-- Interval -->
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Repeat every" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{markup:Localize Key=MeetingPanel_RepeatEveryLabel}" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
                                 <Grid ColumnDefinitions="Auto,*">
                                     <NumericUpDown Value="{Binding RecurrenceInterval}"
                                                    Minimum="1" Maximum="365"
@@ -248,7 +249,7 @@
                             
                             <!-- End Date -->
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Ends on (optional)" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{markup:Localize Key=MeetingPanel_EndsOnLabel}" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
                                 <DatePicker SelectedDate="{Binding RecurrenceEndDate}" />
                             </StackPanel>
                         </StackPanel>

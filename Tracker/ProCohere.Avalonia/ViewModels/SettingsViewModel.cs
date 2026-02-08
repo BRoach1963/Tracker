@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Avalonia.Data.Converters;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ProCohere.Avalonia.Dialogs;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.ViewModels.Dialogs;
 
 namespace ProCohere.Avalonia.ViewModels;
 
@@ -668,6 +670,31 @@ public partial class SettingsViewModel : ViewModelBase
     {
         // Open password reset in browser
         OpenUrl("https://procohere.com/reset-password");
+    }
+
+    [RelayCommand]
+    private async Task ReportIssueAsync()
+    {
+        var viewModel = new ReportIssueDialogViewModel();
+        var dialog = new ReportIssueDialog
+        {
+            DataContext = viewModel
+        };
+
+        viewModel.RequestClose += (_, _) =>
+        {
+            dialog.Close();
+        };
+
+        // Get parent window
+        var mainWindow = App.Current?.ApplicationLifetime is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (mainWindow != null)
+        {
+            await dialog.ShowDialog(mainWindow);
+        }
     }
 
     private static void OpenUrl(string url)

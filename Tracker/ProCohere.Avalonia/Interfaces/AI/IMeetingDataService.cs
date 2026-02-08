@@ -44,4 +44,14 @@ public interface IMeetingDataService
     /// <param name="agenda">New agenda (optional)</param>
     /// <returns>Success message or error</returns>
     Task<string> UpdateMeetingAsync(Guid meetingId, string? title = null, string? dateTime = null, string? agenda = null);
+
+    /// <summary>
+    /// Searches meetings by attendee name, title, or date range.
+    /// Returns both past and future meetings.
+    /// </summary>
+    /// <param name="attendeeName">Name of attendee to search for</param>
+    /// <param name="includePast">Whether to include past meetings (default true)</param>
+    /// <param name="limit">Maximum number of meetings to return</param>
+    /// <returns>List of matching meetings</returns>
+    Task<List<MeetingDetail>> SearchMeetingsAsync(string? attendeeName = null, bool includePast = true, int limit = 10);
 }

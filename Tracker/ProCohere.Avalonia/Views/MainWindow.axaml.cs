@@ -87,17 +87,14 @@ public partial class MainWindow : Window
             mainVm.SignOutRequested += OnLogoutRequested;
             mainVm.EditProfileRequested += OnEditProfileRequested;
             mainVm.HelpRequested += OnHelpRequestedAsync;
-        }
-        
-        // Wire up BriefingViewModel navigation events
-        if (BriefingViewControl != null)
-        {
-            var briefingVm = BriefingViewControl.GetViewModel();
-            briefingVm.NavigateToProjectRequested += (_, projectId) => NavigateToProject(projectId);
-            briefingVm.NavigateToTaskRequested += (_, taskId) => NavigateToTask(taskId);
-            briefingVm.NavigateToGoalRequested += (_, goalId) => NavigateToGoal(goalId);
-            briefingVm.NavigateToMetricRequested += (_, metricId) => NavigateToMetric(metricId);
-            briefingVm.NavigateToMeetingRequested += (_, meetingId) => NavigateToMeeting(meetingId);
+            
+            // Wire up BriefingViewModel navigation events (now owned by MainWindowViewModel)
+            mainVm.BriefingViewModel.NavigateToProjectRequested += (_, projectId) => NavigateToProject(projectId);
+            mainVm.BriefingViewModel.NavigateToTaskRequested += (_, taskId) => NavigateToTask(taskId);
+            mainVm.BriefingViewModel.NavigateToGoalRequested += (_, goalId) => NavigateToGoal(goalId);
+            mainVm.BriefingViewModel.NavigateToMetricRequested += (_, metricId) => NavigateToMetric(metricId);
+            mainVm.BriefingViewModel.NavigateToMeetingRequested += (_, meetingId) => NavigateToMeeting(meetingId);
+            mainVm.BriefingViewModel.ViewAllInsightsRequested += (_, _) => NavigateToMeInsights();
         }
     }
 
@@ -210,15 +207,14 @@ public partial class MainWindow : Window
     #region Navigation Helpers
 
     /// <summary>
-    /// Navigates to Projects tab (already implemented via existing event).
+    /// Navigates to Projects tab and selects specific project.
     /// </summary>
-    private void NavigateToProject(Guid projectId)
+    private async void NavigateToProject(Guid projectId)
     {
         if (DataContext is MainWindowViewModel vm)
         {
             vm.SelectedNavigation = NavigationItem.Projects;
-            // TODO: Select specific project if needed
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Projects for project {projectId}");
+            await vm.ProjectsViewModel.SelectProjectByIdAsync(projectId);
         }
     }
 
@@ -230,34 +226,31 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.SelectedNavigation = NavigationItem.Tasks;
-            // TODO: TasksViewModel.SelectTask(taskId) when implemented
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Tasks for task {taskId}");
+            vm.TasksViewModel.SelectTaskById(taskId);
         }
     }
 
     /// <summary>
     /// Navigates to Goals tab and selects specific goal.
     /// </summary>
-    private void NavigateToGoal(Guid goalId)
+    private async void NavigateToGoal(Guid goalId)
     {
         if (DataContext is MainWindowViewModel vm)
         {
             vm.SelectedNavigation = NavigationItem.Goals;
-            // TODO: GoalsViewModel.SelectGoal(goalId) when implemented
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Goals for goal {goalId}");
+            await vm.GoalsViewModel.SelectGoalByIdAsync(goalId);
         }
     }
 
     /// <summary>
     /// Navigates to Metrics tab and selects specific metric.
     /// </summary>
-    private void NavigateToMetric(Guid metricId)
+    private async void NavigateToMetric(Guid metricId)
     {
         if (DataContext is MainWindowViewModel vm)
         {
             vm.SelectedNavigation = NavigationItem.Metrics;
-            // TODO: MetricsViewModel.SelectMetric(metricId) when implemented
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Metrics for metric {metricId}");
+            await vm.MetricsViewModel.SelectMetricByIdAsync(metricId);
         }
     }
 
@@ -269,8 +262,26 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.SelectedNavigation = NavigationItem.Me;
-            // TODO: MeViewModel.SelectMeeting(meetingId) when implemented
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] Navigated to Me for meeting {meetingId}");
+            vm.MeViewModel.SelectMeetingById(meetingId);
+        }
+    }
+
+    /// <summary>
+    /// Navigates to Me tab > Insights tab.
+    /// </summary>
+    private void NavigateToMeInsights()
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedNavigation = NavigationItem.Me;
+            
+            // Switch MeView to Insights tab
+            if (MeViewControl?.DataContext is MeViewModel meVm)
+            {
+                meVm.SelectedTab = MeTab.Insights;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Navigated to Me > Insights");
         }
     }
 

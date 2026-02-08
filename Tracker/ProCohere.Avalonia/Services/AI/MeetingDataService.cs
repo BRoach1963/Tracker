@@ -86,20 +86,42 @@ public class MeetingDataService : IMeetingDataService
 
     public async Task<List<MeetingDetail>> GetUpcomingMeetingsAsync(int daysAhead = 7)
     {
-        // NOTE: ProCohere MeetingService doesn't have a GetAllMeetings or list method
-        // This is a stub implementation - meetings would need to be queried via Dashboard or other service
-        // TODO: Implement when ProCohere adds meeting listing capability
-        await Task.CompletedTask;
-        return new List<MeetingDetail>();
+        try
+        {
+            // Use DashboardService to get meetings
+            var dashboardData = await DashboardService.Instance.LoadDashboardDataAsync();
+            var now = DateTime.Now;
+            var cutoff = now.AddDays(daysAhead);
+            
+            return dashboardData?.Meetings?
+                .Where(m => m.ScheduledAt.HasValue && m.ScheduledAt >= now && m.ScheduledAt <= cutoff)
+                .OrderBy(m => m.ScheduledAt)
+                .ToList() ?? new List<MeetingDetail>();
+        }
+        catch (Exception)
+        {
+            return new List<MeetingDetail>();
+        }
     }
 
     public async Task<List<MeetingDetail>> GetRecentMeetingsAsync(int limit = 10)
     {
-        // NOTE: ProCohere MeetingService doesn't have a GetAllMeetings or list method
-        // This is a stub implementation
-        // TODO: Implement when ProCohere adds meeting listing capability
-        await Task.CompletedTask;
-        return new List<MeetingDetail>();
+        try
+        {
+            // Use DashboardService to get meetings
+            var dashboardData = await DashboardService.Instance.LoadDashboardDataAsync();
+            var now = DateTime.Now;
+            
+            return dashboardData?.Meetings?
+                .Where(m => m.ScheduledAt.HasValue && m.ScheduledAt < now)
+                .OrderByDescending(m => m.ScheduledAt)
+                .Take(limit)
+                .ToList() ?? new List<MeetingDetail>();
+        }
+        catch (Exception)
+        {
+            return new List<MeetingDetail>();
+        }
     }
 
     public async Task<string> UpdateMeetingAsync(Guid meetingId, string? title = null, string? dateTime = null, string? agenda = null)
@@ -146,4 +168,43 @@ public class MeetingDataService : IMeetingDataService
             return $"❌ Error updating meeting: {ex.Message}";
         }
     }
-}
+    public async Task<List<MeetingDetail>> SearchMeetingsAsync(string? attendeeName = null, bool includePast = true, int limit = 10)
+    {
+        try
+        {
+            // Get all meetings from the dashboard
+            var dashboard = await DashboardService.Instance.LoadDashboardDataAsync();
+            var meetings = dashboard.Meetings ?? new List<MeetingDetail>();
+
+            // Filter by time if needed
+            if (!includePast)
+            {
+                meetings = meetings.Where(m => m.ScheduledAt >= DateTime.Today).ToList();
+            }
+
+            // Filter by attendee name if provided
+            if (!string.IsNullOrEmpty(attendeeName))
+            {
+                var searchTerm = attendeeName.ToLowerInvariant();
+                meetings = meetings.Where(m =>
+                    // Check attendees
+                    (m.Attendees != null && m.Attendees.Any(a =>
+                        (!string.IsNullOrEmpty(a.Name) && a.Name.ToLowerInvariant().Contains(searchTerm)) ||
+                        (!string.IsNullOrEmpty(a.Email) && a.Email.ToLowerInvariant().Contains(searchTerm)))) ||
+                    // Also check meeting title (might contain attendee name)
+                    (!string.IsNullOrEmpty(m.Title) && m.Title.ToLowerInvariant().Contains(searchTerm))
+                ).ToList();
+            }
+
+            // Sort by date descending (most recent first) and take limit
+            return meetings
+                .OrderByDescending(m => m.ScheduledAt)
+                .Take(limit)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MeetingDataService] Error searching meetings: {ex.Message}");
+            return new List<MeetingDetail>();
+        }
+    }}

@@ -4,6 +4,7 @@
              xmlns:dialogs="using:ProCohere.Avalonia.Models.Dialogs"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
              xmlns:local="using:ProCohere.Avalonia.Views.Controls.Meeting"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              x:Class="ProCohere.Avalonia.Views.Controls.Meeting.AgendaItemsPanel"
              x:DataType="vm:EditMeetingDialogViewModel">
 
@@ -13,25 +14,25 @@
             <!-- Section Header -->
             <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,8">
                 <StackPanel>
-                    <TextBlock Text="AGENDA" 
+                    <TextBlock Text="{markup:Localize Key=AgendaPanel_Header}" 
                                FontSize="10"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource BrushSecondary}" 
                                Margin="0"/>
-                    <TextBlock Text="Topics to cover in this meeting" 
+                    <TextBlock Text="{markup:Localize Key=AgendaPanel_Description}" 
                                FontSize="12"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
                 <Button Grid.Column="1"
                         Classes="icon-button" Padding="6" Margin="0,0,4,0"
-                        ToolTip.Tip="Link to existing task, goal, or metric"
+                        ToolTip.Tip="{markup:Localize Key=AgendaPanel_LinkExisting}"
                         Command="{Binding ShowEntityPickerForAgendaCommand}">
                     <PathIcon Data="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C6.22,11.88 6.22,7.1 9.17,4.15C12.12,1.2 16.9,1.2 19.85,4.15C22.8,7.1 22.8,11.88 19.85,14.83L18.44,13.41C20.6,11.25 20.6,7.73 18.44,5.56C16.28,3.4 12.76,3.4 10.59,5.56C8.43,7.73 8.43,11.25 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C17.78,12.12 17.78,16.9 14.83,19.85C11.88,22.8 7.1,22.8 4.15,19.85C1.2,16.9 1.2,12.12 4.15,9.17L5.56,10.59C3.4,12.75 3.4,16.27 5.56,18.44C7.73,20.6 11.25,20.6 13.41,18.44C15.58,16.27 15.58,12.75 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" 
                               Width="14" Height="14"/>
                 </Button>
                 <Button Grid.Column="2"
                         Classes="icon-button" Padding="6"
-                        ToolTip.Tip="Add new agenda item"
+                        ToolTip.Tip="{markup:Localize Key=AgendaPanel_AddNewAgendaItem}"
                         Command="{Binding AddAgendaItemCommand}">
                     <PathIcon Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" 
                               Width="14" Height="14"/>
@@ -63,10 +64,10 @@
                                   Width="24" Height="24" 
                                   Foreground="{DynamicResource BrushTextTertiary}"/>
                     </Border>
-                    <TextBlock Text="No agenda items yet" FontSize="14" FontWeight="Medium"
+                    <TextBlock Text="{markup:Localize Key=AgendaPanel_NoItemsYet}" FontSize="14" FontWeight="Medium"
                                Foreground="{DynamicResource BrushTextSecondary}" 
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Add topics or link to existing tasks, goals, or metrics" FontSize="12"
+                    <TextBlock Text="{markup:Localize Key=AgendaPanel_AddTopicsHint}" FontSize="12"
                                Foreground="{DynamicResource BrushTextTertiary}"
                                HorizontalAlignment="Center" TextWrapping="Wrap"
                                TextAlignment="Center"/>

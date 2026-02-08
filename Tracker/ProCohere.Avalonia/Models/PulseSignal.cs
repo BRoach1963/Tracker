@@ -203,6 +203,13 @@ public partial class PulseSignal : ObservableObject
     public string Summary { get; init; } = string.Empty;
     
     /// <summary>
+    /// Optional detail/subtitle for narrative grouping.
+    /// Shows additional context like recent topics discussed.
+    /// Example: "Q1 Planning • Sprint Goals • Team Capacity"
+    /// </summary>
+    public string? Detail { get; init; }
+    
+    /// <summary>
     /// Recommended action (optional).
     /// Example: "Review feedback before Friday"
     /// </summary>

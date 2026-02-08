@@ -33,6 +33,7 @@ public class PulseSignalBuilder
     private PulseSection _section;
     private NavigationItem? _navigationTarget;
     private string _summary = string.Empty;
+    private string? _detail;
     private string? _recommendedAction;
     private DateTimeOffset _createdAt = DateTimeOffset.UtcNow;
     private DateTimeOffset? _expiresAt;
@@ -136,6 +137,16 @@ public class PulseSignalBuilder
     public PulseSignalBuilder WithSummary(string summary)
     {
         _summary = summary;
+        return this;
+    }
+    
+    /// <summary>
+    /// Set the detail/subtitle text (optional).
+    /// Used for narrative grouping to show recent topics.
+    /// </summary>
+    public PulseSignalBuilder WithDetail(string? detail)
+    {
+        _detail = detail;
         return this;
     }
     
@@ -299,6 +310,7 @@ public class PulseSignalBuilder
             Section = _section,
             NavigationTarget = navTarget,
             Summary = _summary,
+            Detail = _detail,
             RecommendedAction = _recommendedAction,
             CreatedAt = _createdAt,
             ExpiresAt = _expiresAt,

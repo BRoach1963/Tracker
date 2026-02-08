@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Services;
+using ProCohere.Avalonia.ViewModels.Insights;
 
 namespace ProCohere.Avalonia.ViewModels;
 
@@ -25,6 +26,147 @@ namespace ProCohere.Avalonia.ViewModels;
 /// </summary>
 public partial class PulseViewModel : ViewModelBase
 {
+    #region Surface Activation
+
+    /// <summary>
+    /// Dirty flag - set when external edits require refresh on next activation.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Timestamp of last successful data load.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, trigger background refresh.
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
+
+    /// <summary>
+    /// Called when the Pulse surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        System.Diagnostics.Debug.WriteLine("[PulseViewModel] OnSurfaceActivated called");
+        
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            System.Diagnostics.Debug.WriteLine("[PulseViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+        
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            System.Diagnostics.Debug.WriteLine("[PulseViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadPulseDataAsync();
+            return;
+        }
+        
+        // Check for staleness
+        var isStale = (DateTime.UtcNow - _lastLoadTimestamp) > StalenessThreshold;
+        
+        if (isStale)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PulseViewModel] OnSurfaceActivated: data is stale, triggering background refresh");
+            _ = LoadPulseDataAsync();
+            return;
+        }
+        
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            System.Diagnostics.Debug.WriteLine("[PulseViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadPulseDataAsync();
+            return;
+        }
+        
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        System.Diagnostics.Debug.WriteLine("[PulseViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when tasks, goals, metrics, or meetings are edited elsewhere.
+    /// </summary>
+    public void MarkDirty()
+    {
+        System.Diagnostics.Debug.WriteLine("[PulseViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+            
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+        
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    #endregion
+
     #region Quick Access Navigation
     
     /// <summary>
@@ -56,6 +198,11 @@ public partial class PulseViewModel : ViewModelBase
     /// Event raised when user wants to close a survey.
     /// </summary>
     public event EventHandler<Guid>? CloseSurveyRequested;
+    
+    /// <summary>
+    /// Event raised when user wants to navigate to an entity (Goal, Metric, Task, etc.).
+    /// </summary>
+    public event EventHandler<(string EntityType, Guid EntityId)>? NavigateToEntityRequested;
     
     /// <summary>
     /// Event raised when user wants to view survey analytics.
@@ -122,6 +269,15 @@ public partial class PulseViewModel : ViewModelBase
     /// Completed actions that reinforce follow-through.
     /// </summary>
     public ObservableCollection<PulseSignal> ActionsTaken { get; } = new();
+    
+    #endregion
+    
+    #region AI Insights Panel
+    
+    /// <summary>
+    /// ViewModel for the AI Insights panel (grouped by category).
+    /// </summary>
+    public InsightsPanelViewModel InsightsPanel { get; } = new();
     
     #endregion
     
@@ -314,9 +470,27 @@ public partial class PulseViewModel : ViewModelBase
     
     public PulseViewModel()
     {
-        // Determine time window based on user role
-        // TODO: Get actual user role from auth service
-        TimeWindowDays = PulseSignalService.GetTimeWindowDays(isManager: false, isManagerOfManagers: false);
+        // Wire insight navigation to bubble up
+        InsightsPanel.NavigateRequested += (_, args) => NavigateToEntityRequested?.Invoke(this, args);
+    }
+
+    /// <summary>
+    /// Updates the time window based on current user's role.
+    /// IC = 7 days, Manager = 14 days, Manager of Managers = 30 days.
+    /// </summary>
+    private void UpdateTimeWindowForRole()
+    {
+        // Determine role from AuthService (same logic as BriefingViewModel)
+        var roleName = AuthService.Instance.CurrentRole?.Name?.ToLower() ?? "";
+        
+        // Check if manager (admin or manager role)
+        var isManager = roleName == "admin" || roleName == "manager";
+        
+        // Check if manager of managers (senior leadership roles)
+        var isManagerOfManagers = roleName == "admin" || roleName == "director" || roleName == "vp" || roleName == "executive";
+        
+        TimeWindowDays = PulseSignalService.GetTimeWindowDays(isManager, isManagerOfManagers);
+        System.Diagnostics.Debug.WriteLine($"[PulseViewModel] Role-aware time window: {TimeWindowDays} days (role={roleName}, isManager={isManager}, isMoM={isManagerOfManagers})");
     }
     
     /// <summary>
@@ -325,6 +499,14 @@ public partial class PulseViewModel : ViewModelBase
     [RelayCommand]
     private async Task LoadPulseDataAsync(CancellationToken ct = default)
     {
+        // Cancel any pending status timer
+        _updateDelayTokenSource?.Cancel();
+        _updateDelayTokenSource = new CancellationTokenSource();
+        var delayToken = _updateDelayTokenSource.Token;
+        
+        // Start 400ms delay timer for "Updating..." status (avoid flicker on fast loads)
+        _ = ShowUpdatingStatusAfterDelayAsync(delayToken);
+
         try
         {
             // Set all loading states
@@ -336,6 +518,9 @@ public partial class PulseViewModel : ViewModelBase
             ErrorMessage = null;
             
             System.Diagnostics.Debug.WriteLine("[PulseViewModel] LoadPulseDataAsync starting...");
+            
+            // Update time window based on current user's role (Step 5: Role-aware time window)
+            UpdateTimeWindowForRole();
             
             // Get current user ID from team member
             var userId = AuthService.Instance.CurrentTeamMember?.Id ?? Guid.Empty;
@@ -384,8 +569,19 @@ public partial class PulseViewModel : ViewModelBase
             // Load surveys
             await LoadSurveysAsync(ct);
             
+            // Load AI Insights (grouped by category)
+            await InsightsPanel.LoadAsync();
+            
             LastRefreshed = DateTime.Now;
+            _lastLoadTimestamp = DateTime.UtcNow;
             IsLoading = false;
+            
+            // Cancel the "Updating..." delay timer if still pending
+            _updateDelayTokenSource?.Cancel();
+            
+            // Show "Updated" status briefly, then fade to Idle
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
             
             System.Diagnostics.Debug.WriteLine("[PulseViewModel] LoadPulseDataAsync complete");
         }
@@ -398,8 +594,17 @@ public partial class PulseViewModel : ViewModelBase
             IsLoadingChanges = false;
             IsLoadingDiscussions = false;
             IsLoadingActions = false;
+            
+            // Cancel the "Updating..." delay timer
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Idle;
         }
     }
+    
+    /// <summary>
+    /// Public method to trigger data refresh. Called during app initialization.
+    /// </summary>
+    public Task RefreshAsync() => LoadPulseDataAsync();
     
     /// <summary>
     /// Loads surveys and their response statistics.

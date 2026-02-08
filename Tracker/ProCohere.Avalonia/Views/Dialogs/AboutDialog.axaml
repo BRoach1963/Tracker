@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ProCohere.Avalonia.ViewModels.Dialogs"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
         x:Class="ProCohere.Avalonia.Views.Dialogs.AboutDialog"
         x:DataType="vm:AboutDialogViewModel"
@@ -30,7 +31,7 @@
                            Width="48" Height="48"
                            VerticalAlignment="Center"/>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Pro Cohere"
+                        <TextBlock Text="{markup:Localize Key=Dialog_About_AppName}"
                                    FontSize="22"
                                    FontWeight="Bold"
                                    Foreground="White" />
@@ -49,7 +50,7 @@
                         HorizontalAlignment="Center">
                 
                 <!-- App Description -->
-                <TextBlock Text="Team Performance Management"
+                <TextBlock Text="{markup:Localize Key=Dialog_About_Tagline}"
                            FontSize="14"
                            Foreground="{DynamicResource BrushTextSecondary}"
                            HorizontalAlignment="Center"/>
@@ -65,7 +66,7 @@
                            Width="160" Height="80"
                            Stretch="Uniform"
                            HorizontalAlignment="Center"/>
-                    <TextBlock Text="© 2026 Prickly Cactus Software"
+                    <TextBlock Text="{markup:Localize Key=Dialog_About_Copyright}"
                                FontSize="12"
                                Foreground="{DynamicResource BrushTextSecondary}"
                                HorizontalAlignment="Center"/>
@@ -76,14 +77,14 @@
                             Spacing="16" 
                             HorizontalAlignment="Center">
                     <Button Classes="link" 
-                            Content="Website"
+                            Content="{markup:Localize Key=Dialog_About_Website}"
                             Command="{Binding OpenWebsiteCommand}"
                             Cursor="Hand"/>
                     <TextBlock Text="•" 
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                     <Button Classes="link"
-                            Content="Support"
+                            Content="{markup:Localize Key=Dialog_About_Support}"
                             Command="{Binding OpenSupportCommand}"
                             Cursor="Hand"/>
                 </StackPanel>
@@ -93,7 +94,7 @@
             <Border Grid.Row="2" 
                     Background="{DynamicResource BrushSurfaceAlt}"
                     Padding="16">
-                <Button Content="Close"
+                <Button Content="{markup:Localize Key=Button_Close}"
                         HorizontalAlignment="Center"
                         HorizontalContentAlignment="Center"
                         MinWidth="100"

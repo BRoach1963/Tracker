@@ -1,12 +1,15 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Media;
 using ProCohere.Avalonia.Models;
+using ProCohere.Avalonia.Services;
 using ProCohere.Avalonia.ViewModels;
 using ProCohere.Avalonia.Views.Controls;
 using ProCohere.Avalonia.Views.Dialogs;
@@ -46,6 +49,7 @@ public partial class TasksTabView : UserControl
         if (_viewModel != null)
         {
             _viewModel.AddTaskDialogRequested -= OnAddTaskDialogRequested;
+            _viewModel.EditTaskDialogRequested -= OnEditTaskDialogRequested;
             _viewModel.ProjectSelectorRequested -= OnProjectSelectorRequested;
             Log("[TasksTabView] Unsubscribed from old ViewModel");
         }
@@ -55,6 +59,7 @@ public partial class TasksTabView : UserControl
         if (_viewModel != null)
         {
             _viewModel.AddTaskDialogRequested += OnAddTaskDialogRequested;
+            _viewModel.EditTaskDialogRequested += OnEditTaskDialogRequested;
             _viewModel.ProjectSelectorRequested += OnProjectSelectorRequested;
             Log($"[TasksTabView] Subscribed to new ViewModel - FilteredTasks.Count={_viewModel.FilteredTasks.Count}");
         }
@@ -110,6 +115,28 @@ public partial class TasksTabView : UserControl
         }
     }
 
+    private async void OnEditTaskDialogRequested(object? sender, TaskDetail task)
+    {
+        Log($"[TasksTabView] EditTaskDialogRequested: {task.Title}");
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window == null || _viewModel == null) return;
+
+        var result = await AppDialogService.ShowEditTaskAsync(window, task);
+        
+        if (result.WasDeleted && result.DeletedTaskId.HasValue)
+        {
+            _viewModel.OnTaskDeleted(result.DeletedTaskId.Value);
+        }
+        else if (result.Success && result.Task != null)
+        {
+            _viewModel.OnTaskSaved(result.Task);
+        }
+        else if (result.Error != null)
+        {
+            Debug.WriteLine($"[TasksTabView] Edit task error: {result.Error}");
+        }
+    }
+
     private void FilterAll_Tapped(object? sender, TappedEventArgs e)
     {
         Log("[TasksTabView] FilterAll_Tapped");
@@ -122,16 +149,22 @@ public partial class TasksTabView : UserControl
         _viewModel?.SetFilterCommand.Execute("1");
     }
 
+    private void FilterUpcoming_Tapped(object? sender, TappedEventArgs e)
+    {
+        Log("[TasksTabView] FilterUpcoming_Tapped");
+        _viewModel?.SetFilterCommand.Execute("2");
+    }
+
     private void FilterOverdue_Tapped(object? sender, TappedEventArgs e)
     {
         Log("[TasksTabView] FilterOverdue_Tapped");
-        _viewModel?.SetFilterCommand.Execute("2");
+        _viewModel?.SetFilterCommand.Execute("3");
     }
 
     private void FilterCompleted_Tapped(object? sender, TappedEventArgs e)
     {
         Log("[TasksTabView] FilterCompleted_Tapped");
-        _viewModel?.SetFilterCommand.Execute("3");
+        _viewModel?.SetFilterCommand.Execute("4");
     }
 
     private void TaskCard_Tapped(object? sender, TappedEventArgs e)
@@ -179,6 +212,6 @@ public class PriorityToBackgroundConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }

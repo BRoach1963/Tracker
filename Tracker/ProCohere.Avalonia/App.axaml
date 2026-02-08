@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:ProCohere.Avalonia"
              xmlns:converters="using:ProCohere.Avalonia.Converters"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              x:Class="ProCohere.Avalonia.App"
              x:DataType="vm:TrayIconViewModel"
@@ -88,12 +89,22 @@
             <converters:DateTimeToAgeConverter x:Key="DateTimeToAgeConverter"/>
             <converters:AgendaStatusToBrushConverter x:Key="AgendaStatusToBrushConverter"/>
             <converters:PercentToWidthConverter x:Key="PercentToWidthConverter"/>
+            <converters:PlanStatusToBackgroundConverter x:Key="PlanStatusToBackgroundConverter"/>
         </ResourceDictionary>
     </Application.Resources>
   
     <Application.Styles>
         <!-- FluentTheme - modern Windows 11 style -->
         <FluentTheme />
+        
+        <!-- Global Animation Styles -->
+        <StyleInclude Source="avares://ProCohere.Avalonia/Themes/Animations.axaml"/>
+        
+        <!-- Global Button Style - ALWAYS center content -->
+        <Style Selector="Button">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
         
         <!-- Dark Navigation Button Styles (for dark sidebar) -->
         <Style Selector="Button.nav-item-dark">

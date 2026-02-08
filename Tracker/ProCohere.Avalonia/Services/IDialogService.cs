@@ -1,6 +1,5 @@
 using ProCohere.Avalonia.Models;
 using ProCohere.Avalonia.Models.Dialogs;
-using ProCohere.Avalonia.Views.Dialogs; // For EntityPickerResult - TODO: move to Models
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

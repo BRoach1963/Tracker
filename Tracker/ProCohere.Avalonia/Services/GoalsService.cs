@@ -59,6 +59,21 @@ public class GoalsService : IGoalsService
     /// <inheritdoc />
     public string? LastError { get; private set; }
 
+    /// <summary>
+    /// Raised when goals are created, updated, or deleted.
+    /// Subscribe to this to know when to refresh goal-dependent views.
+    /// </summary>
+    public event EventHandler? GoalsChanged;
+
+    /// <summary>
+    /// Raises the GoalsChanged event.
+    /// </summary>
+    private void OnGoalsChanged()
+    {
+        Log("GoalsChanged event raised");
+        GoalsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     #endregion
 
     private GoalsService() { }
@@ -155,13 +170,12 @@ public class GoalsService : IGoalsService
 
         try
         {
-            Log("Loading team-visible goals");
+            Log("Loading team goals (visibility_scope='team')");
 
-            // Get goals that are team-visible but not owned by the current user
+            // Get goals with team visibility scope
             var result = await client.From<GoalDetail>()
                 .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_team_visible", Operator.Equals, "true")
-                .Filter("owner_id", Operator.NotEqual, teamMember.Id.ToString())
+                .Filter("visibility_scope", Operator.Equals, "team")
                 .Order("created_at", Ordering.Descending)
                 .Get();
 
@@ -173,43 +187,6 @@ public class GoalsService : IGoalsService
         {
             LastError = ex.Message;
             Log($"GetTeamGoals ERROR: {ex.Message}");
-            return new List<GoalDetail>();
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<List<GoalDetail>> GetSharedGoalsAsync(CancellationToken ct = default)
-    {
-        LastError = null;
-        var client = AuthService.Instance.GetProCohereClient();
-        var teamMember = AuthService.Instance.CurrentTeamMember;
-
-        if (client == null || teamMember == null)
-        {
-            LastError = "Not authenticated";
-            return new List<GoalDetail>();
-        }
-
-        try
-        {
-            Log("Loading shared goals (organization-visible)");
-
-            // Get goals that are org-visible but not owned by the current user
-            var result = await client.From<GoalDetail>()
-                .Filter("is_deleted", Operator.Equals, "false")
-                .Filter("is_org_visible", Operator.Equals, "true")
-                .Filter("owner_id", Operator.NotEqual, teamMember.Id.ToString())
-                .Order("created_at", Ordering.Descending)
-                .Get();
-
-            var goals = result.Models ?? new List<GoalDetail>();
-            Log($"Shared goals returned: {goals.Count}");
-            return goals;
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            Log($"GetSharedGoals ERROR: {ex.Message}");
             return new List<GoalDetail>();
         }
     }
@@ -415,6 +392,11 @@ public class GoalsService : IGoalsService
             {
                 goal.GoalType = GoalType.Execution;
             }
+            // Default visibility to personal if not specified
+            if (string.IsNullOrEmpty(goal.VisibilityScope))
+            {
+                goal.VisibilityScope = "personal";
+            }
 
             var result = await client.From<GoalDetail>()
                 .Insert(goal);
@@ -426,6 +408,9 @@ public class GoalsService : IGoalsService
                 
                 // Create reminder for the goal if enabled
                 await CreateGoalReminderIfEnabledAsync(created);
+                
+                // Notify subscribers of change
+                OnGoalsChanged();
             }
             return created;
         }
@@ -515,6 +500,7 @@ public class GoalsService : IGoalsService
             if (updated != null)
             {
                 Log($"Goal updated: {updated.Id}");
+                OnGoalsChanged();
             }
             return updated;
         }
@@ -564,6 +550,7 @@ public class GoalsService : IGoalsService
             await CancelGoalRemindersAsync(goalId);
 
             Log($"Goal deleted: {goalId}");
+            OnGoalsChanged();
             return true;
         }
         catch (Exception ex)

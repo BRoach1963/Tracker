@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProCohere.Avalonia.ViewModels"
              xmlns:models="using:ProCohere.Avalonia.Models"
+             xmlns:markup="using:ProCohere.Avalonia.Markup"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="ProCohere.Avalonia.Views.ProjectsView"
              x:DataType="vm:ProjectsViewModel">
@@ -188,19 +189,34 @@
             
             <!-- Title and subtitle -->
             <TextBlock Grid.Column="0" 
-                       Text="Initiatives that organize long-term work"
+                       Text="{markup:Localize Key=Projects_Subtitle}"
                        FontSize="13" 
                        Foreground="{DynamicResource BrushTextSecondary}"
                        VerticalAlignment="Center"/>
             
             <!-- Stats -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="0,0,16,0">
+                <!-- Refresh Status Chip (Updating.../Updated) -->
+                <Border Background="{DynamicResource BrushSurfaceSecondary}" 
+                        CornerRadius="10" 
+                        Padding="8,4"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding ShowRefreshStatus}">
+                    <Border.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                        </Transitions>
+                    </Border.Transitions>
+                    <TextBlock Text="{Binding RefreshStatusText}" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </Border>
                 <Border Classes="stat-card">
                     <StackPanel Spacing="2">
                         <TextBlock Text="{Binding TotalProjectsCount}"
                                    FontSize="20" FontWeight="Bold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <TextBlock Text="Total"
+                        <TextBlock Text="{markup:Localize Key=Projects_Total}"
                                    FontSize="11"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </StackPanel>
@@ -210,7 +226,7 @@
                         <TextBlock Text="{Binding ActiveProjectsCount}"
                                    FontSize="20" FontWeight="Bold"
                                    Foreground="{DynamicResource BrushSuccess}"/>
-                        <TextBlock Text="Active"
+                        <TextBlock Text="{markup:Localize Key=Status_Active}"
                                    FontSize="11"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                     </StackPanel>
@@ -224,7 +240,7 @@
                     ToolTip.Tip="Create a new project">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="&#xE710;" FontFamily="{StaticResource SymbolThemeFontFamily}" FontSize="14"/>
-                    <TextBlock Text="New Project"/>
+                    <TextBlock Text="{markup:Localize Key=Projects_NewProject}"/>
                 </StackPanel>
             </Button>
         </Grid>
@@ -240,22 +256,22 @@
                         Classes.selected="{Binding IsStatusAll}"
                         Command="{Binding SetStatusFilterCommand}"
                         CommandParameter="0"
-                        Content="All Projects"/>
+                        Content="{markup:Localize Key=Projects_AllProjects}"/>
                 <Button Classes="tab-button"
                         Classes.selected="{Binding IsStatusActive}"
                         Command="{Binding SetStatusFilterCommand}"
                         CommandParameter="1"
-                        Content="Active"/>
+                        Content="{markup:Localize Key=Status_Active}"/>
                 <Button Classes="tab-button"
                         Classes.selected="{Binding IsStatusPaused}"
                         Command="{Binding SetStatusFilterCommand}"
                         CommandParameter="2"
-                        Content="Paused"/>
+                        Content="{markup:Localize Key=Projects_Paused}"/>
                 <Button Classes="tab-button"
                         Classes.selected="{Binding IsStatusCompleted}"
                         Command="{Binding SetStatusFilterCommand}"
                         CommandParameter="3"
-                        Content="Completed"/>
+                        Content="{markup:Localize Key=Status_Completed}"/>
             </StackPanel>
         </Border>
 
@@ -299,12 +315,12 @@
                         <PathIcon Data="M10 4H4C2.89 4 2 4.89 2 6V18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V8C22 6.89 21.11 6 20 6H12L10 4Z"
                                   Width="48" Height="48"
                                   Foreground="{DynamicResource BrushTextTertiary}"/>
-                        <TextBlock Text="No projects yet"
+                        <TextBlock Text="{markup:Localize Key=Projects_NoProjectsYet}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextSecondary}"
                                    HorizontalAlignment="Center"/>
-                        <TextBlock Text="Create your first project to organize long-term work"
+                        <TextBlock Text="{markup:Localize Key=Projects_CreateFirstProject}"
                                    FontSize="13"
                                    Foreground="{DynamicResource BrushTextTertiary}"
                                    HorizontalAlignment="Center"/>
@@ -314,7 +330,7 @@
                                 Margin="0,8,0,0">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="&#xE710;" FontFamily="{StaticResource SymbolThemeFontFamily}" FontSize="14"/>
-                                <TextBlock Text="Create Project"/>
+                                <TextBlock Text="{markup:Localize Key=Projects_CreateProject}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -327,7 +343,7 @@
                         <PathIcon Data="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3S3 5.91 3 9.5S5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14M9.5 14C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"
                                   Width="40" Height="40"
                                   Foreground="{DynamicResource BrushTextTertiary}"/>
-                        <TextBlock Text="No projects match this filter"
+                        <TextBlock Text="{markup:Localize Key=Projects_NoProjectsMatchFilter}"
                                    FontSize="16"
                                    FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"
@@ -335,7 +351,7 @@
                         <Button Classes="ghost"
                                 Command="{Binding SetStatusFilterCommand}"
                                 CommandParameter="0"
-                                Content="View all projects"
+                                Content="{markup:Localize Key=Projects_ViewAllProjects}"
                                 HorizontalAlignment="Center"/>
                     </StackPanel>
                     
@@ -417,6 +433,43 @@
                                                            FontSize="12"
                                                            Foreground="{DynamicResource BrushTextTertiary}"/>
                                             </StackPanel>
+                                            
+                                            <!-- Signal badges (overdue tasks + goals needing attention) -->
+                                            <Border Background="{DynamicResource BrushWarningSoft}"
+                                                    CornerRadius="10"
+                                                    Padding="8,2"
+                                                    IsVisible="{Binding HasSignals}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <!-- Overdue tasks badge -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                                                IsVisible="{Binding OverdueTaskCount, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                                        <TextBlock Text="&#xE783;"
+                                                                   FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                                   FontSize="10"
+                                                                   Foreground="{DynamicResource BrushWarning}"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding OverdueTaskCount}"
+                                                                   FontSize="11"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushWarning}"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <!-- Goals needing attention badge -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                                                IsVisible="{Binding GoalsNeedingAttention, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                                        <TextBlock Text="&#xE734;"
+                                                                   FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                                   FontSize="10"
+                                                                   Foreground="{DynamicResource BrushWarning}"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding GoalsNeedingAttention}"
+                                                                   FontSize="11"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushWarning}"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -432,10 +485,29 @@
                     Classes.open="{Binding IsDetailFlyoutOpen}"
                     Width="400"
                     IsVisible="{Binding HasSelectedProject}">
-                <Grid ColumnDefinitions="Auto,*">
+                <Grid RowDefinitions="Auto,*">
+                    
+                    <!-- Top Header Bar - Navy like other flyouts -->
+                    <Border Grid.Row="0" Background="{DynamicResource BrushSecondary}" CornerRadius="8,8,0,0" Padding="16,12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" 
+                                       Text="{Binding SelectedProject.Name}"
+                                       FontSize="14" FontWeight="SemiBold" 
+                                       Foreground="White" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="1" Classes="icon-button" ToolTip.Tip="Close"
+                                    Command="{Binding CloseDetailCommand}">
+                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                          Width="14" Height="14" Foreground="White"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Content with vertical tabs -->
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
                     
                     <!-- Vertical Tab Bar - Navy blue like navigation -->
-                    <Border Grid.Column="0" Background="{DynamicResource BrushSecondary}" CornerRadius="12,0,0,12">
+                    <Border Grid.Column="0" Background="{DynamicResource BrushSecondary}" CornerRadius="0,0,0,12">
                         <StackPanel Spacing="2" Margin="0,8">
                             <Button Classes="flyout-tab" ToolTip.Tip="Overview"
                                     Classes.selected="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Overview}}"
@@ -443,7 +515,7 @@
                                 <StackPanel Spacing="4">
                                     <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"
                                               Width="16" Height="16"/>
-                                    <TextBlock Text="Info" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{markup:Localize Key=Projects_Info}" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Classes="flyout-tab" ToolTip.Tip="Goals"
@@ -452,7 +524,7 @@
                                 <StackPanel Spacing="4">
                                     <PathIcon Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V5H19V19H5V5H7V7M7.5,13.5L9,12L11,14L15.5,9.5L17,11L11,17L7.5,13.5Z"
                                               Width="16" Height="16"/>
-                                    <TextBlock Text="Goals" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{markup:Localize Key=Nav_Goals}" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Classes="flyout-tab" ToolTip.Tip="Tasks"
@@ -461,7 +533,7 @@
                                 <StackPanel Spacing="4">
                                     <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
                                               Width="16" Height="16"/>
-                                    <TextBlock Text="Tasks" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{markup:Localize Key=Circle_Tasks}" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Classes="flyout-tab" ToolTip.Tip="Meetings"
@@ -470,32 +542,17 @@
                                 <StackPanel Spacing="4">
                                     <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25Z"
                                               Width="16" Height="16"/>
-                                    <TextBlock Text="Meets" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{markup:Localize Key=Projects_Meets}" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
                     </Border>
                     
                     <!-- Content Area -->
-                    <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
-                        <!-- Header with close button -->
-                        <Grid Grid.Row="0" Margin="12,12,12,0">
-                            <TextBlock Text="{Binding SelectedProject.Name}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource BrushTextPrimary}"
-                                       TextTrimming="CharacterEllipsis"
-                                       Margin="0,0,32,0"/>
-                            <Button Classes="icon-button" HorizontalAlignment="Right" VerticalAlignment="Top"
-                                    ToolTip.Tip="Close"
-                                    Command="{Binding CloseDetailCommand}">
-                                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                          Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                            </Button>
-                        </Grid>
+                    <Grid Grid.Column="1" RowDefinitions="*,Auto">
                         
                         <!-- ===== OVERVIEW TAB ===== -->
-                        <ScrollViewer Grid.Row="1" 
+                        <ScrollViewer Grid.Row="0" 
                                       VerticalScrollBarVisibility="Auto"
                                       Padding="12,8,12,12"
                                       IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Overview}}">
@@ -514,25 +571,25 @@
                                 
                                 <!-- Status Change (owner only) -->
                                 <StackPanel Spacing="6" IsVisible="{Binding IsCurrentUserOwner}">
-                                    <TextBlock Text="Change Status" Classes="detail-section-header"/>
+                                    <TextBlock Text="{markup:Localize Key=Projects_ChangeStatus}" Classes="detail-section-header"/>
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <Button Classes="secondary" Padding="8,4"
                                                 Classes.primary="{Binding SelectedProject.IsActive}"
                                                 Command="{Binding SetProjectStatusCommand}"
                                                 CommandParameter="active">
-                                            <TextBlock Text="Active" FontSize="11"/>
+                                            <TextBlock Text="{markup:Localize Key=Status_Active}" FontSize="11"/>
                                         </Button>
                                         <Button Classes="secondary" Padding="8,4"
                                                 Classes.primary="{Binding SelectedProject.IsPaused}"
                                                 Command="{Binding SetProjectStatusCommand}"
                                                 CommandParameter="paused">
-                                            <TextBlock Text="Paused" FontSize="11"/>
+                                            <TextBlock Text="{markup:Localize Key=Projects_Paused}" FontSize="11"/>
                                         </Button>
                                         <Button Classes="secondary" Padding="8,4"
                                                 Classes.primary="{Binding SelectedProject.IsCompleted}"
                                                 Command="{Binding SetProjectStatusCommand}"
                                                 CommandParameter="completed">
-                                            <TextBlock Text="Completed" FontSize="11"/>
+                                            <TextBlock Text="{markup:Localize Key=Status_Completed}" FontSize="11"/>
                                         </Button>
                                     </StackPanel>
                                 </StackPanel>
@@ -540,7 +597,7 @@
                                 <!-- Description -->
                                 <StackPanel Spacing="4"
                                             IsVisible="{Binding SelectedProject.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                    <TextBlock Text="Description" Classes="detail-section-header"/>
+                                    <TextBlock Text="{markup:Localize Key=Label_Description}" Classes="detail-section-header"/>
                                     <TextBlock Text="{Binding SelectedProject.Description}"
                                                FontSize="13"
                                                Foreground="{DynamicResource BrushTextPrimary}"
@@ -550,7 +607,7 @@
                                 <!-- Due Date -->
                                 <StackPanel Spacing="4"
                                             IsVisible="{Binding SelectedProject.DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                    <TextBlock Text="Due Date" Classes="detail-section-header"/>
+                                    <TextBlock Text="{markup:Localize Key=Projects_DueDate}" Classes="detail-section-header"/>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <PathIcon Data="M19,4H18V2H16V4H8V2H6V4H5C3.89,4 3,4.9 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6A2,2 0 0,0 19,4M19,20H5V10H19V20M19,8H5V6H19V8Z"
                                                   Width="14" Height="14" Foreground="{DynamicResource BrushTextTertiary}"/>
@@ -562,7 +619,7 @@
                                 
                                 <!-- Owner -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Owner" Classes="detail-section-header"/>
+                                    <TextBlock Text="{markup:Localize Key=Label_Owner}" Classes="detail-section-header"/>
                                     <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !SelectedProject.IsOrphaned}">
                                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
                                             <Border Width="24" Height="24" CornerRadius="12"
@@ -582,14 +639,14 @@
                                                 Command="{Binding ShowOwnerSelectorCommand}"
                                                 IsVisible="{Binding IsCurrentUserOwner}"
                                                 ToolTip.Tip="Transfer ownership">
-                                            <TextBlock Text="Transfer" FontSize="11"/>
+                                            <TextBlock Text="{markup:Localize Key=Projects_Transfer}" FontSize="11"/>
                                         </Button>
                                     </Grid>
                                     <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding SelectedProject.IsOrphaned}">
                                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
                                             <PathIcon Data="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"
                                                       Width="16" Height="16" Foreground="{DynamicResource BrushWarning}"/>
-                                            <TextBlock Text="Unassigned"
+                                            <TextBlock Text="{markup:Localize Key=Projects_Unassigned}"
                                                        FontSize="13" FontWeight="Medium"
                                                        Foreground="{DynamicResource BrushWarning}"
                                                        VerticalAlignment="Center"/>
@@ -598,14 +655,14 @@
                                                 Command="{Binding ShowOwnerSelectorCommand}"
                                                 IsVisible="{Binding IsAdmin}"
                                                 ToolTip.Tip="Assign owner">
-                                            <TextBlock Text="Assign" FontSize="11"/>
+                                            <TextBlock Text="{markup:Localize Key=Projects_Assign}" FontSize="11"/>
                                         </Button>
                                     </Grid>
                                 </StackPanel>
                                 
                                 <!-- Members -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Members" Classes="detail-section-header"/>
+                                    <TextBlock Text="{markup:Localize Key=Projects_Members}" Classes="detail-section-header"/>
                                     <ItemsControl ItemsSource="{Binding SelectedProject.Members}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type models:ProjectMember}">
@@ -631,7 +688,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="No members added yet"
+                                    <TextBlock Text="{markup:Localize Key=Projects_NoMembersAddedYet}"
                                                FontSize="12"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                IsVisible="{Binding !SelectedProject.Members.Count}"/>
@@ -639,7 +696,7 @@
                                 
                                 <!-- Chronicle Notes -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Chronicle Notes" Classes="detail-section-header"/>
+                                    <TextBlock Text="{markup:Localize Key=Projects_ChronicleNotes}" Classes="detail-section-header"/>
                                     <ItemsControl ItemsSource="{Binding LinkedNotes}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="models:Note">
@@ -668,7 +725,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="No Chronicle notes linked"
+                                    <TextBlock Text="{markup:Localize Key=Projects_NoChronicleNotesLinked}"
                                                FontSize="12"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                IsVisible="{Binding !HasLinkedNotes}"/>
@@ -677,12 +734,12 @@
                         </ScrollViewer>
                         
                         <!-- ===== GOALS TAB ===== -->
-                        <ScrollViewer Grid.Row="1" 
+                        <ScrollViewer Grid.Row="0" 
                                       VerticalScrollBarVisibility="Auto"
                                       Padding="12,8,12,12"
                                       IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Goals}}">
                             <StackPanel Spacing="8">
-                                <TextBlock Text="Linked Goals" Classes="detail-section-header" Margin="0,8,0,8"/>
+                                <TextBlock Text="{markup:Localize Key=Projects_LinkedGoals}" Classes="detail-section-header" Margin="0,8,0,8"/>
                                 <ItemsControl ItemsSource="{Binding LinkedGoals}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type models:ProjectLink}">
@@ -694,7 +751,7 @@
                                                               Foreground="{DynamicResource BrushHighlight}"
                                                               Margin="0,0,10,0"/>
                                                     <TextBlock Grid.Column="1"
-                                                               Text="{Binding EntityTitleSnapshot, FallbackValue='Goal'}"
+                                                               Text="{Binding DisplayTitle}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushTextPrimary}"
                                                                TextTrimming="CharacterEllipsis"
@@ -710,11 +767,11 @@
                                     <PathIcon Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3"
                                               Width="32" Height="32" Foreground="{DynamicResource BrushTextTertiary}"
                                               HorizontalAlignment="Center" Opacity="0.5"/>
-                                    <TextBlock Text="No goals linked"
+                                    <TextBlock Text="{markup:Localize Key=Projects_NoGoalsLinked}"
                                                FontSize="13"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Link goals from the Circle page"
+                                    <TextBlock Text="{markup:Localize Key=Projects_LinkGoalsFromCircle}"
                                                FontSize="11"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
@@ -723,12 +780,12 @@
                         </ScrollViewer>
                         
                         <!-- ===== TASKS TAB ===== -->
-                        <ScrollViewer Grid.Row="1" 
+                        <ScrollViewer Grid.Row="0" 
                                       VerticalScrollBarVisibility="Auto"
                                       Padding="12,8,12,12"
                                       IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Tasks}}">
                             <StackPanel Spacing="8">
-                                <TextBlock Text="Linked Tasks" Classes="detail-section-header" Margin="0,8,0,8"/>
+                                <TextBlock Text="{markup:Localize Key=Projects_LinkedTasks}" Classes="detail-section-header" Margin="0,8,0,8"/>
                                 <ItemsControl ItemsSource="{Binding LinkedTasks}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type models:ProjectLink}">
@@ -740,7 +797,7 @@
                                                               Foreground="{DynamicResource BrushInfo}"
                                                               Margin="0,0,10,0"/>
                                                     <TextBlock Grid.Column="1"
-                                                               Text="{Binding EntityTitleSnapshot, FallbackValue='Task'}"
+                                                               Text="{Binding DisplayTitle}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushTextPrimary}"
                                                                TextTrimming="CharacterEllipsis"
@@ -756,11 +813,11 @@
                                     <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"
                                               Width="32" Height="32" Foreground="{DynamicResource BrushTextTertiary}"
                                               HorizontalAlignment="Center" Opacity="0.5"/>
-                                    <TextBlock Text="No tasks linked"
+                                    <TextBlock Text="{markup:Localize Key=Projects_NoTasksLinked}"
                                                FontSize="13"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Link tasks from Pulse or when creating tasks"
+                                    <TextBlock Text="{markup:Localize Key=Projects_LinkTasksFromPulse}"
                                                FontSize="11"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
@@ -769,12 +826,12 @@
                         </ScrollViewer>
                         
                         <!-- ===== MEETINGS TAB ===== -->
-                        <ScrollViewer Grid.Row="1" 
+                        <ScrollViewer Grid.Row="0" 
                                       VerticalScrollBarVisibility="Auto"
                                       Padding="12,8,12,12"
                                       IsVisible="{Binding ProjectDetailTab, Converter={StaticResource EnumEqualConverter}, ConverterParameter={x:Static vm:ProjectDetailTab.Meetings}}">
                             <StackPanel Spacing="8">
-                                <TextBlock Text="Linked Meetings" Classes="detail-section-header" Margin="0,8,0,8"/>
+                                <TextBlock Text="{markup:Localize Key=Projects_LinkedMeetings}" Classes="detail-section-header" Margin="0,8,0,8"/>
                                 <ItemsControl ItemsSource="{Binding LinkedMeetings}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type models:ProjectLink}">
@@ -786,7 +843,7 @@
                                                               Foreground="{DynamicResource BrushPrimary}"
                                                               Margin="0,0,10,0"/>
                                                     <TextBlock Grid.Column="1"
-                                                               Text="{Binding EntityTitleSnapshot, FallbackValue='Meeting'}"
+                                                               Text="{Binding DisplayTitle}"
                                                                FontSize="13"
                                                                Foreground="{DynamicResource BrushTextPrimary}"
                                                                TextTrimming="CharacterEllipsis"
@@ -802,11 +859,11 @@
                                     <PathIcon Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38"
                                               Width="32" Height="32" Foreground="{DynamicResource BrushTextTertiary}"
                                               HorizontalAlignment="Center" Opacity="0.5"/>
-                                    <TextBlock Text="No meetings linked"
+                                    <TextBlock Text="{markup:Localize Key=Projects_NoMeetingsLinked}"
                                                FontSize="13"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Link meetings from the Circle page"
+                                    <TextBlock Text="{markup:Localize Key=Projects_LinkMeetingsFromCircle}"
                                                FontSize="11"
                                                Foreground="{DynamicResource BrushTextTertiary}"
                                                HorizontalAlignment="Center"/>
@@ -815,7 +872,7 @@
                         </ScrollViewer>
                         
                         <!-- Footer actions -->
-                        <Border Grid.Row="2" 
+                        <Border Grid.Row="1" 
                                 BorderBrush="{DynamicResource BrushBorder}"
                                 BorderThickness="0,1,0,0"
                                 Padding="12,10">
@@ -828,11 +885,12 @@
                                 </Button>
                                 <Button Classes="secondary" Padding="12,6"
                                         Command="{Binding EditProjectCommand}">
-                                    <TextBlock Text="Edit" FontSize="12"/>
+                                    <TextBlock Text="{markup:Localize Key=Button_Edit}" FontSize="12"/>
                                 </Button>
                             </StackPanel>
                         </Border>
                     </Grid>
+                </Grid>
                 </Grid>
             </Border>
         </Grid>

@@ -23,6 +23,16 @@ public class InsightDto : BaseModel
     [Column("generated_for")]
     public Guid GeneratedFor { get; set; }
     
+    // Subject (what the insight is about)
+    
+    [Column("subject_type")]
+    public string? SubjectType { get; set; }
+    
+    [Column("subject_id")]
+    public Guid? SubjectId { get; set; }
+    
+    // Insight metadata
+    
     [Column("insight_type")]
     public string InsightType { get; set; } = string.Empty;
     
@@ -32,20 +42,45 @@ public class InsightDto : BaseModel
     [Column("content")]
     public string Content { get; set; } = string.Empty;
     
+    [Column("rule_key")]
+    public string? RuleKey { get; set; }
+    
+    [Column("signature_hash")]
+    public string? SignatureHash { get; set; }
+    
+    // Source (for navigation)
+    
     [Column("source_type")]
     public string? SourceType { get; set; }
     
     [Column("source_id")]
     public Guid? SourceId { get; set; }
     
+    // Severity & Relevance
+    
+    [Column("severity")]
+    public int? Severity { get; set; }
+    
     [Column("relevance_score")]
     public decimal? RelevanceScore { get; set; }
+    
+    // Lifecycle
+    
+    [Column("generated_at")]
+    public DateTime GeneratedAt { get; set; }
+    
+    [Column("expires_at")]
+    public DateTime? ExpiresAt { get; set; }
+    
+    // Legacy dismiss fields (use ai_insight_actions instead)
     
     [Column("is_dismissed")]
     public bool IsDismissed { get; set; } = false;
     
     [Column("dismissed_at")]
     public DateTime? DismissedAt { get; set; }
+    
+    // Standard fields
     
     [Column("is_deleted")]
     public bool IsDeleted { get; set; } = false;

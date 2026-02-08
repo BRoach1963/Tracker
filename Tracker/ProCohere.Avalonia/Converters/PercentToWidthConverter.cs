@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 
 namespace ProCohere.Avalonia.Converters;
@@ -29,6 +30,6 @@ public class PercentToWidthConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }

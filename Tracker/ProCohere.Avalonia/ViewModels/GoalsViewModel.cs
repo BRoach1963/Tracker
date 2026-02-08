@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -34,27 +35,68 @@ public partial class GoalsViewModel : ViewModelBase
     #region Loading State
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(ShowGoalsList))]
     private bool _isLoading;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(ShowGoalsList))]
     private string? _errorMessage;
+
+    /// <summary>
+    /// Refresh status for non-blocking indicator (Idle/Updating/Updated).
+    /// Shows "Updating..." only after 400ms delay to avoid flicker.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshStatusText))]
+    [NotifyPropertyChangedFor(nameof(ShowRefreshStatus))]
+    private RefreshStatus _refreshStatus = RefreshStatus.Idle;
+
+    /// <summary>
+    /// Display text for the refresh status chip.
+    /// </summary>
+    public string RefreshStatusText => RefreshStatus switch
+    {
+        RefreshStatus.Updating => "Updating…",
+        RefreshStatus.Updated => "Updated",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Whether to show the refresh status chip (hide when Idle).
+    /// </summary>
+    public bool ShowRefreshStatus => RefreshStatus != RefreshStatus.Idle;
+
+    /// <summary>
+    /// Cancellation token for the 400ms delay timer.
+    /// </summary>
+    private CancellationTokenSource? _updateDelayTokenSource;
+    
+    /// <summary>
+    /// True when not loading, no error, and Goals collection is empty.
+    /// </summary>
+    public bool ShowEmptyState => !IsLoading && string.IsNullOrEmpty(ErrorMessage) && Goals.Count == 0;
+    
+    /// <summary>
+    /// True when not loading, no error, and Goals collection has items.
+    /// </summary>
+    public bool ShowGoalsList => !IsLoading && string.IsNullOrEmpty(ErrorMessage) && Goals.Count > 0;
 
     #endregion
 
     #region Scope Filter
 
     /// <summary>
-    /// Goal scope filter: 0=My Goals, 1=Team Goals, 2=Shared Goals
+    /// Goal scope filter: 0=My Goals, 1=Team Goals
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsScopeMyGoals))]
     [NotifyPropertyChangedFor(nameof(IsScopeTeamGoals))]
-    [NotifyPropertyChangedFor(nameof(IsScopeSharedGoals))]
     private int _selectedScope = 0;
 
     public bool IsScopeMyGoals => SelectedScope == 0;
     public bool IsScopeTeamGoals => SelectedScope == 1;
-    public bool IsScopeSharedGoals => SelectedScope == 2;
 
     [RelayCommand]
     private async Task SetScope(string scopeIndex)
@@ -231,6 +273,154 @@ public partial class GoalsViewModel : ViewModelBase
 
     #endregion
 
+    #region Surface Activation
+
+    /// <summary>
+    /// Timestamp of last data load to support staleness checks.
+    /// </summary>
+    private DateTime _lastLoadTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Whether the surface has been marked dirty by external edits.
+    /// </summary>
+    private bool _isDirty;
+
+    /// <summary>
+    /// Staleness threshold - if last refresh exceeds this, force refresh.
+    /// Browse pages use 30 minutes (same as Me).
+    /// </summary>
+    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Called when the Goals surface is activated (navigated to).
+    /// This is the single entry point for refresh logic.
+    /// Idempotent and safe to call repeatedly.
+    /// </summary>
+    public void OnSurfaceActivated()
+    {
+        System.Diagnostics.Debug.WriteLine("[GoalsViewModel] OnSurfaceActivated called");
+        
+        // If already loading, don't trigger another load
+        if (IsLoading)
+        {
+            System.Diagnostics.Debug.WriteLine("[GoalsViewModel] OnSurfaceActivated: already loading, skipping");
+            return;
+        }
+        
+        // If data has never been loaded, trigger initial load
+        if (_lastLoadTimestamp == DateTime.MinValue)
+        {
+            System.Diagnostics.Debug.WriteLine("[GoalsViewModel] OnSurfaceActivated: first activation, triggering initial load");
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // Check for staleness
+        var now = DateTime.UtcNow;
+        var isStale = (now - _lastLoadTimestamp) > StalenessThreshold;
+        
+        if (isStale)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GoalsViewModel] OnSurfaceActivated: data is stale, triggering background refresh");
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // If marked dirty by external edits, trigger background refresh
+        if (_isDirty)
+        {
+            System.Diagnostics.Debug.WriteLine("[GoalsViewModel] OnSurfaceActivated: dirty flag set, triggering background refresh");
+            _isDirty = false;
+            _ = LoadDataAsync();
+            return;
+        }
+        
+        // Data already loaded, fresh, and not dirty - render cached data immediately
+        System.Diagnostics.Debug.WriteLine("[GoalsViewModel] OnSurfaceActivated: using cached data");
+    }
+
+    /// <summary>
+    /// Marks the surface as dirty, requiring refresh on next activation.
+    /// Called when goals are edited elsewhere (e.g., flyouts, other surfaces).
+    /// </summary>
+    public void MarkDirty()
+    {
+        System.Diagnostics.Debug.WriteLine("[GoalsViewModel] MarkDirty called");
+        _isDirty = true;
+    }
+
+    /// <summary>
+    /// Internal load method with RefreshStatus integration.
+    /// </summary>
+    private async Task LoadDataAsync()
+    {
+        // Cancel any pending update delay timer
+        _updateDelayTokenSource?.Cancel();
+        _updateDelayTokenSource = new CancellationTokenSource();
+        
+        // Start the 400ms delay timer for showing "Updating..." status
+        _ = ShowUpdatingStatusAfterDelayAsync(_updateDelayTokenSource.Token);
+        
+        try
+        {
+            await LoadGoalsAsync();
+            
+            // Update timestamp on successful load
+            _lastLoadTimestamp = DateTime.UtcNow;
+            
+            // Cancel the delay timer (if load completed quickly)
+            _updateDelayTokenSource.Cancel();
+            
+            // Show "Updated" briefly, then fade to Idle
+            RefreshStatus = RefreshStatus.Updated;
+            _ = FadeRefreshStatusToIdleAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GoalsViewModel] LoadDataAsync error: {ex.Message}");
+            _updateDelayTokenSource?.Cancel();
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    /// <summary>
+    /// Shows "Updating..." status after 400ms delay to avoid flicker on fast loads.
+    /// </summary>
+    private async Task ShowUpdatingStatusAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(400, cancellationToken);
+            
+            // Only show Updating if still loading (not already completed)
+            if (IsLoading)
+            {
+                RefreshStatus = RefreshStatus.Updating;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer was cancelled (load completed quickly), ignore
+        }
+    }
+
+    /// <summary>
+    /// Fades the refresh status back to Idle after showing "Updated".
+    /// </summary>
+    private async Task FadeRefreshStatusToIdleAsync()
+    {
+        // Show "Updated" for 2 seconds, then fade to Idle
+        await Task.Delay(2000);
+        
+        // Only transition to Idle if still showing Updated (not loading again)
+        if (RefreshStatus == RefreshStatus.Updated)
+        {
+            RefreshStatus = RefreshStatus.Idle;
+        }
+    }
+
+    #endregion
+
     public GoalsViewModel()
     {
         // Don't load in constructor - let the View trigger load when visible
@@ -255,7 +445,6 @@ public partial class GoalsViewModel : ViewModelBase
             {
                 0 => await GoalsService.Instance.GetMyGoalsAsync(),
                 1 => await GoalsService.Instance.GetTeamGoalsAsync(),
-                2 => await GoalsService.Instance.GetSharedGoalsAsync(),
                 _ => new List<GoalDetail>()
             };
 
@@ -267,6 +456,10 @@ public partial class GoalsViewModel : ViewModelBase
             {
                 Goals.Add(goal);
             }
+            
+            // Notify computed state properties
+            OnPropertyChanged(nameof(ShowEmptyState));
+            OnPropertyChanged(nameof(ShowGoalsList));
 
             // Update stats
             ActiveGoalsCount = goals.Count(g => g.Health == GoalHealth.OnTrack);
@@ -298,6 +491,19 @@ public partial class GoalsViewModel : ViewModelBase
 
         // Load trajectory in background
         await LoadTrajectoryAsync();
+    }
+
+    /// <summary>
+    /// Selects a goal by its ID, opening the detail flyout.
+    /// Used for cross-tab navigation.
+    /// </summary>
+    public async Task SelectGoalByIdAsync(Guid goalId)
+    {
+        var goal = Goals.FirstOrDefault(g => g.Id == goalId);
+        if (goal != null)
+        {
+            await SelectGoal(goal);
+        }
     }
 
     [RelayCommand]
@@ -468,13 +674,21 @@ public partial class GoalsViewModel : ViewModelBase
     [RelayCommand]
     private void CreateNewGoal()
     {
+        // Set visibility scope based on which tab is selected
+        var visibilityScope = SelectedScope switch
+        {
+            1 => "team",    // Team Goals tab
+            _ => "personal" // My Goals tab (default)
+        };
+        
         EditingGoal = new GoalDetail
         {
             Id = Guid.Empty,
             Title = string.Empty,
             Description = string.Empty,
             Health = GoalHealth.OnTrack,
-            Lifecycle = GoalLifecycle.Active
+            Lifecycle = GoalLifecycle.Active,
+            VisibilityScope = visibilityScope
         };
         IsEditorFlyoutOpen = true;
         IsDetailFlyoutOpen = false;

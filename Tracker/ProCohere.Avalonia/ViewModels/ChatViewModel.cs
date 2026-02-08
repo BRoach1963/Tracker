@@ -99,11 +99,9 @@ public partial class ChatViewModel : ObservableObject
 
         try
         {
-            // Ensure we have context
-            if (_conversationContext == null)
-            {
-                await LoadContextAsync();
-            }
+            // Get FULL context - the AI needs comprehensive data to give useful answers
+            // Token usage is acceptable; a dumb AI is not
+            var fullContext = await _contextService.GetCurrentContextAsync();
 
             // Build conversation history - convert to provider format
             var providerMessages = Messages
@@ -111,10 +109,10 @@ public partial class ChatViewModel : ObservableObject
                 .Select(m => new ChatProviderMessage { Role = m.Role, Content = m.Content })
                 .ToList();
 
-            // Get AI response with context
+            // Get AI response with full context
             var response = await _chatProvider.GetResponseAsync(
                 providerMessages,
-                _conversationContext
+                fullContext
             );
 
             // Add assistant response

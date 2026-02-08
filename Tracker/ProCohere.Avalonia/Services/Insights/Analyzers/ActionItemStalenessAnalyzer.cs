@@ -130,8 +130,11 @@ public class ActionItemStalenessAnalyzer : IInsightAnalyzer
             Type = InsightType.TaskOverdue,
             Title = $"Overdue: \"{taskTitle}\"",
             Content = $"Task was due {daysOverdue} day{plural} ago ({dueDateStr}). Consider following up or rescheduling.",
-            EntityType = "task",
-            EntityId = task.Id,
+            SubjectType = "task",
+            SubjectId = task.Id,
+            SourceType = "task",
+            SourceId = task.Id,
+            SeverityLevel = SeverityToLevel(severity),
             RelevanceScore = 0.95m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -155,14 +158,29 @@ public class ActionItemStalenessAnalyzer : IInsightAnalyzer
             Type = InsightType.StaleActionItem,
             Title = $"Stale: \"{taskTitle}\"",
             Content = $"Task has been open for {daysOld} day{plural} with no due date set. Consider adding a deadline or marking complete.",
-            EntityType = "task",
-            EntityId = task.Id,
+            SubjectType = "task",
+            SubjectId = task.Id,
+            SourceType = "task",
+            SourceId = task.Id,
+            SeverityLevel = 2, // Low severity for stale items
             RelevanceScore = 0.65m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             IsDeleted = false
         };
     }
+    
+    /// <summary>
+    /// Converts InsightSeverity enum to database severity level (1-5).
+    /// </summary>
+    private static int SeverityToLevel(InsightSeverity severity) => severity switch
+    {
+        InsightSeverity.Critical => 5,
+        InsightSeverity.High => 4,
+        InsightSeverity.Medium => 3,
+        InsightSeverity.Low => 2,
+        _ => 1
+    };
 
     private static string TruncateText(string text, int maxLength)
     {

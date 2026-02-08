@@ -169,6 +169,35 @@ public class GoalDetail : BaseModel, IDetailEntity
 
     #endregion
 
+    #region Visibility
+
+    /// <summary>
+    /// Visibility scope for the goal.
+    /// Valid values: personal, team, shared
+    /// - personal: Only visible to the owner (My Goals tab)
+    /// - team: Visible to team members (Team Goals tab)
+    /// - shared: Visible organization-wide (Shared tab)
+    /// </summary>
+    [Column("visibility_scope")]
+    public string VisibilityScope { get; set; } = "personal";
+
+    /// <summary>
+    /// Whether this is a personal goal (only visible to owner).
+    /// </summary>
+    public bool IsPersonal => VisibilityScope == "personal";
+
+    /// <summary>
+    /// Whether this is a team goal (visible to team members).
+    /// </summary>
+    public bool IsTeamGoal => VisibilityScope == "team";
+
+    /// <summary>
+    /// Whether this is a shared goal (visible organization-wide).
+    /// </summary>
+    public bool IsShared => VisibilityScope == "shared";
+
+    #endregion
+
     #region Project Link
     
     /// <summary>

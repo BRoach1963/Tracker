@@ -1,0 +1,116 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:markup="clr-namespace:ProCohere.Avalonia.Markup"
+        x:Class="ProCohere.Avalonia.Views.Dialogs.AddAgendaItemDialog"
+        Title="Add Agenda Item"
+        Width="450"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="BorderOnly"
+        Background="Transparent">
+    
+    <Border Background="{DynamicResource BrushSurface}"
+            BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource BrushPrimary}"
+                    Padding="20,16">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <!-- Agenda icon -->
+                    <Border Width="36" Height="36" CornerRadius="8" 
+                            Background="{DynamicResource BrushPrimaryPressed}" 
+                            VerticalAlignment="Center">
+                        <PathIcon Data="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,15V19H7V15H5M9,5V9H7V11H5V9H3V5H9M3,13H9V19H3V13Z" 
+                                  Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Add Agenda Item"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White" />
+                        <TextBlock Text="Add a topic for discussion"
+                                   FontSize="12"
+                                   Foreground="#FFFFFFCC"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            
+            <!-- Content -->
+            <StackPanel Grid.Row="1" Margin="20,16" Spacing="16">
+                <!-- Title -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Title" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="TitleTextBox"
+                             Watermark="What would you like to discuss?" />
+                </StackPanel>
+                
+                <!-- Description (optional) -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description (optional)" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <TextBox x:Name="DescriptionTextBox"
+                             Watermark="Add context or notes for this topic..."
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80" />
+                </StackPanel>
+                
+                <!-- Visibility -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Visibility" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <ComboBox x:Name="VisibilityComboBox" SelectedIndex="0" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Visible to all attendees" Tag="meeting"/>
+                        <ComboBoxItem Content="Private (only visible to you)" Tag="personal"/>
+                    </ComboBox>
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource BrushSecondary}"
+                    Padding="20,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Cancel"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Padding="16,8"
+                            Click="CancelButton_Click">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="TextBlock.Foreground" Value="{DynamicResource BrushSecondary}"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Add Item"
+                            Foreground="{DynamicResource BrushPrimary}"
+                            FontWeight="SemiBold"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource BrushPrimary}"
+                            Padding="16,8"
+                            Click="AddButton_Click">
+                        <Button.Styles>
+                            <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+                                <Setter Property="TextBlock.Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

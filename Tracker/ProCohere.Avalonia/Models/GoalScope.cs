@@ -14,12 +14,7 @@ public enum GoalScope
     /// <summary>
     /// Goals visible to the team.
     /// </summary>
-    TeamGoals,
-
-    /// <summary>
-    /// Goals shared across the organization.
-    /// </summary>
-    SharedGoals
+    TeamGoals
 }
 
 /// <summary>
@@ -34,7 +29,6 @@ public static class GoalScopeExtensions
     {
         GoalScope.MyGoals => "My Goals",
         GoalScope.TeamGoals => "Team Goals",
-        GoalScope.SharedGoals => "Shared Goals",
         _ => scope.ToString()
     };
 
@@ -43,9 +37,8 @@ public static class GoalScopeExtensions
     /// </summary>
     public static GoalScope ParseGoalScope(string? value) => value?.ToLower().Replace(" ", "") switch
     {
-        "mygoals" or "my" => GoalScope.MyGoals,
+        "mygoals" or "my" or "personal" => GoalScope.MyGoals,
         "teamgoals" or "team" => GoalScope.TeamGoals,
-        "sharedgoals" or "shared" => GoalScope.SharedGoals,
         _ => GoalScope.MyGoals // Default
     };
 
@@ -56,7 +49,6 @@ public static class GoalScopeExtensions
     {
         0 => GoalScope.MyGoals,
         1 => GoalScope.TeamGoals,
-        2 => GoalScope.SharedGoals,
         _ => GoalScope.MyGoals
     };
 
@@ -67,7 +59,6 @@ public static class GoalScopeExtensions
     {
         GoalScope.MyGoals => 0,
         GoalScope.TeamGoals => 1,
-        GoalScope.SharedGoals => 2,
         _ => 0
     };
 }

@@ -139,8 +139,11 @@ public class GoalTrajectoryAnalyzer : IInsightAnalyzer
             Type = InsightType.GoalOffTrack,
             Title = $"At Risk: \"{goalTitle}\"",
             Content = description,
-            EntityType = "goal",
-            EntityId = goal.Id,
+            SubjectType = "goal",
+            SubjectId = goal.Id,
+            SourceType = "goal",
+            SourceId = goal.Id,
+            SeverityLevel = SeverityToLevel(severity),
             RelevanceScore = 0.90m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -161,8 +164,11 @@ public class GoalTrajectoryAnalyzer : IInsightAnalyzer
             Type = InsightType.GoalOnTrack,
             Title = $"On Track: \"{goalTitle}\"",
             Content = description,
-            EntityType = "goal",
-            EntityId = goal.Id,
+            SubjectType = "goal",
+            SubjectId = goal.Id,
+            SourceType = "goal",
+            SourceId = goal.Id,
+            SeverityLevel = 1, // Low for positive insights
             RelevanceScore = 0.30m,
 
             CreatedAt = DateTime.UtcNow,
@@ -187,6 +193,18 @@ public class GoalTrajectoryAnalyzer : IInsightAnalyzer
 
         return InsightSeverity.Medium;
     }
+    
+    /// <summary>
+    /// Converts InsightSeverity enum to database severity level (1-5).
+    /// </summary>
+    private static int SeverityToLevel(InsightSeverity severity) => severity switch
+    {
+        InsightSeverity.Critical => 5,
+        InsightSeverity.High => 4,
+        InsightSeverity.Medium => 3,
+        InsightSeverity.Low => 2,
+        _ => 1
+    };
 
     private static string TruncateText(string text, int maxLength)
     {
