@@ -43,6 +43,12 @@ public partial class ProjectsViewModel : ViewModelBase
     /// </summary>
     public event EventHandler<Project>? EditProjectDialogRequested;
     
+    /// <summary>
+    /// Raised when the user wants to navigate to a Chronicle note.
+    /// MainWindowViewModel subscribes to switch to the Chronicle tab.
+    /// </summary>
+    public event EventHandler<Guid>? NavigateToNoteRequested;
+    
     #endregion
 
     #region Loading State
@@ -428,20 +434,14 @@ public partial class ProjectsViewModel : ViewModelBase
     public bool HasLinkedNotes => LinkedNotes.Count > 0;
     
     /// <summary>
-    /// Opens a Chronicle note (navigates to Chronicle tab with note selected).
-    /// For now, shows a notification directing user to Chronicle tab.
-    /// TODO: Implement cross-tab navigation when NavigationService is available.
+    /// Opens a Chronicle note by navigating to the Chronicle tab.
     /// </summary>
     [RelayCommand]
     private void OpenNote(Note? note)
     {
         if (note == null) return;
         
-        // For now, just show a notification directing to Chronicle
-        // A full navigation service would require MainWindowViewModel changes
-        NotificationService.Instance.ShowInfo(
-            "View in Chronicle",
-            $"Open the Chronicle tab to view '{note.DisplayTitle}'");
+        NavigateToNoteRequested?.Invoke(this, note.Id);
     }
     
     /// <summary>

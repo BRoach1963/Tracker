@@ -225,3 +225,8 @@ supabase/.temp/
 # Temp files
 *.tmp
 ~$*
+
+# Archive files
+*.zip
+*.7z
+*.tar.gz

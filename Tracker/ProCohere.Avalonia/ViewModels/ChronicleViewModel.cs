@@ -346,8 +346,7 @@ public partial class ChronicleViewModel : ViewModelBase
             return;
         }
 
-        // Category column doesn't exist yet - just reload all notes
-        // TODO: Implement when category column is added to DB
+        // Deferred: Category filtering requires adding a category column to the notes table
         Log($"Category filter requested but column not yet available: {category}");
         await LoadNotesAsync();
     }

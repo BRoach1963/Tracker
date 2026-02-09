@@ -1951,7 +1951,7 @@ public partial class CircleViewModel : ViewModelBase
                 GoalRecentDiscussions.Add(discussion);
             }
 
-            // TODO: Load targets when TargetService is implemented
+            // Deferred: Targets loading requires TargetService (not yet built)
             GoalTargets.Clear();
         }
         catch (Exception ex)
@@ -2064,7 +2064,8 @@ public partial class CircleViewModel : ViewModelBase
     private void AddTarget()
     {
         if (SelectedGoal == null) return;
-        // TODO: Open add target dialog
+        // Deferred: Requires TargetService and AddTargetDialog (not yet built)
+        NotificationService.Instance.ShowInfo("Coming Soon", "Target management will be available in a future update.");
         Log($"Add target to goal: {SelectedGoal.Title}");
     }
 

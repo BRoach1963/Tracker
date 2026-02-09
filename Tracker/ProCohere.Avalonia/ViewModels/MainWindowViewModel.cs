@@ -270,6 +270,9 @@ public partial class MainWindowViewModel : ViewModelBase
         // Wire up entity navigation from Pulse insights
         PulseViewModel.NavigateToEntityRequested += (_, args) => NavigateToEntity(args.EntityType, args.EntityId);
         
+        // Wire up cross-tab navigation from Projects to Chronicle
+        ProjectsViewModel.NavigateToNoteRequested += (_, _) => SelectedNavigation = NavigationItem.Chronicle;
+        
         // Wire up back navigation from browse pages
         GoalsViewModel.NavigateBackRequested += (_, _) => SelectedNavigation = NavigationItem.Pulse;
         MetricsViewModel.NavigateBackRequested += (_, _) => SelectedNavigation = NavigationItem.Pulse;
@@ -552,8 +555,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSearch()
     {
-        // TODO: Implement command palette / search
-        StatusMessage = "Search coming soon...";
+        // Deferred: Command palette requires SearchDialog + SearchViewModel (not yet built)
+        NotificationService.Instance.ShowInfo("Coming Soon", "Search and command palette will be available in a future update.");
     }
 
     [RelayCommand]
@@ -638,6 +641,10 @@ public partial class MainWindowViewModel : ViewModelBase
             case "meeting":
                 // Meetings are shown in Me view
                 SelectedNavigation = NavigationItem.Me;
+                break;
+            case "note":
+            case "chronicle":
+                SelectedNavigation = NavigationItem.Chronicle;
                 break;
             default:
                 System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Unknown entity type: {entityType}");

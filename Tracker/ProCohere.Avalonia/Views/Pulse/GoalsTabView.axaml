@@ -126,18 +126,6 @@
                     </StackPanel>
                 </Border>
                 
-                <!-- Shared Goals - TODO: Implement IsScopeSharedGoals property in ViewModel
-                <Border Classes="scope-filter" Classes.selected="{Binding IsScopeSharedGoals}"
-                        Tapped="ScopeSharedGoals_Tapped">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PathIcon Data="M18,21L14,17H17V7H14L18,3L22,7H19V17H22M2,19V17H12V19M2,13V11H9V13M2,7V5H6V7H2Z" 
-                                  Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBlock Text="{markup:Localize Key=GoalsTab_Shared}" FontSize="13" 
-                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
-                -->
-                
                 <!-- Divider -->
                 <Border Width="1" Background="{DynamicResource BrushBorder}" Margin="8,4"/>
                 
