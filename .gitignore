@@ -203,7 +203,6 @@ npm-debug.log
 
 # Local settings
 appsettings.*.json
-!appsettings.json
 local.settings.json
 
 # Local databases
